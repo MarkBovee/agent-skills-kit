@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_URL="https://github.com/MarkBovee/nebu-skills.git"
+REPO_DIR="${REPO_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/nebu-skills}"
+OPENCODE_DIR="${1:-${XDG_CONFIG_HOME:-$HOME/.config}/opencode}"
+SKIP_PULL="${SKIP_PULL:-0}"
+
+if ! command -v git >/dev/null 2>&1; then
+  echo "git is required to install or update nebu-skills." >&2
+  exit 1
+fi
+
+mkdir -p "$(dirname "$REPO_DIR")"
+
+if [ ! -d "$REPO_DIR/.git" ]; then
+  if [ -e "$REPO_DIR" ]; then
+    echo "Repo directory exists but is not a git checkout: $REPO_DIR" >&2
+    exit 1
+  fi
+
+  git clone "$REPO_URL" "$REPO_DIR"
+elif [ "$SKIP_PULL" != "1" ]; then
+  git -C "$REPO_DIR" pull --ff-only
+fi
+
+exec bash "$REPO_DIR/scripts/install-opencode.sh" "$OPENCODE_DIR"
