@@ -2,12 +2,14 @@
 
 Reusable workflow skills for OpenCode, packaged as a standalone repo with a router plugin and install/update scripts.
 
-## One-line install
+## Quick Start
+
+Install or update with one command.
 
 ### Windows PowerShell
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-opencode.ps1)))
+irm https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-opencode.ps1 | iex
 ```
 
 ### macOS / Linux
@@ -25,14 +27,14 @@ Both commands:
 
 Restart OpenCode after running them.
 
-## One-line update
+## Update
 
 Run the same command again.
 
 ### Windows PowerShell
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-opencode.ps1)))
+irm https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-opencode.ps1 | iex
 ```
 
 ### macOS / Linux
@@ -40,6 +42,13 @@ Run the same command again.
 ```bash
 curl -fsSL https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-opencode.sh | bash
 ```
+
+## What You Get
+
+- workflow skills under `~/.config/opencode/skills/`
+- a routing plugin under `~/.config/opencode/plugins/nebu-skills-router.js`
+- cleanup of older legacy skill installs when present
+- a setup that stays compatible with `nebu-ctx`
 
 ## What is included
 
@@ -85,7 +94,7 @@ The router plugin in this repo is intentionally narrow:
 
 That means it should coexist cleanly with your `nebu-ctx` OpenCode plugin.
 
-## Install
+## Local Repo Install
 
 If you already cloned the repo locally, use the scripts below.
 
@@ -119,7 +128,7 @@ bash ./scripts/install-opencode.sh /path/to/opencode
 
 After install, restart OpenCode.
 
-## Update
+## Local Repo Update
 
 ### Windows PowerShell
 
