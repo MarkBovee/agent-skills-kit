@@ -11,6 +11,10 @@ $skillsSource = Join-Path $repoRoot "skills"
 $pluginsSource = Join-Path $repoRoot "plugins"
 $legacyAgentSkillsDir = Join-Path $HOME ".agents\skills"
 $legacyClaudeSkillsDir = Join-Path $HOME ".claude\skills"
+$renamedSkills = @(
+    "refactor",
+    "ui-ux-pro-max"
+)
 
 function Remove-LegacySkillInstalls {
     param([string]$BasePath)
@@ -32,6 +36,21 @@ function Remove-LegacySkillInstalls {
     }
 }
 
+function Remove-RenamedSkillInstalls {
+    param([string]$BasePath)
+
+    if (-not (Test-Path -LiteralPath $BasePath)) {
+        return
+    }
+
+    foreach ($skillName in $renamedSkills) {
+        $target = Join-Path $BasePath $skillName
+        if (Test-Path -LiteralPath $target) {
+            Remove-Item -LiteralPath $target -Recurse -Force
+        }
+    }
+}
+
 if (-not (Test-Path -LiteralPath $skillsSource)) {
     throw "Skills source directory not found: $skillsSource"
 }
@@ -49,6 +68,9 @@ New-Item -ItemType Directory -Force -Path $pluginsTarget | Out-Null
 Remove-LegacySkillInstalls -BasePath $skillsTarget
 Remove-LegacySkillInstalls -BasePath $legacyAgentSkillsDir
 Remove-LegacySkillInstalls -BasePath $legacyClaudeSkillsDir
+Remove-RenamedSkillInstalls -BasePath $skillsTarget
+Remove-RenamedSkillInstalls -BasePath $legacyAgentSkillsDir
+Remove-RenamedSkillInstalls -BasePath $legacyClaudeSkillsDir
 
 $installedSkills = @()
 
@@ -70,5 +92,6 @@ Copy-Item -LiteralPath $pluginSource -Destination $pluginDestination -Force
 "Installed $($installedSkills.Count) nebu-skills to $skillsTarget"
 "Installed router plugin to $pluginDestination"
 "Removed legacy skill installs when present."
+"Removed renamed legacy skills when present."
 "Other opencode plugins were left untouched, so this should coexist with nebu-ctx."
 "Restart opencode to load the new skills and plugin."

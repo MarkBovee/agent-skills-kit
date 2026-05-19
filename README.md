@@ -70,6 +70,8 @@ curl -fsSL https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/
 - `nebu-code-review`
 - `nebu-verification`
 - `nebu-agent-workflows`
+- `nebu-refactoring`
+- `nebu-ui-ux`
 - `writing-nebu-skills`
 - `workspace-wrapup`
 

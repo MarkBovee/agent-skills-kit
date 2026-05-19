@@ -58,15 +58,34 @@ function parseFrontmatter(content) {
   if (!match) return {}
 
   const result = {}
+  let currentListKey = null
 
   for (const rawLine of match[1].split(/\r?\n/)) {
     const line = rawLine.trim()
     if (!line || line.startsWith("#")) continue
 
+    const listItem = line.match(/^[-*]\s+(.*)$/)
+    if (currentListKey && listItem) {
+      if (!Array.isArray(result[currentListKey])) {
+        result[currentListKey] = []
+      }
+
+      result[currentListKey].push(stripQuotes(listItem[1]))
+      continue
+    }
+
     const keyValue = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/)
     if (!keyValue) continue
 
-    result[keyValue[1]] = stripQuotes(keyValue[2])
+    const [, key, rawValue] = keyValue
+    if (!rawValue) {
+      currentListKey = key
+      result[key] = []
+      continue
+    }
+
+    currentListKey = null
+    result[key] = stripQuotes(rawValue)
   }
 
   return result
@@ -84,6 +103,18 @@ function extractQuotedPhrases(text) {
   return [...text.matchAll(/"([^"]+)"/g)]
     .map((match) => match[1].trim().toLowerCase())
     .filter(Boolean)
+}
+
+function normalizeStringList(value) {
+  if (Array.isArray(value)) {
+    return value.map((entry) => String(entry).trim()).filter(Boolean)
+  }
+
+  if (typeof value === "string") {
+    return [value.trim()].filter(Boolean)
+  }
+
+  return []
 }
 
 function toSingleLine(text, maxLength = 120) {
@@ -135,15 +166,17 @@ async function loadSkills(pathsToScan) {
     const frontmatter = parseFrontmatter(content)
     const name = (frontmatter.name || path.basename(path.dirname(filePath))).trim()
     const description = (frontmatter.description || "").trim()
+    const triggers = normalizeStringList(frontmatter.triggers)
 
     if (!name || !description) continue
 
     skills.push({
       name,
       description,
+      triggers,
       filePath,
-      phrases: extractQuotedPhrases(description),
-      tokens: tokenize(`${name} ${description}`),
+      phrases: unique([...triggers.map((trigger) => trigger.toLowerCase()), ...extractQuotedPhrases(description)]),
+      tokens: tokenize(`${name} ${description} ${triggers.join(" ")}`),
     })
   }
 
@@ -157,6 +190,15 @@ function scoreSkill(skill, query) {
   let score = 0
   if (normalizedQuery.includes(skill.name.toLowerCase())) {
     score += 10
+  }
+
+  for (const trigger of skill.triggers) {
+    const normalizedTrigger = trigger.toLowerCase()
+    if (!normalizedTrigger) continue
+
+    if (normalizedQuery.includes(normalizedTrigger)) {
+      score += Math.min(8, normalizedTrigger.split(/\s+/).length + 3)
+    }
   }
 
   for (const phrase of skill.phrases) {
