@@ -11,7 +11,7 @@ triggers:
 
 # Nebu Debugging
 
-Fix obvious one-line mistakes directly. For everything else, earn the fix by narrowing the problem first.
+Fix obvious one-line mistakes directly. For everything else, earn the fix by narrowing the problem first, then keep iterating until the bug is fixed or a real blocker appears.
 
 ## Flow
 
@@ -20,6 +20,7 @@ Fix obvious one-line mistakes directly. For everything else, earn the fix by nar
 3. Compare against a working path, example, or prior behavior.
 4. Instrument the boundary that is most likely lying.
 5. Form one hypothesis and test it with the smallest useful change.
+6. Verify the result, self-review the explanation, and continue if the issue is not yet solved.
 
 ## Escalate your rigor when
 
@@ -32,6 +33,7 @@ Fix obvious one-line mistakes directly. For everything else, earn the fix by nar
 
 - Preserve evidence.
 - Change one thing at a time.
+- Do not stop for status-only check-ins between normal debugging attempts.
 - After two failed fixes, zoom out and question assumptions or architecture.
 
 ## Avoid

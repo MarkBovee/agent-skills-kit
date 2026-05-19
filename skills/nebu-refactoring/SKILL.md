@@ -17,6 +17,8 @@ triggers:
 
 Simplify the code without turning the change into a rewrite.
 
+Refactor incrementally: remove one real source of complexity, validate, then decide whether another pass is still worth it.
+
 ## Use this when
 
 - the user explicitly asks for a refactor or cleanup
@@ -36,7 +38,7 @@ Repository-specific instructions win over this skill.
 2. Identify the smallest owning area.
 3. Choose one high-leverage simplification.
 4. Implement the smallest coherent change set.
-5. Validate the touched surface.
+5. Validate the touched surface and self-review the result.
 6. Stop when the main complexity is gone.
 
 ## Good refactors
@@ -65,6 +67,7 @@ Repository-specific instructions win over this skill.
 - prefer composition over inheritance unless the shared behavior is stable and substantial
 - prefer existing helpers before adding new ones
 - keep APIs stable unless the refactor needs a contract change
+- reuse the repo's existing planning or spec system if the refactor needs durable notes
 - if the best refactor is leaving code alone, leave it alone
 
 ## Validation

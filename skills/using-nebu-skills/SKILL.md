@@ -13,8 +13,11 @@ triggers:
 
 Use the least process that keeps the work safe. These skills are helpers, not gates.
 
+For normal software work, `nebu-kaizen` is the default baseline. Add a more specific skill when the task needs stronger guidance.
+
 ## Router
 
+- Normal implementation, refactor, design, or process improvement -> `nebu-kaizen`
 - New feature or design still fuzzy -> `nebu-brainstorming`
 - Unclear request, fuzzy behavior, or real product tradeoffs -> `nebu-kickoff`
 - Multi-file or multi-phase work -> `nebu-planning`
@@ -28,14 +31,17 @@ Use the least process that keeps the work safe. These skills are helpers, not ga
 ## Default rules
 
 1. Prefer action over ceremony.
-2. Ask only when the answer changes scope, UX, architecture, or acceptance.
-3. Write plans and docs only when they buy clarity.
-4. Delegate only when the work is parallel, repetitive, or context-heavy.
-5. Be explicit about what is verified and what is not.
+2. When the goal is clear, keep working until done instead of pausing at every milestone.
+3. Run a small internal loop per chunk: inspect, create, test, review, continue.
+4. Ask only when the answer changes scope, UX, architecture, safety, or acceptance.
+5. Write plans and docs only when they buy clarity, and reuse the repo's existing durable system instead of inventing a parallel one.
+6. Delegate only when the work is parallel, repetitive, or context-heavy.
+7. Be explicit about what is verified and what is not.
 
 ## Avoid
 
 - Mandatory specs for trivial tasks
 - Mandatory worktrees, commits, or branch rituals
 - Mandatory subagents for tightly coupled edits
+- Stopping after every substep just to ask for permission again
 - Tiny-task theater that burns time without improving outcomes

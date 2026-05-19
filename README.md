@@ -61,6 +61,7 @@ curl -fsSL https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/
 ## Included skills
 
 - `using-nebu-skills`
+- `nebu-kaizen`
 - `nebu-brainstorming`
 - `nebu-kickoff`
 - `nebu-planning`
@@ -74,6 +75,17 @@ curl -fsSL https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/
 - `nebu-ui-ux`
 - `writing-nebu-skills`
 - `workspace-wrapup`
+
+## Default workflow
+
+`nebu-kaizen` is the baseline operating mode for normal software work in this repo's skill set.
+
+- make the smallest useful change
+- test it with the fastest trustworthy proof
+- review it
+- keep going until done unless a real blocker or decision appears
+
+Specialized skills layer on top when the task needs stronger guidance for ambiguity, planning, debugging, refactoring, review, or verification.
 
 ## OpenCode install approach
 

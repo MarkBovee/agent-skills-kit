@@ -27,8 +27,9 @@ Coordinate multiple agents only when parallel work will actually help.
 2. Split work only at clean boundaries.
 3. Share the minimum context needed to avoid re-derivation.
 4. Report blockers and findings early.
-5. Hand off explicitly when ownership changes.
-6. Clear pending messages before claiming done.
+5. Keep the active owner driving toward done instead of pausing for ceremonial checkpoints.
+6. Hand off explicitly when ownership changes.
+7. Clear pending messages before claiming done.
 
 ## Practical pattern
 
@@ -36,7 +37,8 @@ Coordinate multiple agents only when parallel work will actually help.
 2. Make the active owner visible.
 3. Keep shared facts concise: scope, files, blockers, proof.
 4. Merge results before starting overlapping edits.
-5. Finish with one clear summary and no dangling follow-ups.
+5. Aggregate create, test, and review outcomes into the owner thread instead of spamming status noise.
+6. Finish with one clear summary and no dangling follow-ups.
 
 ## When nebu-ctx is available
 

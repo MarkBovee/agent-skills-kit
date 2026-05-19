@@ -33,6 +33,7 @@ If the repo already has a design system or visual language, preserve it unless t
 3. Choose a clear visual direction that fits the product instead of defaulting to bland SaaS UI.
 4. Make the smallest coherent set of layout, hierarchy, spacing, color, copy, and interaction changes.
 5. Validate responsiveness, states, and accessibility before handoff.
+6. Keep iterating without repeated approval prompts unless the visual direction itself is in doubt.
 
 ## Quality bar
 

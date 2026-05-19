@@ -24,13 +24,14 @@ For small or local ambiguity, use `nebu-kickoff`.
 
 ## Pattern
 
-1. Read the current context first: existing code, docs, plans, and constraints.
+1. Read the current context first: existing code, docs, plans, active change records, and constraints.
 2. Ask one focused question at a time. Prefer multiple choice when it fits.
 3. Make assumptions explicit, especially around non-goals, scale, security, reliability, and ownership.
 4. Before proposing design, summarize understanding in a few bullets and ask for correction if needed.
 5. Propose 2-3 viable approaches with a recommendation and clear tradeoffs.
 6. Present the chosen design in small sections and validate as you go.
-7. Capture decisions only when future readers will benefit.
+7. Once the direction is chosen, stop brainstorming and move toward execution.
+8. Capture decisions only when future readers will benefit, and store them in the repo's existing durable planning or spec system.
 
 ## Good defaults
 
@@ -44,4 +45,5 @@ For small or local ambiguity, use `nebu-kickoff`.
 - Mandatory spec-writing for trivial work
 - Endless questioning after the direction is already clear
 - Hard blocking implementation just because brainstorming started
+- Creating a parallel planning tree when the repo already has a durable one
 - Turning assumptions into facts without saying so

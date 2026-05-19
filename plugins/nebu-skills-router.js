@@ -274,6 +274,7 @@ async function nebuSkillsRouterPlugin(_input, options = {}) {
       const matchedSkills = input.sessionID ? matchesBySession.get(input.sessionID) || [] : []
       const lines = [
         "Skill routing:",
+        "- For normal software work, prefer `nebu-kaizen` as the baseline and combine it with a more specific nebu skill when needed.",
         "- Prefer the `skill` tool when a request clearly matches an installed nebu workflow skill.",
         "- This router only suggests skills and should coexist cleanly with other plugins, including nebu-ctx.",
       ]

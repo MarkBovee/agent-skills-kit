@@ -25,6 +25,7 @@ Match the proof to the claim. Bigger claim, stronger evidence.
 2. Verify the original symptom when possible, not just nearby tests.
 3. Say plainly what was not checked.
 4. Do not inflate a partial check into a full-success statement.
+5. Use verification to finish the loop, not as a pause for reassurance mid-flow.
 
 ## Avoid
 

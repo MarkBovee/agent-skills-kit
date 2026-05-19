@@ -11,7 +11,7 @@ triggers:
 
 # Nebu Planning
 
-Plan only when the task is large enough to benefit from one. The plan should be just detailed enough to guide execution and review.
+Plan only when the task is large enough to benefit from one. The plan should be just detailed enough to guide execution and review, then support autonomous progress.
 
 ## Good plan shape
 
@@ -33,16 +33,14 @@ Plan only when the task is large enough to benefit from one. The plan should be 
 2. Prefer chunks that map to meaningful progress, not 2-minute micro-steps.
 3. Include only the details that reduce wrong turns.
 4. Update the plan when reality changes.
-5. If you are actively working an OpenSpec change, mirror durable plan updates back into the change artifacts instead of leaving them only in `plan.md`.
+5. If the repo already has a durable planning or spec system, update the active record there instead of creating a parallel documentation tree.
 
-## OpenSpec sync
+## Durable planning systems
 
-- Treat `plan.md` as session scratch space, not the durable record for an active OpenSpec change.
-- When a plan update adds a real decision, blocker, scope change, or implementation detail, write it to the matching artifact:
-  - `proposal.md` for scope changes
-  - `specs/.../spec.md` for requirement changes
-  - `design.md` for decisions, findings, and blockers
-  - `tasks.md` for execution state and newly discovered work
+- Detect an existing planning or change-management system from the repo before creating new planning artifacts.
+- If one is active, treat it as the durable source of truth and keep meaningful decisions, blockers, scope changes, and task state there.
+- If more than one candidate exists or the active record is unclear, ask one short question instead of guessing.
+- Never create a parallel branded planning tree by default.
 
 ## Avoid
 

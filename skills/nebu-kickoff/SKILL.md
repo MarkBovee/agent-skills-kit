@@ -19,7 +19,9 @@ Clarify enough to avoid wrong work, then move.
 2. If the task is obvious and local, state the working assumption and start.
 3. If ambiguity would change the implementation, ask one focused question at a time.
 4. Offer alternatives only when there is a real tradeoff; otherwise recommend one path.
-5. For bigger work, capture a short problem statement, constraints, and chosen path before coding.
+5. Once the path is clear, move into execution without extra approval loops.
+6. For bigger work, capture a short problem statement, constraints, and chosen path before coding.
+7. If the repo already uses a durable planning or spec system, record durable decisions there instead of starting a parallel doc tree.
 
 ## Focus areas
 
@@ -33,4 +35,5 @@ Clarify enough to avoid wrong work, then move.
 - Turning every request into a formal spec exercise
 - Asking curiosity questions that do not change the work
 - Blocking obvious fixes on unnecessary approval loops
+- Creating a new planning tree when the repo already has one
 - Generating big design docs for small local changes
