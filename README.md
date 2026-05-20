@@ -51,6 +51,8 @@ bash ./scripts/update-opencode.sh --skip-pull  # reinstall only
 
 ## Skills
 
+All repo-managed workflow skills use the `nebu-` prefix so router hints and loaded skills are easy to recognize while testing.
+
 | Skill | When to use |
 | --- | --- |
 | `nebu-kaizen` | Default for normal software work — small safe iterations, no unnecessary pauses |
@@ -65,9 +67,9 @@ bash ./scripts/update-opencode.sh --skip-pull  # reinstall only
 | `nebu-refactoring` | Cleanup, simplification, restructuring without turning it into a rewrite |
 | `nebu-ui-ux` | Designing or implementing UI/UX for web or mobile interfaces |
 | `nebu-agent-workflows` | Coordinating multi-agent work, parallel execution, or task handoff |
-| `workspace-wrapup` | Finishing work that touched one or more repos in a workspace |
-| `using-nebu-skills` | Deciding which skill fits the current task |
-| `writing-nebu-skills` | Creating or revising workflow skills |
+| `nebu-workspace-wrapup` | Finishing work that touched one or more repos in a workspace |
+| `nebu-using-nebu-skills` | Deciding which skill fits the current task |
+| `nebu-writing-nebu-skills` | Creating or revising workflow skills |
 
 ## Architecture
 

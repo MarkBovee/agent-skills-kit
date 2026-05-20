@@ -1,6 +1,6 @@
 ---
 name: nebu-kaizen
-description: Use for normal software work when you want the default Nebu operating mode: small safe iterations, built-in validation, and no unnecessary pauses between clear next steps.
+description: Use when you want the default Nebu operating mode for normal software work: small safe iterations, built-in validation, and no unnecessary pauses between clear next steps.
 triggers:
   - kaizen
   - default workflow

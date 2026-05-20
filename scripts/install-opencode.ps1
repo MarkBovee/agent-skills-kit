@@ -13,7 +13,10 @@ $legacyAgentSkillsDir = Join-Path $HOME ".agents\skills"
 $legacyClaudeSkillsDir = Join-Path $HOME ".claude\skills"
 $renamedSkills = @(
     "refactor",
-    "ui-ux-pro-max"
+    "ui-ux-pro-max",
+    "using-nebu-skills",
+    "writing-nebu-skills",
+    "workspace-wrapup"
 )
 
 function Remove-LegacySkillInstalls {

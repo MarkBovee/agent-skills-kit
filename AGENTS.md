@@ -42,8 +42,8 @@ Keep skills short (30-90 lines). Prefer this shape:
 ### Naming
 
 - Workflow skills: `nebu-<topic>` (e.g. `nebu-debugging`, `nebu-kaizen`)
-- Meta/router skills: `using-nebu-skills`, `writing-nebu-skills`
-- Utility skills: descriptive name (e.g. `workspace-wrapup`)
+- Meta/router skills: `nebu-using-nebu-skills`, `nebu-writing-nebu-skills`
+- Utility skills: prefer the `nebu-` prefix too (e.g. `nebu-workspace-wrapup`)
 
 ### Cross-references
 

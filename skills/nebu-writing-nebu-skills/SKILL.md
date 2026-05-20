@@ -1,5 +1,5 @@
 ---
-name: writing-nebu-skills
+name: nebu-writing-nebu-skills
 description: Use when creating or revising skills and you want them short, searchable, trigger-focused, and easy for the model to actually follow.
 triggers:
   - create skill

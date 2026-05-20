@@ -1,5 +1,5 @@
 ---
-name: using-nebu-skills
+name: nebu-using-nebu-skills
 description: Use when starting normal software work and deciding which nebu workflow skill fits the current task.
 triggers:
   - choose a skill
@@ -29,8 +29,8 @@ For normal software work, `nebu-kaizen` is the default baseline. Add a more spec
 - Cleanup, simplification, restructuring -> `nebu-refactoring`
 - UI/UX design or implementation -> `nebu-ui-ux`
 - Multi-agent coordination -> `nebu-agent-workflows`
-- Finishing work across repos -> `workspace-wrapup`
-- Creating or revising skills -> `writing-nebu-skills`
+- Finishing work across repos -> `nebu-workspace-wrapup`
+- Creating or revising skills -> `nebu-writing-nebu-skills`
 
 ## Default rules
 

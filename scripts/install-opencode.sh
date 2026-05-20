@@ -13,6 +13,9 @@ LEGACY_CLAUDE_SKILLS_DIR="$HOME/.claude/skills"
 RENAMED_SKILLS=(
   "refactor"
   "ui-ux-pro-max"
+  "using-nebu-skills"
+  "writing-nebu-skills"
+  "workspace-wrapup"
 )
 
 remove_legacy_skill_installs() {
