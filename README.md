@@ -63,6 +63,7 @@ All repo-managed workflow skills use the `nebu-` prefix so router hints and load
 | `nebu-debugging` | Bug, failing test, or broken build not explained by a clear local mistake |
 | `nebu-test-driven-development` | Changing behavior that should stay fixed — bugfixes, stable seams |
 | `nebu-code-review` | Meaningful diff ready and fresh eyes would help catch regressions |
+| `nebu-github-issues` | Creating GitHub issues from bug reports, review findings, or follow-up work |
 | `nebu-verification` | About to claim something works, is fixed, or is ready to hand off |
 | `nebu-refactoring` | Cleanup, simplification, restructuring without turning it into a rewrite |
 | `nebu-ui-ux` | Designing or implementing UI/UX for web or mobile interfaces |
