@@ -33,6 +33,10 @@ Review for correctness, requirements, and risk first. Style is optional; broken 
 - Explain why it matters
 - Suggest the next move
 
+## Use with
+
+- `nebu-verification` after review passes to confirm the claim is proven
+
 ## Avoid
 
 - Nit-only reviews on otherwise risky code

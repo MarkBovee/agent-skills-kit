@@ -1,6 +1,12 @@
 ---
 name: nebu-agent-workflows
 description: Use when coordinating multi-agent work, parallel execution, task handoff, shared context, or clean session shutdown across multiple agents or terminals. Especially useful when nebu-ctx is available for agent coordination.
+triggers:
+  - multi-agent
+  - parallel work
+  - agent coordination
+  - task handoff
+  - subagent delegation
 ---
 
 # Nebu Agent Workflows

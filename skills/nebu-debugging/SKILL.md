@@ -36,6 +36,10 @@ Fix obvious one-line mistakes directly. For everything else, earn the fix by nar
 - Do not stop for status-only check-ins between normal debugging attempts.
 - After two failed fixes, zoom out and question assumptions or architecture.
 
+## Use with
+
+- `nebu-test-driven-development` to lock the fix behind a regression test
+
 ## Avoid
 
 - Guess-patch-repeat loops

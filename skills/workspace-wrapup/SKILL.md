@@ -1,6 +1,12 @@
 ---
 name: workspace-wrapup
 description: Use when a task changed one or more repos in this workspace and you are about to claim completion, hand off work, or stop with done/fixed/finished wording
+triggers:
+  - wrap up
+  - hand off
+  - task complete
+  - finishing work
+  - workspace done
 ---
 
 # Workspace Wrap-Up
@@ -29,7 +35,7 @@ Do not use this skill to invent missing task metadata, silently adopt dirty base
 
 ## State Model
 
-- The helper script is the **sole state writer**: `scripts\copilot\Write-WrapupState.ps1`.
+- The helper script is the **sole state writer**. Locate it via the repo's script directory convention (e.g. `scripts/wrapup-helper` or the repo's documented path).
 - Initialize state before any possible repo touch.
 - Every touched repo stays in scope even if it looks clean later.
 - Per repo, state must record: repo path, branch of record, matching remote branch, baseline mode, adopted baseline when used, source branch when used, start head, expected integrated tree, frozen remote head, tracked topic branches, and tracked worktrees.
@@ -39,14 +45,16 @@ Do not use this skill to invent missing task metadata, silently adopt dirty base
 
 ### Helper quick reference
 
-```powershell
-pwsh -NoLogo -NoProfile -File .\scripts\copilot\Write-WrapupState.ps1 -Action initialize -StatePath <path> -UmbrellaRepo <repo>
-pwsh -NoLogo -NoProfile -File .\scripts\copilot\Write-WrapupState.ps1 -Action register-repo -StatePath <path> -RepoPath <repo>
-pwsh -NoLogo -NoProfile -File .\scripts\copilot\Write-WrapupState.ps1 -Action assert-clean-start -StatePath <path> -RepoPath <repo>
-pwsh -NoLogo -NoProfile -File .\scripts\copilot\Write-WrapupState.ps1 -Action adopt-divergence -StatePath <path> -RepoPath <repo> -LocalHead <sha> -RemoteHead <sha>
-pwsh -NoLogo -NoProfile -File .\scripts\copilot\Write-WrapupState.ps1 -Action set-expected-tree -StatePath <path> -RepoPath <repo> -ExpectedIntegratedTree <tree>
-pwsh -NoLogo -NoProfile -File .\scripts\copilot\Write-WrapupState.ps1 -Action freeze-expected-tree -StatePath <path> -RepoPath <repo> -RemoteHead <sha>
-pwsh -NoLogo -NoProfile -File .\scripts\copilot\Write-WrapupState.ps1 -Action confirm-recovery -StatePath <path> -RecoveryFingerprint <hash>
+Replace `<helper>` with the wrap-up helper script path for the target repo.
+
+```
+<helper> -Action initialize -StatePath <path> -UmbrellaRepo <repo>
+<helper> -Action register-repo -StatePath <path> -RepoPath <repo>
+<helper> -Action assert-clean-start -StatePath <path> -RepoPath <repo>
+<helper> -Action adopt-divergence -StatePath <path> -RepoPath <repo> -LocalHead <sha> -RemoteHead <sha>
+<helper> -Action set-expected-tree -StatePath <path> -RepoPath <repo> -ExpectedIntegratedTree <tree>
+<helper> -Action freeze-expected-tree -StatePath <path> -RepoPath <repo> -RemoteHead <sha>
+<helper> -Action confirm-recovery -StatePath <path> -RecoveryFingerprint <hash>
 ```
 
 ## Check Mode
@@ -67,7 +75,7 @@ Use `check` to answer: "Can wrap-up complete right now without guessing?"
 
 Use command shapes like:
 
-```powershell
+```
 git status --short --branch
 git worktree list --porcelain
 git rev-parse HEAD
@@ -91,11 +99,8 @@ Use `recover` only when the state artifact is missing or corrupt.
 4. Do **not** continue into `apply` automatically.
 5. Before `apply`, confirm the recovered state with the helper:
 
-```powershell
-pwsh -NoLogo -NoProfile -File .\scripts\copilot\Write-WrapupState.ps1 `
-  -Action confirm-recovery `
-  -StatePath <path> `
-  -RecoveryFingerprint <hash>
+```
+<helper> -Action confirm-recovery -StatePath <path> -RecoveryFingerprint <hash>
 ```
 
 If the fingerprint does not match the candidate recovery output, stay blocked.

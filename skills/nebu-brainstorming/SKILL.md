@@ -40,6 +40,10 @@ For small or local ambiguity, use `nebu-kickoff`.
 - Prefer the simplest design that still meets the need
 - Keep documentation proportional
 
+## Use with
+
+- `nebu-kickoff` once the direction is chosen and execution ambiguity remains
+
 ## Avoid
 
 - Mandatory spec-writing for trivial work

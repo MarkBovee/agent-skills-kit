@@ -30,6 +30,10 @@ Clarify enough to avoid wrong work, then move.
 - What behavior must not change?
 - What proof will count as done?
 
+## Use with
+
+- `nebu-brainstorming` when the user is still exploring what to build or when design tradeoffs are unresolved
+
 ## Avoid
 
 - Turning every request into a formal spec exercise

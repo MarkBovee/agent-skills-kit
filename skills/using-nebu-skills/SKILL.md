@@ -26,6 +26,10 @@ For normal software work, `nebu-kaizen` is the default baseline. Add a more spec
 - Behavior that should stay fixed -> `nebu-test-driven-development`
 - Meaningful diff before handoff -> `nebu-code-review`
 - About to claim success -> `nebu-verification`
+- Cleanup, simplification, restructuring -> `nebu-refactoring`
+- UI/UX design or implementation -> `nebu-ui-ux`
+- Multi-agent coordination -> `nebu-agent-workflows`
+- Finishing work across repos -> `workspace-wrapup`
 - Creating or revising skills -> `writing-nebu-skills`
 
 ## Default rules
