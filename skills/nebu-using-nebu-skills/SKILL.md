@@ -1,9 +1,17 @@
 ---
 name: nebu-using-nebu-skills
-description: Use when starting normal software work and deciding which nebu workflow skill fits the current task.
+description: Choose a Nebu workflow skill when starting software work, asking for autopilot mode, saying ga door or werk door, or deciding how to keep going without unnecessary stop points.
 triggers:
   - choose a skill
   - which skill
+  - autopilot mode
+  - keep going
+  - continue without waiting
+  - ga door
+  - werk door
+  - ga verder
+  - zonder te wachten
+  - niet stoppen
   - start software work
   - skill router
   - workflow selection

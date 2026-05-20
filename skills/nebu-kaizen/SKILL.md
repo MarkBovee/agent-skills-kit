@@ -1,8 +1,21 @@
 ---
 name: nebu-kaizen
-description: Use when you want the default Nebu operating mode for normal software work: small safe iterations, built-in validation, and no unnecessary pauses between clear next steps.
+description: Autopilot mode, keep going, continue without waiting, ga door, werk door, of normale softwareklus waar de volgende logische stap duidelijk is: small safe iterations, built-in validation, and no unnecessary pauses between clear next steps.
 triggers:
   - kaizen
+  - autopilot
+  - keep going
+  - continue without waiting
+  - do not stop
+  - don't stop
+  - ga door
+  - werk door
+  - volgende logische stap
+  - volgende stap
+  - zonder te wachten
+  - niet stoppen
+  - gewoon doorgaan
+  - ga verder
   - default workflow
   - continuous improvement
   - improve code quality
@@ -13,6 +26,10 @@ triggers:
 # Nebu Kaizen
 
 Default to steady progress: inspect, create, test, review, continue.
+
+If the next logical step is clear, keep going in autopilot mode instead of pausing for routine check-ins.
+
+This also applies when the user phrases it in Dutch, such as `ga door`, `werk door`, `ga verder`, or `zonder te wachten`.
 
 ## Core loop
 

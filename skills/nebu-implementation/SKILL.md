@@ -1,8 +1,16 @@
 ---
 name: nebu-implementation
-description: Use when implementing a multi-step change and choosing between direct work, batching, and subagent delegation.
+description: Implement, autopilot through a multi-step change, keep coding, continue without waiting, ga door met de implementatie, or werk de stappen af zonder onnodige stopmomenten; choose between direct work, batching, and subagent delegation.
 triggers:
   - implement
+  - autopilot
+  - keep coding
+  - continue implementation
+  - work through steps
+  - ga door met implementatie
+  - werk de stappen af
+  - codeer door
+  - ga verder met de fix
   - code change
   - batch edits
   - delegate work
@@ -13,7 +21,7 @@ triggers:
 
 Use judgment about where the work should happen. Direct work is usually best for coupled edits; delegation is best for parallel or isolated work.
 
-Once the path is clear, keep moving through implementation loops without waiting for approval between normal milestones.
+Once the path is clear, keep moving through implementation loops without waiting for approval between normal milestones or obvious next steps.
 
 ## Choose the mode
 
