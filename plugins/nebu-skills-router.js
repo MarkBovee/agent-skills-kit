@@ -47,6 +47,8 @@ const MAX_SESSION_CACHE = 100
 const CODE_EDIT_TOOL_IDS = new Set(["edit", "write", "apply_patch"])
 const CODE_REVIEW_SKILL = "nebu-code-review"
 const VERIFICATION_SKILL = "nebu-verification"
+const WRAPUP_SKILL = "nebu-workspace-wrapup"
+const IMPROVEMENT_SKILL = "nebu-skill-improvement"
 const COMPLETION_PHRASES = [
   "done",
   "finished",
@@ -273,6 +275,22 @@ function applySessionAwareRouting(query, matches, discoveredSkills, needsCodeRev
   ].slice(0, maxHints)
 }
 
+function maybeAddSkill(matches, discoveredSkills, skillName, maxHints) {
+  const matchedSkill = discoveredSkills.find((skill) => skill.name === skillName)
+  if (!matchedSkill) return matches
+
+  return unique([matchedSkill, ...matches]).slice(0, maxHints)
+}
+
+function applyImprovementRouting(query, matches, discoveredSkills, shouldCaptureImprovement, maxHints) {
+  if (!shouldCaptureImprovement || !hasCompletionSignal(query)) return matches
+
+  return prioritizeSkill(
+    maybeAddSkill(matches, discoveredSkills, IMPROVEMENT_SKILL, maxHints),
+    IMPROVEMENT_SKILL,
+  )
+}
+
 function findMatches(query, skills, maxHints) {
   return skills
     .map((skill) => ({ skill, score: scoreSkill(skill, query) }))
@@ -293,7 +311,7 @@ function trimSessionCache(cache, maxEntries) {
 function setSessionState(cache, sessionID, updates) {
   if (!sessionID) return null
 
-  const current = cache.get(sessionID) || { matchedSkills: [], needsCodeReview: false }
+  const current = cache.get(sessionID) || { matchedSkills: [], needsCodeReview: false, shouldCaptureImprovement: false }
   const next = { ...current, ...updates }
 
   cache.delete(sessionID)
@@ -366,13 +384,20 @@ async function nebuSkillsRouterPlugin(_input, options = {}) {
       if (!text) return
 
       const currentState = input.sessionID
-        ? sessionStateBySession.get(input.sessionID) || { matchedSkills: [], needsCodeReview: false }
-        : { matchedSkills: [], needsCodeReview: false }
-      const matchedSkills = applySessionAwareRouting(
+        ? sessionStateBySession.get(input.sessionID) || { matchedSkills: [], needsCodeReview: false, shouldCaptureImprovement: false }
+        : { matchedSkills: [], needsCodeReview: false, shouldCaptureImprovement: false }
+      const reviewAwareMatches = applySessionAwareRouting(
         text,
         findMatches(text, discoveredSkills, maxHints),
         discoveredSkills,
         currentState.needsCodeReview,
+        maxHints,
+      )
+      const matchedSkills = applyImprovementRouting(
+        text,
+        reviewAwareMatches,
+        discoveredSkills,
+        currentState.shouldCaptureImprovement,
         maxHints,
       )
 
@@ -401,14 +426,27 @@ async function nebuSkillsRouterPlugin(_input, options = {}) {
       if (toolID !== "skill") return
 
       const invokedSkillName = resolveInvokedSkillName(input, output)
-      if (invokedSkillName !== CODE_REVIEW_SKILL) return
+      if (invokedSkillName === CODE_REVIEW_SKILL) {
+        setSessionState(sessionStateBySession, input.sessionID, {
+          needsCodeReview: false,
+          shouldCaptureImprovement: true,
+        })
+        return
+      }
 
-      setSessionState(sessionStateBySession, input.sessionID, { needsCodeReview: false })
+      if (invokedSkillName === WRAPUP_SKILL || invokedSkillName === VERIFICATION_SKILL) {
+        setSessionState(sessionStateBySession, input.sessionID, { shouldCaptureImprovement: true })
+        return
+      }
+
+      if (invokedSkillName !== IMPROVEMENT_SKILL) return
+
+      setSessionState(sessionStateBySession, input.sessionID, { shouldCaptureImprovement: false })
     },
     "experimental.chat.system.transform": async (input, output) => {
       const sessionState = input.sessionID
-        ? sessionStateBySession.get(input.sessionID) || { matchedSkills: [], needsCodeReview: false }
-        : { matchedSkills: [], needsCodeReview: false }
+        ? sessionStateBySession.get(input.sessionID) || { matchedSkills: [], needsCodeReview: false, shouldCaptureImprovement: false }
+        : { matchedSkills: [], needsCodeReview: false, shouldCaptureImprovement: false }
       const matchedSkills = sessionState.matchedSkills
       const lines = [
         "Skill routing:",
@@ -427,6 +465,12 @@ async function nebuSkillsRouterPlugin(_input, options = {}) {
         )
         lines.push(
           "- If the user says `done`, `ready`, `finished`, `handoff`, or Dutch equivalents like `klaar`, bias routing toward `nebu-code-review` before `nebu-verification`.",
+        )
+      }
+
+      if (sessionState.shouldCaptureImprovement) {
+        lines.push(
+          "- Review, verification, or wrap-up happened in this session. Before ending cold, consider whether a reusable workflow gap was exposed and route toward `nebu-skill-improvement` when there is a concrete improvement to capture.",
         )
       }
 

@@ -17,18 +17,19 @@
 
 ## Why nebu-skills
 
-`nebu-skills` gives OpenCode a sharper operating model: focused workflow skills, cleaner routing, and better timing across the full engineering loop.
+`nebu-skills` gives OpenCode a sharper operating model: focused workflow skills, cleaner routing, better timing across the full engineering loop, and a path for the system to improve from real usage.
 
 This started as a practical toolkit. It is turning into a tighter, more opinionated, more production-ready skill pack for developers who want sessions to feel deliberate instead of improvised.
 
 - Better task routing from real user intent
 - Strong workflow coverage from kickoff to wrap-up
+- Auto-improvement loop: reusable misses can become tracked skill or router improvements
 - Simple install and update path across macOS, Linux, WSL, and Windows PowerShell
 - Safe plugin behavior: hints only, no command rewriting, no tool hijacking
 
 ## What You Get
 
-- `16` workflow skills under `skills/`
+- `17` workflow skills under `skills/`
 - `1` router plugin: `plugins/nebu-skills-router.js`
 - `3` install paths: bootstrap, local clone, manual copy
 - Idempotent install/update scripts for shell and PowerShell
@@ -135,6 +136,7 @@ All repo-managed workflow skills use the `nebu-` prefix, so loaded skills and ro
 | `nebu-refactoring` | Cleanup or simplification without turning it into rewrite |
 | `nebu-ui-ux` | UI/UX design or implementation work |
 | `nebu-agent-workflows` | Multi-agent coordination, parallel work, handoff |
+| `nebu-skill-improvement` | Reusable workflow or routing improvement should become tracked follow-up |
 | `nebu-workspace-wrapup` | Finishing workspace changes before handoff |
 | `nebu-using-nebu-skills` | Need help choosing right skill |
 | `nebu-writing-nebu-skills` | Creating or revising workflow skills |
@@ -148,7 +150,32 @@ All repo-managed workflow skills use the `nebu-` prefix, so loaded skills and ro
 | Start well | `nebu-kickoff`, `nebu-brainstorming`, `nebu-planning` |
 | Execute cleanly | `nebu-kaizen`, `nebu-implementation`, `nebu-debugging`, `nebu-refactoring` |
 | Protect behavior | `nebu-test-driven-development`, `nebu-code-review`, `nebu-verification` |
-| Close strong | `nebu-github-issues`, `nebu-workspace-wrapup` |
+| Improve system | `nebu-skill-improvement`, `nebu-github-issues` |
+| Close strong | `nebu-workspace-wrapup` |
+
+## Auto-Improvement Flow
+
+Work should improve system that does work.
+
+Default loop:
+
+1. Agent does normal task flow.
+2. Review, verification, or wrap-up notices reusable friction, missed judgment, or missing guardrail.
+3. Route to `nebu-skill-improvement`.
+4. If fix is small and clear, update skill or router directly.
+5. Even after direct fix, create or reuse issue in the `nebu-skills` source repo so upstream source stays aligned.
+6. If not fixing now, create or reuse GitHub issue.
+
+Example:
+
+- During issue creation, agent notices it should first check whether matching open issue already exists.
+- That becomes reusable guidance in `nebu-github-issues`.
+- If that guidance is fixed locally during the session, a `nebu-skills` source issue still gets created or reused so the improvement is tracked at the source.
+- If broader follow-up is needed, `nebu-skill-improvement` captures it as tracked issue instead of losing it in chat history.
+
+Practical helper:
+
+- `skills/nebu-github-issues/check-existing-issue.sh "<query>" [owner/repo]` runs a default `gh issue list` duplicate search before creating a new issue.
 
 ## How It Works
 
@@ -172,6 +199,7 @@ Important behavior:
 - Does not auto-run tools
 - Does not rewrite commands
 - Tracks session edits and nudges `nebu-code-review` when review timing makes sense
+- Tracks review and wrap-up timing so reusable workflow improvements can be captured before the session ends
 - Stays compatible with other OpenCode plugins
 
 ### Install scripts

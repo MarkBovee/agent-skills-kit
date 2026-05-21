@@ -47,7 +47,8 @@ This also applies when the user phrases it in Dutch, such as `ga door`, `werk do
 4. Follow existing repo patterns before inventing new ones.
 5. Build only what the current requirement needs.
 6. After code changes, do a proportional review pass. Load `nebu-code-review` when the diff is meaningful, subtle, or risky; tiny local diffs may stay self-reviewed.
-7. Reuse the repo's existing durable planning or spec system when one exists; do not create a parallel doc tree by default.
+7. When work reveals reusable workflow friction, capture the smallest durable improvement instead of treating it as one-off noise.
+8. Reuse the repo's existing durable planning or spec system when one exists; do not create a parallel doc tree by default.
 
 ## Use with
 
@@ -57,6 +58,7 @@ This also applies when the user phrases it in Dutch, such as `ga door`, `werk do
 - `nebu-code-review` after meaningful code edits and before handoff
 - `nebu-debugging` for bugs, failing tests, and broken builds
 - `nebu-refactoring` when the work is cleanup or simplification
+- `nebu-skill-improvement` when repeated friction should become reusable skill or router fix
 - `nebu-verification` before claiming success
 
 ## Avoid

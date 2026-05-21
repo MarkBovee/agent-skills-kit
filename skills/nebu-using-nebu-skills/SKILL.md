@@ -37,6 +37,7 @@ For normal software work, `nebu-kaizen` is the default baseline. Add a more spec
 - Cleanup, simplification, restructuring -> `nebu-refactoring`
 - UI/UX design or implementation -> `nebu-ui-ux`
 - Multi-agent coordination -> `nebu-agent-workflows`
+- Reusable workflow or routing improvement discovered during work -> `nebu-skill-improvement`
 - Finishing work across repos -> `nebu-workspace-wrapup`
 - Creating or revising skills -> `nebu-writing-nebu-skills`
 

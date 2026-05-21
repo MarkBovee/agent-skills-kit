@@ -22,7 +22,8 @@ Close out multi-repo work only after the integrated state is proven and the work
 5. Run a no-mutation check first. If the integration or cleanup path is ambiguous, stop and report `blocked`.
 6. Apply cleanup only after the proof target is unambiguous and verified.
 7. Remove disposable worktrees before disposable branches, and leave the branch of record clean at the end.
-8. Claim completion only when every touched repo is either reconciled or explicitly blocked with a reason.
+8. Before final done claim, check whether the session exposed a reusable workflow improvement worth capturing.
+9. Claim completion only when every touched repo is either reconciled or explicitly blocked with a reason.
 
 ## Rules
 
@@ -35,6 +36,7 @@ Close out multi-repo work only after the integrated state is proven and the work
 
 - `nebu-verification` to match the final claim to the proof you actually gathered
 - `nebu-agent-workflows` when multiple agents or terminals touched different repos in the same workspace
+- `nebu-skill-improvement` when the session uncovered reusable process or routing gaps
 
 ## Avoid
 

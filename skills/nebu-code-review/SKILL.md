@@ -32,6 +32,12 @@ This is the default second pass after non-trivial code edits. Tiny local changes
 - Medium or subtle change: use a review agent or second pass.
 - Risky or cross-cutting diff: review against requirements and likely regressions explicitly.
 
+## Improvement hook
+
+- If review reveals reusable workflow gap, capture it before handoff.
+- Prefer updating an existing skill or router rule when that would prevent same miss next time.
+- If not fixing now, create or reuse follow-up issue.
+
 ## Good review comments
 
 - Point to the risk
@@ -42,6 +48,7 @@ This is the default second pass after non-trivial code edits. Tiny local changes
 
 - `nebu-implementation` when the coding pass is done and the diff needs a second look
 - `nebu-verification` after review passes to confirm the claim is proven
+- `nebu-skill-improvement` when review exposes a recurring miss in agent workflow
 
 ## Avoid
 
