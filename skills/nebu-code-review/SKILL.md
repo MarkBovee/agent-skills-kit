@@ -1,17 +1,22 @@
 ---
 name: nebu-code-review
-description: Use when a meaningful diff is ready and fresh eyes would help catch requirement gaps, regressions, or risky design mistakes before handoff.
+description: Use when code changed and a meaningful diff is ready; fresh eyes should catch requirement gaps, regressions, or risky design mistakes before handoff or success claims.
 triggers:
   - review
   - diff
   - pull request
   - code review
   - fresh eyes
+  - after code changes
+  - after coding
+  - before claiming done
 ---
 
 # Nebu Code Review
 
 Review for correctness, requirements, and risk first. Style is optional; broken behavior is not.
+
+This is the default second pass after non-trivial code edits. Tiny local changes may stay self-reviewed, but medium or risky diffs should not jump straight from coding to `done`.
 
 ## Review checklist
 
@@ -35,6 +40,7 @@ Review for correctness, requirements, and risk first. Style is optional; broken 
 
 ## Use with
 
+- `nebu-implementation` when the coding pass is done and the diff needs a second look
 - `nebu-verification` after review passes to confirm the claim is proven
 
 ## Avoid

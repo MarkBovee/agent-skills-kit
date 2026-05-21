@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$RepoDir = $(Join-Path $HOME ".local\share\nebu-skills"),
+    [string]$RepoDir = $(if ($env:XDG_DATA_HOME) { Join-Path $env:XDG_DATA_HOME "nebu-skills" } elseif ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA "nebu-skills" } else { Join-Path $HOME ".local\share\nebu-skills" }),
     [string]$OpencodeDir = $(if ($env:XDG_CONFIG_HOME) { Join-Path $env:XDG_CONFIG_HOME "opencode" } else { Join-Path $HOME ".config\opencode" }),
     [switch]$SkipPull
 )

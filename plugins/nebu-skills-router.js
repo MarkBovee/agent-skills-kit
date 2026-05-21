@@ -44,6 +44,22 @@ const STOP_WORDS = new Set([
 const DEFAULT_MAX_HINTS = 4
 const DEFAULT_MAX_LISTED_SKILLS = 8
 const MAX_SESSION_CACHE = 100
+const CODE_EDIT_TOOL_IDS = new Set(["edit", "write", "apply_patch"])
+const CODE_REVIEW_SKILL = "nebu-code-review"
+const VERIFICATION_SKILL = "nebu-verification"
+const COMPLETION_PHRASES = [
+  "done",
+  "finished",
+  "ready",
+  "handoff",
+  "hand off",
+  "wrap up",
+  "claim success",
+  "klaar",
+  "gereed",
+  "afronden",
+  "afgerond",
+]
 
 function unique(values) {
   return [...new Set(values.filter(Boolean))]
@@ -216,6 +232,47 @@ function scoreSkill(skill, query) {
   return score
 }
 
+function hasCompletionSignal(query) {
+  const normalizedQuery = query.trim().toLowerCase()
+  if (!normalizedQuery) return false
+
+  return COMPLETION_PHRASES.some((phrase) => normalizedQuery.includes(phrase))
+}
+
+function prioritizeSkill(matches, skillName) {
+  const matchedSkill = matches.find((skill) => skill.name === skillName)
+  if (!matchedSkill) return matches
+
+  return [matchedSkill, ...matches.filter((skill) => skill.name !== skillName)]
+}
+
+function applySessionAwareRouting(query, matches, discoveredSkills, needsCodeReview, maxHints) {
+  if (!needsCodeReview || !hasCompletionSignal(query)) {
+    return matches
+  }
+
+  const codeReviewSkill = discoveredSkills.find((skill) => skill.name === CODE_REVIEW_SKILL)
+  if (!codeReviewSkill) return matches
+
+  const augmentedMatches = unique([
+    codeReviewSkill,
+    ...matches,
+  ]).slice(0, maxHints)
+
+  const prioritizedMatches = prioritizeSkill(augmentedMatches, CODE_REVIEW_SKILL)
+  const verificationIndex = prioritizedMatches.findIndex((skill) => skill.name === VERIFICATION_SKILL)
+  if (verificationIndex <= 0) {
+    return prioritizedMatches
+  }
+
+  const verificationSkill = prioritizedMatches[verificationIndex]
+  return [
+    prioritizedMatches[0],
+    verificationSkill,
+    ...prioritizedMatches.filter((skill, index) => index !== 0 && index !== verificationIndex),
+  ].slice(0, maxHints)
+}
+
 function findMatches(query, skills, maxHints) {
   return skills
     .map((skill) => ({ skill, score: scoreSkill(skill, query) }))
@@ -231,6 +288,47 @@ function trimSessionCache(cache, maxEntries) {
     if (!oldestKey) return
     cache.delete(oldestKey)
   }
+}
+
+function setSessionState(cache, sessionID, updates) {
+  if (!sessionID) return null
+
+  const current = cache.get(sessionID) || { matchedSkills: [], needsCodeReview: false }
+  const next = { ...current, ...updates }
+
+  cache.delete(sessionID)
+  cache.set(sessionID, next)
+  trimSessionCache(cache, MAX_SESSION_CACHE)
+
+  return next
+}
+
+function resolveToolID(input) {
+  const toolID = input?.toolID || input?.tool
+  return typeof toolID === "string" ? toolID.trim() : ""
+}
+
+function resolveInvokedSkillName(input, output) {
+  const candidates = [
+    input?.name,
+    input?.skill,
+    input?.args?.name,
+    input?.args?.skill,
+    input?.arguments?.name,
+    input?.arguments?.skill,
+    output?.args?.name,
+    output?.args?.skill,
+    output?.arguments?.name,
+    output?.arguments?.skill,
+  ]
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim()) {
+      return candidate.trim()
+    }
+  }
+
+  return ""
 }
 
 function readTextParts(parts) {
@@ -260,18 +358,58 @@ async function nebuSkillsRouterPlugin(_input, options = {}) {
     .map((skill) => `${skill.name}: ${toSingleLine(skill.description, 70)}`)
     .join("; ")
 
-  const matchesBySession = new Map()
+  const sessionStateBySession = new Map()
 
   return {
     "chat.message": async (input, output) => {
       const text = readTextParts(output.parts)
       if (!text) return
 
-      matchesBySession.set(input.sessionID, findMatches(text, discoveredSkills, maxHints))
-      trimSessionCache(matchesBySession, MAX_SESSION_CACHE)
+      const currentState = input.sessionID
+        ? sessionStateBySession.get(input.sessionID) || { matchedSkills: [], needsCodeReview: false }
+        : { matchedSkills: [], needsCodeReview: false }
+      const matchedSkills = applySessionAwareRouting(
+        text,
+        findMatches(text, discoveredSkills, maxHints),
+        discoveredSkills,
+        currentState.needsCodeReview,
+        maxHints,
+      )
+
+      setSessionState(sessionStateBySession, input.sessionID, {
+        matchedSkills,
+      })
+    },
+    "tool.execute.before": async (input) => {
+      if (!input.sessionID) return
+
+      const toolID = resolveToolID(input)
+      if (!CODE_EDIT_TOOL_IDS.has(toolID)) return
+
+      setSessionState(sessionStateBySession, input.sessionID, { needsCodeReview: true })
+    },
+    "tool.execute.after": async (input, output) => {
+      if (!input.sessionID) return
+
+      const toolID = resolveToolID(input)
+
+      if (CODE_EDIT_TOOL_IDS.has(toolID)) {
+        setSessionState(sessionStateBySession, input.sessionID, { needsCodeReview: true })
+        return
+      }
+
+      if (toolID !== "skill") return
+
+      const invokedSkillName = resolveInvokedSkillName(input, output)
+      if (invokedSkillName !== CODE_REVIEW_SKILL) return
+
+      setSessionState(sessionStateBySession, input.sessionID, { needsCodeReview: false })
     },
     "experimental.chat.system.transform": async (input, output) => {
-      const matchedSkills = input.sessionID ? matchesBySession.get(input.sessionID) || [] : []
+      const sessionState = input.sessionID
+        ? sessionStateBySession.get(input.sessionID) || { matchedSkills: [], needsCodeReview: false }
+        : { matchedSkills: [], needsCodeReview: false }
+      const matchedSkills = sessionState.matchedSkills
       const lines = [
         "Skill routing:",
         "- For normal software work, prefer `nebu-kaizen` as the baseline and combine it with a more specific nebu skill when needed.",
@@ -281,6 +419,15 @@ async function nebuSkillsRouterPlugin(_input, options = {}) {
 
       if (skillPreview) {
         lines.push(`- Installed nebu-skills: ${skillPreview}`)
+      }
+
+      if (sessionState.needsCodeReview) {
+        lines.push(
+          "- Code was edited in this session. Before `nebu-verification` or a done/handoff claim, treat `nebu-code-review` as the default next skill unless the diff is truly tiny and a self-review is enough.",
+        )
+        lines.push(
+          "- If the user says `done`, `ready`, `finished`, `handoff`, or Dutch equivalents like `klaar`, bias routing toward `nebu-code-review` before `nebu-verification`.",
+        )
       }
 
       if (matchedSkills.length > 0) {
@@ -294,7 +441,7 @@ async function nebuSkillsRouterPlugin(_input, options = {}) {
       output.system.push(lines.join("\n"))
     },
     "tool.definition": async (input, output) => {
-      if (input.toolID !== "skill" || !skillPreview) return
+      if (resolveToolID(input) !== "skill" || !skillPreview) return
 
       output.description = `${output.description} Prefer this tool when the request matches an installed nebu workflow skill. Installed nebu-skills: ${skillPreview}`
     },

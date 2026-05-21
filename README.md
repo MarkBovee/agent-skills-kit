@@ -38,7 +38,7 @@ pwsh -NoLogo -NoProfile -File .\scripts\install-opencode.ps1 -OpencodeDir "C:\pa
 
 ### Manual
 
-Copy each folder under `skills/` to `~/.config/opencode/skills/` and `plugins/nebu-skills-router.js` to `~/.config/opencode/plugins/`. OpenCode auto-discovers both locations.
+Copy each folder under `skills/` to your global OpenCode `skills/` directory and `plugins/nebu-skills-router.js` to the matching `plugins/` directory. Examples: `~/.config/opencode/skills/` and `~/.config/opencode/plugins/` on macOS, Linux, and WSL; `$HOME\.config\opencode\skills\` and `$HOME\.config\opencode\plugins\` in PowerShell.
 
 ## Update
 
@@ -62,7 +62,7 @@ All repo-managed workflow skills use the `nebu-` prefix so router hints and load
 | `nebu-implementation` | Choosing between direct work, batching, and delegation |
 | `nebu-debugging` | Bug, failing test, or broken build not explained by a clear local mistake |
 | `nebu-test-driven-development` | Changing behavior that should stay fixed — bugfixes, stable seams |
-| `nebu-code-review` | Meaningful diff ready and fresh eyes would help catch regressions |
+| `nebu-code-review` | Code changed and a meaningful diff is ready, especially before handoff or claiming done |
 | `nebu-github-issues` | Creating GitHub issues from bug reports, review findings, or follow-up work |
 | `nebu-verification` | About to claim something works, is fixed, or is ready to hand off |
 | `nebu-refactoring` | Cleanup, simplification, restructuring without turning it into a rewrite |
@@ -75,8 +75,8 @@ All repo-managed workflow skills use the `nebu-` prefix so router hints and load
 ## Architecture
 
 - **Skills** — markdown files (`SKILL.md`) with YAML frontmatter. Each skill is self-contained.
-- **Router plugin** — reads frontmatter, scores skills against messages, injects routing hints into the system prompt. Does not rewrite commands or modify tool output.
-- **Install scripts** — copy skills and plugin to `~/.config/opencode/`. Cleans up legacy installs. Idempotent.
+- **Router plugin** — reads frontmatter, scores skills against messages, and injects routing hints into the system prompt. It tracks code edits via tool hooks and nudges `nebu-code-review` after edits in the same session. Does not auto-run tools or rewrite commands.
+- **Install scripts** — copy skills and plugin to the global OpenCode config directory such as `~/.config/opencode/` on macOS, Linux, and WSL, or `$HOME\.config\opencode\` in PowerShell. Cleans up legacy installs. Idempotent.
 
 ## nebu-ctx compatibility
 
@@ -85,6 +85,7 @@ The router plugin only adds skill-routing hints. It does not touch shell rewriti
 ## Notes
 
 - Restart OpenCode after install or update.
+- `bootstrap-opencode.ps1` defaults its repo cache to `XDG_DATA_HOME` when set, otherwise `LOCALAPPDATA`, so the Windows path is native by default.
 - `nebu-ui-ux` includes Python scripts and CSV data for design guidance. Requires Python 3.8+.
 - The installer removes legacy `lean-*` and `*leanctx*` skill installs when present.
 - The installer only overwrites `nebu-skills`-managed folders and the router plugin. Other plugins and skills are left alone.
