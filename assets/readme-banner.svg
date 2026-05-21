@@ -1,0 +1,59 @@
+<svg width="1280" height="640" viewBox="0 0 1280 640" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="86" y1="48" x2="1190" y2="591" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#08111F"/>
+      <stop offset="0.45" stop-color="#0E1E36"/>
+      <stop offset="1" stop-color="#10284A"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="225" y1="146" x2="935" y2="575" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7DD3FC"/>
+      <stop offset="0.5" stop-color="#A78BFA"/>
+      <stop offset="1" stop-color="#34D399"/>
+    </linearGradient>
+    <linearGradient id="accentSoft" x1="244" y1="205" x2="811" y2="511" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#38BDF8" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#A78BFA" stop-opacity="0.04"/>
+    </linearGradient>
+    <filter id="blur" x="690" y="126" width="443" height="355" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+      <feGaussianBlur stdDeviation="34" result="effect1_foregroundBlur_1_2"/>
+    </filter>
+  </defs>
+  <rect width="1280" height="640" rx="28" fill="url(#bg)"/>
+  <circle cx="1088" cy="120" r="221" fill="#38BDF8" fill-opacity="0.08"/>
+  <circle cx="1054" cy="560" r="289" fill="#8B5CF6" fill-opacity="0.08"/>
+  <circle cx="184" cy="599" r="208" fill="#34D399" fill-opacity="0.06"/>
+  <path d="M118 468C241 385 322 345 434 314C556 281 661 272 777 289C891 306 972 357 1114 450" stroke="url(#accent)" stroke-width="2" stroke-opacity="0.5" stroke-linecap="round" stroke-dasharray="1 10"/>
+  <rect x="76" y="84" width="528" height="472" rx="28" fill="white" fill-opacity="0.03" stroke="white" stroke-opacity="0.08"/>
+  <rect x="108" y="118" width="120" height="32" rx="16" fill="#E2E8F0" fill-opacity="0.08"/>
+  <text x="132" y="139" fill="#BAE6FD" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="700" letter-spacing="0.18em">OPENCODE WORKFLOWS</text>
+  <text x="108" y="226" fill="white" font-family="Segoe UI, Arial, sans-serif" font-size="72" font-weight="800">nebu-skills</text>
+  <text x="108" y="286" fill="#C9D7EE" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="500">Production-ready workflow skills and</text>
+  <text x="108" y="324" fill="#C9D7EE" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="500">smart routing for OpenCode.</text>
+  <text x="108" y="394" fill="#8FB0D9" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="500">Sharper starts. Better handoffs. Fewer wasted turns.</text>
+  <rect x="108" y="446" width="180" height="48" rx="24" fill="url(#accent)"/>
+  <text x="147" y="477" fill="#07111F" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="800">17 workflow skills</text>
+  <rect x="304" y="446" width="156" height="48" rx="24" fill="white" fill-opacity="0.06" stroke="white" stroke-opacity="0.1"/>
+  <text x="341" y="477" fill="#E2E8F0" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700">Router plugin</text>
+  <g filter="url(#blur)">
+    <path d="M801 194C860 169 946 173 1005 227C1064 281 1087 378 1037 424C987 470 865 466 798 422C731 378 698 282 743 234C758 218 778 204 801 194Z" fill="#38BDF8" fill-opacity="0.26"/>
+  </g>
+  <rect x="718" y="148" width="456" height="344" rx="24" fill="#07111E" fill-opacity="0.66" stroke="white" stroke-opacity="0.12"/>
+  <rect x="742" y="174" width="408" height="36" rx="18" fill="white" fill-opacity="0.05"/>
+  <circle cx="767" cy="192" r="5" fill="#38BDF8"/>
+  <circle cx="786" cy="192" r="5" fill="#A78BFA"/>
+  <circle cx="805" cy="192" r="5" fill="#34D399"/>
+  <text x="830" y="198" fill="#9FB5D7" font-family="Consolas, Menlo, monospace" font-size="15">Skill routing preview</text>
+  <rect x="742" y="232" width="408" height="106" rx="18" fill="url(#accentSoft)" stroke="white" stroke-opacity="0.08"/>
+  <text x="766" y="266" fill="#9AE6FF" font-family="Consolas, Menlo, monospace" font-size="18" font-weight="700">User:</text>
+  <text x="826" y="266" fill="#E6EEF9" font-family="Consolas, Menlo, monospace" font-size="18">bug, failing test, not sure where</text>
+  <text x="766" y="302" fill="#C7D7EF" font-family="Consolas, Menlo, monospace" font-size="18">Router: nebu-debugging + nebu-tdd</text>
+  <rect x="742" y="362" width="124" height="34" rx="17" fill="#38BDF8" fill-opacity="0.16" stroke="#38BDF8" stroke-opacity="0.45"/>
+  <text x="772" y="384" fill="#B8ECFF" font-family="Consolas, Menlo, monospace" font-size="15">debugging</text>
+  <rect x="880" y="362" width="92" height="34" rx="17" fill="#A78BFA" fill-opacity="0.14" stroke="#A78BFA" stroke-opacity="0.4"/>
+  <text x="907" y="384" fill="#E5DBFF" font-family="Consolas, Menlo, monospace" font-size="15">tdd</text>
+  <rect x="986" y="362" width="116" height="34" rx="17" fill="#34D399" fill-opacity="0.14" stroke="#34D399" stroke-opacity="0.4"/>
+  <text x="1014" y="384" fill="#CDFCE8" font-family="Consolas, Menlo, monospace" font-size="15">verify</text>
+  <text x="766" y="437" fill="#87A4CC" font-family="Consolas, Menlo, monospace" font-size="16">Hints only. No command rewriting. No tool hijacking.</text>
+</svg>
