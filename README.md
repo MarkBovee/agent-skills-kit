@@ -41,7 +41,7 @@ This started as a practical toolkit. It is turning into a tighter, more opiniona
 `nebu-skills` is now a three-platform pack out of the box:
 
 | Platform | Native support |
-| --- | --- | --- |
+| --- | --- |
 | OpenCode | Router plugin, bootstrap flow, install/update scripts |
 | GitHub Copilot | Generated skills, instructions, install/update scripts |
 | Claude Code | Generated skills, rules, install/update scripts |
