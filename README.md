@@ -40,11 +40,11 @@ This started as a practical toolkit. It is turning into a tighter, more opiniona
 
 `nebu-skills` is now a three-platform pack out of the box:
 
-| Platform | Role | Native support |
+| Platform | Native support |
 | --- | --- | --- |
-| OpenCode | Reference platform | Router plugin, bootstrap flow, install/update scripts |
-| GitHub Copilot | Native secondary platform | Generated skills, instructions, install/update scripts |
-| Claude Code | Native tertiary platform | Generated skills, rules, install/update scripts |
+| OpenCode | Router plugin, bootstrap flow, install/update scripts |
+| GitHub Copilot | Generated skills, instructions, install/update scripts |
+| Claude Code | Generated skills, rules, install/update scripts |
 
 OpenCode remains the reference implementation for routing behavior. GitHub Copilot and Claude Code ship as native skill-based packages generated from the same canonical source.
 
