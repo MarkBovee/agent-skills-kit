@@ -3,8 +3,8 @@
 </p>
 
 <p align="center">
-  Workflow skills and smart routing for OpenCode.<br />
-  Now also packaged for GitHub Copilot and Claude Code.
+  Workflow skills and smart routing for OpenCode, GitHub Copilot, and Claude Code.<br />
+  OpenCode first, with native support for all three platforms out of the box.
 </p>
 
 <p align="center">
@@ -17,13 +17,14 @@
 
 ## Why nebu-skills
 
-`nebu-skills` gives OpenCode a sharper operating model: focused workflow skills, cleaner routing, better timing across the full engineering loop, and a path for the system to improve from real usage.
+`nebu-skills` gives OpenCode a sharper operating model and packages that same workflow layer for GitHub Copilot and Claude Code: focused skills, cleaner routing, better timing across the full engineering loop, and a path for the system to improve from real usage.
 
 This started as a practical toolkit. It is turning into a tighter, more opinionated, more production-ready skill pack for developers who want sessions to feel deliberate instead of improvised.
 
 - Better task routing from real user intent
 - Strong workflow coverage from kickoff to wrap-up
 - Auto-improvement loop: reusable misses can become tracked skill or router improvements
+- Out-of-the-box support for OpenCode, GitHub Copilot, and Claude Code
 - Simple install and update path across macOS, Linux, WSL, and Windows PowerShell
 - Safe plugin behavior: hints only, no command rewriting, no tool hijacking
 
@@ -31,11 +32,23 @@ This started as a practical toolkit. It is turning into a tighter, more opiniona
 
 - `17` workflow skills under `skills/`
 - `1` router plugin: `plugins/nebu-skills-router.js`
-- `2` native skill exports: `.github/skills/` and `.claude/skills/`
-- `3` install paths: bootstrap, local clone, manual copy
+- `3` native platform targets: OpenCode, GitHub Copilot, and Claude Code
+- `2` generated skill exports: `.github/skills/` and `.claude/skills/`
 - Idempotent install/update scripts for shell and PowerShell
 
-## GitHub Copilot And Claude Code
+## Platform Support
+
+`nebu-skills` is now a three-platform pack out of the box:
+
+| Platform | Role | Native support |
+| --- | --- | --- |
+| OpenCode | Reference platform | Router plugin, bootstrap flow, install/update scripts |
+| GitHub Copilot | Native secondary platform | Generated skills, instructions, install/update scripts |
+| Claude Code | Native tertiary platform | Generated skills, rules, install/update scripts |
+
+OpenCode remains the reference implementation for routing behavior. GitHub Copilot and Claude Code ship as native skill-based packages generated from the same canonical source.
+
+## Generated Platform Assets
 
 The canonical skill source still lives under `skills/`. Repo-local exports for GitHub Copilot and Claude Code are generated from that source, so the same workflow pack can load natively in all three environments.
 
@@ -81,31 +94,11 @@ Most prompt packs add more text.
 
 ## Install
 
-### GitHub Copilot user profile
+### OpenCode
 
-Installs generated skills into `~/.copilot/skills/` and a reusable instructions file into `~/.copilot/instructions/`.
+OpenCode is the reference platform and remains the primary install path.
 
-```bash
-bash ./scripts/install-copilot.sh
-```
-
-```powershell
-pwsh -NoLogo -NoProfile -File .\scripts\install-copilot.ps1
-```
-
-### Claude Code user profile
-
-Installs generated skills into `~/.claude/skills/` and a global rules file into `~/.claude/rules/`.
-
-```bash
-bash ./scripts/install-claude-code.sh
-```
-
-```powershell
-pwsh -NoLogo -NoProfile -File .\scripts\install-claude-code.ps1
-```
-
-### Bootstrap
+#### Bootstrap
 
 Recommended path. Clones repo if needed, pulls latest, then installs everything. Run same command again to update.
 
@@ -121,7 +114,7 @@ curl -fsSL https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/
 irm https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-opencode.ps1 | iex
 ```
 
-### Local clone
+#### Local clone
 
 ```bash
 gh repo clone MarkBovee/nebu-skills
@@ -133,7 +126,7 @@ bash ./scripts/install-opencode.sh
 pwsh -NoLogo -NoProfile -File .\scripts\install-opencode.ps1
 ```
 
-### Custom OpenCode directory
+#### Custom OpenCode directory
 
 ```bash
 bash ./scripts/install-opencode.sh /path/to/opencode
@@ -143,26 +136,54 @@ bash ./scripts/install-opencode.sh /path/to/opencode
 pwsh -NoLogo -NoProfile -File .\scripts\install-opencode.ps1 -OpencodeDir "C:\path\to\opencode"
 ```
 
-### Manual install
+#### Manual install
 
-Copy each folder under `skills/` into your global OpenCode `skills/` directory, and copy `plugins/nebu-skills-router.js` into the matching `plugins/` directory.
+Copy each folder under `skills/` into your global OpenCode `skills/` directory, and copy `core/router-core.js` plus `plugins/nebu-skills-router.js` into the matching `core/` and `plugins/` directories.
 
 Common locations:
 
-- macOS / Linux / WSL: `~/.config/opencode/skills/` and `~/.config/opencode/plugins/`
-- PowerShell: `$HOME\.config\opencode\skills\` and `$HOME\.config\opencode\plugins\`
+- macOS / Linux / WSL: `~/.config/opencode/skills/`, `~/.config/opencode/core/`, and `~/.config/opencode/plugins/`
+- PowerShell: `$HOME\.config\opencode\skills\`, `$HOME\.config\opencode\core\`, and `$HOME\.config\opencode\plugins\`
+
+### GitHub Copilot
+
+#### User profile
+
+Installs generated skills into `~/.copilot/skills/` and a reusable instructions file into `~/.copilot/instructions/`.
+
+```bash
+bash ./scripts/install-copilot.sh
+```
+
+```powershell
+pwsh -NoLogo -NoProfile -File .\scripts\install-copilot.ps1
+```
+
+### Claude Code
+
+#### User profile
+
+Installs generated skills into `~/.claude/skills/` and a global rules file into `~/.claude/rules/`.
+
+```bash
+bash ./scripts/install-claude-code.sh
+```
+
+```powershell
+pwsh -NoLogo -NoProfile -File .\scripts\install-claude-code.ps1
+```
 
 ## Update
 
-Run bootstrap again, or update from local clone:
+Use the platform-specific updater that matches how you installed the pack:
 
 ```bash
+bash ./scripts/update-opencode.sh
+bash ./scripts/update-opencode.sh --skip-pull
 bash ./scripts/update-copilot.sh
 bash ./scripts/update-copilot.sh --skip-pull
 bash ./scripts/update-claude-code.sh
 bash ./scripts/update-claude-code.sh --skip-pull
-bash ./scripts/update-opencode.sh
-bash ./scripts/update-opencode.sh --skip-pull
 ```
 
 ## Skills
@@ -271,6 +292,8 @@ Router scope is intentionally narrow: skill-routing hints only. It does not inte
 
 ```text
 skills/                     Workflow skills, one per directory
+.github/skills/            Generated GitHub Copilot skill export
+.claude/skills/            Generated Claude Code skill export
 core/router-core.js
 plugins/nebu-skills-router.js
 scripts/install-copilot.*
@@ -284,6 +307,7 @@ scripts/update-opencode.*
 
 ## Notes
 
+- OpenCode is platform 1 and remains the reference behavior for router and plugin support.
 - GitHub Copilot install targets `~/.copilot/skills/` and `~/.copilot/instructions/` by default.
 - Claude Code install targets `~/.claude/skills/` and `~/.claude/rules/` by default.
 - Restart OpenCode after install or update.
