@@ -45,6 +45,7 @@ Once the path is clear, keep moving through implementation loops without waiting
 4. Re-check requirements and review depth before calling something done.
 5. Reuse the repo's existing durable planning or spec system when the work needs written artifacts.
 6. Escalate only real blockers, not normal uncertainty.
+7. When editing code, add concise intent comments generously. Default to one short comment above each function unless local repo guidance says otherwise.
 
 ## Use with
 

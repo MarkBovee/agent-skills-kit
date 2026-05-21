@@ -19,7 +19,7 @@ Turn concrete context into a real GitHub issue quickly.
 2. Check that `gh` auth is available before depending on `gh issue create`.
 3. Extract the smallest clear title that names the problem or requested change.
 4. Before creating a new issue, check for an equivalent open issue with `gh issue list --search` or similar repo-native search. Reuse the existing issue when the match is clear.
-5. Use the bundled helper `skills/nebu-github-issues/check-existing-issue.sh "<query>" [owner/repo]` when you want a fast default duplicate check.
+5. Use the bundled helper [check-existing-issue.sh](./check-existing-issue.sh) when you want a fast default duplicate check.
 6. Build a compact body from the evidence already in the conversation: problem, impact, repro or observed failure, and expected outcome when relevant.
 7. Create the issue directly once the title and body are clear. Do not add a draft approval loop unless the user asked for one.
 8. Add labels sparingly: only explicit user-requested labels or one to two obvious repo-standard labels. If label names are uncertain, skip them.

@@ -66,19 +66,20 @@ If the repo already has a design system or visual language, preserve it unless t
 ## Bundled search helper
 
 Use the bundled search tool when you want concrete style, UX, typography, color, chart, or stack guidance fast.
+Use the path to this skill's [search script](./scripts/search.py) when you invoke it from the terminal.
 
 Primary entry point:
 
 ```bash
-python3 skills/nebu-ui-ux/scripts/search.py "<product_type> <industry> <keywords>" --design-system [-p "Project Name"]
+python3 <path-to-this-skill>/scripts/search.py "<product_type> <industry> <keywords>" --design-system [-p "Project Name"]
 ```
 
 Useful follow-ups:
 
 ```bash
-python3 skills/nebu-ui-ux/scripts/search.py "animation accessibility" --domain ux
-python3 skills/nebu-ui-ux/scripts/search.py "elegant luxury serif" --domain typography
-python3 skills/nebu-ui-ux/scripts/search.py "layout responsive form" --stack html-tailwind
+python3 <path-to-this-skill>/scripts/search.py "animation accessibility" --domain ux
+python3 <path-to-this-skill>/scripts/search.py "elegant luxury serif" --domain typography
+python3 <path-to-this-skill>/scripts/search.py "layout responsive form" --stack html-tailwind
 ```
 
 Use the helper as input to judgment, not as a substitute for it.

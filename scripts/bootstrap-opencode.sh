@@ -6,13 +6,16 @@ REPO_DIR="${REPO_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/nebu-skills}"
 OPENCODE_DIR="${1:-${XDG_CONFIG_HOME:-$HOME/.config}/opencode}"
 SKIP_PULL="${SKIP_PULL:-0}"
 
+# Ensure the bootstrap flow fails early when git is unavailable.
 if ! command -v git >/dev/null 2>&1; then
   echo "git is required to install or update nebu-skills." >&2
   exit 1
 fi
 
+# Create the parent directory for the managed checkout before clone or update.
 mkdir -p "$(dirname "$REPO_DIR")"
 
+# Clone the managed checkout on first run, or fast-forward it on update.
 if [ ! -d "$REPO_DIR/.git" ]; then
   if [ -e "$REPO_DIR" ]; then
     echo "Repo directory exists but is not a git checkout: $REPO_DIR" >&2
@@ -24,4 +27,5 @@ elif [ "$SKIP_PULL" != "1" ]; then
   git -C "$REPO_DIR" pull --ff-only
 fi
 
+# Delegate the actual OpenCode installation to the local installer script.
 exec bash "$REPO_DIR/scripts/install-opencode.sh" "$OPENCODE_DIR"

@@ -9,6 +9,7 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot ".." )).Path
 
+# Refresh the local checkout before reinstalling when this repo is a git clone.
 if (-not $SkipPull -and (Test-Path -LiteralPath (Join-Path $repoRoot ".git"))) {
     $git = Get-Command git -ErrorAction SilentlyContinue
     if ($git) {
@@ -16,4 +17,5 @@ if (-not $SkipPull -and (Test-Path -LiteralPath (Join-Path $repoRoot ".git"))) {
     }
 }
 
+# Delegate the actual OpenCode installation to the local installer script.
 & (Join-Path $PSScriptRoot "install-opencode.ps1") -OpencodeDir $OpencodeDir

@@ -49,6 +49,7 @@ This also applies when the user phrases it in Dutch, such as `ga door`, `werk do
 6. After code changes, do a proportional review pass. Load `nebu-code-review` when the diff is meaningful, subtle, or risky; tiny local diffs may stay self-reviewed.
 7. When work reveals reusable workflow friction, capture the smallest durable improvement instead of treating it as one-off noise.
 8. Reuse the repo's existing durable planning or spec system when one exists; do not create a parallel doc tree by default.
+9. When editing code, add concise comments generously. By default, put one short intent comment above each function unless the repo clearly prefers less commentary.
 
 ## Use with
 

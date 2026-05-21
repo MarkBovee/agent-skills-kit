@@ -2,7 +2,7 @@
 
 ## Project
 
-This is a skill-pack repo for OpenCode. It ships workflow skills, a router plugin, and install scripts. It is not an application — there is no build step, no runtime, and no package manager.
+This is a multi-platform skill-pack repo for OpenCode, GitHub Copilot, and Claude Code. It ships workflow skills, a router plugin, generated platform exports, and install scripts. It is not an application — there is no build step, no runtime, and no package manager.
 
 ## Structure
 
@@ -11,6 +11,24 @@ This is a skill-pack repo for OpenCode. It ships workflow skills, a router plugi
 - `scripts/` — install/update/bootstrap scripts (bash + PowerShell parity required)
 - `README.md` — public docs for users
 - `AGENTS.md` — this file, for AI agents working in the repo
+
+## Coding standards
+
+- Follow DRY and SOLID. Before adding code, check whether the behavior already exists and extract shared helpers instead of duplicating logic.
+- Prefer small, focused functions with clear names and a single level of abstraction. Use guard clauses and early returns to keep control flow flat.
+- Prefer pure helpers when practical. Keep orchestration separate from object construction, formatting, parsing, and normalization helpers.
+- Fail fast on invalid input and return errors with enough context for diagnostics.
+- Keep code self-documenting. Add short intent comments only for non-obvious logic or lifecycle coupling.
+- When editing code, add comments generously. By default, place at least one short intent comment above each function unless the repo or file has a stronger local convention.
+- Keep the relevant checks warning-free and error-free before finishing a change.
+- Prefer focused helper extraction or switch-style dispatch over growing conditional chains in routing, hook, tool, and script dispatch code.
+- Normalize and canonicalize filesystem paths at the boundary where paths enter the system so caches, generated artifacts, and routing logic agree on the same real path.
+- Keep public API and tool behavior changes minimal and explicit. Avoid widening behavior accidentally when fixing path, session, routing, or export bugs.
+- Reuse existing core helpers before adding new utility layers.
+- Keep cross-shell and cross-platform behavior aligned when practical. If startup, hook, install, or generated artifact behavior changes, update the paired scripts, cleanup flow, and README usage together.
+- Prefer explicit data shapes and descriptive names over loose catch-all payloads or generic naming.
+- Prefer concrete test models and narrow validation commands before widening scope.
+- Centralize cross-cutting concerns such as normalization, timestamp-like metadata, or save-pipeline state handling instead of scattering them through feature logic.
 
 ## Skill conventions
 
@@ -67,6 +85,10 @@ The router (`plugins/nebu-skills-router.js`) reads frontmatter from all installe
 ## Install scripts
 
 - `scripts/bootstrap-opencode.*` — clone/update repo + delegate to install
+- `scripts/install-copilot.*` — copy generated Copilot skills and instructions to the user profile
+- `scripts/update-copilot.*` — optionally pull latest, then reinstall Copilot assets
+- `scripts/install-claude-code.*` — copy generated Claude Code skills and rules to the user profile
+- `scripts/update-claude-code.*` — optionally pull latest, then reinstall Claude assets
 - `scripts/install-opencode.*` — copy skills and plugin to OpenCode config dir
 - `scripts/update-opencode.*` — git pull + reinstall
 
@@ -78,5 +100,6 @@ After changes, verify:
 
 1. Every `skills/*/SKILL.md` has valid frontmatter with `name`, `description`, and `triggers`.
 2. The router plugin loads without errors: `node -e "require('./plugins/nebu-skills-router.js')"`.
-3. Install scripts run idempotently: run twice, expect same output.
-4. No hardcoded paths specific to a particular workspace in generic skills.
+3. Exported Copilot and Claude artifacts regenerate cleanly: `node ./scripts/export-platform-skills.js`.
+4. Install scripts run idempotently: run twice, expect same output.
+5. No hardcoded paths specific to a particular workspace in generic skills.

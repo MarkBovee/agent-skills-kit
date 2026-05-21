@@ -4,7 +4,7 @@
 
 <p align="center">
   Workflow skills and smart routing for OpenCode.<br />
-  Designed for serious coding sessions, cleaner decisions, and production-ready momentum.
+  Now also packaged for GitHub Copilot and Claude Code.
 </p>
 
 <p align="center">
@@ -31,8 +31,28 @@ This started as a practical toolkit. It is turning into a tighter, more opiniona
 
 - `17` workflow skills under `skills/`
 - `1` router plugin: `plugins/nebu-skills-router.js`
+- `2` native skill exports: `.github/skills/` and `.claude/skills/`
 - `3` install paths: bootstrap, local clone, manual copy
 - Idempotent install/update scripts for shell and PowerShell
+
+## GitHub Copilot And Claude Code
+
+The canonical skill source still lives under `skills/`. Repo-local exports for GitHub Copilot and Claude Code are generated from that source, so the same workflow pack can load natively in all three environments.
+
+Regenerate the exported skill directories after editing source skills:
+
+```bash
+node ./scripts/export-platform-skills.js
+```
+
+Generated targets:
+
+- `.github/copilot-instructions.md`
+- `.github/skills/`
+- `CLAUDE.md`
+- `.claude/skills/`
+
+The default agent guidance also prefers generous comments during code edits: by default, one short intent comment above each function unless a repo clearly prefers less commentary.
 
 ## Why It Feels Different
 
@@ -60,6 +80,30 @@ Most prompt packs add more text.
 - projects growing from rough internal utility toward production-ready workflow
 
 ## Install
+
+### GitHub Copilot user profile
+
+Installs generated skills into `~/.copilot/skills/` and a reusable instructions file into `~/.copilot/instructions/`.
+
+```bash
+bash ./scripts/install-copilot.sh
+```
+
+```powershell
+pwsh -NoLogo -NoProfile -File .\scripts\install-copilot.ps1
+```
+
+### Claude Code user profile
+
+Installs generated skills into `~/.claude/skills/` and a global rules file into `~/.claude/rules/`.
+
+```bash
+bash ./scripts/install-claude-code.sh
+```
+
+```powershell
+pwsh -NoLogo -NoProfile -File .\scripts\install-claude-code.ps1
+```
 
 ### Bootstrap
 
@@ -113,6 +157,10 @@ Common locations:
 Run bootstrap again, or update from local clone:
 
 ```bash
+bash ./scripts/update-copilot.sh
+bash ./scripts/update-copilot.sh --skip-pull
+bash ./scripts/update-claude-code.sh
+bash ./scripts/update-claude-code.sh --skip-pull
 bash ./scripts/update-opencode.sh
 bash ./scripts/update-opencode.sh --skip-pull
 ```
@@ -204,7 +252,7 @@ Important behavior:
 
 ### Install scripts
 
-Install scripts copy managed skills and the router plugin into the global OpenCode config directory.
+Install scripts copy managed skills, the shared router core, and the router plugin into the global OpenCode config directory.
 
 They also:
 
@@ -223,7 +271,12 @@ Router scope is intentionally narrow: skill-routing hints only. It does not inte
 
 ```text
 skills/                     Workflow skills, one per directory
+core/router-core.js
 plugins/nebu-skills-router.js
+scripts/install-copilot.*
+scripts/update-copilot.*
+scripts/install-claude-code.*
+scripts/update-claude-code.*
 scripts/bootstrap-opencode.*
 scripts/install-opencode.*
 scripts/update-opencode.*
@@ -231,10 +284,12 @@ scripts/update-opencode.*
 
 ## Notes
 
+- GitHub Copilot install targets `~/.copilot/skills/` and `~/.copilot/instructions/` by default.
+- Claude Code install targets `~/.claude/skills/` and `~/.claude/rules/` by default.
 - Restart OpenCode after install or update.
 - `bootstrap-opencode.ps1` stores repo cache in `XDG_DATA_HOME` when set, otherwise `LOCALAPPDATA`, then falls back to `$HOME\.local\share\nebu-skills`.
 - `nebu-ui-ux` ships Python scripts and CSV data for design guidance. Requires Python `3.8+`.
-- Installer overwrites only `nebu-skills`-managed skill folders and router plugin.
+- Installer overwrites only `nebu-skills`-managed skill folders, shared router core, and router plugin.
 
 ## Status
 

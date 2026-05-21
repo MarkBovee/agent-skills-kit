@@ -1,6 +1,6 @@
 ---
 name: nebu-agent-workflows
-description: Use when coordinating multi-agent work, parallel execution, task handoff, shared context, or clean session shutdown across multiple agents or terminals. Especially useful when nebu-ctx is available for agent coordination.
+description: Use when coordinating multi-agent work, parallel execution, task handoff, shared context, or clean session shutdown across multiple agents or terminals. Especially useful when the host supports subagents, hooks, or shared context.
 triggers:
   - multi-agent
   - parallel work
@@ -46,11 +46,11 @@ Coordinate multiple agents only when parallel work will actually help.
 5. Aggregate create, test, and review outcomes into the owner thread instead of spamming status noise.
 6. Finish with one clear summary and no dangling follow-ups.
 
-## When nebu-ctx is available
+## When shared context is available
 
-- Prefer its public agent and context surfaces for coordination and state sharing.
-- Use it to avoid re-reading the same files across sessions.
-- Treat it as shared transport, not as a substitute for clear ownership.
+- Prefer the host's public agent, skill, or context surfaces for coordination and state sharing.
+- Use shared context to avoid re-reading the same files across sessions.
+- Treat shared transport as support for clear ownership, not as a substitute for it.
 
 ## Avoid
 
