@@ -85,8 +85,10 @@ The router (`plugins/nebu-skills-router.js`) reads frontmatter from all installe
 ## Install scripts
 
 - `scripts/bootstrap-opencode.*` — clone/update repo + delegate to install
+- `scripts/bootstrap-copilot.*` — clone/update repo + delegate to Copilot install
 - `scripts/install-copilot.*` — copy generated Copilot skills and instructions to the user profile
 - `scripts/update-copilot.*` — optionally pull latest, then reinstall Copilot assets
+- `scripts/bootstrap-claude-code.*` — clone/update repo + delegate to Claude install
 - `scripts/install-claude-code.*` — copy generated Claude Code skills and rules to the user profile
 - `scripts/update-claude-code.*` — optionally pull latest, then reinstall Claude assets
 - `scripts/install-opencode.*` — copy skills and plugin to OpenCode config dir
@@ -101,5 +103,5 @@ After changes, verify:
 1. Every `skills/*/SKILL.md` has valid frontmatter with `name`, `description`, and `triggers`.
 2. The router plugin loads without errors: `node -e "require('./plugins/nebu-skills-router.js')"`.
 3. Exported Copilot and Claude artifacts regenerate cleanly: `node ./scripts/export-platform-skills.js`.
-4. Install scripts run idempotently: run twice, expect same output.
+4. Install and bootstrap scripts run idempotently: run twice, expect same output.
 5. No hardcoded paths specific to a particular workspace in generic skills.

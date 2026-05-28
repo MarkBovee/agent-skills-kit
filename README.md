@@ -87,8 +87,8 @@ Main assets:
 | Platform | Support |
 | --- | --- |
 | OpenCode | Router plugin, routing support, bootstrap/install/update tooling |
-| GitHub Copilot | Generated skills + reusable instructions |
-| Claude Code | Generated skills + reusable rules |
+| GitHub Copilot | Generated skills, reusable instructions, bootstrap/install/update tooling |
+| Claude Code | Generated skills, reusable rules, bootstrap/install/update tooling |
 
 OpenCode remains the reference implementation for routing behavior and plugin support.
 
@@ -200,13 +200,38 @@ Installs generated skills into:
 - `~/.copilot/skills/`
 - `~/.copilot/instructions/`
 
+### Bootstrap Install
+
+Recommended install path.
+
+The bootstrap script:
+
+- clones the repository if needed
+- updates existing installs
+- installs generated Copilot assets
+- is safe to rerun
+
 ### macOS / Linux
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-copilot.sh | bash
+```
+
+### Windows PowerShell
+
+```powershell
+irm https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-copilot.ps1 | iex
+```
+
+---
+
+### Local Clone Install
+
+From an existing checkout:
 
 ```bash
 bash ./scripts/install-copilot.sh
 ```
-
-### Windows PowerShell
 
 ```powershell
 pwsh -NoLogo -NoProfile -File .\scripts\install-copilot.ps1
@@ -221,13 +246,38 @@ Installs generated skills into:
 - `~/.claude/skills/`
 - `~/.claude/rules/`
 
+### Bootstrap Install
+
+Recommended install path.
+
+The bootstrap script:
+
+- clones the repository if needed
+- updates existing installs
+- installs generated Claude Code assets
+- is safe to rerun
+
 ### macOS / Linux
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-claude-code.sh | bash
+```
+
+### Windows PowerShell
+
+```powershell
+irm https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-claude-code.ps1 | iex
+```
+
+---
+
+### Local Clone Install
+
+From an existing checkout:
 
 ```bash
 bash ./scripts/install-claude-code.sh
 ```
-
-### Windows PowerShell
 
 ```powershell
 pwsh -NoLogo -NoProfile -File .\scripts\install-claude-code.ps1
@@ -237,7 +287,17 @@ pwsh -NoLogo -NoProfile -File .\scripts\install-claude-code.ps1
 
 # Update
 
-Use the updater matching the installed platform.
+Use the updater matching the install mode.
+
+## Bootstrap-Managed Install
+
+Rerun the matching bootstrap command from the install section.
+
+Bootstrap scripts pull latest changes before reinstall unless `SKIP_PULL=1` or `-SkipPull` is used.
+
+---
+
+## Local Clone Install
 
 ```bash
 bash ./scripts/update-opencode.sh
@@ -248,6 +308,17 @@ bash ./scripts/update-copilot.sh --skip-pull
 
 bash ./scripts/update-claude-code.sh
 bash ./scripts/update-claude-code.sh --skip-pull
+```
+
+```powershell
+pwsh -NoLogo -NoProfile -File .\scripts\update-opencode.ps1
+pwsh -NoLogo -NoProfile -File .\scripts\update-opencode.ps1 -SkipPull
+
+pwsh -NoLogo -NoProfile -File .\scripts\update-copilot.ps1
+pwsh -NoLogo -NoProfile -File .\scripts\update-copilot.ps1 -SkipPull
+
+pwsh -NoLogo -NoProfile -File .\scripts\update-claude-code.ps1
+pwsh -NoLogo -NoProfile -File .\scripts\update-claude-code.ps1 -SkipPull
 ```
 
 ---
@@ -395,9 +466,11 @@ skills/                     Workflow skills
 core/router-core.js
 plugins/nebu-skills-router.js
 
+scripts/bootstrap-copilot.*
 scripts/install-copilot.*
 scripts/update-copilot.*
 
+scripts/bootstrap-claude-code.*
 scripts/install-claude-code.*
 scripts/update-claude-code.*
 
@@ -414,7 +487,7 @@ scripts/update-opencode.*
 - GitHub Copilot installs into `~/.copilot/skills/` and `~/.copilot/instructions/`.
 - Claude Code installs into `~/.claude/skills/` and `~/.claude/rules/`.
 - Restart OpenCode after install or update.
-- `bootstrap-opencode.ps1` stores repo cache in `XDG_DATA_HOME` when set, otherwise `LOCALAPPDATA`, then falls back to `$HOME\.local\share\nebu-skills`.
+- Bootstrap scripts store a managed checkout in `REPO_DIR` when set. Default path: `XDG_DATA_HOME/nebu-skills` when available, otherwise `LOCALAPPDATA\nebu-skills` on PowerShell, then `~/.local/share/nebu-skills`.
 - `nebu-ui-ux` includes Python scripts and CSV data for design guidance and requires Python `3.8+`.
 - Installers overwrite only `nebu-skills` managed assets.
 
