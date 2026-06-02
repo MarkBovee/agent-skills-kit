@@ -8,6 +8,9 @@ This is a multi-platform skill-pack repo for OpenCode, GitHub Copilot, and Claud
 
 - `skills/<name>/SKILL.md` — one skill per directory, always named `SKILL.md`
 - `plugins/nebu-skills-router.js` — OpenCode plugin that scores skills against user messages and injects routing hints into the system prompt
+- `core/router-core.js` — shared router helpers (scoring, session state, frontmatter parsing)
+- `core/community-skills.js` — helper for fetching, ranking, and installing community skills from `github/awesome-copilot`; consumed by `nebu-skill-finder`
+- `core/community-skills-index.json` — cached awesome-copilot catalog, commit-pinned, refreshed by `scripts/fetch-community-skills-index.js`
 - `scripts/` — install/update/bootstrap scripts (bash + PowerShell parity required)
 - `README.md` — public docs for users
 - `AGENTS.md` — this file, for AI agents working in the repo
@@ -106,3 +109,4 @@ After changes, verify:
 3. Exported Copilot and Claude artifacts regenerate cleanly: `node ./scripts/export-platform-skills.js`.
 4. Install and bootstrap scripts run idempotently: run twice, expect same output.
 5. No hardcoded paths specific to a particular workspace in generic skills.
+6. The community-skills helpers load and the cached index is fresh: `node -e "require('./core/community-skills')"` and `node ./scripts/fetch-community-skills-index.js`.

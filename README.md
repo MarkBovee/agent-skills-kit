@@ -343,6 +343,7 @@ All managed workflow skills use the `nebu-` prefix for predictable routing and e
 | `nebu-ui-ux` | UI and UX implementation support |
 | `nebu-agent-workflows` | Multi-agent coordination |
 | `nebu-skill-improvement` | Workflow improvement tracking |
+| `nebu-skill-finder` | Adopt community skills from `github/awesome-copilot` for the active stack |
 | `nebu-workspace-wrapup` | Workspace cleanup and handoff |
 | `nebu-using-nebu-skills` | Skill discovery guidance |
 | `nebu-writing-nebu-skills` | Skill authoring support |
@@ -357,6 +358,7 @@ All managed workflow skills use the `nebu-` prefix for predictable routing and e
 | Execute work | `nebu-kaizen` (default), `nebu-implementation`, `nebu-debugging`, `nebu-refactoring` |
 | Validate work | `nebu-test-driven-development`, `nebu-code-review`, `nebu-verification` |
 | Improve workflows | `nebu-skill-improvement`, `nebu-github-issues` |
+| Adopt community skills | `nebu-skill-finder` |
 | Finish sessions | `nebu-workspace-wrapup` |
 
 `nebu-kaizen` carries `default: true` in its frontmatter, which the router

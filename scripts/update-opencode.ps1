@@ -17,5 +17,16 @@ if (-not $SkipPull -and (Test-Path -LiteralPath (Join-Path $repoRoot ".git"))) {
     }
 }
 
+# Refresh the cached awesome-copilot index when it is stale so nebu-skill-finder
+# has up-to-date candidates without doing network work during a normal skill run.
+$node = Get-Command node -ErrorAction SilentlyContinue
+$fetchScript = Join-Path $repoRoot "scripts/fetch-community-skills-index.js"
+if ($node -and (Test-Path -LiteralPath $fetchScript)) {
+    & $node.Source $fetchScript
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "community-skills index refresh failed; continuing with cached data."
+    }
+}
+
 # Delegate the actual OpenCode installation to the local installer script.
 & (Join-Path $PSScriptRoot "install-opencode.ps1") -OpencodeDir $OpencodeDir

@@ -15,4 +15,10 @@ if [ "$SKIP_PULL" -eq 0 ] && [ -d "$REPO_ROOT/.git" ]; then
   git -C "$REPO_ROOT" pull --ff-only
 fi
 
+# Refresh the cached awesome-copilot index when it is stale so nebu-skill-finder
+# has up-to-date candidates without doing network work during a normal skill run.
+if command -v node >/dev/null 2>&1 && [ -f "$REPO_ROOT/scripts/fetch-community-skills-index.js" ]; then
+  node "$REPO_ROOT/scripts/fetch-community-skills-index.js" || echo "Warning: community-skills index refresh failed; continuing with cached data." >&2
+fi
+
 exec bash "$SCRIPT_DIR/install-copilot.sh" "$@"
