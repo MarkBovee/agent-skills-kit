@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>Synthwave workflow discipline for coding agents.</strong><br />
+  <strong>Workflow skills and routing support for coding agents.</strong><br />
   OpenCode-first skill pack with generated exports for GitHub Copilot and Claude Code.
 </p>
 
@@ -18,26 +18,22 @@
   <code>17 skills</code>
   <code>1 router plugin</code>
   <code>3 platforms</code>
-  <code>proof over ritual</code>
+  <code>review + verification</code>
 </p>
 
 <p align="center">
-  <a href="#fast-lane-install">Fast Lane</a> •
-  <a href="#skill-deck">Skill Deck</a> •
-  <a href="#night-shift-workflow">Night Shift Workflow</a> •
-  <a href="#router-mechanics">Router Mechanics</a> •
-  <a href="#maintenance-console">Maintenance Console</a> •
+  <a href="#install">Install</a> •
+  <a href="#skills">Skills</a> •
+  <a href="#workflow-model">Workflow</a> •
+  <a href="#router">Router</a> •
+  <a href="#maintenance">Maintenance</a> •
   <a href="#repo-map">Repo Map</a> •
   <a href="./CHANGELOG.md">Changelog</a>
 </p>
 
-> Midnight pink on the surface. Senior-engineering discipline underneath.
->
-> `nebu-skills` keeps workflow stages explicit, routing light, and verification proportional. Kaizen is the default lane. Review and proof happen before the victory lap.
-
 ---
 
-## Neon Brief
+## Overview
 
 | Signal | What it means |
 | --- | --- |
@@ -46,7 +42,7 @@
 | Kaizen by default | Normal software work starts with steady iterative progress, not heavyweight process. |
 | Hints only | Router suggests skills. It does not rewrite commands, auto-run tools, or hijack sessions. |
 
-## Why This Exists
+## Goals
 
 - make workflow routing sharper without building a giant prompt constitution
 - keep implementation, debugging, review, verification, and wrap-up as explicit stages
@@ -58,7 +54,7 @@ Project changes are tracked in [CHANGELOG.md](./CHANGELOG.md).
 
 ---
 
-## Fast Lane Install
+## Install
 
 Bootstrap scripts are the recommended path. They clone if needed, update existing installs, install managed assets, and stay safe to rerun.
 
@@ -170,7 +166,7 @@ pwsh -NoLogo -NoProfile -File .\scripts\install-claude-code.ps1
 
 ---
 
-## Skill Deck
+## Skills
 
 All managed workflow skills use the `nebu-` prefix for predictable routing and easier debugging.
 
@@ -209,7 +205,7 @@ All managed workflow skills use the `nebu-` prefix for predictable routing and e
 
 ---
 
-## Night Shift Workflow
+## Workflow Model
 
 Default rhythm across the pack:
 
@@ -221,11 +217,11 @@ Default rhythm across the pack:
 
 That is why `nebu-kaizen` carries `default: true` in frontmatter. The router uses it as a baseline nudge without overriding a clearly stronger match.
 
-Proof matters. Theater does not. This pack biases toward durable evidence after behavior is understood, not giant speculative test scaffolding up front.
+The pack favors fast trustworthy checks, then proportional review and verification before completion claims.
 
 ---
 
-## Router Mechanics
+## Router
 
 `plugins/nebu-skills-router.js` reads installed skills, scores them against user intent, and injects lightweight routing hints into the system prompt.
 
@@ -260,7 +256,7 @@ OpenCode remains the reference implementation for routing behavior. GitHub Copil
 
 ---
 
-## Maintenance Console
+## Maintenance
 
 Regenerate exported platform assets:
 
@@ -350,9 +346,11 @@ scripts/update-claude-code.*
 
 ---
 
-## Notes From The Neon Desk
+## Notes
 
 - OpenCode is the routing reference implementation.
+- Visual assets live in `assets/readme-banner.svg` and `assets/social-preview.png`.
+- For GitHub repo cards, use `assets/social-preview.png` as the social preview image.
 - Restart OpenCode after install or update.
 - Bootstrap scripts store a managed checkout in `REPO_DIR` when set. Default path is `XDG_DATA_HOME/nebu-skills` when available, otherwise `LOCALAPPDATA\nebu-skills` on PowerShell, then `~/.local/share/nebu-skills`.
 - `nebu-ui-ux` includes Python scripts and CSV data for design guidance and requires Python `3.8+`.
