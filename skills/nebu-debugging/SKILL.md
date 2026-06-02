@@ -6,7 +6,9 @@ triggers:
   - failing test
   - broken build
   - debug
+  - debuggen
   - error
+  - fout opsporen
 ---
 
 # Nebu Debugging

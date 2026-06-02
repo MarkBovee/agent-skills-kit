@@ -1,7 +1,7 @@
 ---
 name: "nebu-implementation"
-description: "Implement, autopilot through a multi-step change, keep coding, continue without waiting, ga door met de implementatie, or werk de stappen af zonder onnodige stopmomenten; choose between direct work, batching, and subagent delegation."
-when_to_use: "Common triggers: implement, autopilot, keep coding, continue implementation, work through steps, ga door met implementatie, werk de stappen af, codeer door, ga verder met de fix, code change, batch edits, delegate work, subagent."
+description: "Use when implementing a multi-step change and the right mode is not yet obvious: pick between direct work, batching related edits, and subagent delegation. Add this on top of nebu-kaizen when the work needs an explicit mode decision."
+when_to_use: "Common triggers: implement, implementeer dit, keep coding, continue implementation, work through steps, code change, batch edits, delegate work, subagent, maak dit werkend."
 ---
 # Nebu Implementation
 
@@ -31,7 +31,7 @@ Once the path is clear, keep moving through implementation loops without waiting
 4. Re-check requirements and review depth before calling something done.
 5. Reuse the repo's existing durable planning or spec system when the work needs written artifacts.
 6. Escalate only real blockers, not normal uncertainty.
-7. When editing code, add concise intent comments generously. Default to one short comment above each function unless local repo guidance says otherwise.
+7. When editing code, add concise intent comments by default; place one short comment above each function unless the repo's local convention says otherwise.
 
 ## Use with
 

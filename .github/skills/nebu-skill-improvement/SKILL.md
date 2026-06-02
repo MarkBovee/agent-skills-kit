@@ -1,6 +1,6 @@
 ---
 name: "nebu-skill-improvement"
-description: "Use when agent behavior reveals a reusable workflow improvement, routing gap, or missing guardrail that should become a skill, plugin, or prompt-pack follow-up. Common triggers: improve skills, skill improvement, workflow improvement, routing gap, prompt pack improvement, reusable improvement, create follow-up issue, auto improvement."
+description: "Use when agent behavior reveals a reusable workflow improvement, routing gap, or missing guardrail that should become a skill, plugin, or prompt-pack follow-up. Common triggers: improve skills, skill improvement, skill gap, workflow improvement, routing gap, missing guardrail, prompt pack improvement, reusable improvement, agent missed, auto improvement."
 ---
 # Nebu Skill Improvement
 

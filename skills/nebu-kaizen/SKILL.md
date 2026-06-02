@@ -1,6 +1,7 @@
 ---
 name: nebu-kaizen
-description: Autopilot mode, keep going, continue without waiting, ga door, werk door, of normale softwareklus waar de volgende logische stap duidelijk is: small safe iterations, built-in validation, and no unnecessary pauses between clear next steps.
+description: Default baseline skill for normal software work where the next logical step is clear: small safe iterations, built-in validation, and no unnecessary pauses between clear next steps. Use this for autopilot mode, keep going, ga door, werk door, or werk de stappen af zonder onnodige stopmomenten.
+default: true
 triggers:
   - kaizen
   - autopilot
@@ -16,11 +17,6 @@ triggers:
   - niet stoppen
   - gewoon doorgaan
   - ga verder
-  - default workflow
-  - continuous improvement
-  - improve code quality
-  - process improvement
-  - standard way of working
 ---
 
 # Nebu Kaizen
@@ -49,7 +45,7 @@ This also applies when the user phrases it in Dutch, such as `ga door`, `werk do
 6. After code changes, do a proportional review pass. Load `nebu-code-review` when the diff is meaningful, subtle, or risky; tiny local diffs may stay self-reviewed.
 7. When work reveals reusable workflow friction, capture the smallest durable improvement instead of treating it as one-off noise.
 8. Reuse the repo's existing durable planning or spec system when one exists; do not create a parallel doc tree by default.
-9. When editing code, add concise comments generously. By default, put one short intent comment above each function unless the repo clearly prefers less commentary.
+9. When editing code, add concise intent comments by default; place one short comment above each function unless the repo's local convention says otherwise.
 
 ## Use with
 

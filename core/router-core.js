@@ -150,6 +150,13 @@ function normalizeStringList(value) {
   return []
 }
 
+// Parse a loose boolean frontmatter value into a real boolean.
+function parseBooleanField(value) {
+  if (value === true || value === false) return value
+  if (typeof value !== "string") return false
+  return value.trim().toLowerCase() === "true"
+}
+
 // Collapse multiline text into a bounded single-line preview for prompts and listings.
 function toSingleLine(text, maxLength = 120) {
   const singleLine = text.replace(/\s+/g, " ").trim()
@@ -204,6 +211,7 @@ async function loadSkills(pathsToScan) {
     const name = (frontmatter.name || path.basename(path.dirname(filePath))).trim()
     const description = (frontmatter.description || "").trim()
     const triggers = normalizeStringList(frontmatter.triggers)
+    const isDefault = parseBooleanField(frontmatter.default)
 
     if (!name || !description) continue
 
@@ -211,6 +219,7 @@ async function loadSkills(pathsToScan) {
       name,
       description,
       triggers,
+      isDefault,
       filePath,
       phrases: unique([...triggers.map((trigger) => trigger.toLowerCase()), ...extractQuotedPhrases(description)]),
       tokens: tokenize(`${name} ${description} ${triggers.join(" ")}`),
@@ -317,6 +326,32 @@ function applyImprovementRouting(query, matches, discoveredSkills, shouldCapture
   )
 }
 
+// Bias routing toward a skill marked as `default: true` in its frontmatter.
+// Only nudges the baseline forward when the existing top match is not already
+// substantially stronger, so a clearly better skill still wins.
+function applyBaselineRouting(query, matches, discoveredSkills, maxHints) {
+  const normalizedQuery = query.trim().toLowerCase()
+  if (!normalizedQuery) return matches
+
+  const baseline = discoveredSkills.find((skill) => skill.isDefault)
+  if (!baseline) return matches
+
+  if (matches.some((skill) => skill.name === baseline.name)) return matches
+
+  const baselineScore = scoreSkill(baseline, normalizedQuery)
+  if (baselineScore <= 0) return matches
+
+  if (matches.length === 0) {
+    return [baseline]
+  }
+
+  const topMatch = matches[0]
+  const topScore = scoreSkill(topMatch, normalizedQuery)
+  if (topScore >= 2 * baselineScore) return matches
+
+  return [baseline, ...matches].slice(0, maxHints)
+}
+
 // Return the highest-scoring skills for the current query.
 function findMatches(query, skills, maxHints) {
   return skills
@@ -365,6 +400,7 @@ module.exports = {
   IMPROVEMENT_SKILL,
   VERIFICATION_SKILL,
   WRAPUP_SKILL,
+  applyBaselineRouting,
   applyImprovementRouting,
   applySessionAwareRouting,
   createEmptySessionState,
@@ -372,6 +408,7 @@ module.exports = {
   getSessionState,
   loadSkills,
   normalizeStringList,
+  parseBooleanField,
   parseFrontmatter,
   scoreSkill,
   setSessionState,

@@ -1,7 +1,7 @@
 ---
 name: "nebu-workspace-wrapup"
 description: "Use when a task changed one or more repos in this workspace and you are about to claim completion, hand off work, or stop with done/fixed/finished wording."
-when_to_use: "Common triggers: wrap up, hand off, task complete, finishing work, workspace done."
+when_to_use: "Common triggers: wrap up, hand off, task complete, finishing work, workspace done, afronden, afgerond, inleveren."
 ---
 # Nebu Workspace Wrap-Up
 

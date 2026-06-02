@@ -7,6 +7,9 @@ triggers:
   - task complete
   - finishing work
   - workspace done
+  - afronden
+  - afgerond
+  - inleveren
 ---
 
 # Nebu Workspace Wrap-Up

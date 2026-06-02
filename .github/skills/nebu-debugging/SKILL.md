@@ -1,6 +1,6 @@
 ---
 name: "nebu-debugging"
-description: "Use when a bug, failing test, or broken build is not already explained by a clear local mistake, or when a first fix did not work. Common triggers: bug, failing test, broken build, debug, error."
+description: "Use when a bug, failing test, or broken build is not already explained by a clear local mistake, or when a first fix did not work. Common triggers: bug, failing test, broken build, debug, debuggen, error, fout opsporen."
 ---
 # Nebu Debugging
 

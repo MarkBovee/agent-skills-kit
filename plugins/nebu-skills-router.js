@@ -7,6 +7,7 @@ const {
   IMPROVEMENT_SKILL,
   VERIFICATION_SKILL,
   WRAPUP_SKILL,
+  applyBaselineRouting,
   applyImprovementRouting,
   applySessionAwareRouting,
   findMatches,
@@ -91,11 +92,17 @@ async function nebuSkillsRouterPlugin(_input, options = {}) {
         currentState.needsCodeReview,
         maxHints,
       )
-      const matchedSkills = applyImprovementRouting(
+      const improvementAwareMatches = applyImprovementRouting(
         text,
         reviewAwareMatches,
         discoveredSkills,
         currentState.shouldCaptureImprovement,
+        maxHints,
+      )
+      const matchedSkills = applyBaselineRouting(
+        text,
+        improvementAwareMatches,
+        discoveredSkills,
         maxHints,
       )
 
@@ -149,6 +156,7 @@ async function nebuSkillsRouterPlugin(_input, options = {}) {
         "Skill routing:",
         "- For normal software work, prefer `nebu-kaizen` as the baseline and combine it with a more specific nebu skill when needed.",
         "- Prefer the `skill` tool when a request clearly matches an installed nebu workflow skill.",
+        "- When the session exposed a reusable workflow gap, consider `nebu-skill-improvement` before ending cold.",
         "- This router only suggests skills and should coexist cleanly with other plugins, including nebu-ctx.",
       ]
 

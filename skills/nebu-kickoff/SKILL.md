@@ -7,6 +7,8 @@ triggers:
   - behavior-changing work
   - fuzzy requirements
   - what should we build
+  - wat moeten we bouwen
+  - wat moeten we maken
 ---
 
 # Nebu Kickoff

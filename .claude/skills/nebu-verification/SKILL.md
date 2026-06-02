@@ -1,7 +1,7 @@
 ---
 name: "nebu-verification"
-description: "Use when about to claim something works, is fixed, or is ready to hand off and the needed proof should match the scope of that claim."
-when_to_use: "Common triggers: verify, prove, claim success, done, ready."
+description: "Use when about to claim something works, is fixed, or ready to hand off and the needed proof should match the scope of that claim."
+when_to_use: "Common triggers: verify, verifiëren, prove, controleren of het werkt, bewijzen dat het werkt, claim success, done, finished, ready, handoff, klaar, gereed."
 ---
 # Nebu Verification
 

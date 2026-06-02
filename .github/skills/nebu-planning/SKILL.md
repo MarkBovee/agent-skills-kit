@@ -1,6 +1,6 @@
 ---
 name: "nebu-planning"
-description: "Use when work spans multiple files, phases, or decisions and a short execution plan would reduce mistakes or thrash. Common triggers: plan, multi-file work, multi-phase work, migration, sequencing risk."
+description: "Use when work spans multiple files, phases, or decisions and a short execution plan would reduce mistakes or thrash. Common triggers: plan, plannen, multi-file work, multi-phase work, migration, sequencing risk, werk voorplannen."
 ---
 # Nebu Planning
 

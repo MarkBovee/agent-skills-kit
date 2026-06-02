@@ -3,10 +3,12 @@ name: nebu-planning
 description: Use when work spans multiple files, phases, or decisions and a short execution plan would reduce mistakes or thrash.
 triggers:
   - plan
+  - plannen
   - multi-file work
   - multi-phase work
   - migration
   - sequencing risk
+  - werk voorplannen
 ---
 
 # Nebu Planning

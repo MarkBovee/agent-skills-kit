@@ -1,6 +1,6 @@
 ---
 name: "nebu-brainstorming"
-description: "Use when shaping a new feature, system, or behavior where the solution is still fuzzy and a short design conversation would prevent wrong implementation. Common triggers: brainstorm, fuzzy idea, design tradeoff, unsure what to build, product direction."
+description: "Use when shaping a new feature, system, or behavior where the solution is still fuzzy and a short design conversation would prevent wrong implementation. Common triggers: brainstorm, brainstormen, fuzzy idea, design tradeoff, unsure what to build, product direction, idee uitwerken."
 ---
 # Nebu Brainstorming
 

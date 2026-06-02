@@ -354,10 +354,15 @@ All managed workflow skills use the `nebu-` prefix for predictable routing and e
 | Stage | Skills |
 | --- | --- |
 | Start work | `nebu-kickoff`, `nebu-brainstorming`, `nebu-planning` |
-| Execute work | `nebu-kaizen`, `nebu-implementation`, `nebu-debugging`, `nebu-refactoring` |
+| Execute work | `nebu-kaizen` (default), `nebu-implementation`, `nebu-debugging`, `nebu-refactoring` |
 | Validate work | `nebu-test-driven-development`, `nebu-code-review`, `nebu-verification` |
 | Improve workflows | `nebu-skill-improvement`, `nebu-github-issues` |
 | Finish sessions | `nebu-workspace-wrapup` |
+
+`nebu-kaizen` carries `default: true` in its frontmatter, which the router
+uses as the baseline skill. The baseline only nudges routing forward when
+the existing top match is not already substantially stronger, so a clearly
+better skill still wins.
 
 ---
 
@@ -424,7 +429,21 @@ Additional behavior:
 - tracks edit timing
 - nudges review flow when appropriate
 - tracks wrap-up timing
+- applies a `default: true` baseline skill as a routing nudge without overriding stronger matches
 - encourages reusable workflow improvements before session end
+
+## Trigger Hygiene
+
+Each trigger string is owned by exactly one skill so the router does not
+have to break ties by alphabetical order. A new `scripts/check-trigger-overlap.js`
+script enforces this and verifies the routing chain against a fixed set of
+canonical queries (including the autopilot phrasing in English and Dutch).
+
+Run it after any skill change:
+
+```bash
+node scripts/check-trigger-overlap.js
+```
 
 ---
 

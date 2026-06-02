@@ -1,7 +1,7 @@
 ---
 name: "nebu-kickoff"
 description: "Use when starting ambiguous, cross-cutting, or behavior-changing work and the goal, constraints, or success criteria are not yet crisp."
-when_to_use: "Common triggers: ambiguous request, unclear scope, behavior-changing work, fuzzy requirements, what should we build."
+when_to_use: "Common triggers: ambiguous request, unclear scope, behavior-changing work, fuzzy requirements, what should we build, wat moeten we bouwen, wat moeten we maken."
 ---
 # Nebu Kickoff
 

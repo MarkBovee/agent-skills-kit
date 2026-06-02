@@ -1,7 +1,7 @@
 ---
 name: "nebu-refactoring"
 description: "Use when the request is to refactor, simplify, clean up, restructure, deduplicate, or remove over-engineering in an existing codebase."
-when_to_use: "Common triggers: refactor this, code cleanup, simplify this code, remove over-engineering, deduplicate logic, restructure this code, reduce complexity, untangle this, clean architecture mess."
+when_to_use: "Common triggers: refactor this, refactoren, code cleanup, opschonen, simplify this code, vereenvoudigen, remove over-engineering, deduplicate logic, restructure this code, reduce complexity, untangle this, clean architecture mess."
 ---
 # Nebu Refactoring
 

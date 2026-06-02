@@ -1,7 +1,7 @@
 ---
 name: "nebu-test-driven-development"
 description: "Use when changing behavior that should stay fixed, especially bugfixes, stable seams, or code with existing test support."
-when_to_use: "Common triggers: test-first, regression, behavior should stay fixed, bug fix, failing check."
+when_to_use: "Common triggers: test-first, regression, regression test, behavior should stay fixed, failing check, lock behavior, prevent regression."
 ---
 # Nebu Test-Driven Development
 

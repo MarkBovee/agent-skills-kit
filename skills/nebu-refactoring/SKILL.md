@@ -3,8 +3,11 @@ name: nebu-refactoring
 description: Use when the request is to refactor, simplify, clean up, restructure, deduplicate, or remove over-engineering in an existing codebase.
 triggers:
   - refactor this
+  - refactoren
   - code cleanup
+  - opschonen
   - simplify this code
+  - vereenvoudigen
   - remove over-engineering
   - deduplicate logic
   - restructure this code

@@ -19,7 +19,7 @@ This is a multi-platform skill-pack repo for OpenCode, GitHub Copilot, and Claud
 - Prefer pure helpers when practical. Keep orchestration separate from object construction, formatting, parsing, and normalization helpers.
 - Fail fast on invalid input and return errors with enough context for diagnostics.
 - Keep code self-documenting. Add short intent comments only for non-obvious logic or lifecycle coupling.
-- When editing code, add comments generously. By default, place at least one short intent comment above each function unless the repo or file has a stronger local convention.
+- When editing code, add concise intent comments by default; place one short comment above each function unless the repo's local convention says otherwise.
 - Keep the relevant checks warning-free and error-free before finishing a change.
 - Prefer focused helper extraction or switch-style dispatch over growing conditional chains in routing, hook, tool, and script dispatch code.
 - Normalize and canonicalize filesystem paths at the boundary where paths enter the system so caches, generated artifacts, and routing logic agree on the same real path.

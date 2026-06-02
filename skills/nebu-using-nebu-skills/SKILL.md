@@ -1,17 +1,9 @@
 ---
 name: nebu-using-nebu-skills
-description: Choose a Nebu workflow skill when starting software work, asking for autopilot mode, saying ga door or werk door, or deciding how to keep going without unnecessary stop points.
+description: Discovery fallback for hosts without the router plugin: pick the right Nebu workflow skill for the current task. When the OpenCode router plugin is active, prefer its hints instead of loading this skill.
 triggers:
   - choose a skill
   - which skill
-  - autopilot mode
-  - keep going
-  - continue without waiting
-  - ga door
-  - werk door
-  - ga verder
-  - zonder te wachten
-  - niet stoppen
   - start software work
   - skill router
   - workflow selection

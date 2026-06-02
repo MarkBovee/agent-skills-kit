@@ -4,9 +4,11 @@ description: Use when changing behavior that should stay fixed, especially bugfi
 triggers:
   - test-first
   - regression
+  - regression test
   - behavior should stay fixed
-  - bug fix
   - failing check
+  - lock behavior
+  - prevent regression
 ---
 
 # Nebu Test-Driven Development

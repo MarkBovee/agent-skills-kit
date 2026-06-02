@@ -4,11 +4,13 @@ description: Use when agent behavior reveals a reusable workflow improvement, ro
 triggers:
   - improve skills
   - skill improvement
+  - skill gap
   - workflow improvement
   - routing gap
+  - missing guardrail
   - prompt pack improvement
   - reusable improvement
-  - create follow-up issue
+  - agent missed
   - auto improvement
 ---
 
