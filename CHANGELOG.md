@@ -6,6 +6,10 @@ Format follows Keep a Changelog. Versioning stays lightweight until tagged relea
 
 ## Unreleased
 
+### Fixed
+
+- aligned `nebu-using-nebu-skills` with the full 17-skill roster so fallback routing now explicitly covers `nebu-github-issues` and `nebu-skill-finder`
+
 ### Changed
 
 - removed the `nebu-test-driven-development` skill and folded proof-oriented guidance back into `nebu-kaizen`, `nebu-debugging`, and `nebu-verification`

@@ -18,13 +18,17 @@ For normal software work, `nebu-kaizen` is the default baseline. Add a more spec
 - Clear implementation work -> `nebu-implementation`
 - Bug, failing test, or broken build -> `nebu-debugging`
 - Code changed and a meaningful diff is ready, especially before handoff or a done claim -> `nebu-code-review`
+- Filing or reusing a follow-up ticket from concrete work -> `nebu-github-issues`
 - About to claim success -> `nebu-verification`
 - Cleanup, simplification, restructuring -> `nebu-refactoring`
 - UI/UX design or implementation -> `nebu-ui-ux`
 - Multi-agent coordination -> `nebu-agent-workflows`
 - Reusable workflow or routing improvement discovered during work -> `nebu-skill-improvement`
+- Looking for stack-specific community skills beyond the built-in nebu pack -> `nebu-skill-finder`
 - Finishing work across repos -> `nebu-workspace-wrapup`
 - Creating or revising skills -> `nebu-writing-nebu-skills`
+
+Use `nebu-using-nebu-skills` for in-pack routing help. Use `nebu-skill-finder` when the question is whether the active project needs extra community skills, instructions, or hooks.
 
 ## Default rules
 
