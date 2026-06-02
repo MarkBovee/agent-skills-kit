@@ -4,6 +4,8 @@ const path = require("node:path")
 const DEFAULT_REPO = "github/awesome-copilot"
 const DEFAULT_REF = "main"
 const DEFAULT_INDEX_PATH = path.join(__dirname, "community-skills-index.json")
+const DEFAULT_FINDER_STATE_RELATIVE = path.join(".agents", ".nebu-skill-finder-state.json")
+const DEFAULT_FINDER_STATE_VERSION = 1
 const DEFAULT_MAX_AGE_DAYS = 7
 const DEFAULT_MAX_DEPTH = 3
 const DEFAULT_RAW_FETCH_CONCURRENCY = 6
@@ -687,26 +689,150 @@ async function installItem(item, projectRoot, { fetchImpl = fetchText, overwrite
   return { ok: true, targetPath }
 }
 
+// Resolve the path to the per-project state file that tracks suggestions, decisions, and opt-out.
+function resolveFinderStatePath(projectRoot, overridePath) {
+  return overridePath || path.join(projectRoot, DEFAULT_FINDER_STATE_RELATIVE)
+}
+
+// Build a fresh empty state record with the current schema version.
+function createEmptyFinderState() {
+  return {
+    version: DEFAULT_FINDER_STATE_VERSION,
+    last_checked: null,
+    installed: {},
+    dismissed: {},
+    opted_out: false,
+  }
+}
+
+// Coerce an unversioned or older state record into the current schema shape.
+function normalizeFinderState(raw) {
+  const state = createEmptyFinderState()
+  if (!raw || typeof raw !== "object") return state
+  if (Number.isInteger(raw.version)) state.version = raw.version
+  if (typeof raw.last_checked === "string") state.last_checked = raw.last_checked
+  if (raw.installed && typeof raw.installed === "object") state.installed = mergeNameBuckets(raw.installed)
+  if (raw.dismissed && typeof raw.dismissed === "object") state.dismissed = mergeNameBuckets(raw.dismissed)
+  state.opted_out = raw.opted_out === true
+  return state
+}
+
+// Coerce legacy flat arrays or arbitrary per-type buckets into the { type: [name] } shape.
+function mergeNameBuckets(value) {
+  const out = {}
+  if (Array.isArray(value)) {
+    if (value.length > 0) out.skill = unique(value.map((entry) => String(entry).trim()).filter(Boolean))
+    return out
+  }
+  if (value && typeof value === "object") {
+    for (const [type, names] of Object.entries(value)) {
+      if (!Array.isArray(names)) continue
+      const cleaned = unique(names.map((entry) => String(entry).trim()).filter(Boolean))
+      if (cleaned.length > 0) out[type] = cleaned
+    }
+  }
+  return out
+}
+
+// Read the per-project state file or return a fresh empty state when absent.
+async function loadFinderState(projectRoot, overridePath) {
+  const statePath = resolveFinderStatePath(projectRoot, overridePath)
+  try {
+    const raw = await fs.readFile(statePath, "utf8")
+    return normalizeFinderState(JSON.parse(raw))
+  } catch (error) {
+    if (error && error.code === "ENOENT") return createEmptyFinderState()
+    throw error
+  }
+}
+
+// Persist the per-project state file with deterministic JSON formatting.
+async function saveFinderState(state, projectRoot, overridePath) {
+  const statePath = resolveFinderStatePath(projectRoot, overridePath)
+  await fs.mkdir(path.dirname(statePath), { recursive: true })
+  await fs.writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
+}
+
+// Flatten the { type: [name] } buckets into a single quick-lookup set of `${type}:${name}` keys.
+function buildSeenKeySet(buckets) {
+  const keys = new Set()
+  if (!buckets || typeof buckets !== "object") return keys
+  for (const [type, names] of Object.entries(buckets)) {
+    if (!Array.isArray(names)) continue
+    for (const name of names) keys.add(`${type}:${name}`)
+  }
+  return keys
+}
+
+// Drop candidates the user has already seen (installed or dismissed) from a ranked list.
+function filterSeenCandidates(matches, state) {
+  if (!Array.isArray(matches) || matches.length === 0) return []
+  const seen = new Set([
+    ...buildSeenKeySet(state && state.installed),
+    ...buildSeenKeySet(state && state.dismissed),
+  ])
+  return matches.filter((match) => !seen.has(`${match.type}:${match.name}`))
+}
+
+// Record one decision against the state without mutating other buckets.
+function recordFinderDecision(state, { type, name, decision }) {
+  if (!state || !type || !name) return state
+  const next = {
+    ...state,
+    installed: { ...(state.installed || {}) },
+    dismissed: { ...(state.dismissed || {}) },
+  }
+  if (decision === "installed") {
+    next.installed[type] = unique([...(next.installed[type] || []), name])
+    if (Array.isArray(next.dismissed[type])) {
+      next.dismissed[type] = next.dismissed[type].filter((entry) => entry !== name)
+    }
+  } else if (decision === "dismissed") {
+    next.dismissed[type] = unique([...(next.dismissed[type] || []), name])
+    if (Array.isArray(next.installed[type])) {
+      next.installed[type] = next.installed[type].filter((entry) => entry !== name)
+    }
+  }
+  next.last_checked = new Date().toISOString()
+  return next
+}
+
+// Flip the project-wide opt-out flag so the skill stops suggesting entirely.
+function setFinderOptOut(state, optedOut) {
+  const next = { ...(state || createEmptyFinderState()) }
+  next.opted_out = optedOut === true
+  next.last_checked = new Date().toISOString()
+  return next
+}
+
 module.exports = {
   DEFAULT_DESCRIPTION_FETCH_LIMIT,
+  DEFAULT_FINDER_STATE_RELATIVE,
+  DEFAULT_FINDER_STATE_VERSION,
   DEFAULT_MAX_AGE_DAYS,
   DEFAULT_MAX_DEPTH,
   DEFAULT_RAW_FETCH_CONCURRENCY,
   DEFAULT_REPO,
   DEFAULT_REF,
+  buildSeenKeySet,
   classifyManifestByName,
+  createEmptyFinderState,
   detectProjectStack,
   extractKeywords,
   fetchDescription,
   fetchIndex,
   fetchJson,
   fetchText,
+  filterSeenCandidates,
   filterVSCopyOnly: isVSCodeOnly,
   formatProposal,
   installItem,
   isIndexStale,
   isVSCodeOnly,
+  loadFinderState,
   loadIndex,
+  mergeNameBuckets,
+  normalizeFinderState,
   parseCargoToml,
   parseCdkJson,
   parseComposerJson,
@@ -720,8 +846,12 @@ module.exports = {
   parsePyproject,
   parseRequirementsTxt,
   rankCandidates,
+  recordFinderDecision,
+  resolveFinderStatePath,
   runWithConcurrency,
+  saveFinderState,
   saveIndex,
+  setFinderOptOut,
   targetPathForItem,
   targetSubdirForType,
   toSingleLine,
