@@ -32,7 +32,7 @@ Fix obvious one-line mistakes directly. For everything else, earn the fix by nar
 
 ## Use with
 
-- `nebu-test-driven-development` to lock the fix behind a regression test
+- `nebu-verification` to prove the bug path is fixed with focused fresh evidence
 
 ## Avoid
 

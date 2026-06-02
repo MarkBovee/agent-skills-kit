@@ -69,7 +69,7 @@ Keep skills short (30-90 lines). Prefer this shape:
 
 ### Cross-references
 
-When one skill naturally leads into another, add a `## Use with` section with one-line descriptions. Keep it bidirectional where it makes sense (e.g. debugging references TDD, TDD references debugging).
+When one skill naturally leads into another, add a `## Use with` section with one-line descriptions. Keep it bidirectional where it makes sense (e.g. debugging references verification, verification references code review).
 
 ### Rules
 

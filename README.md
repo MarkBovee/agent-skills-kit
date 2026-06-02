@@ -12,6 +12,7 @@
   <a href="#platform-support">Platforms</a> •
   <a href="#skills">Skills</a> •
   <a href="#how-it-works">How It Works</a> •
+  <a href="./CHANGELOG.md">Changelog</a> •
   <a href="#repo-structure">Repo Structure</a>
 </p>
 
@@ -36,6 +37,8 @@ Supported platforms:
 - Claude Code
 
 The canonical skill source lives in a single repository and is exported into native platform-specific formats.
+
+Project changes are tracked in [CHANGELOG.md](./CHANGELOG.md).
 
 ---
 
@@ -335,7 +338,6 @@ All managed workflow skills use the `nebu-` prefix for predictable routing and e
 | `nebu-planning` | Multi-phase execution planning |
 | `nebu-implementation` | Structured implementation flow |
 | `nebu-debugging` | Root-cause investigation |
-| `nebu-test-driven-development` | Behavior-first development |
 | `nebu-code-review` | Engineering review passes |
 | `nebu-github-issues` | Structured issue management |
 | `nebu-verification` | Validation before claiming completion |
@@ -356,7 +358,7 @@ All managed workflow skills use the `nebu-` prefix for predictable routing and e
 | --- | --- |
 | Start work | `nebu-kickoff`, `nebu-brainstorming`, `nebu-planning` |
 | Execute work | `nebu-kaizen` (default), `nebu-implementation`, `nebu-debugging`, `nebu-refactoring` |
-| Validate work | `nebu-test-driven-development`, `nebu-code-review`, `nebu-verification` |
+| Validate work | `nebu-code-review`, `nebu-verification` |
 | Improve workflows | `nebu-skill-improvement`, `nebu-github-issues` |
 | Adopt community skills | `nebu-skill-finder` |
 | Finish sessions | `nebu-workspace-wrapup` |

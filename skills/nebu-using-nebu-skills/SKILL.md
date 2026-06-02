@@ -23,7 +23,6 @@ For normal software work, `nebu-kaizen` is the default baseline. Add a more spec
 - Multi-file or multi-phase work -> `nebu-planning`
 - Clear implementation work -> `nebu-implementation`
 - Bug, failing test, or broken build -> `nebu-debugging`
-- Behavior that should stay fixed -> `nebu-test-driven-development`
 - Code changed and a meaningful diff is ready, especially before handoff or a done claim -> `nebu-code-review`
 - About to claim success -> `nebu-verification`
 - Cleanup, simplification, restructuring -> `nebu-refactoring`
