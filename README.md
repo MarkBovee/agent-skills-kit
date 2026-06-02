@@ -3,155 +3,101 @@
 </p>
 
 <p align="center">
-  Workflow skills and routing support for OpenCode, GitHub Copilot, and Claude Code.<br />
-  OpenCode-first, with native support for all three platforms.
+  <strong>Synthwave workflow discipline for coding agents.</strong><br />
+  OpenCode-first skill pack with generated exports for GitHub Copilot and Claude Code.
 </p>
 
 <p align="center">
-  <a href="#install">Install</a> •
-  <a href="#platform-support">Platforms</a> •
-  <a href="#skills">Skills</a> •
-  <a href="#how-it-works">How It Works</a> •
-  <a href="./CHANGELOG.md">Changelog</a> •
-  <a href="#repo-structure">Repo Structure</a>
+  <img alt="OpenCode first" src="https://img.shields.io/badge/OpenCode-first-00E6FF?style=for-the-badge&labelColor=10131A" />
+  <img alt="GitHub Copilot export" src="https://img.shields.io/badge/GitHub_Copilot-exported-FF4FD8?style=for-the-badge&labelColor=10131A" />
+  <img alt="Claude Code export" src="https://img.shields.io/badge/Claude_Code-exported-FFD166?style=for-the-badge&labelColor=10131A" />
+  <img alt="Kaizen default" src="https://img.shields.io/badge/Kaizen-default-7C5CFF?style=for-the-badge&labelColor=10131A" />
 </p>
+
+<p align="center">
+  <code>17 skills</code>
+  <code>1 router plugin</code>
+  <code>3 platforms</code>
+  <code>proof over ritual</code>
+</p>
+
+<p align="center">
+  <a href="#fast-lane-install">Fast Lane</a> •
+  <a href="#skill-deck">Skill Deck</a> •
+  <a href="#night-shift-workflow">Night Shift Workflow</a> •
+  <a href="#router-mechanics">Router Mechanics</a> •
+  <a href="#maintenance-console">Maintenance Console</a> •
+  <a href="#repo-map">Repo Map</a> •
+  <a href="./CHANGELOG.md">Changelog</a>
+</p>
+
+> Midnight pink on the surface. Senior-engineering discipline underneath.
+>
+> `nebu-skills` keeps workflow stages explicit, routing light, and verification proportional. Kaizen is the default lane. Review and proof happen before the victory lap.
 
 ---
 
-## Overview
+## Neon Brief
 
-`nebu-skills` is a workflow-oriented skill pack for coding agents.
+| Signal | What it means |
+| --- | --- |
+| One canonical source | Skills live once under `skills/` and export into native GitHub Copilot and Claude Code formats. |
+| OpenCode is reference | Router behavior and plugin support are designed around OpenCode first. |
+| Kaizen by default | Normal software work starts with steady iterative progress, not heavyweight process. |
+| Hints only | Router suggests skills. It does not rewrite commands, auto-run tools, or hijack sessions. |
 
-It provides:
+## Why This Exists
 
-- structured workflow skills
-- lightweight routing support
-- reusable engineering patterns
-- generated multi-platform exports
-- install and update tooling
-
-Supported platforms:
-
-- OpenCode
-- GitHub Copilot
-- Claude Code
-
-The canonical skill source lives in a single repository and is exported into native platform-specific formats.
+- make workflow routing sharper without building a giant prompt constitution
+- keep implementation, debugging, review, verification, and wrap-up as explicit stages
+- let one repo ship portable workflow guidance to three agent platforms
+- encourage proof that matches the claim instead of ritual for its own sake
+- stay compatible with existing tooling such as `nebu-ctx`
 
 Project changes are tracked in [CHANGELOG.md](./CHANGELOG.md).
 
 ---
 
-## Design Goals
+## Fast Lane Install
 
-`nebu-skills` focuses on workflow structure instead of large prompt layers.
+Bootstrap scripts are the recommended path. They clone if needed, update existing installs, install managed assets, and stay safe to rerun.
 
-Core goals:
-
-- improve task routing
-- keep workflow stages explicit
-- encourage consistent review and verification
-- support reusable engineering patterns
-- stay compatible with existing tooling
-
-Router scope is intentionally narrow:
-
-- no command rewriting
-- no automatic tool execution
-- no session hijacking
-- no hidden automation
-
-The goal is to make agent sessions more predictable, maintainable, and reusable across longer engineering workflows.
-
----
-
-## What You Get
-
-| Component | Included |
-| --- | --- |
-| Workflow skills | 17 |
-| Router plugins | 1 |
-| Supported platforms | 3 |
-| Generated exports | GitHub Copilot + Claude Code |
-| Install/update tooling | macOS, Linux, WSL, Windows PowerShell |
-
-Main assets:
-
-- `skills/`
-- `plugins/nebu-skills-router.js`
-- `core/router-core.js`
-- `.github/skills/`
-- `.claude/skills/`
-
----
-
-## Platform Support
-
-| Platform | Support |
-| --- | --- |
-| OpenCode | Router plugin, routing support, bootstrap/install/update tooling |
-| GitHub Copilot | Generated skills, reusable instructions, bootstrap/install/update tooling |
-| Claude Code | Generated skills, reusable rules, bootstrap/install/update tooling |
-
-OpenCode remains the reference implementation for routing behavior and plugin support.
-
-GitHub Copilot and Claude Code exports are generated from the same canonical workflow source.
-
----
-
-## Generated Platform Assets
-
-The canonical workflow skills live under `skills/`.
-
-Platform-specific exports are generated from that source:
-
-```bash
-node ./scripts/export-platform-skills.js
-```
-
-Generated outputs:
-
-- `.github/copilot-instructions.md`
-- `.github/skills/`
-- `CLAUDE.md`
-- `.claude/skills/`
-
-Default guidance also prefers concise intent comments during edits unless the repository already follows a different style.
-
----
-
-# Install
-
-## OpenCode
-
-OpenCode is the primary platform and reference implementation.
-
-### Bootstrap Install
-
-Recommended install path.
-
-The bootstrap script:
-
-- clones the repository if needed
-- updates existing installs
-- installs required components
-- is safe to rerun
-
-### macOS / Linux
+### OpenCode
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-opencode.sh | bash
 ```
 
-### Windows PowerShell
-
 ```powershell
 irm https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-opencode.ps1 | iex
 ```
 
----
+### GitHub Copilot
 
-### Local Clone Install
+```bash
+curl -fsSL https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-copilot.sh | bash
+```
+
+```powershell
+irm https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-copilot.ps1 | iex
+```
+
+### Claude Code
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-claude-code.sh | bash
+```
+
+```powershell
+irm https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-claude-code.ps1 | iex
+```
+
+<details>
+<summary><strong>Detailed install paths and local-clone commands</strong></summary>
+
+### OpenCode Details
+
+Local clone install:
 
 ```bash
 gh repo clone MarkBovee/nebu-skills
@@ -163,9 +109,7 @@ bash ./scripts/install-opencode.sh
 pwsh -NoLogo -NoProfile -File .\scripts\install-opencode.ps1
 ```
 
----
-
-### Custom OpenCode Directory
+Custom OpenCode directory:
 
 ```bash
 bash ./scripts/install-opencode.sh /path/to/opencode
@@ -175,62 +119,27 @@ bash ./scripts/install-opencode.sh /path/to/opencode
 pwsh -NoLogo -NoProfile -File .\scripts\install-opencode.ps1 -OpencodeDir "C:\path\to\opencode"
 ```
 
----
-
-### Manual Install
-
-Copy:
+Manual install copies:
 
 - all folders under `skills/`
 - `core/router-core.js`
 - `plugins/nebu-skills-router.js`
 
-into the matching OpenCode config directories.
-
-Common locations:
+Common OpenCode config locations:
 
 | Platform | Path |
 | --- | --- |
 | macOS / Linux / WSL | `~/.config/opencode/` |
 | Windows PowerShell | `$HOME\.config\opencode\` |
 
----
+### GitHub Copilot Details
 
-## GitHub Copilot
-
-Installs generated skills into:
+Installed paths:
 
 - `~/.copilot/skills/`
 - `~/.copilot/instructions/`
 
-### Bootstrap Install
-
-Recommended install path.
-
-The bootstrap script:
-
-- clones the repository if needed
-- updates existing installs
-- installs generated Copilot assets
-- is safe to rerun
-
-### macOS / Linux
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-copilot.sh | bash
-```
-
-### Windows PowerShell
-
-```powershell
-irm https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-copilot.ps1 | iex
-```
-
----
-
-### Local Clone Install
-
-From an existing checkout:
+Local clone install:
 
 ```bash
 bash ./scripts/install-copilot.sh
@@ -240,43 +149,14 @@ bash ./scripts/install-copilot.sh
 pwsh -NoLogo -NoProfile -File .\scripts\install-copilot.ps1
 ```
 
----
+### Claude Code Details
 
-## Claude Code
-
-Installs generated skills into:
+Installed paths:
 
 - `~/.claude/skills/`
 - `~/.claude/rules/`
 
-### Bootstrap Install
-
-Recommended install path.
-
-The bootstrap script:
-
-- clones the repository if needed
-- updates existing installs
-- installs generated Claude Code assets
-- is safe to rerun
-
-### macOS / Linux
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-claude-code.sh | bash
-```
-
-### Windows PowerShell
-
-```powershell
-irm https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-claude-code.ps1 | iex
-```
-
----
-
-### Local Clone Install
-
-From an existing checkout:
+Local clone install:
 
 ```bash
 bash ./scripts/install-claude-code.sh
@@ -286,49 +166,26 @@ bash ./scripts/install-claude-code.sh
 pwsh -NoLogo -NoProfile -File .\scripts\install-claude-code.ps1
 ```
 
----
-
-# Update
-
-Use the updater matching the install mode.
-
-## Bootstrap-Managed Install
-
-Rerun the matching bootstrap command from the install section.
-
-Bootstrap scripts pull latest changes before reinstall unless `SKIP_PULL=1` or `-SkipPull` is used.
+</details>
 
 ---
 
-## Local Clone Install
-
-```bash
-bash ./scripts/update-opencode.sh
-bash ./scripts/update-opencode.sh --skip-pull
-
-bash ./scripts/update-copilot.sh
-bash ./scripts/update-copilot.sh --skip-pull
-
-bash ./scripts/update-claude-code.sh
-bash ./scripts/update-claude-code.sh --skip-pull
-```
-
-```powershell
-pwsh -NoLogo -NoProfile -File .\scripts\update-opencode.ps1
-pwsh -NoLogo -NoProfile -File .\scripts\update-opencode.ps1 -SkipPull
-
-pwsh -NoLogo -NoProfile -File .\scripts\update-copilot.ps1
-pwsh -NoLogo -NoProfile -File .\scripts\update-copilot.ps1 -SkipPull
-
-pwsh -NoLogo -NoProfile -File .\scripts\update-claude-code.ps1
-pwsh -NoLogo -NoProfile -File .\scripts\update-claude-code.ps1 -SkipPull
-```
-
----
-
-# Skills
+## Skill Deck
 
 All managed workflow skills use the `nebu-` prefix for predictable routing and easier debugging.
+
+### By Stage
+
+| Stage | Skills | Purpose |
+| --- | --- | --- |
+| Start | `nebu-kickoff`, `nebu-brainstorming`, `nebu-planning` | clarify fuzzy work before it gets expensive |
+| Execute | `nebu-kaizen`, `nebu-implementation`, `nebu-debugging`, `nebu-refactoring` | move code forward with small coherent loops |
+| Validate | `nebu-code-review`, `nebu-verification` | review the diff and prove the claim proportionally |
+| Improve | `nebu-skill-improvement`, `nebu-github-issues`, `nebu-skill-finder` | capture reusable workflow fixes and adopt stronger stack-specific help |
+| Coordinate | `nebu-agent-workflows`, `nebu-workspace-wrapup`, `nebu-using-nebu-skills`, `nebu-writing-nebu-skills` | route work, finish cleanly, and keep the skill system healthy |
+| Product | `nebu-ui-ux` | push interface work beyond bland default SaaS output |
+
+### Full Roster
 
 | Skill | Purpose |
 | --- | --- |
@@ -352,142 +209,135 @@ All managed workflow skills use the `nebu-` prefix for predictable routing and e
 
 ---
 
-# Workflow Coverage
+## Night Shift Workflow
 
-| Stage | Skills |
-| --- | --- |
-| Start work | `nebu-kickoff`, `nebu-brainstorming`, `nebu-planning` |
-| Execute work | `nebu-kaizen` (default), `nebu-implementation`, `nebu-debugging`, `nebu-refactoring` |
-| Validate work | `nebu-code-review`, `nebu-verification` |
-| Improve workflows | `nebu-skill-improvement`, `nebu-github-issues` |
-| Adopt community skills | `nebu-skill-finder` |
-| Finish sessions | `nebu-workspace-wrapup` |
+Default rhythm across the pack:
 
-`nebu-kaizen` carries `default: true` in its frontmatter, which the router
-uses as the baseline skill. The baseline only nudges routing forward when
-the existing top match is not already substantially stronger, so a clearly
-better skill still wins.
+1. Inspect the next boundary that matters.
+2. Create the smallest coherent change.
+3. Prove the touched surface with the fastest trustworthy check.
+4. Review the diff before claiming victory.
+5. Continue until done or blocked for real.
+
+That is why `nebu-kaizen` carries `default: true` in frontmatter. The router uses it as a baseline nudge without overriding a clearly stronger match.
+
+Proof matters. Theater does not. This pack biases toward durable evidence after behavior is understood, not giant speculative test scaffolding up front.
 
 ---
 
-# Auto-Improvement Flow
+## Router Mechanics
 
-`nebu-skills` treats reusable workflow friction as trackable engineering work.
+`plugins/nebu-skills-router.js` reads installed skills, scores them against user intent, and injects lightweight routing hints into the system prompt.
 
-Typical flow:
+Core behavior:
 
-1. Agent executes the normal task workflow
-2. Review or verification detects reusable friction
-3. Work routes into `nebu-skill-improvement`
-4. Small fixes can be applied directly
-5. Improvements are tracked upstream through GitHub issues
-6. Larger follow-ups become reusable workflow tasks instead of remaining isolated to a single session
+- reads YAML frontmatter from source skills
+- scores against `name`, `description`, and `triggers`
+- applies the `default: true` baseline when no stronger skill is clearly ahead
+- tracks code edits so `nebu-code-review` can be nudged before a done claim
+- keeps `nebu-verification` close to review in completion-oriented turns
+- keeps `nebu-skill-improvement` visible when sessions expose reusable workflow friction
 
-Helper script:
+Hard boundaries:
+
+- no command rewriting
+- no automatic tool execution
+- no session takeover
+- no hidden automation
+- clean coexistence with other plugins, including `nebu-ctx`
+
+---
+
+## Platform Matrix
+
+| Platform | Ships | Generated assets or install target |
+| --- | --- | --- |
+| OpenCode | router plugin, routing support, bootstrap/install/update tooling | installs managed skills plus `core/router-core.js` and `plugins/nebu-skills-router.js` |
+| GitHub Copilot | generated skills, reusable instructions, bootstrap/install/update tooling | `.github/skills/`, `.github/copilot-instructions.md`, `~/.copilot/skills/`, `~/.copilot/instructions/` |
+| Claude Code | generated skills, reusable rules, bootstrap/install/update tooling | `.claude/skills/`, `CLAUDE.md`, `~/.claude/skills/`, `~/.claude/rules/` |
+
+OpenCode remains the reference implementation for routing behavior. GitHub Copilot and Claude Code exports are generated from the same canonical workflow source.
+
+---
+
+## Maintenance Console
+
+Regenerate exported platform assets:
+
+```bash
+node ./scripts/export-platform-skills.js
+```
+
+Check trigger ownership and routing hygiene:
+
+```bash
+node ./scripts/check-trigger-overlap.js
+```
+
+Load the router plugin directly:
+
+```bash
+node -e "require('./plugins/nebu-skills-router.js')"
+```
+
+Refresh the cached community-skills index:
+
+```bash
+node ./scripts/fetch-community-skills-index.js
+```
+
+Issue helper for duplicate checks before filing follow-up work:
 
 ```bash
 skills/nebu-github-issues/check-existing-issue.sh "<query>" [owner/repo]
 ```
 
-This performs a default duplicate search before creating a new issue.
+<details>
+<summary><strong>Update commands</strong></summary>
 
----
+Bootstrap-managed installs update when you rerun the matching bootstrap command unless `SKIP_PULL=1` or `-SkipPull` is used.
 
-# How It Works
-
-## Skills
-
-Each workflow skill is a self-contained `SKILL.md` file with YAML frontmatter:
-
-- `name`
-- `description`
-- `triggers`
-
-This structure powers:
-
-- routing
-- discovery
-- scoring
-- testing
-
----
-
-## Router Plugin
-
-`plugins/nebu-skills-router.js`:
-
-- scans installed skills
-- scores relevance against user intent
-- injects lightweight routing hints into the system prompt
-
-Important constraints:
-
-- adds hints only
-- does not auto-run tools
-- does not rewrite commands
-- does not take over sessions
-- remains compatible with other OpenCode plugins
-
-Additional behavior:
-
-- tracks edit timing
-- nudges review flow when appropriate
-- tracks wrap-up timing
-- applies a `default: true` baseline skill as a routing nudge without overriding stronger matches
-- encourages reusable workflow improvements before session end
-
-## Trigger Hygiene
-
-Each trigger string is owned by exactly one skill so the router does not
-have to break ties by alphabetical order. A new `scripts/check-trigger-overlap.js`
-script enforces this and verifies the routing chain against a fixed set of
-canonical queries (including the autopilot phrasing in English and Dutch).
-
-Run it after any skill change:
+Local clone updates:
 
 ```bash
-node scripts/check-trigger-overlap.js
+bash ./scripts/update-opencode.sh
+bash ./scripts/update-opencode.sh --skip-pull
+
+bash ./scripts/update-copilot.sh
+bash ./scripts/update-copilot.sh --skip-pull
+
+bash ./scripts/update-claude-code.sh
+bash ./scripts/update-claude-code.sh --skip-pull
 ```
 
----
+```powershell
+pwsh -NoLogo -NoProfile -File .\scripts\update-opencode.ps1
+pwsh -NoLogo -NoProfile -File .\scripts\update-opencode.ps1 -SkipPull
 
-## Install Scripts
+pwsh -NoLogo -NoProfile -File .\scripts\update-copilot.ps1
+pwsh -NoLogo -NoProfile -File .\scripts\update-copilot.ps1 -SkipPull
 
-Installers:
+pwsh -NoLogo -NoProfile -File .\scripts\update-claude-code.ps1
+pwsh -NoLogo -NoProfile -File .\scripts\update-claude-code.ps1 -SkipPull
+```
 
-- copy managed skills
-- install the shared router core
-- install the router plugin
-- remove legacy `lean-*` and `*leanctx*` installs
-- clean up renamed legacy skills
-- preserve unrelated plugins and user customizations
-- remain safe to rerun
-
----
-
-# nebu-ctx Compatibility
-
-`nebu-skills` is intentionally compatible with `nebu-ctx`.
-
-Router scope remains limited to workflow routing only.
-
-It does not interfere with:
-
-- shell rewriting
-- tool output shaping
-- external plugin responsibilities
+</details>
 
 ---
 
-# Repo Structure
+## Repo Map
 
 ```text
-skills/                     Workflow skills
+skills/                     Canonical workflow skills
 .github/skills/             Generated GitHub Copilot export
 .claude/skills/             Generated Claude Code export
 
-core/router-core.js
+core/router-core.js         Shared scoring, frontmatter, and session helpers
 plugins/nebu-skills-router.js
+
+scripts/bootstrap-opencode.*
+scripts/install-opencode.*
+scripts/update-opencode.*
 
 scripts/bootstrap-copilot.*
 scripts/install-copilot.*
@@ -496,34 +346,21 @@ scripts/update-copilot.*
 scripts/bootstrap-claude-code.*
 scripts/install-claude-code.*
 scripts/update-claude-code.*
-
-scripts/bootstrap-opencode.*
-scripts/install-opencode.*
-scripts/update-opencode.*
 ```
 
 ---
 
-# Notes
+## Notes From The Neon Desk
 
-- OpenCode remains the reference implementation for routing behavior.
-- GitHub Copilot installs into `~/.copilot/skills/` and `~/.copilot/instructions/`.
-- Claude Code installs into `~/.claude/skills/` and `~/.claude/rules/`.
+- OpenCode is the routing reference implementation.
 - Restart OpenCode after install or update.
-- Bootstrap scripts store a managed checkout in `REPO_DIR` when set. Default path: `XDG_DATA_HOME/nebu-skills` when available, otherwise `LOCALAPPDATA\nebu-skills` on PowerShell, then `~/.local/share/nebu-skills`.
+- Bootstrap scripts store a managed checkout in `REPO_DIR` when set. Default path is `XDG_DATA_HOME/nebu-skills` when available, otherwise `LOCALAPPDATA\nebu-skills` on PowerShell, then `~/.local/share/nebu-skills`.
 - `nebu-ui-ux` includes Python scripts and CSV data for design guidance and requires Python `3.8+`.
-- Installers overwrite only `nebu-skills` managed assets.
+- Installers overwrite only `nebu-skills` managed assets and preserve unrelated user customizations.
+- Generated platform artifacts are derived output. Edit `skills/*/SKILL.md`, then re-export.
 
 ---
 
-# Status
+## Changelog
 
-`nebu-skills` is under active development and continues to evolve around real engineering workflow usage.
-
-The current focus areas are:
-
-- workflow consistency
-- routing quality
-- multi-platform support
-- safer automation boundaries
-- reusable engineering patterns
+For project history, removals, and workflow shifts, see [CHANGELOG.md](./CHANGELOG.md).
