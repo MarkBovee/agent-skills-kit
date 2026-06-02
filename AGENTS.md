@@ -14,21 +14,22 @@ This is a multi-platform skill-pack repo for OpenCode, GitHub Copilot, and Claud
 
 ## Coding standards
 
-- Follow DRY and SOLID. Before adding code, check whether the behavior already exists and extract shared helpers instead of duplicating logic.
-- Prefer small, focused functions with clear names and a single level of abstraction. Use guard clauses and early returns to keep control flow flat.
-- Prefer pure helpers when practical. Keep orchestration separate from object construction, formatting, parsing, and normalization helpers.
-- Fail fast on invalid input and return errors with enough context for diagnostics.
-- Keep code self-documenting. Add short intent comments only for non-obvious logic or lifecycle coupling.
-- When editing code, add concise intent comments by default; place one short comment above each function unless the repo's local convention says otherwise.
-- Keep the relevant checks warning-free and error-free before finishing a change.
-- Prefer focused helper extraction or switch-style dispatch over growing conditional chains in routing, hook, tool, and script dispatch code.
-- Normalize and canonicalize filesystem paths at the boundary where paths enter the system so caches, generated artifacts, and routing logic agree on the same real path.
-- Keep public API and tool behavior changes minimal and explicit. Avoid widening behavior accidentally when fixing path, session, routing, or export bugs.
-- Reuse existing core helpers before adding new utility layers.
-- Keep cross-shell and cross-platform behavior aligned when practical. If startup, hook, install, or generated artifact behavior changes, update the paired scripts, cleanup flow, and README usage together.
-- Prefer explicit data shapes and descriptive names over loose catch-all payloads or generic naming.
-- Prefer concrete test models and narrow validation commands before widening scope.
-- Centralize cross-cutting concerns such as normalization, timestamp-like metadata, or save-pipeline state handling instead of scattering them through feature logic.
+These rules are language-agnostic. They apply to every file the agent writes, edits, reviews, or generates, in any language, in any repo, unless an explicit, repo-local convention overrides them in writing.
+
+- **DRY and SOLID.** Before adding code, check whether the behavior already exists and extract shared helpers instead of duplicating logic.
+- **Small focused functions.** Prefer one clear level of abstraction per function. Use guard clauses and early returns to keep control flow flat.
+- **Pure helpers.** Prefer side-effect-free helpers when practical. Keep orchestration separate from object construction, formatting, parsing, and normalization helpers.
+- **Fail fast.** Validate input early and return errors with enough context for diagnostics.
+- **Explicit data shapes.** Prefer named types, records, or DTOs over loose catch-all payloads, `object`, or `dynamic`. Three or more positional parameters belong in a request/options object.
+- **Meaningful names.** Use intention-revealing names for identifiers, variables, parameters, and return values. Avoid generic `data`, `result`, `code`, `updated`.
+- **Intent comments above every function (hard rule).** Every function, method, helper, closure handler, route handler, protocol dispatcher, and static utility gets a short comment above it stating its purpose. This is non-negotiable for reviewability of generated code. For non-obvious behavior, add a brief docstring covering parameters, return value, side effects, and any preconditions or invariants. Inline `why` comments stay focused on intent, not line-by-line narration.
+- **Self-documenting body.** Use small named helpers, switch/pattern dispatch, and extracted builders instead of long `if/else` chains, deeply nested blocks, or growing parameter lists.
+- **Centralize cross-cutting concerns.** Normalize paths, timestamps, locale, and other cross-cutting metadata at the boundary where they enter the system. Reuse existing core helpers before adding new utility layers.
+- **Reuse over reinvention.** Reuse existing core helpers, plan/spec systems, and patterns before introducing new utility layers, parallel doc trees, or alternative config systems.
+- **Keep public behavior narrow.** Public API and tool behavior changes are minimal and explicit. Avoid widening behavior accidentally when fixing path, session, routing, hook, or export bugs.
+- **Cross-platform parity.** When startup, hook, install, or generated artifact behavior changes, update the paired `.sh` and `.ps1` scripts, the cleanup flow, and the README usage together.
+- **Generated artifacts are derived.** Exported platform skills and instructions regenerate cleanly from the source skills. Do not hand-edit `.claude/skills/`, `.github/skills/`, `CLAUDE.md`, or `.github/copilot-instructions.md` — fix the source and re-export.
+- **Warning-free finish.** Keep the relevant checks (lint, typecheck, tests) warning-free and error-free before claiming a change is done.
 
 ## Skill conventions
 

@@ -31,7 +31,7 @@ Once the path is clear, keep moving through implementation loops without waiting
 4. Re-check requirements and review depth before calling something done.
 5. Reuse the repo's existing durable planning or spec system when the work needs written artifacts.
 6. Escalate only real blockers, not normal uncertainty.
-7. When editing code, add concise intent comments by default; place one short comment above each function unless the repo's local convention says otherwise.
+7. When editing code, follow the coding standards in `AGENTS.md` (`## Coding standards`). The intent-comment rule is a **hard rule**: every function, method, helper, closure handler, route handler, protocol dispatcher, and static utility gets a short comment above it. Add a brief docstring for non-obvious parameters, return values, side effects, or preconditions. Inline `why` comments stay focused on intent, not line-by-line narration.
 
 ## Use with
 
