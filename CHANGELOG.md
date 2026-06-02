@@ -9,6 +9,7 @@ Format follows Keep a Changelog. Versioning stays lightweight until tagged relea
 ### Fixed
 
 - aligned `nebu-using-nebu-skills` with the full 17-skill roster so fallback routing now explicitly covers `nebu-github-issues` and `nebu-skill-finder`
+- installers and updates now remove stale managed skills during reinstall, including retired skills such as `nebu-test-driven-development`
 
 ### Changed
 

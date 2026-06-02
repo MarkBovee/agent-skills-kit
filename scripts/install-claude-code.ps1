@@ -11,12 +11,14 @@ $skillsSource = Join-Path $repoRoot ".claude\skills"
 $skillsTarget = Join-Path $ClaudeDir "skills"
 $rulesTarget = Join-Path $ClaudeDir "rules"
 $rulesFile = Join-Path $rulesTarget "nebu-skills.md"
-$renamedSkills = @(
+$managedSkillsManifest = ".nebu-managed-skills.txt"
+$staleSkills = @(
     "refactor",
     "ui-ux-pro-max",
     "using-nebu-skills",
     "writing-nebu-skills",
-    "workspace-wrapup"
+    "workspace-wrapup",
+    "nebu-test-driven-development"
 )
 
 # Remove older skill-pack installs that used the legacy lean naming.
@@ -34,16 +36,61 @@ function Remove-LegacySkillInstalls {
     }
 }
 
-# Remove renamed skill directories that should no longer survive upgrades.
-function Remove-RenamedSkillInstalls {
+# Remove stale skill directories that should no longer survive upgrades.
+function Remove-StaleSkillInstalls {
     param([string]$BasePath)
 
     if (-not (Test-Path -LiteralPath $BasePath)) {
         return
     }
 
-    foreach ($skillName in $renamedSkills) {
+    foreach ($skillName in $staleSkills) {
         $target = Join-Path $BasePath $skillName
+        if (Test-Path -LiteralPath $target) {
+            Remove-Item -LiteralPath $target -Recurse -Force
+        }
+    }
+}
+
+# Build the current managed skill list from the generated source directory.
+function Get-ManagedSkillNames {
+    param([string]$SourcePath)
+
+    if (-not (Test-Path -LiteralPath $SourcePath)) {
+        return @()
+    }
+
+    return Get-ChildItem -LiteralPath $SourcePath -Directory | ForEach-Object { $_.Name }
+}
+
+# Remove previously managed skills that no longer exist in the current source set.
+function Remove-MissingManagedSkills {
+    param(
+        [string]$TargetPath,
+        [string]$PreviousManifestPath,
+        [string[]]$CurrentSkillNames
+    )
+
+    if (-not (Test-Path -LiteralPath $TargetPath) -or -not (Test-Path -LiteralPath $PreviousManifestPath)) {
+        return
+    }
+
+    $currentSkills = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+    foreach ($skillName in $CurrentSkillNames) {
+        [void]$currentSkills.Add($skillName)
+    }
+
+    foreach ($skillName in Get-Content -LiteralPath $PreviousManifestPath -ErrorAction SilentlyContinue) {
+        if ([string]::IsNullOrWhiteSpace($skillName)) {
+            continue
+        }
+
+        $trimmedSkillName = $skillName.Trim()
+        if ($currentSkills.Contains($trimmedSkillName)) {
+            continue
+        }
+
+        $target = Join-Path $TargetPath $trimmedSkillName
         if (Test-Path -LiteralPath $target) {
             Remove-Item -LiteralPath $target -Recurse -Force
         }
@@ -77,8 +124,12 @@ if (-not (Test-Path -LiteralPath $skillsSource)) {
 New-Item -ItemType Directory -Force -Path $skillsTarget | Out-Null
 New-Item -ItemType Directory -Force -Path $rulesTarget | Out-Null
 
+$currentSkillNames = Get-ManagedSkillNames -SourcePath $skillsSource
+$managedSkillsManifestPath = Join-Path $skillsTarget $managedSkillsManifest
+
 Remove-LegacySkillInstalls -BasePath $skillsTarget
-Remove-RenamedSkillInstalls -BasePath $skillsTarget
+Remove-StaleSkillInstalls -BasePath $skillsTarget
+Remove-MissingManagedSkills -TargetPath $skillsTarget -PreviousManifestPath $managedSkillsManifestPath -CurrentSkillNames $currentSkillNames
 
 $installedSkills = @()
 
@@ -92,9 +143,12 @@ foreach ($skillDir in Get-ChildItem -LiteralPath $skillsSource -Directory) {
     $installedSkills += $skillDir.Name
 }
 
+$installedSkills | Set-Content -LiteralPath $managedSkillsManifestPath
+
 Write-RulesFile
 
 "Installed $($installedSkills.Count) nebu-skills to $skillsTarget"
 "Installed Claude Code rules to $rulesFile"
 "Removed legacy Claude skill installs when present."
+"Removed stale managed Claude skills when present."
 "Restart Claude Code or run /memory if the new rules do not appear immediately."

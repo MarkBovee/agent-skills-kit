@@ -355,6 +355,7 @@ scripts/update-claude-code.*
 - Bootstrap scripts store a managed checkout in `REPO_DIR` when set. Default path is `XDG_DATA_HOME/nebu-skills` when available, otherwise `LOCALAPPDATA\nebu-skills` on PowerShell, then `~/.local/share/nebu-skills`.
 - `nebu-ui-ux` includes Python scripts and CSV data for design guidance and requires Python `3.8+`.
 - Installers overwrite only `nebu-skills` managed assets and preserve unrelated user customizations.
+- Installers also remove stale managed skills during reinstall or update, including skills retired from the pack.
 - Generated platform artifacts are derived output. Edit `skills/*/SKILL.md`, then re-export.
 
 ---

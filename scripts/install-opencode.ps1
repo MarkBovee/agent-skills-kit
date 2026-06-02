@@ -12,12 +12,14 @@ $skillsSource = Join-Path $repoRoot "skills"
 $pluginsSource = Join-Path $repoRoot "plugins"
 $legacyAgentSkillsDir = Join-Path $HOME ".agents\skills"
 $legacyClaudeSkillsDir = Join-Path $HOME ".claude\skills"
-$renamedSkills = @(
+$managedSkillsManifest = ".nebu-managed-skills.txt"
+$staleSkills = @(
     "refactor",
     "ui-ux-pro-max",
     "using-nebu-skills",
     "writing-nebu-skills",
-    "workspace-wrapup"
+    "workspace-wrapup",
+    "nebu-test-driven-development"
 )
 
 # Remove older skill-pack installs that used the legacy lean naming.
@@ -41,16 +43,61 @@ function Remove-LegacySkillInstalls {
     }
 }
 
-# Remove renamed skill directories that should no longer survive upgrades.
-function Remove-RenamedSkillInstalls {
+# Remove stale skill directories that should no longer survive upgrades.
+function Remove-StaleSkillInstalls {
     param([string]$BasePath)
 
     if (-not (Test-Path -LiteralPath $BasePath)) {
         return
     }
 
-    foreach ($skillName in $renamedSkills) {
+    foreach ($skillName in $staleSkills) {
         $target = Join-Path $BasePath $skillName
+        if (Test-Path -LiteralPath $target) {
+            Remove-Item -LiteralPath $target -Recurse -Force
+        }
+    }
+}
+
+# Build the current managed skill list from the canonical source directory.
+function Get-ManagedSkillNames {
+    param([string]$SourcePath)
+
+    if (-not (Test-Path -LiteralPath $SourcePath)) {
+        return @()
+    }
+
+    return Get-ChildItem -LiteralPath $SourcePath -Directory | ForEach-Object { $_.Name }
+}
+
+# Remove previously managed skills that no longer exist in the current source set.
+function Remove-MissingManagedSkills {
+    param(
+        [string]$TargetPath,
+        [string]$PreviousManifestPath,
+        [string[]]$CurrentSkillNames
+    )
+
+    if (-not (Test-Path -LiteralPath $TargetPath) -or -not (Test-Path -LiteralPath $PreviousManifestPath)) {
+        return
+    }
+
+    $currentSkills = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+    foreach ($skillName in $CurrentSkillNames) {
+        [void]$currentSkills.Add($skillName)
+    }
+
+    foreach ($skillName in Get-Content -LiteralPath $PreviousManifestPath -ErrorAction SilentlyContinue) {
+        if ([string]::IsNullOrWhiteSpace($skillName)) {
+            continue
+        }
+
+        $trimmedSkillName = $skillName.Trim()
+        if ($currentSkills.Contains($trimmedSkillName)) {
+            continue
+        }
+
+        $target = Join-Path $TargetPath $trimmedSkillName
         if (Test-Path -LiteralPath $target) {
             Remove-Item -LiteralPath $target -Recurse -Force
         }
@@ -79,13 +126,17 @@ New-Item -ItemType Directory -Force -Path $coreTarget | Out-Null
 New-Item -ItemType Directory -Force -Path $skillsTarget | Out-Null
 New-Item -ItemType Directory -Force -Path $pluginsTarget | Out-Null
 
+$currentSkillNames = Get-ManagedSkillNames -SourcePath $skillsSource
+$managedSkillsManifestPath = Join-Path $skillsTarget $managedSkillsManifest
+
 # Clean up legacy installs before copying the current managed skill set.
 Remove-LegacySkillInstalls -BasePath $skillsTarget
 Remove-LegacySkillInstalls -BasePath $legacyAgentSkillsDir
 Remove-LegacySkillInstalls -BasePath $legacyClaudeSkillsDir
-Remove-RenamedSkillInstalls -BasePath $skillsTarget
-Remove-RenamedSkillInstalls -BasePath $legacyAgentSkillsDir
-Remove-RenamedSkillInstalls -BasePath $legacyClaudeSkillsDir
+Remove-StaleSkillInstalls -BasePath $skillsTarget
+Remove-StaleSkillInstalls -BasePath $legacyAgentSkillsDir
+Remove-StaleSkillInstalls -BasePath $legacyClaudeSkillsDir
+Remove-MissingManagedSkills -TargetPath $skillsTarget -PreviousManifestPath $managedSkillsManifestPath -CurrentSkillNames $currentSkillNames
 
 # Replace each managed skill directory atomically enough for an idempotent reinstall.
 $installedSkills = @()
@@ -99,6 +150,8 @@ foreach ($skillDir in Get-ChildItem -LiteralPath $skillsSource -Directory) {
     Copy-Item -LiteralPath $skillDir.FullName -Destination $destination -Recurse
     $installedSkills += $skillDir.Name
 }
+
+$installedSkills | Set-Content -LiteralPath $managedSkillsManifestPath
 
 # Copy the shared router core so the installed plugin can resolve its dependency.
 if (Test-Path -LiteralPath $coreTarget) {
@@ -118,6 +171,6 @@ Copy-Item -LiteralPath $pluginSource -Destination $pluginDestination -Force
 "Installed shared router core to $coreTarget"
 "Installed router plugin to $pluginDestination"
 "Removed legacy skill installs when present."
-"Removed renamed legacy skills when present."
+"Removed stale managed skills when present."
 "Other opencode plugins were left untouched, so this should coexist with nebu-ctx."
 "Restart opencode to load the new skills and plugin."
