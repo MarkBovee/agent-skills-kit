@@ -4,12 +4,14 @@ const {
   CODE_REVIEW_SKILL,
   DEFAULT_MAX_HINTS,
   DEFAULT_MAX_LISTED_SKILLS,
+  applyExecutionRouting,
+  applyKickoffRouting,
   IMPROVEMENT_SKILL,
   VERIFICATION_SKILL,
   WRAPUP_SKILL,
   applyBaselineRouting,
-  applyImprovementRouting,
   applySessionAwareRouting,
+  applyImprovementRouting,
   findMatches,
   getSessionState,
   loadSkills,
@@ -85,9 +87,15 @@ async function nebuSkillsRouterPlugin(_input, options = {}) {
       if (!text) return
 
       const currentState = getSessionState(sessionStateBySession, input.sessionID)
-      const reviewAwareMatches = applySessionAwareRouting(
+      const kickoffAwareMatches = applyKickoffRouting(
         text,
         findMatches(text, discoveredSkills, maxHints),
+        discoveredSkills,
+        maxHints,
+      )
+      const reviewAwareMatches = applySessionAwareRouting(
+        text,
+        kickoffAwareMatches,
         discoveredSkills,
         currentState.needsCodeReview,
         maxHints,
@@ -99,9 +107,15 @@ async function nebuSkillsRouterPlugin(_input, options = {}) {
         currentState.shouldCaptureImprovement,
         maxHints,
       )
-      const matchedSkills = applyBaselineRouting(
+      const executionAwareMatches = applyExecutionRouting(
         text,
         improvementAwareMatches,
+        discoveredSkills,
+        maxHints,
+      )
+      const matchedSkills = applyBaselineRouting(
+        text,
+        executionAwareMatches,
         discoveredSkills,
         maxHints,
       )
@@ -154,7 +168,8 @@ async function nebuSkillsRouterPlugin(_input, options = {}) {
       // Keep the injected guidance compact so it nudges routing without drowning the system prompt.
       const lines = [
         "Skill routing:",
-        "- For normal software work, prefer `nebu-kaizen` as the baseline and combine it with a more specific nebu skill when needed.",
+        "- For concrete executable work, bias early toward `nebu-kaizen` and combine it with a more specific nebu skill when needed.",
+        "- For ambiguous, cross-cutting, or behavior-changing starts, bias early toward `nebu-kickoff` so scope and success criteria get clarified before execution.",
         "- Prefer the `skill` tool when a request clearly matches an installed nebu workflow skill.",
         "- When the session exposed a reusable workflow gap, consider `nebu-skill-improvement` before ending cold.",
         "- This router only suggests skills and should coexist cleanly with other plugins, including nebu-ctx.",

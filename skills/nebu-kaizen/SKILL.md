@@ -17,6 +17,11 @@ triggers:
   - niet stoppen
   - gewoon doorgaan
   - ga verder
+  - implement this
+  - fix this
+  - add this
+  - pas dit aan
+  - maak dit af
 ---
 
 # Nebu Kaizen

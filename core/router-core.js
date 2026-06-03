@@ -45,10 +45,63 @@ const DEFAULT_MAX_HINTS = 4
 const DEFAULT_MAX_LISTED_SKILLS = 8
 const MAX_SESSION_CACHE = 100
 const CODE_EDIT_TOOL_IDS = new Set(["edit", "write", "apply_patch"])
+const KAIZEN_SKILL = "nebu-kaizen"
+const KICKOFF_SKILL = "nebu-kickoff"
 const CODE_REVIEW_SKILL = "nebu-code-review"
 const VERIFICATION_SKILL = "nebu-verification"
 const WRAPUP_SKILL = "nebu-workspace-wrapup"
 const IMPROVEMENT_SKILL = "nebu-skill-improvement"
+const PRE_EXECUTION_SKILLS = new Set([KICKOFF_SKILL, "nebu-brainstorming", "nebu-planning"])
+const EXECUTION_SIGNAL_PHRASES = [
+  "implement",
+  "fix",
+  "add",
+  "update",
+  "change",
+  "refactor",
+  "rename",
+  "wire up",
+  "build this",
+  "make this",
+  "ship this",
+  "pas dit aan",
+  "fix dit",
+  "maak dit",
+  "maak dit af",
+  "voeg toe",
+  "werk dit uit",
+]
+const AMBIGUITY_SIGNAL_PHRASES = [
+  "ambiguous",
+  "unclear",
+  "uncertain",
+  "not sure",
+  "unsure",
+  "fuzzy",
+  "best approach",
+  "best path",
+  "best direction",
+  "where should we start",
+  "where do we start",
+  "not sure where to start",
+  "what should we build",
+  "how should we approach",
+  "which approach",
+  "cross-cutting",
+  "cross cutting",
+  "behavior-changing",
+  "behavior changing",
+  "scope is unclear",
+  "requirements are unclear",
+  "ik weet niet",
+  "niet zeker",
+  "onduidelijk",
+  "wat moeten we bouwen",
+  "wat moeten we maken",
+  "hoe pakken we dit aan",
+  "waar beginnen we",
+  "ik weet niet waar te beginnen",
+]
 const COMPLETION_PHRASES = [
   "done",
   "finished",
@@ -75,6 +128,14 @@ function createEmptySessionState() {
 // Remove falsy values and duplicates while preserving the original order.
 function unique(values) {
   return [...new Set(values.filter(Boolean))]
+}
+
+// Check whether the normalized query contains any one of the supplied routing phrases.
+function hasPhraseSignal(query, phrases) {
+  const normalizedQuery = query.trim().toLowerCase()
+  if (!normalizedQuery) return false
+
+  return phrases.some((phrase) => normalizedQuery.includes(phrase))
 }
 
 // Strip matching surrounding quotes from simple frontmatter scalar values.
@@ -162,6 +223,16 @@ function toSingleLine(text, maxLength = 120) {
   const singleLine = text.replace(/\s+/g, " ").trim()
   if (singleLine.length <= maxLength) return singleLine
   return `${singleLine.slice(0, maxLength - 3).trim()}...`
+}
+
+// Detect concrete implementation wording that should pull kaizen into the early match set.
+function hasExecutionSignal(query) {
+  return hasPhraseSignal(query, EXECUTION_SIGNAL_PHRASES)
+}
+
+// Detect ambiguity or direction-seeking wording that should bias routing toward kickoff.
+function hasAmbiguitySignal(query) {
+  return hasPhraseSignal(query, AMBIGUITY_SIGNAL_PHRASES)
 }
 
 // Check whether a file-system path exists without throwing on missing paths.
@@ -287,6 +358,44 @@ function maybeAddSkill(matches, discoveredSkills, skillName, maxHints) {
   return unique([matchedSkill, ...matches]).slice(0, maxHints)
 }
 
+// Move one named skill into the second slot so kickoff can stay first and kaizen still loads early.
+function placeSkillSecond(matches, skillName) {
+  const matchedSkill = matches.find((skill) => skill.name === skillName)
+  if (!matchedSkill || matches.length < 2) return matches
+
+  return [
+    matches[0],
+    matchedSkill,
+    ...matches.filter((skill, index) => index !== 0 && skill.name !== skillName),
+  ]
+}
+
+// Detect when the top routing candidates are close enough that kickoff should break the tie early.
+function hasCloseTopMatches(query, matches) {
+  if (matches.length < 2) return false
+
+  const [topMatch, secondMatch] = matches
+  const topScore = scoreSkill(topMatch, query)
+  const secondScore = scoreSkill(secondMatch, query)
+
+  if (topScore <= 0 || secondScore <= 0) return false
+  if (topScore >= 10) return false
+
+  return topScore - secondScore <= 2
+}
+
+// Bias early ambiguous or tie-heavy starts toward kickoff before execution begins.
+function applyKickoffRouting(query, matches, discoveredSkills, maxHints) {
+  if (!hasAmbiguitySignal(query) && (hasExecutionSignal(query) || !hasCloseTopMatches(query, matches))) {
+    return matches
+  }
+
+  return prioritizeSkill(
+    maybeAddSkill(matches, discoveredSkills, KICKOFF_SKILL, maxHints),
+    KICKOFF_SKILL,
+  )
+}
+
 // Bias completion-oriented sessions toward code review and keep verification nearby.
 function applySessionAwareRouting(query, matches, discoveredSkills, needsCodeReview, maxHints) {
   if (!needsCodeReview || !hasCompletionSignal(query)) {
@@ -324,6 +433,26 @@ function applyImprovementRouting(query, matches, discoveredSkills, shouldCapture
     maybeAddSkill(matches, discoveredSkills, IMPROVEMENT_SKILL, maxHints),
     IMPROVEMENT_SKILL,
   )
+}
+
+// Bias concrete executable work toward kaizen early while keeping kickoff/planning-style skills first.
+function applyExecutionRouting(query, matches, discoveredSkills, maxHints) {
+  if (hasAmbiguitySignal(query) || !hasExecutionSignal(query)) {
+    return matches
+  }
+
+  const augmentedMatches = maybeAddSkill(matches, discoveredSkills, KAIZEN_SKILL, maxHints)
+  const leadingSkill = augmentedMatches[0]
+
+  if (!leadingSkill) {
+    return augmentedMatches
+  }
+
+  if (PRE_EXECUTION_SKILLS.has(leadingSkill.name)) {
+    return placeSkillSecond(augmentedMatches, KAIZEN_SKILL).slice(0, maxHints)
+  }
+
+  return prioritizeSkill(augmentedMatches, KAIZEN_SKILL)
 }
 
 // Bias routing toward a skill marked as `default: true` in its frontmatter.
@@ -398,9 +527,13 @@ module.exports = {
   DEFAULT_MAX_HINTS,
   DEFAULT_MAX_LISTED_SKILLS,
   IMPROVEMENT_SKILL,
+  KAIZEN_SKILL,
+  KICKOFF_SKILL,
   VERIFICATION_SKILL,
   WRAPUP_SKILL,
   applyBaselineRouting,
+  applyExecutionRouting,
+  applyKickoffRouting,
   applyImprovementRouting,
   applySessionAwareRouting,
   createEmptySessionState,

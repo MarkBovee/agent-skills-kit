@@ -1,6 +1,6 @@
 ---
 name: "nebu-kaizen"
-description: "Default baseline skill for normal software work where the next logical step is clear: small safe iterations, built-in validation, and no unnecessary pauses between clear next steps. Use this for autopilot mode, keep going, ga door, werk door, or werk de stappen af zonder onnodige stopmomenten. Common triggers: kaizen, autopilot, keep going, continue without waiting, do not stop, don't stop, ga door, werk door, volgende logische stap, volgende stap, zonder te wachten, niet stoppen, gewoon doorgaan, ga verder."
+description: "Default baseline skill for normal software work where the next logical step is clear: small safe iterations, built-in validation, and no unnecessary pauses between clear next steps. Use this for autopilot mode, keep going, ga door, werk door, or werk de stappen af zonder onnodige stopmomenten. Common triggers: kaizen, autopilot, keep going, continue without waiting, do not stop, don't stop, ga door, werk door, volgende logische stap, volgende stap, zonder te wachten, niet stoppen, gewoon doorgaan, ga verder, implement this, fix this, add this, pas dit aan, maak dit af."
 ---
 # Nebu Kaizen
 

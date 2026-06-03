@@ -6,6 +6,13 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [0.1.4] - 2026-06-03
+
+### Changed
+
+- router scoring now loads `nebu-kickoff` more aggressively for ambiguous or close-call starts and pulls `nebu-kaizen` in earlier for concrete executable requests
+- `nebu-kaizen` and `nebu-kickoff` frontmatter triggers now cover more real user phrasing so both skills surface earlier from the router
+
 ## [0.1.3] - 2026-06-03
 
 ### Added

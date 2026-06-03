@@ -9,6 +9,11 @@ triggers:
   - what should we build
   - wat moeten we bouwen
   - wat moeten we maken
+  - best approach
+  - how should we approach this
+  - not sure where to start
+  - ik weet niet waar te beginnen
+  - hoe pakken we dit aan
 ---
 
 # Nebu Kickoff
