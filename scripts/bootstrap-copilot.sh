@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-. "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/release-helpers.sh"
 REPO_URL="https://github.com/MarkBovee/nebu-skills.git"
 REPO_DIR="${REPO_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/nebu-skills}"
 COPILOT_DIR="${1:-$HOME/.copilot}"
 SKIP_PULL="${SKIP_PULL:-0}"
+HELPERS_PATH="$REPO_DIR/scripts/release-helpers.sh"
 
 # Ensure the bootstrap flow fails early when git is unavailable.
 if ! command -v git >/dev/null 2>&1; then
@@ -30,6 +30,14 @@ if [ ! -d "$REPO_DIR/.git" ]; then
 elif [ "$SKIP_PULL" != "1" ]; then
   git -C "$REPO_DIR" pull --ff-only
 fi
+
+[ -f "$HELPERS_PATH" ] || {
+  echo "Bootstrap helpers not found after checkout: $HELPERS_PATH" >&2
+  exit 1
+}
+
+# Load helper functions from the managed checkout so raw stdin bootstrap works too.
+. "$HELPERS_PATH"
 
 refresh_repo_tags "$REPO_DIR" "$SKIP_PULL"
 if SELECTED_REF="$(get_latest_stable_tag "$REPO_DIR")"; then

@@ -7,11 +7,11 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
-. (Join-Path $PSScriptRoot "release-helpers.ps1")
 
 $repoUrl = "https://github.com/MarkBovee/nebu-skills.git"
 $repoParent = Split-Path -Parent $RepoDir
 $git = Get-Command git -ErrorAction SilentlyContinue
+$helpersPath = Join-Path $RepoDir "scripts\release-helpers.ps1"
 
 # Ensure the bootstrap flow fails early when git is unavailable.
 if (-not $git) {
@@ -37,6 +37,13 @@ if (-not (Test-Path -LiteralPath $gitDir)) {
 elseif (-not $SkipPull) {
     & $git.Source -C $RepoDir pull --ff-only
 }
+
+if (-not (Test-Path -LiteralPath $helpersPath)) {
+    throw "Bootstrap helpers not found after checkout: $helpersPath"
+}
+
+# Load helper functions from the managed checkout so raw invocation works too.
+. $helpersPath
 
 try {
     Update-RepoTags -RepoRoot $RepoDir -SkipFetch:$SkipPull
