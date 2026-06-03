@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO_ROOT="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
+. "$SCRIPT_DIR/release-helpers.sh"
 OPENCODE_DIR="${1:-${XDG_CONFIG_HOME:-$HOME/.config}/opencode}"
 CORE_SOURCE="$REPO_ROOT/core"
 SKILLS_SOURCE="$REPO_ROOT/skills"
@@ -10,6 +11,7 @@ PLUGINS_SOURCE="$REPO_ROOT/plugins"
 CORE_TARGET="$OPENCODE_DIR/core"
 SKILLS_TARGET="$OPENCODE_DIR/skills"
 PLUGINS_TARGET="$OPENCODE_DIR/plugins"
+INSTALL_METADATA_FILE="$OPENCODE_DIR/.nebu-skills-install.txt"
 LEGACY_AGENT_SKILLS_DIR="$HOME/.agents/skills"
 LEGACY_CLAUDE_SKILLS_DIR="$HOME/.claude/skills"
 MANAGED_SKILLS_MANIFEST=".nebu-managed-skills.txt"
@@ -125,10 +127,14 @@ cp -R "$CORE_SOURCE" "$CORE_TARGET"
 # Copy the router plugin after the skill directories are in place.
 cp "$PLUGINS_SOURCE/nebu-skills-router.js" "$PLUGINS_TARGET/nebu-skills-router.js"
 
+# Record install metadata so users can inspect the managed version later.
+write_install_metadata "$REPO_ROOT" "opencode" "$OPENCODE_DIR" "$INSTALL_METADATA_FILE"
+
 # Report only the managed changes made by this installer run.
 echo "Installed ${installed_count} nebu-skills to $SKILLS_TARGET"
 echo "Installed shared router core to $CORE_TARGET"
 echo "Installed router plugin to $PLUGINS_TARGET/nebu-skills-router.js"
+echo "Wrote install metadata to $INSTALL_METADATA_FILE"
 echo "Removed legacy skill installs when present."
 echo "Removed stale managed skills when present."
 echo "Other opencode plugins were left untouched, so this should coexist with nebu-ctx."

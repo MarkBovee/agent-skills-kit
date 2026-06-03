@@ -3,12 +3,14 @@ set -euo pipefail
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO_ROOT="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
+. "$SCRIPT_DIR/release-helpers.sh"
 COPILOT_DIR="${1:-$HOME/.copilot}"
 SKILLS_SOURCE="$REPO_ROOT/.github/skills"
 INSTRUCTIONS_SOURCE="$REPO_ROOT/.github/copilot-instructions.md"
 SKILLS_TARGET="$COPILOT_DIR/skills"
 INSTRUCTIONS_TARGET="$COPILOT_DIR/instructions"
 INSTRUCTIONS_FILE="$INSTRUCTIONS_TARGET/nebu-skills.instructions.md"
+INSTALL_METADATA_FILE="$COPILOT_DIR/.nebu-skills-install.txt"
 MANAGED_SKILLS_MANIFEST=".nebu-managed-skills.txt"
 STALE_SKILLS=(
   "refactor"
@@ -111,8 +113,12 @@ cp "$CURRENT_MANAGED_SKILLS" "$SKILLS_TARGET/$MANAGED_SKILLS_MANIFEST"
 
 cp "$INSTRUCTIONS_SOURCE" "$INSTRUCTIONS_FILE"
 
+# Record install metadata so users can inspect the managed version later.
+write_install_metadata "$REPO_ROOT" "copilot" "$COPILOT_DIR" "$INSTALL_METADATA_FILE"
+
 echo "Installed ${installed_count} nebu-skills to $SKILLS_TARGET"
 echo "Installed Copilot instructions to $INSTRUCTIONS_FILE"
+echo "Wrote install metadata to $INSTALL_METADATA_FILE"
 echo "Removed legacy Copilot skill installs when present."
 echo "Removed stale managed Copilot skills when present."
 echo "Restart VS Code or reload chat customizations if Copilot does not pick up the new files immediately."

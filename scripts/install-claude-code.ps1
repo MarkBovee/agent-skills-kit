@@ -5,12 +5,14 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "release-helpers.ps1")
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot ".." )).Path
 $skillsSource = Join-Path $repoRoot ".claude\skills"
 $skillsTarget = Join-Path $ClaudeDir "skills"
 $rulesTarget = Join-Path $ClaudeDir "rules"
 $rulesFile = Join-Path $rulesTarget "nebu-skills.md"
+$installMetadataFile = Join-Path $ClaudeDir ".nebu-skills-install.txt"
 $managedSkillsManifest = ".nebu-managed-skills.txt"
 $staleSkills = @(
     "refactor",
@@ -147,8 +149,12 @@ $installedSkills | Set-Content -LiteralPath $managedSkillsManifestPath
 
 Write-RulesFile
 
+# Record install metadata so users can inspect the managed version later.
+Write-InstallMetadata -RepoRoot $repoRoot -Platform "claude-code" -InstallRoot $ClaudeDir -OutputPath $installMetadataFile
+
 "Installed $($installedSkills.Count) nebu-skills to $skillsTarget"
 "Installed Claude Code rules to $rulesFile"
+"Wrote install metadata to $installMetadataFile"
 "Removed legacy Claude skill installs when present."
 "Removed stale managed Claude skills when present."
 "Restart Claude Code or run /memory if the new rules do not appear immediately."

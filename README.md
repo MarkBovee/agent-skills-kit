@@ -52,11 +52,13 @@
 
 Project changes are tracked in [CHANGELOG.md](./CHANGELOG.md).
 
+Stable installs resolve the latest `vX.Y.Z` tag before copying managed assets. The bootstrap entrypoints are still fetched from `main`, but the managed checkout now prefers the newest stable tag and only falls back to the current checkout when no stable tag exists yet.
+
 ---
 
 ## Install
 
-Bootstrap scripts are the recommended path. They clone if needed, update existing installs, install managed assets, and stay safe to rerun.
+Bootstrap scripts are the recommended path. They clone if needed, move the managed checkout to the latest stable tag, install managed assets, and stay safe to rerun.
 
 ### OpenCode
 
@@ -282,6 +284,13 @@ Refresh the cached community-skills index:
 node ./scripts/fetch-community-skills-index.js
 ```
 
+Check release metadata before tagging:
+
+```bash
+node ./scripts/check-release-readiness.js
+node ./scripts/check-release-readiness.js --require-version-entry
+```
+
 Issue helper for duplicate checks before filing follow-up work:
 
 ```bash
@@ -292,6 +301,8 @@ skills/nebu-github-issues/check-existing-issue.sh "<query>" [owner/repo]
 <summary><strong>Update commands</strong></summary>
 
 Bootstrap-managed installs update when you rerun the matching bootstrap command unless `SKIP_PULL=1` or `-SkipPull` is used.
+
+`SKIP_PULL=1` and `-SkipPull` now skip the remote tag refresh step and reuse the current local checkout state.
 
 Local clone updates:
 
@@ -317,7 +328,30 @@ pwsh -NoLogo -NoProfile -File .\scripts\update-claude-code.ps1
 pwsh -NoLogo -NoProfile -File .\scripts\update-claude-code.ps1 -SkipPull
 ```
 
+Installers write local metadata files after each run:
+
+- OpenCode: `~/.config/opencode/.nebu-skills-install.txt`
+- GitHub Copilot: `~/.copilot/.nebu-skills-install.txt`
+- Claude Code: `~/.claude/.nebu-skills-install.txt`
+
 </details>
+
+---
+
+## Releases
+
+- `VERSION` is the canonical repo version.
+- `CHANGELOG.md` keeps `Unreleased` plus released version entries.
+- Stable bootstrap and update scripts resolve the latest `vX.Y.Z` tag before install.
+- Until the first stable tag exists, bootstrap and update scripts fall back to the current checkout and print that fallback.
+
+Suggested release flow:
+
+1. Update `VERSION`.
+2. Move finished items from `Unreleased` into `## [x.y.z] - YYYY-MM-DD` in `CHANGELOG.md`.
+3. Run `node ./scripts/check-release-readiness.js --require-version-entry`.
+4. Run `node ./scripts/export-platform-skills.js` and relevant validation commands.
+5. Tag the repo as `vX.Y.Z`.
 
 ---
 
@@ -342,6 +376,10 @@ scripts/update-copilot.*
 scripts/bootstrap-claude-code.*
 scripts/install-claude-code.*
 scripts/update-claude-code.*
+
+VERSION                      Canonical release version
+CHANGELOG.md                 Human-readable release history
+scripts/check-release-readiness.js
 ```
 
 ---
@@ -353,9 +391,11 @@ scripts/update-claude-code.*
 - For GitHub repo cards, use `assets/social-preview.png` as the social preview image.
 - Restart OpenCode after install or update.
 - Bootstrap scripts store a managed checkout in `REPO_DIR` when set. Default path is `XDG_DATA_HOME/nebu-skills` when available, otherwise `LOCALAPPDATA\nebu-skills` on PowerShell, then `~/.local/share/nebu-skills`.
+- Stable updates use the newest SemVer tag available in the managed checkout.
 - `nebu-ui-ux` includes Python scripts and CSV data for design guidance and requires Python `3.8+`.
 - Installers overwrite only `nebu-skills` managed assets and preserve unrelated user customizations.
 - Installers also remove stale managed skills during reinstall or update, including skills retired from the pack.
+- Installers also write `.nebu-skills-install.txt` metadata in each managed target root.
 - Generated platform artifacts are derived output. Edit `skills/*/SKILL.md`, then re-export.
 
 ---

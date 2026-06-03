@@ -5,6 +5,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "release-helpers.ps1")
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot ".." )).Path
 $skillsSource = Join-Path $repoRoot ".github\skills"
@@ -12,6 +13,7 @@ $instructionsSource = Join-Path $repoRoot ".github\copilot-instructions.md"
 $skillsTarget = Join-Path $CopilotDir "skills"
 $instructionsTarget = Join-Path $CopilotDir "instructions"
 $instructionsFile = Join-Path $instructionsTarget "nebu-skills.instructions.md"
+$installMetadataFile = Join-Path $CopilotDir ".nebu-skills-install.txt"
 $managedSkillsManifest = ".nebu-managed-skills.txt"
 $staleSkills = @(
     "refactor",
@@ -139,8 +141,12 @@ $installedSkills | Set-Content -LiteralPath $managedSkillsManifestPath
 
 Copy-Item -LiteralPath $instructionsSource -Destination $instructionsFile -Force
 
+# Record install metadata so users can inspect the managed version later.
+Write-InstallMetadata -RepoRoot $repoRoot -Platform "copilot" -InstallRoot $CopilotDir -OutputPath $installMetadataFile
+
 "Installed $($installedSkills.Count) nebu-skills to $skillsTarget"
 "Installed Copilot instructions to $instructionsFile"
+"Wrote install metadata to $installMetadataFile"
 "Removed legacy Copilot skill installs when present."
 "Removed stale managed Copilot skills when present."
 "Restart VS Code or reload chat customizations if Copilot does not pick up the new files immediately."

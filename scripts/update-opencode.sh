@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO_ROOT="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
+. "$SCRIPT_DIR/release-helpers.sh"
 
 # Support an optional fast path that skips the repository pull step.
 if [ "${1:-}" = "--skip-pull" ]; then
@@ -12,16 +13,37 @@ else
   SKIP_PULL=0
 fi
 
-# Refresh the local checkout before reinstalling when this repo is a git clone.
 if [ "$SKIP_PULL" -eq 0 ] && [ -d "$REPO_ROOT/.git" ]; then
   git -C "$REPO_ROOT" pull --ff-only
 fi
 
-# Refresh the cached awesome-copilot index when it is stale so nebu-skill-finder
-# has up-to-date candidates without doing network work during a normal skill run.
-if command -v node >/dev/null 2>&1 && [ -f "$REPO_ROOT/scripts/fetch-community-skills-index.js" ]; then
-  node "$REPO_ROOT/scripts/fetch-community-skills-index.js" || echo "Warning: community-skills index refresh failed; continuing with cached data." >&2
+PREVIOUS_VERSION="$(read_repo_version "$REPO_ROOT")"
+PREVIOUS_REF="$(read_repo_ref "$REPO_ROOT")"
+INSTALL_SOURCE_ROOT="$REPO_ROOT"
+RELEASE_WORKTREE=""
+
+refresh_repo_tags "$REPO_ROOT" "$SKIP_PULL"
+if SELECTED_REF="$(get_latest_stable_tag "$REPO_ROOT")"; then
+  RELEASE_WORKTREE="$(create_release_worktree "$REPO_ROOT" "$SELECTED_REF")"
+  INSTALL_SOURCE_ROOT="$RELEASE_WORKTREE"
+  trap 'remove_release_worktree "$REPO_ROOT" "$RELEASE_WORKTREE"' EXIT
+  echo "Using stable nebu-skills $(read_repo_version "$INSTALL_SOURCE_ROOT") ($SELECTED_REF)"
+else
+  SELECTED_REF="$(read_repo_ref "$REPO_ROOT")"
+  echo "No stable release tag found yet. Using current checkout $(read_repo_version "$REPO_ROOT") ($SELECTED_REF)." >&2
+fi
+
+CURRENT_VERSION="$(read_repo_version "$INSTALL_SOURCE_ROOT")"
+if [ "$PREVIOUS_VERSION" != "$CURRENT_VERSION" ] || [ "$PREVIOUS_REF" != "$SELECTED_REF" ]; then
+  echo "Updated managed checkout from $PREVIOUS_VERSION ($PREVIOUS_REF) to $CURRENT_VERSION ($SELECTED_REF)"
+else
+  echo "Managed checkout already on latest stable $CURRENT_VERSION ($SELECTED_REF)"
+fi
+
+# Refresh the cached awesome-copilot index when it is stale during fallback installs.
+if [ -z "$RELEASE_WORKTREE" ] && command -v node >/dev/null 2>&1 && [ -f "$INSTALL_SOURCE_ROOT/scripts/fetch-community-skills-index.js" ]; then
+  node "$INSTALL_SOURCE_ROOT/scripts/fetch-community-skills-index.js" || echo "Warning: community-skills index refresh failed; continuing with cached data." >&2
 fi
 
 # Delegate the actual install step through bash so execution does not depend on file mode bits.
-exec bash "$SCRIPT_DIR/install-opencode.sh" "$@"
+bash "$INSTALL_SOURCE_ROOT/scripts/install-opencode.sh" "$@"

@@ -5,6 +5,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "release-helpers.ps1")
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot ".." )).Path
 $coreSource = Join-Path $repoRoot "core"
@@ -120,6 +121,7 @@ if (-not (Test-Path -LiteralPath $pluginsSource)) {
 $coreTarget = Join-Path $OpencodeDir "core"
 $skillsTarget = Join-Path $OpencodeDir "skills"
 $pluginsTarget = Join-Path $OpencodeDir "plugins"
+$installMetadataFile = Join-Path $OpencodeDir ".nebu-skills-install.txt"
 
 # Ensure the target OpenCode directories exist before copying managed assets.
 New-Item -ItemType Directory -Force -Path $coreTarget | Out-Null
@@ -166,10 +168,14 @@ $pluginSource = Join-Path $pluginsSource $pluginName
 $pluginDestination = Join-Path $pluginsTarget $pluginName
 Copy-Item -LiteralPath $pluginSource -Destination $pluginDestination -Force
 
+# Record install metadata so users can inspect the managed version later.
+Write-InstallMetadata -RepoRoot $repoRoot -Platform "opencode" -InstallRoot $OpencodeDir -OutputPath $installMetadataFile
+
 # Report only the managed changes made by this installer run.
 "Installed $($installedSkills.Count) nebu-skills to $skillsTarget"
 "Installed shared router core to $coreTarget"
 "Installed router plugin to $pluginDestination"
+"Wrote install metadata to $installMetadataFile"
 "Removed legacy skill installs when present."
 "Removed stale managed skills when present."
 "Other opencode plugins were left untouched, so this should coexist with nebu-ctx."

@@ -3,11 +3,13 @@ set -euo pipefail
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO_ROOT="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
+. "$SCRIPT_DIR/release-helpers.sh"
 CLAUDE_DIR="${1:-$HOME/.claude}"
 SKILLS_SOURCE="$REPO_ROOT/.claude/skills"
 SKILLS_TARGET="$CLAUDE_DIR/skills"
 RULES_TARGET="$CLAUDE_DIR/rules"
 RULES_FILE="$RULES_TARGET/nebu-skills.md"
+INSTALL_METADATA_FILE="$CLAUDE_DIR/.nebu-skills-install.txt"
 MANAGED_SKILLS_MANIFEST=".nebu-managed-skills.txt"
 STALE_SKILLS=(
   "refactor"
@@ -118,8 +120,12 @@ cp "$CURRENT_MANAGED_SKILLS" "$SKILLS_TARGET/$MANAGED_SKILLS_MANIFEST"
 
 write_rules_file
 
+# Record install metadata so users can inspect the managed version later.
+write_install_metadata "$REPO_ROOT" "claude-code" "$CLAUDE_DIR" "$INSTALL_METADATA_FILE"
+
 echo "Installed ${installed_count} nebu-skills to $SKILLS_TARGET"
 echo "Installed Claude Code rules to $RULES_FILE"
+echo "Wrote install metadata to $INSTALL_METADATA_FILE"
 echo "Removed legacy Claude skill installs when present."
 echo "Removed stale managed Claude skills when present."
 echo "Restart Claude Code or run /memory if the new rules do not appear immediately."

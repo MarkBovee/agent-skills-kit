@@ -7,6 +7,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "release-helpers.ps1")
 
 $repoUrl = "https://github.com/MarkBovee/nebu-skills.git"
 $repoParent = Split-Path -Parent $RepoDir
@@ -23,7 +24,9 @@ if ($repoParent) {
 }
 
 $gitDir = Join-Path $RepoDir ".git"
-# Clone the managed checkout on first run, or fast-forward it on update.
+$installSourceRoot = $RepoDir
+$releaseWorktree = $null
+# Clone the managed checkout on first run, or reuse the managed clone on update.
 if (-not (Test-Path -LiteralPath $gitDir)) {
     if (Test-Path -LiteralPath $RepoDir) {
         throw "Repo directory exists but is not a git checkout: $RepoDir"
@@ -35,5 +38,26 @@ elseif (-not $SkipPull) {
     & $git.Source -C $RepoDir pull --ff-only
 }
 
-# Delegate the actual Claude Code installation to the local installer script.
-& (Join-Path $RepoDir "scripts\install-claude-code.ps1") -ClaudeDir $ClaudeDir
+try {
+    Update-RepoTags -RepoRoot $RepoDir -SkipFetch:$SkipPull
+    $selectedRef = Get-LatestStableTag -RepoRoot $RepoDir
+    if ($selectedRef) {
+        $releaseWorktree = New-ReleaseWorktree -RepoRoot $RepoDir -ReleaseRef $selectedRef
+        $installSourceRoot = $releaseWorktree
+        $selectedVersion = Get-RepoVersion -RepoRoot $installSourceRoot
+        "Using stable nebu-skills $selectedVersion ($selectedRef)"
+    }
+    else {
+        $selectedRef = Get-CurrentGitRef -RepoRoot $RepoDir
+        $selectedVersion = Get-RepoVersion -RepoRoot $RepoDir
+        Write-Warning "No stable release tag found yet. Using current checkout $selectedVersion ($selectedRef)."
+    }
+
+    # Delegate the actual Claude Code installation to the local installer script.
+    & (Join-Path $installSourceRoot "scripts\install-claude-code.ps1") -ClaudeDir $ClaudeDir
+}
+finally {
+    if ($releaseWorktree) {
+        Remove-ReleaseWorktree -RepoRoot $RepoDir -WorktreePath $releaseWorktree
+    }
+}
