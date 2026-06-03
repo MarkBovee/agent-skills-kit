@@ -105,48 +105,60 @@ if (-not $node) {
     throw "node is required to export Copilot assets before install."
 }
 
-& $node.Source (Join-Path $PSScriptRoot "export-platform-skills.js")
+$generatedAssetsLockHeld = $false
 
-if (-not (Test-Path -LiteralPath $skillsSource)) {
-    throw "Copilot skills source directory not found: $skillsSource"
-}
+try {
+    Acquire-GeneratedAssetsLock -RepoRoot $repoRoot
+    $generatedAssetsLockHeld = $true
 
-if (-not (Test-Path -LiteralPath $instructionsSource)) {
-    throw "Copilot instructions source file not found: $instructionsSource"
-}
+    & $node.Source (Join-Path $PSScriptRoot "export-platform-skills.js")
 
-New-Item -ItemType Directory -Force -Path $skillsTarget | Out-Null
-New-Item -ItemType Directory -Force -Path $instructionsTarget | Out-Null
-
-$currentSkillNames = Get-ManagedSkillNames -SourcePath $skillsSource
-$managedSkillsManifestPath = Join-Path $skillsTarget $managedSkillsManifest
-
-Remove-LegacySkillInstalls -BasePath $skillsTarget
-Remove-StaleSkillInstalls -BasePath $skillsTarget
-Remove-MissingManagedSkills -TargetPath $skillsTarget -PreviousManifestPath $managedSkillsManifestPath -CurrentSkillNames $currentSkillNames
-
-$installedSkills = @()
-
-foreach ($skillDir in Get-ChildItem -LiteralPath $skillsSource -Directory) {
-    $destination = Join-Path $skillsTarget $skillDir.Name
-    if (Test-Path -LiteralPath $destination) {
-        Remove-Item -LiteralPath $destination -Recurse -Force
+    if (-not (Test-Path -LiteralPath $skillsSource)) {
+        throw "Copilot skills source directory not found: $skillsSource"
     }
 
-    Copy-Item -LiteralPath $skillDir.FullName -Destination $destination -Recurse
-    $installedSkills += $skillDir.Name
+    if (-not (Test-Path -LiteralPath $instructionsSource)) {
+        throw "Copilot instructions source file not found: $instructionsSource"
+    }
+
+    New-Item -ItemType Directory -Force -Path $skillsTarget | Out-Null
+    New-Item -ItemType Directory -Force -Path $instructionsTarget | Out-Null
+
+    $currentSkillNames = Get-ManagedSkillNames -SourcePath $skillsSource
+    $managedSkillsManifestPath = Join-Path $skillsTarget $managedSkillsManifest
+
+    Remove-LegacySkillInstalls -BasePath $skillsTarget
+    Remove-StaleSkillInstalls -BasePath $skillsTarget
+    Remove-MissingManagedSkills -TargetPath $skillsTarget -PreviousManifestPath $managedSkillsManifestPath -CurrentSkillNames $currentSkillNames
+
+    $installedSkills = @()
+
+    foreach ($skillDir in Get-ChildItem -LiteralPath $skillsSource -Directory) {
+        $destination = Join-Path $skillsTarget $skillDir.Name
+        if (Test-Path -LiteralPath $destination) {
+            Remove-Item -LiteralPath $destination -Recurse -Force
+        }
+
+        Copy-Item -LiteralPath $skillDir.FullName -Destination $destination -Recurse
+        $installedSkills += $skillDir.Name
+    }
+
+    $installedSkills | Set-Content -LiteralPath $managedSkillsManifestPath
+
+    Copy-Item -LiteralPath $instructionsSource -Destination $instructionsFile -Force
+
+    # Record install metadata so users can inspect the managed version later.
+    Write-InstallMetadata -RepoRoot $repoRoot -Platform "copilot" -InstallRoot $CopilotDir -OutputPath $installMetadataFile
+
+    "Installed $($installedSkills.Count) nebu-skills to $skillsTarget"
+    "Installed Copilot instructions to $instructionsFile"
+    "Wrote install metadata to $installMetadataFile"
+    "Removed legacy Copilot skill installs when present."
+    "Removed stale managed Copilot skills when present."
+    "Restart VS Code or reload chat customizations if Copilot does not pick up the new files immediately."
 }
-
-$installedSkills | Set-Content -LiteralPath $managedSkillsManifestPath
-
-Copy-Item -LiteralPath $instructionsSource -Destination $instructionsFile -Force
-
-# Record install metadata so users can inspect the managed version later.
-Write-InstallMetadata -RepoRoot $repoRoot -Platform "copilot" -InstallRoot $CopilotDir -OutputPath $installMetadataFile
-
-"Installed $($installedSkills.Count) nebu-skills to $skillsTarget"
-"Installed Copilot instructions to $instructionsFile"
-"Wrote install metadata to $installMetadataFile"
-"Removed legacy Copilot skill installs when present."
-"Removed stale managed Copilot skills when present."
-"Restart VS Code or reload chat customizations if Copilot does not pick up the new files immediately."
+finally {
+    if ($generatedAssetsLockHeld) {
+        Release-GeneratedAssetsLock -RepoRoot $repoRoot
+    }
+}

@@ -6,6 +6,19 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [0.1.6] - 2026-06-03
+
+### Changed
+
+- `nebu-skill-finder` now ships a self-contained runtime bundle under `skills/nebu-skill-finder/runtime/`, including the helper module, cached community index, and standalone refresh script
+- `scripts/export-platform-skills.js` now resyncs the bundled skill-finder runtime from the canonical helper and fetch-script sources before regenerating Copilot and Claude exports
+- documented the bundled skill-finder runtime and platform packaging behavior in `README.md`
+
+### Fixed
+
+- fixed `nebu-skill-finder` references so OpenCode, Copilot, and Claude exports no longer depend on missing repo-root helper or script paths at runtime
+- fixed concurrent Copilot and Claude installer runs so shared export generation now serializes instead of racing on `.github/skills/` and `.claude/skills/`
+
 ## [0.1.4] - 2026-06-03
 
 ### Changed

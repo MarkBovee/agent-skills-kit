@@ -117,44 +117,56 @@ if (-not $node) {
     throw "node is required to export Claude assets before install."
 }
 
-& $node.Source (Join-Path $PSScriptRoot "export-platform-skills.js")
+$generatedAssetsLockHeld = $false
 
-if (-not (Test-Path -LiteralPath $skillsSource)) {
-    throw "Claude skills source directory not found: $skillsSource"
-}
+try {
+    Acquire-GeneratedAssetsLock -RepoRoot $repoRoot
+    $generatedAssetsLockHeld = $true
 
-New-Item -ItemType Directory -Force -Path $skillsTarget | Out-Null
-New-Item -ItemType Directory -Force -Path $rulesTarget | Out-Null
+    & $node.Source (Join-Path $PSScriptRoot "export-platform-skills.js")
 
-$currentSkillNames = Get-ManagedSkillNames -SourcePath $skillsSource
-$managedSkillsManifestPath = Join-Path $skillsTarget $managedSkillsManifest
-
-Remove-LegacySkillInstalls -BasePath $skillsTarget
-Remove-StaleSkillInstalls -BasePath $skillsTarget
-Remove-MissingManagedSkills -TargetPath $skillsTarget -PreviousManifestPath $managedSkillsManifestPath -CurrentSkillNames $currentSkillNames
-
-$installedSkills = @()
-
-foreach ($skillDir in Get-ChildItem -LiteralPath $skillsSource -Directory) {
-    $destination = Join-Path $skillsTarget $skillDir.Name
-    if (Test-Path -LiteralPath $destination) {
-        Remove-Item -LiteralPath $destination -Recurse -Force
+    if (-not (Test-Path -LiteralPath $skillsSource)) {
+        throw "Claude skills source directory not found: $skillsSource"
     }
 
-    Copy-Item -LiteralPath $skillDir.FullName -Destination $destination -Recurse
-    $installedSkills += $skillDir.Name
+    New-Item -ItemType Directory -Force -Path $skillsTarget | Out-Null
+    New-Item -ItemType Directory -Force -Path $rulesTarget | Out-Null
+
+    $currentSkillNames = Get-ManagedSkillNames -SourcePath $skillsSource
+    $managedSkillsManifestPath = Join-Path $skillsTarget $managedSkillsManifest
+
+    Remove-LegacySkillInstalls -BasePath $skillsTarget
+    Remove-StaleSkillInstalls -BasePath $skillsTarget
+    Remove-MissingManagedSkills -TargetPath $skillsTarget -PreviousManifestPath $managedSkillsManifestPath -CurrentSkillNames $currentSkillNames
+
+    $installedSkills = @()
+
+    foreach ($skillDir in Get-ChildItem -LiteralPath $skillsSource -Directory) {
+        $destination = Join-Path $skillsTarget $skillDir.Name
+        if (Test-Path -LiteralPath $destination) {
+            Remove-Item -LiteralPath $destination -Recurse -Force
+        }
+
+        Copy-Item -LiteralPath $skillDir.FullName -Destination $destination -Recurse
+        $installedSkills += $skillDir.Name
+    }
+
+    $installedSkills | Set-Content -LiteralPath $managedSkillsManifestPath
+
+    Write-RulesFile
+
+    # Record install metadata so users can inspect the managed version later.
+    Write-InstallMetadata -RepoRoot $repoRoot -Platform "claude-code" -InstallRoot $ClaudeDir -OutputPath $installMetadataFile
+
+    "Installed $($installedSkills.Count) nebu-skills to $skillsTarget"
+    "Installed Claude Code rules to $rulesFile"
+    "Wrote install metadata to $installMetadataFile"
+    "Removed legacy Claude skill installs when present."
+    "Removed stale managed Claude skills when present."
+    "Restart Claude Code or run /memory if the new rules do not appear immediately."
 }
-
-$installedSkills | Set-Content -LiteralPath $managedSkillsManifestPath
-
-Write-RulesFile
-
-# Record install metadata so users can inspect the managed version later.
-Write-InstallMetadata -RepoRoot $repoRoot -Platform "claude-code" -InstallRoot $ClaudeDir -OutputPath $installMetadataFile
-
-"Installed $($installedSkills.Count) nebu-skills to $skillsTarget"
-"Installed Claude Code rules to $rulesFile"
-"Wrote install metadata to $installMetadataFile"
-"Removed legacy Claude skill installs when present."
-"Removed stale managed Claude skills when present."
-"Restart Claude Code or run /memory if the new rules do not appear immediately."
+finally {
+    if ($generatedAssetsLockHeld) {
+        Release-GeneratedAssetsLock -RepoRoot $repoRoot
+    }
+}

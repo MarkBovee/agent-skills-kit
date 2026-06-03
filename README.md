@@ -123,6 +123,8 @@ Manual install copies:
 - `core/router-core.js`
 - `plugins/nebu-skills-router.js`
 
+`nebu-skill-finder` ships its own bundled runtime under `skills/nebu-skill-finder/runtime/`, including the helper, cached index, and standalone refresh script.
+
 Common OpenCode config locations:
 
 | Platform | Path |
@@ -200,7 +202,7 @@ All managed workflow skills use the `nebu-` prefix for predictable routing and e
 | `nebu-ui-ux` | UI and UX implementation support |
 | `nebu-agent-workflows` | Multi-agent coordination |
 | `nebu-skill-improvement` | Workflow improvement tracking |
-| `nebu-skill-finder` | Adopt community skills from `github/awesome-copilot` for the active stack |
+| `nebu-skill-finder` | Adopt community skills from `github/awesome-copilot` for the active stack with a self-contained runtime bundle |
 | `nebu-workspace-wrapup` | Workspace cleanup and handoff |
 | `nebu-using-nebu-skills` | Skill discovery guidance |
 | `nebu-writing-nebu-skills` | Skill authoring support |
@@ -250,9 +252,9 @@ Hard boundaries:
 
 | Platform | Ships | Generated assets or install target |
 | --- | --- | --- |
-| OpenCode | router plugin, routing support, bootstrap/install/update tooling | installs managed skills plus `core/router-core.js` and `plugins/nebu-skills-router.js` |
-| GitHub Copilot | generated skills, reusable instructions, bootstrap/install/update tooling | `.github/skills/`, `.github/copilot-instructions.md`, `~/.copilot/skills/`, `~/.copilot/instructions/` |
-| Claude Code | generated skills, reusable rules, bootstrap/install/update tooling | `.claude/skills/`, `CLAUDE.md`, `~/.claude/skills/`, `~/.claude/rules/` |
+| OpenCode | router plugin, routing support, bootstrap/install/update tooling | installs managed skills plus `core/router-core.js` and `plugins/nebu-skills-router.js`; `nebu-skill-finder` also carries a bundled runtime under its own skill directory |
+| GitHub Copilot | generated skills, reusable instructions, bootstrap/install/update tooling | `.github/skills/`, `.github/copilot-instructions.md`, `~/.copilot/skills/`, `~/.copilot/instructions/`; `nebu-skill-finder` ships its bundled runtime inside the exported skill directory |
+| Claude Code | generated skills, reusable rules, bootstrap/install/update tooling | `.claude/skills/`, `CLAUDE.md`, `~/.claude/skills/`, `~/.claude/rules/`; `nebu-skill-finder` ships its bundled runtime inside the exported skill directory |
 
 OpenCode remains the reference implementation for routing behavior. GitHub Copilot and Claude Code exports are generated from the same canonical workflow source.
 
@@ -265,6 +267,8 @@ Regenerate exported platform assets:
 ```bash
 node ./scripts/export-platform-skills.js
 ```
+
+This also resyncs `skills/nebu-skill-finder/runtime/` from the canonical helper, cache, and refresh script sources before exporting.
 
 Check trigger ownership and routing hygiene:
 
@@ -370,10 +374,13 @@ The tag helpers refuse dirty worktrees, require a matching changelog entry, and 
 
 ```text
 skills/                     Canonical workflow skills
+skills/nebu-skill-finder/runtime/
 .github/skills/             Generated GitHub Copilot export
 .claude/skills/             Generated Claude Code export
 
 core/router-core.js         Shared scoring, frontmatter, and session helpers
+core/community-skills.js    Canonical community-skill helper source
+core/community-skills-index.json
 plugins/nebu-skills-router.js
 
 scripts/bootstrap-opencode.*
@@ -389,6 +396,7 @@ scripts/install-claude-code.*
 scripts/update-claude-code.*
 
 scripts/tag-release.*
+scripts/fetch-community-skills-index.js
 
 VERSION                      Canonical release version
 CHANGELOG.md                 Human-readable release history

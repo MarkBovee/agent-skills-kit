@@ -93,6 +93,53 @@ remove_release_worktree() {
   git -C "$repo_root" worktree remove --force "$worktree_path" >/dev/null 2>&1 || rm -rf "$worktree_path"
 }
 
+# Resolve the shared lock directory used while generated platform assets are exported and copied.
+generated_assets_lock_dir() {
+  local repo_root="$1"
+  printf '%s\n' "$repo_root/.generated-platform-assets.lock"
+}
+
+# Serialize export-plus-copy phases so Copilot and Claude installers cannot race on generated assets.
+acquire_generated_assets_lock() {
+  local repo_root="$1"
+  local lock_dir=""
+  local owner_file=""
+  local deadline=""
+  local owner_pid=""
+
+  lock_dir="$(generated_assets_lock_dir "$repo_root")"
+  owner_file="$lock_dir/owner.pid"
+  deadline=$(( $(date +%s) + 30 ))
+
+  while [ "$(date +%s)" -lt "$deadline" ]; do
+    if mkdir "$lock_dir" 2>/dev/null; then
+      printf '%s\n' "$$" > "$owner_file"
+      return 0
+    fi
+
+    owner_pid=""
+    if [ -f "$owner_file" ]; then
+      owner_pid="$(tr -d '[:space:]' < "$owner_file" 2>/dev/null || true)"
+    fi
+
+    if [ -z "$owner_pid" ] || ! kill -0 "$owner_pid" >/dev/null 2>&1; then
+      rm -rf "$lock_dir"
+      continue
+    fi
+
+    sleep 0.1
+  done
+
+  echo "Timed out waiting for generated assets lock at $lock_dir" >&2
+  return 1
+}
+
+# Release the shared generated-assets lock after one installer finishes copying exported files.
+release_generated_assets_lock() {
+  local repo_root="$1"
+  rm -rf "$(generated_assets_lock_dir "$repo_root")"
+}
+
 # Write install metadata so users can inspect installed version details locally.
 write_install_metadata() {
   local repo_root="$1"

@@ -20,6 +20,21 @@ STALE_SKILLS=(
   "workspace-wrapup"
   "nebu-test-driven-development"
 )
+CURRENT_MANAGED_SKILLS=""
+GENERATED_ASSETS_LOCK_HELD=0
+
+# Clean up installer temp state and shared locks on every exit path.
+cleanup_install() {
+  if [ -n "$CURRENT_MANAGED_SKILLS" ] && [ -f "$CURRENT_MANAGED_SKILLS" ]; then
+    rm -f "$CURRENT_MANAGED_SKILLS"
+  fi
+
+  if [ "$GENERATED_ASSETS_LOCK_HELD" -eq 1 ]; then
+    release_generated_assets_lock "$REPO_ROOT"
+  fi
+}
+
+trap cleanup_install EXIT
 
 # Remove older skill-pack installs that used the legacy lean naming.
 remove_legacy_skill_installs() {
@@ -78,6 +93,9 @@ if ! command -v node >/dev/null 2>&1; then
   exit 1
 fi
 
+acquire_generated_assets_lock "$REPO_ROOT"
+GENERATED_ASSETS_LOCK_HELD=1
+
 node "$SCRIPT_DIR/export-platform-skills.js"
 
 [ -d "$SKILLS_SOURCE" ] || {
@@ -93,7 +111,6 @@ node "$SCRIPT_DIR/export-platform-skills.js"
 mkdir -p "$SKILLS_TARGET" "$INSTRUCTIONS_TARGET"
 
 CURRENT_MANAGED_SKILLS="$(mktemp)"
-trap 'rm -f "$CURRENT_MANAGED_SKILLS"' EXIT
 write_current_skill_manifest "$SKILLS_SOURCE" "$CURRENT_MANAGED_SKILLS"
 
 remove_legacy_skill_installs "$SKILLS_TARGET"

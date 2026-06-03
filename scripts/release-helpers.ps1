@@ -128,6 +128,62 @@ function Remove-ReleaseWorktree {
     }
 }
 
+# Resolve the shared lock directory used while generated platform assets are exported and copied.
+function Get-GeneratedAssetsLockPath {
+    param([string]$RepoRoot)
+
+    return (Join-Path $RepoRoot ".generated-platform-assets.lock")
+}
+
+# Serialize export-plus-copy phases so Copilot and Claude installers cannot race on generated assets.
+function Acquire-GeneratedAssetsLock {
+    param(
+        [string]$RepoRoot,
+        [int]$TimeoutSeconds = 30
+    )
+
+    $lockPath = Get-GeneratedAssetsLockPath -RepoRoot $RepoRoot
+    $ownerPath = Join-Path $lockPath "owner.pid"
+    $deadline = (Get-Date).ToUniversalTime().AddSeconds($TimeoutSeconds)
+
+    while ((Get-Date).ToUniversalTime() -lt $deadline) {
+        try {
+            New-Item -ItemType Directory -Path $lockPath -ErrorAction Stop | Out-Null
+            Set-Content -LiteralPath $ownerPath -Value $PID
+            return
+        }
+        catch {
+            if ($_.Exception -isnot [System.IO.IOException]) {
+                throw
+            }
+        }
+
+        $ownerPid = $null
+        if (Test-Path -LiteralPath $ownerPath) {
+            $rawOwner = (Get-Content -LiteralPath $ownerPath -Raw -ErrorAction SilentlyContinue).Trim()
+            if ($rawOwner -match '^\d+$') {
+                $ownerPid = [int]$rawOwner
+            }
+        }
+
+        if (-not $ownerPid -or -not (Get-Process -Id $ownerPid -ErrorAction SilentlyContinue)) {
+            Remove-Item -LiteralPath $lockPath -Recurse -Force -ErrorAction SilentlyContinue
+            continue
+        }
+
+        Start-Sleep -Milliseconds 100
+    }
+
+    throw "Timed out waiting for generated assets lock at $lockPath"
+}
+
+# Release the shared generated-assets lock after one installer finishes copying exported files.
+function Release-GeneratedAssetsLock {
+    param([string]$RepoRoot)
+
+    Remove-Item -LiteralPath (Get-GeneratedAssetsLockPath -RepoRoot $RepoRoot) -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 # Write install metadata so users can inspect installed version details locally.
 function Write-InstallMetadata {
     param(

@@ -11,6 +11,13 @@ const COPILOT_SKILLS_DIR = path.join(REPO_ROOT, ".github", "skills")
 const CLAUDE_SKILLS_DIR = path.join(REPO_ROOT, ".claude", "skills")
 const COPILOT_INSTRUCTIONS_PATH = path.join(REPO_ROOT, ".github", "copilot-instructions.md")
 const CLAUDE_MD_PATH = path.join(REPO_ROOT, "CLAUDE.md")
+const SKILL_FINDER_RUNTIME_DIR = path.join(SOURCE_SKILLS_DIR, "nebu-skill-finder", "runtime")
+const COMMUNITY_SKILLS_SOURCE_PATH = path.join(REPO_ROOT, "core", "community-skills.js")
+const COMMUNITY_SKILLS_INDEX_SOURCE_PATH = path.join(REPO_ROOT, "core", "community-skills-index.json")
+const FETCH_COMMUNITY_SKILLS_SOURCE_PATH = path.join(REPO_ROOT, "scripts", "fetch-community-skills-index.js")
+const SKILL_FINDER_RUNTIME_HELPER_PATH = path.join(SKILL_FINDER_RUNTIME_DIR, "community-skills.js")
+const SKILL_FINDER_RUNTIME_INDEX_PATH = path.join(SKILL_FINDER_RUNTIME_DIR, "community-skills-index.json")
+const SKILL_FINDER_RUNTIME_FETCH_PATH = path.join(SKILL_FINDER_RUNTIME_DIR, "fetch-community-skills-index.js")
 const FRONTMATTER_PATTERN = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/
 
 const MANUAL_ONLY_SKILLS = new Set([
@@ -53,6 +60,17 @@ function renderFrontmatter(entries) {
 // Remove the source frontmatter before writing platform-specific frontmatter.
 function stripFrontmatter(content) {
   return content.replace(FRONTMATTER_PATTERN, "")
+}
+
+// Rewrite the standalone refresh script so it works from the skill-local runtime directory.
+function buildSkillFinderFetchScript(content) {
+  return content
+    .replace('} = require("../core/community-skills")', '} = require("./community-skills")')
+    .replace(
+      'const REPO_ROOT = path.resolve(__dirname, "..")\nconst INDEX_PATH = path.join(REPO_ROOT, "core", "community-skills-index.json")',
+      'const RUNTIME_DIR = __dirname\nconst INDEX_PATH = path.join(RUNTIME_DIR, "community-skills-index.json")',
+    )
+    .replace('to ${path.relative(REPO_ROOT, INDEX_PATH)}.', 'to ${path.basename(INDEX_PATH)}.')
 }
 
 // Combine description and triggers into one bounded portable discovery string.
@@ -140,6 +158,22 @@ async function resetDirectory(targetDir) {
   await fs.mkdir(targetDir, { recursive: true })
 }
 
+// Sync the skill-finder runtime bundle so the canonical skill stays self-contained across exports.
+async function syncSkillFinderRuntime() {
+  const [helperSource, indexSource, fetchSource] = await Promise.all([
+    fs.readFile(COMMUNITY_SKILLS_SOURCE_PATH, "utf8"),
+    fs.readFile(COMMUNITY_SKILLS_INDEX_SOURCE_PATH, "utf8"),
+    fs.readFile(FETCH_COMMUNITY_SKILLS_SOURCE_PATH, "utf8"),
+  ])
+
+  await fs.mkdir(SKILL_FINDER_RUNTIME_DIR, { recursive: true })
+  await Promise.all([
+    fs.writeFile(SKILL_FINDER_RUNTIME_HELPER_PATH, helperSource, "utf8"),
+    fs.writeFile(SKILL_FINDER_RUNTIME_INDEX_PATH, indexSource, "utf8"),
+    fs.writeFile(SKILL_FINDER_RUNTIME_FETCH_PATH, buildSkillFinderFetchScript(fetchSource), "utf8"),
+  ])
+}
+
 // List the canonical source skill directories in stable name order.
 async function listSkillDirectories() {
   const entries = await fs.readdir(SOURCE_SKILLS_DIR, { withFileTypes: true })
@@ -189,6 +223,7 @@ function buildClaudeMd() {
 
 // Export the canonical skills into GitHub Copilot and Claude Code project directories.
 async function exportSkills() {
+  await syncSkillFinderRuntime()
   await fs.mkdir(path.dirname(COPILOT_INSTRUCTIONS_PATH), { recursive: true })
   await fs.mkdir(path.dirname(CLAUDE_MD_PATH), { recursive: true })
   await fs.mkdir(path.dirname(CLAUDE_SKILLS_DIR), { recursive: true })
