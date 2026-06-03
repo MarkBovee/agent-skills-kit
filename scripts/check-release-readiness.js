@@ -15,6 +15,7 @@ const RELEASE_SENSITIVE_PATH_PATTERNS = [
   /^skills\//,
   /^scripts\/bootstrap-.*\.(?:sh|ps1)$/,
   /^scripts\/install-.*\.(?:sh|ps1)$/,
+  /^scripts\/tag-release\.(?:sh|ps1)$/,
   /^scripts\/update-.*\.(?:sh|ps1)$/,
   /^scripts\/release-helpers\.(?:sh|ps1)$/,
 ]

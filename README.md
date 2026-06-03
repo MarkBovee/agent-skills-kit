@@ -289,6 +289,11 @@ Check release metadata before tagging:
 ```bash
 node ./scripts/check-release-readiness.js
 node ./scripts/check-release-readiness.js --require-version-entry
+bash ./scripts/tag-release.sh --dry-run
+```
+
+```powershell
+pwsh -NoLogo -NoProfile -File .\scripts\tag-release.ps1 -DryRun
 ```
 
 The release-readiness check also fails when shipped install surfaces changed since the latest stable tag but `VERSION` was not bumped above that tag yet.
@@ -354,7 +359,10 @@ Suggested release flow:
 2. Move finished items from `Unreleased` into `## [x.y.z] - YYYY-MM-DD` in `CHANGELOG.md`.
 3. Run `node ./scripts/check-release-readiness.js --require-version-entry`.
 4. Run `node ./scripts/export-platform-skills.js` and relevant validation commands.
-5. Tag the repo as `vX.Y.Z`.
+5. Create the release tag from `VERSION` with `bash ./scripts/tag-release.sh` or `pwsh -NoLogo -NoProfile -File .\scripts\tag-release.ps1`.
+6. Add `--push` or `-Push` when you want the current branch and tag pushed to `origin` in one step.
+
+The tag helpers refuse dirty worktrees, require a matching changelog entry, and create an annotated `vX.Y.Z` tag directly from `VERSION`.
 
 ---
 
@@ -379,6 +387,8 @@ scripts/update-copilot.*
 scripts/bootstrap-claude-code.*
 scripts/install-claude-code.*
 scripts/update-claude-code.*
+
+scripts/tag-release.*
 
 VERSION                      Canonical release version
 CHANGELOG.md                 Human-readable release history

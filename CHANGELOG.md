@@ -6,6 +6,17 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [0.1.3] - 2026-06-03
+
+### Added
+
+- added `scripts/tag-release.sh` and `scripts/tag-release.ps1` so release tags now derive automatically from `VERSION`, with optional push support for the current branch and tag
+
+### Changed
+
+- `scripts/check-release-readiness.js` now treats `scripts/tag-release.*` as release-sensitive shipped surfaces
+- documented the version-based release tagging flow and dry-run checks in `README.md`
+
 ## [0.1.2] - 2026-06-03
 
 ### Changed
