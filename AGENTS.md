@@ -100,6 +100,14 @@ The router (`plugins/nebu-skills-router.js`) reads frontmatter from all installe
 
 When changing any script, update both `.sh` and `.ps1` versions.
 
+## Release discipline
+
+- Bootstrap and update flows install the latest stable `vX.Y.Z` tag, not an arbitrary `main` commit.
+- Any user-visible fix to shipped assets under `skills/`, `core/`, `plugins/`, or install/update/bootstrap helpers in `scripts/` should get at least a patch bump in `VERSION`, unless the user explicitly says the change should stay unreleased.
+- When bumping `VERSION`, add the matching `CHANGELOG.md` entry in the same change.
+- Do not claim a bootstrap or installer fix is shipped after commit and push alone; stable users only receive it after the matching `vX.Y.Z` tag exists.
+- Doc-only or internal maintenance changes can stay unreleased when they do not affect shipped behavior.
+
 ## Validation
 
 After changes, verify:

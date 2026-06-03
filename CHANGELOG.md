@@ -6,6 +6,17 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [0.1.1] - 2026-06-03
+
+### Changed
+
+- documented release discipline for agents so shipped fixes now require a patch bump unless explicitly kept unreleased
+- release guidance and readiness checks now call out that bootstrap and update users only receive shipped fixes after the matching stable tag exists
+
+### Fixed
+
+- `scripts/check-release-readiness.js` now fails when shipped install surfaces changed since the latest stable tag but `VERSION` was not bumped above that tag
+
 ## [0.1.0] - 2026-06-03
 
 ### Added

@@ -291,6 +291,8 @@ node ./scripts/check-release-readiness.js
 node ./scripts/check-release-readiness.js --require-version-entry
 ```
 
+The release-readiness check also fails when shipped install surfaces changed since the latest stable tag but `VERSION` was not bumped above that tag yet.
+
 Issue helper for duplicate checks before filing follow-up work:
 
 ```bash
@@ -344,10 +346,11 @@ Installers write local metadata files after each run:
 - `CHANGELOG.md` keeps `Unreleased` plus released version entries.
 - Stable bootstrap and update scripts resolve the latest `vX.Y.Z` tag before install.
 - Until the first stable tag exists, bootstrap and update scripts fall back to the current checkout and print that fallback.
+- User-visible fixes to shipped assets should bump at least the patch version before handoff; bootstrap and update users do not receive the fix until the matching `vX.Y.Z` tag exists.
 
 Suggested release flow:
 
-1. Update `VERSION`.
+1. Update `VERSION` with at least a patch bump for any shipped fix.
 2. Move finished items from `Unreleased` into `## [x.y.z] - YYYY-MM-DD` in `CHANGELOG.md`.
 3. Run `node ./scripts/check-release-readiness.js --require-version-entry`.
 4. Run `node ./scripts/export-platform-skills.js` and relevant validation commands.
