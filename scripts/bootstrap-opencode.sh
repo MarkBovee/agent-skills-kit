@@ -32,7 +32,7 @@ elif [ "$SKIP_PULL" != "1" ]; then
 fi
 
 [ -f "$HELPERS_PATH" ] || {
-  echo "Bootstrap helpers not found after checkout: $HELPERS_PATH" >&2
+  echo "Managed checkout is incomplete: expected bootstrap helpers at $HELPERS_PATH. Delete $REPO_DIR and rerun bootstrap." >&2
   exit 1
 }
 

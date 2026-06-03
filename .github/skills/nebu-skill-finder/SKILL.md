@@ -38,11 +38,24 @@ Skip when:
 
 ### Execute mode
 
-Use execute mode only when the current host can read files from this skill directory and run the bundled Node helpers directly.
+Use execute mode only when all minimum capabilities are present:
+
+- the host can read files from this skill's `./runtime/` directory
+- the host can run the bundled local Node helpers or refresh script directly
+- the host can inspect the active project and write approved installs into `.agents/`
 
 ### Proposal mode
 
 Use proposal mode when the host cannot safely execute local helpers. In proposal mode, inspect the active project, explain that the bundled runtime is unavailable from this host, and stop after a ranked recommendation list plus explicit next commands the user can run in a compatible environment.
+
+## Host capability rubric
+
+| Host | Default stance | Execute-mode gate |
+| --- | --- | --- |
+| OpenCode | Usually capable in a normal local session, but still verify | Use execute mode only when you can read `./runtime/`, run the local Node helper or refresh script, and write approved files into `.agents/` in the active project |
+| GitHub Copilot | Capability depends on the active Copilot surface; do not assume from the product name alone | Use execute mode only when this session exposes local file reads, local shell or Node execution, and workspace writes; otherwise switch to proposal mode |
+| Claude Code | Capability depends on the active Claude surface; do not assume from the product name alone | Use execute mode only when this session exposes local file reads, local shell or Node execution, and workspace writes; otherwise switch to proposal mode |
+| Unknown or other host | Treat as untrusted by default | Stay in proposal mode unless all three minimum capabilities are explicitly available |
 
 ## Helpers
 
@@ -52,7 +65,7 @@ Use proposal mode when the host cannot safely execute local helpers. In proposal
 
 ## Workflow
 
-1. **Decide the mode first.** If the host cannot read `./runtime/` or cannot run local Node helpers, switch to proposal mode immediately and say why.
+1. **Decide the mode first.** Check all three minimum capabilities first: read `./runtime/`, run the local Node helper path, and write approved files into `.agents/`. If any capability is missing or uncertain, switch to proposal mode immediately and say which capability blocked execute mode.
 2. **Inspect the project.** In execute mode, run `detectProjectStack` from `./runtime/community-skills.js` against the active working directory with `maxDepth: 3`. Confirm the detected languages and tooling look right before proceeding.
 3. **Load the per-project state.** Call `loadFinderState(projectRoot)`. The state file lives at `.agents/.nebu-skill-finder-state.json`. If `state.opted_out` is true, exit immediately without suggesting.
 4. **Load the index.** Call `loadIndex()` from the bundled helper. If absent or older than 7 days, call `fetchIndex()` and `saveIndex()` directly, or run `node ./runtime/fetch-community-skills-index.js --force` when a standalone refresh command is easier in the current host.

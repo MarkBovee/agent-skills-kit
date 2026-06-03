@@ -67,7 +67,7 @@ function buildSkillFinderFetchScript(content) {
   return content
     .replace('} = require("../core/community-skills")', '} = require("./community-skills")')
     .replace(
-      'const REPO_ROOT = path.resolve(__dirname, "..")\nconst INDEX_PATH = path.join(REPO_ROOT, "core", "community-skills-index.json")',
+      /const REPO_ROOT = path\.resolve\(__dirname, "\.\."\)\r?\nconst INDEX_PATH = path\.join\(REPO_ROOT, "core", "community-skills-index\.json"\)/,
       'const RUNTIME_DIR = __dirname\nconst INDEX_PATH = path.join(RUNTIME_DIR, "community-skills-index.json")',
     )
     .replace('to ${path.relative(REPO_ROOT, INDEX_PATH)}.', 'to ${path.basename(INDEX_PATH)}.')

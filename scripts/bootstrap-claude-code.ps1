@@ -31,15 +31,21 @@ if (-not (Test-Path -LiteralPath $gitDir)) {
     if (Test-Path -LiteralPath $RepoDir) {
         throw "Repo directory exists but is not a git checkout: $RepoDir"
     }
-
+ 
     & $git.Source clone $repoUrl $RepoDir
+    if ($LASTEXITCODE -ne 0) {
+        throw "git clone failed for managed checkout $RepoDir (exit code $LASTEXITCODE). Resolve the git error above and rerun bootstrap."
+    }
 }
 elseif (-not $SkipPull) {
     & $git.Source -C $RepoDir pull --ff-only
+    if ($LASTEXITCODE -ne 0) {
+        throw "git pull failed for managed checkout $RepoDir (exit code $LASTEXITCODE). Resolve the git error above. If this checkout is incomplete, delete $RepoDir and rerun bootstrap."
+    }
 }
-
+ 
 if (-not (Test-Path -LiteralPath $helpersPath)) {
-    throw "Bootstrap helpers not found after checkout: $helpersPath"
+    throw "Managed checkout is incomplete: expected bootstrap helpers at $helpersPath. Delete $RepoDir and rerun bootstrap."
 }
 
 # Load helper functions from the managed checkout so raw invocation works too.
