@@ -34,40 +34,33 @@
   <rect width="1280" height="640" rx="28" fill="url(#pinkGlow)"/>
   <rect width="1280" height="640" rx="28" fill="url(#cyanGlow)"/>
 
-  <g opacity="0.56">
+  <g opacity="0.36">
     <path d="M0 462H1280" stroke="#FFD166" stroke-opacity="0.16"/>
     <path d="M0 484H1280" stroke="#FFD166" stroke-opacity="0.14"/>
     <path d="M0 520H1280" stroke="#FFD166" stroke-opacity="0.12"/>
     <path d="M0 570H1280" stroke="#FFD166" stroke-opacity="0.1"/>
-    <path d="M640 462L430 640" stroke="#FFD166" stroke-opacity="0.13"/>
-    <path d="M640 462L530 640" stroke="#FFD166" stroke-opacity="0.13"/>
-    <path d="M640 462L600 640" stroke="#FFD166" stroke-opacity="0.13"/>
-    <path d="M640 462L684 640" stroke="#FFD166" stroke-opacity="0.13"/>
-    <path d="M640 462L772 640" stroke="#FFD166" stroke-opacity="0.13"/>
-    <path d="M640 462L868 640" stroke="#FFD166" stroke-opacity="0.13"/>
-    <path d="M640 462L1000 640" stroke="#FFD166" stroke-opacity="0.13"/>
   </g>
 
-  <circle cx="944" cy="242" r="106" fill="url(#sun)"/>
-  <path d="M840 206H1048" stroke="#2A173C" stroke-width="8" stroke-linecap="round"/>
-  <path d="M850 240H1038" stroke="#2A173C" stroke-width="8" stroke-linecap="round"/>
-  <path d="M860 274H1028" stroke="#2A173C" stroke-width="8" stroke-linecap="round"/>
-  <path d="M872 308H1016" stroke="#2A173C" stroke-width="8" stroke-linecap="round"/>
-  <path d="M102 434C244 386 370 360 526 350C676 341 808 352 938 378C1028 396 1102 410 1188 424" stroke="url(#accent)" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 12" opacity="0.72"/>
+  <circle cx="1046" cy="188" r="78" fill="url(#sun)"/>
+  <path d="M970 154H1122" stroke="#2A173C" stroke-width="8" stroke-linecap="round"/>
+  <path d="M978 186H1114" stroke="#2A173C" stroke-width="8" stroke-linecap="round"/>
+  <path d="M988 218H1104" stroke="#2A173C" stroke-width="8" stroke-linecap="round"/>
+  <path d="M998 250H1094" stroke="#2A173C" stroke-width="8" stroke-linecap="round"/>
+  <path d="M110 428C246 384 360 364 496 362C646 360 794 370 932 392C1056 412 1132 428 1182 440" stroke="url(#accent)" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 12" opacity="0.58"/>
 
-  <rect x="76" y="88" width="710" height="388" rx="30" fill="#09101C" fill-opacity="0.28" stroke="#FFFFFF" stroke-opacity="0.1"/>
+  <rect x="76" y="88" width="736" height="388" rx="30" fill="#09101C" fill-opacity="0.28" stroke="#FFFFFF" stroke-opacity="0.1"/>
   <rect x="108" y="122" width="250" height="36" rx="18" fill="#FFFFFF" fill-opacity="0.06" stroke="#FFFFFF" stroke-opacity="0.1"/>
   <text x="132" y="146" fill="#B9FBFF" font-family="Arial, Helvetica, sans-serif" font-size="14" font-style="italic" font-weight="700" letter-spacing="0.24em">OPENCODE-FIRST SKILL PACK</text>
 
-  <text x="106" y="254" fill="url(#title)" font-family="Arial, Helvetica, sans-serif" font-size="92" font-style="italic" font-weight="900">nebu-skills</text>
+  <text x="106" y="248" fill="url(#title)" font-family="Arial, Helvetica, sans-serif" font-size="92" font-style="italic" font-weight="900">nebu-skills</text>
   <text x="108" y="314" fill="#F7ECFF" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">Workflow skills and routing support for</text>
   <text x="108" y="352" fill="#F7ECFF" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">OpenCode, GitHub Copilot, and Claude Code.</text>
-  <text x="108" y="412" fill="#98B3D8" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="600">Kaizen default. Proportional review and verification.</text>
+  <text x="108" y="410" fill="#A8BEDF" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="600">Kaizen default. Proportional review and verification.</text>
 
   <rect x="108" y="438" width="156" height="50" rx="25" fill="#00E6FF" fill-opacity="0.15" stroke="#00E6FF" stroke-opacity="0.5"/>
-  <text x="146" y="470" fill="#B9FBFF" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="900">17 skills</text>
-  <rect x="280" y="438" width="166" height="50" rx="25" fill="#7C5CFF" fill-opacity="0.18" stroke="#7C5CFF" stroke-opacity="0.44"/>
-  <text x="316" y="470" fill="#E3DBFF" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="900">router plugin</text>
-  <rect x="462" y="438" width="172" height="50" rx="25" fill="#FF4FD8" fill-opacity="0.16" stroke="#FF4FD8" stroke-opacity="0.46"/>
-  <text x="500" y="470" fill="#FFD7F4" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="900">3 platforms</text>
+  <text x="145" y="470" fill="#B9FBFF" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="900">17 skills</text>
+  <rect x="280" y="438" width="174" height="50" rx="25" fill="#7C5CFF" fill-opacity="0.18" stroke="#7C5CFF" stroke-opacity="0.44"/>
+  <text x="311" y="470" fill="#E3DBFF" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="900">router plugin</text>
+  <rect x="470" y="438" width="172" height="50" rx="25" fill="#FF4FD8" fill-opacity="0.16" stroke="#FF4FD8" stroke-opacity="0.46"/>
+  <text x="507" y="470" fill="#FFD7F4" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="900">3 platforms</text>
 </svg>

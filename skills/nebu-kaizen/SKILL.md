@@ -52,6 +52,7 @@ This also applies when the user phrases it in Dutch, such as `ga door`, `werk do
 - `nebu-kickoff` for ambiguity that could change the implementation
 - `nebu-planning` when sequencing or coordination needs a plan
 - `nebu-implementation` for coupled edits and execution choices
+- `nebu-ui-ux` for interface work that needs visual direction and screenshot-based review
 - `nebu-code-review` after meaningful code edits and before handoff
 - `nebu-debugging` for bugs, failing tests, and broken builds
 - `nebu-refactoring` when the work is cleanup or simplification
