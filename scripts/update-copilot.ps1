@@ -11,10 +11,7 @@ $ErrorActionPreference = "Stop"
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot ".." )).Path
 
 if (-not $SkipPull -and (Test-Path -LiteralPath (Join-Path $repoRoot ".git"))) {
-    $git = Get-Command git -ErrorAction SilentlyContinue
-    if ($git) {
-        & $git.Source -C $repoRoot pull --ff-only
-    }
+    Invoke-ManagedCheckoutPull -RepoRoot $repoRoot
 }
 
 $previousVersion = Get-RepoVersion -RepoRoot $repoRoot

@@ -79,6 +79,87 @@ function Update-RepoTags {
     & $git.Source -C $RepoRoot fetch --tags --force origin | Out-Null
 }
 
+# Detect whether one git status line only touches generated platform artifacts.
+function Test-IsGeneratedPlatformStatusLine {
+    param([string]$StatusLine)
+
+    if ([string]::IsNullOrWhiteSpace($StatusLine) -or $StatusLine.Length -lt 4) {
+        return $false
+    }
+
+    $path = $StatusLine.Substring(3).Trim()
+    if ($path -match ' -> ') {
+        $path = ($path -split ' -> ')[-1].Trim()
+    }
+
+    return $path -eq "CLAUDE.md" -or $path.StartsWith(".claude/") -or $path.StartsWith(".github/")
+}
+
+# Restore generated platform artifacts when they are the only dirty files in a managed checkout.
+function Restore-GeneratedPlatformArtifacts {
+    param([string]$RepoRoot)
+
+    $git = Get-GitCommand
+    $statusOutput = & $git.Source -C $RepoRoot status --porcelain --untracked-files=all
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to inspect managed checkout state at $RepoRoot before pull recovery."
+    }
+
+    $statusLines = @($statusOutput | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    if ($statusLines.Count -eq 0) {
+        return $false
+    }
+
+    foreach ($statusLine in $statusLines) {
+        if (-not (Test-IsGeneratedPlatformStatusLine -StatusLine $statusLine.TrimEnd())) {
+            return $false
+        }
+    }
+
+    & $git.Source -C $RepoRoot restore --source=HEAD --staged --worktree -- .claude .github CLAUDE.md
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to restore generated platform artifacts in managed checkout $RepoRoot."
+    }
+
+    & $git.Source -C $RepoRoot clean -fd -- .claude .github CLAUDE.md 1>$null 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to clean generated platform artifacts in managed checkout $RepoRoot."
+    }
+
+    Write-Warning "Managed checkout had local generated platform changes. Restored generated artifacts before pulling updates."
+    return $true
+}
+
+# Pull one managed checkout, retrying once after restoring generated platform artifacts when safe.
+function Invoke-ManagedCheckoutPull {
+    param([string]$RepoRoot)
+
+    $git = Get-GitCommand
+    $pullOutput = & $git.Source -C $RepoRoot pull --ff-only 2>&1
+    $pullExitCode = $LASTEXITCODE
+    if ($pullOutput) {
+        $pullOutput | Write-Output
+    }
+
+    if ($pullExitCode -eq 0) {
+        return
+    }
+    $pullText = ($pullOutput | Out-String)
+    $hasGeneratedArtifactConflict = $pullText -match 'would be overwritten by merge' -or $pullText -match 'Please commit your changes or stash them before you merge'
+
+    if (-not $hasGeneratedArtifactConflict -or -not (Restore-GeneratedPlatformArtifacts -RepoRoot $RepoRoot)) {
+        throw "git pull failed for managed checkout $RepoRoot (exit code $pullExitCode). Resolve the git error above. If this checkout is incomplete, delete $RepoRoot and rerun bootstrap."
+    }
+
+    $retryOutput = & $git.Source -C $RepoRoot pull --ff-only 2>&1
+    if ($retryOutput) {
+        $retryOutput | Write-Output
+    }
+    if ($LASTEXITCODE -ne 0) {
+        throw "git pull failed for managed checkout $RepoRoot even after restoring generated platform artifacts (exit code $LASTEXITCODE). Resolve the git error above."
+    }
+}
+
 # Resolve the latest stable SemVer tag from the local checkout.
 function Get-LatestStableTag {
     param([string]$RepoRoot)

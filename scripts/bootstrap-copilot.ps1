@@ -13,6 +13,65 @@ $repoParent = Split-Path -Parent $RepoDir
 $git = Get-Command git -ErrorAction SilentlyContinue
 $helpersPath = Join-Path $RepoDir "scripts\release-helpers.ps1"
 
+# Pull one managed checkout, retrying after restoring generated artifacts when that is the only local drift.
+function Invoke-BootstrapManagedCheckoutPull {
+    param([string]$RepoRoot)
+
+    $pullOutput = & $git.Source -C $RepoRoot pull --ff-only 2>&1
+    $pullExitCode = $LASTEXITCODE
+    if ($pullOutput) {
+        $pullOutput | Write-Output
+    }
+
+    if ($pullExitCode -eq 0) {
+        return
+    }
+    $pullText = ($pullOutput | Out-String)
+    $hasGeneratedArtifactConflict = $pullText -match 'would be overwritten by merge' -or $pullText -match 'Please commit your changes or stash them before you merge'
+
+    $statusOutput = & $git.Source -C $RepoRoot status --porcelain --untracked-files=all
+    if ($LASTEXITCODE -ne 0 -or -not $hasGeneratedArtifactConflict) {
+        throw "git pull failed for managed checkout $RepoRoot (exit code $pullExitCode). Resolve the git error above. If this checkout is incomplete, delete $RepoRoot and rerun bootstrap."
+    }
+
+    $statusLines = @($statusOutput | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    $onlyGeneratedArtifacts = $statusLines.Count -gt 0
+    foreach ($statusLine in $statusLines) {
+        $path = $statusLine.Substring(3).Trim()
+        if ($path -match ' -> ') {
+            $path = ($path -split ' -> ')[-1].Trim()
+        }
+
+        if ($path -ne "CLAUDE.md" -and -not $path.StartsWith(".claude/") -and -not $path.StartsWith(".github/")) {
+            $onlyGeneratedArtifacts = $false
+            break
+        }
+    }
+
+    if (-not $onlyGeneratedArtifacts) {
+        throw "git pull failed for managed checkout $RepoRoot (exit code $pullExitCode). Resolve the git error above. If this checkout is incomplete, delete $RepoRoot and rerun bootstrap."
+    }
+
+    & $git.Source -C $RepoRoot restore --source=HEAD --staged --worktree -- .claude .github CLAUDE.md
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to restore generated platform artifacts in managed checkout $RepoRoot."
+    }
+
+    & $git.Source -C $RepoRoot clean -fd -- .claude .github CLAUDE.md 1>$null 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to clean generated platform artifacts in managed checkout $RepoRoot."
+    }
+
+    Write-Warning "Managed checkout had local generated platform changes. Restored generated artifacts before pulling updates."
+    $retryOutput = & $git.Source -C $RepoRoot pull --ff-only 2>&1
+    if ($retryOutput) {
+        $retryOutput | Write-Output
+    }
+    if ($LASTEXITCODE -ne 0) {
+        throw "git pull failed for managed checkout $RepoRoot even after restoring generated platform artifacts (exit code $LASTEXITCODE). Resolve the git error above."
+    }
+}
+
 # Ensure the bootstrap flow fails early when git is unavailable.
 if (-not $git) {
     throw "git is required to install or update nebu-skills."
@@ -38,10 +97,7 @@ if (-not (Test-Path -LiteralPath $gitDir)) {
     }
 }
 elseif (-not $SkipPull) {
-    & $git.Source -C $RepoDir pull --ff-only
-    if ($LASTEXITCODE -ne 0) {
-        throw "git pull failed for managed checkout $RepoDir (exit code $LASTEXITCODE). Resolve the git error above. If this checkout is incomplete, delete $RepoDir and rerun bootstrap."
-    }
+    Invoke-BootstrapManagedCheckoutPull -RepoRoot $RepoDir
 }
  
 if (-not (Test-Path -LiteralPath $helpersPath)) {

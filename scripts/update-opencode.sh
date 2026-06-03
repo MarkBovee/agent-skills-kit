@@ -14,7 +14,7 @@ else
 fi
 
 if [ "$SKIP_PULL" -eq 0 ] && [ -d "$REPO_ROOT/.git" ]; then
-  git -C "$REPO_ROOT" pull --ff-only
+  pull_managed_checkout "$REPO_ROOT"
 fi
 
 PREVIOUS_VERSION="$(read_repo_version "$REPO_ROOT")"

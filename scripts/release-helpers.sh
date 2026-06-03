@@ -57,6 +57,121 @@ refresh_repo_tags() {
   fi
 }
 
+# Detect whether one git status line only touches generated platform artifacts.
+is_generated_platform_status_line() {
+  local status_line="$1"
+  local path=""
+
+  if [ -z "$status_line" ] || [ "${#status_line}" -lt 4 ]; then
+    return 1
+  fi
+
+  path="${status_line:3}"
+  path="${path#"${path%%[![:space:]]*}"}"
+  if [[ "$path" == *" -> "* ]]; then
+    path="${path##* -> }"
+  fi
+
+  case "$path" in
+    CLAUDE.md|.claude/*|.github/*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+# Restore generated platform artifacts when they are the only dirty files in a managed checkout.
+restore_generated_platform_artifacts() {
+  local repo_root="$1"
+  local status_output=""
+  local restored=0
+
+  status_output="$(git -C "$repo_root" status --porcelain --untracked-files=all)" || {
+    echo "Failed to inspect managed checkout state at $repo_root before pull recovery." >&2
+    return 1
+  }
+
+  if [ -z "$status_output" ]; then
+    return 2
+  fi
+
+  while IFS= read -r status_line; do
+    [ -z "$status_line" ] && continue
+    if ! is_generated_platform_status_line "$status_line"; then
+      return 2
+    fi
+    restored=1
+  done <<EOF
+$status_output
+EOF
+
+  [ "$restored" -eq 1 ] || return 2
+
+  git -C "$repo_root" restore --source=HEAD --staged --worktree -- .claude .github CLAUDE.md || {
+    echo "Failed to restore generated platform artifacts in managed checkout $repo_root." >&2
+    return 1
+  }
+
+  git -C "$repo_root" clean -fd -- .claude .github CLAUDE.md >/dev/null 2>&1 || {
+    echo "Failed to clean generated platform artifacts in managed checkout $repo_root." >&2
+    return 1
+  }
+
+  echo "Warning: managed checkout had local generated platform changes. Restored generated artifacts before pulling updates." >&2
+  return 0
+}
+
+# Pull one managed checkout, retrying once after restoring generated platform artifacts when safe.
+pull_managed_checkout() {
+  local repo_root="$1"
+  local recovery_status=0
+  local pull_output=""
+  local has_generated_artifact_conflict=0
+
+  set +e
+  pull_output="$(git -C "$repo_root" pull --ff-only 2>&1)"
+  recovery_status=$?
+  set -e
+  [ -n "$pull_output" ] && printf '%s\n' "$pull_output"
+  if [ "$recovery_status" -eq 0 ]; then
+    return 0
+  fi
+
+  case "$pull_output" in
+    *"would be overwritten by merge"*|*"Please commit your changes or stash them before you merge"*)
+      has_generated_artifact_conflict=1
+      ;;
+  esac
+
+  if [ "$has_generated_artifact_conflict" -ne 1 ]; then
+    echo "git pull failed for managed checkout $repo_root. Resolve the git error above. If this checkout is incomplete, delete $repo_root and rerun bootstrap." >&2
+    return 1
+  fi
+
+  set +e
+  restore_generated_platform_artifacts "$repo_root"
+  recovery_status=$?
+  set -e
+  if [ "$recovery_status" -ne 0 ]; then
+    if [ "$recovery_status" -eq 2 ]; then
+      echo "git pull failed for managed checkout $repo_root. Resolve the git error above. If this checkout is incomplete, delete $repo_root and rerun bootstrap." >&2
+    fi
+    return 1
+  fi
+
+  set +e
+  pull_output="$(git -C "$repo_root" pull --ff-only 2>&1)"
+  recovery_status=$?
+  set -e
+  [ -n "$pull_output" ] && printf '%s\n' "$pull_output"
+  if [ "$recovery_status" -ne 0 ]; then
+    echo "git pull failed for managed checkout $repo_root even after restoring generated platform artifacts. Resolve the git error above." >&2
+    return 1
+  fi
+}
+
 # Resolve the latest stable SemVer tag from the local checkout.
 get_latest_stable_tag() {
   local repo_root="$1"

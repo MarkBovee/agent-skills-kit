@@ -6,6 +6,13 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [0.1.8] - 2026-06-03
+
+### Fixed
+
+- bootstrap scripts now recover older managed checkouts that are dirty only because generated `.github`, `.claude`, or `CLAUDE.md` artifacts drifted locally before retrying `git pull`
+- update scripts now use the same generated-artifact recovery path before pulling a managed checkout forward
+
 ## [0.1.7] - 2026-06-03
 
 ### Changed

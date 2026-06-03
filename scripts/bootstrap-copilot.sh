@@ -7,6 +7,87 @@ COPILOT_DIR="${1:-$HOME/.copilot}"
 SKIP_PULL="${SKIP_PULL:-0}"
 HELPERS_PATH="$REPO_DIR/scripts/release-helpers.sh"
 
+# Pull one managed checkout, retrying after restoring generated artifacts when that is the only local drift.
+bootstrap_pull_managed_checkout() {
+  local repo_root="$1"
+  local pull_output=""
+  local pull_status=0
+  local status_output=""
+  local only_generated=1
+  local path=""
+
+  set +e
+  pull_output="$(git -C "$repo_root" pull --ff-only 2>&1)"
+  pull_status=$?
+  set -e
+  [ -n "$pull_output" ] && printf '%s\n' "$pull_output"
+  if [ "$pull_status" -eq 0 ]; then
+    return 0
+  fi
+
+  case "$pull_output" in
+    *"would be overwritten by merge"*|*"Please commit your changes or stash them before you merge"*) ;;
+    *)
+      echo "git pull failed for managed checkout $repo_root. Resolve the git error above. If this checkout is incomplete, delete $repo_root and rerun bootstrap." >&2
+      return 1
+      ;;
+  esac
+
+  status_output="$(git -C "$repo_root" status --porcelain --untracked-files=all)" || {
+    echo "git pull failed for managed checkout $repo_root. Resolve the git error above. If this checkout is incomplete, delete $repo_root and rerun bootstrap." >&2
+    return 1
+  }
+
+  if [ -z "$status_output" ]; then
+    echo "git pull failed for managed checkout $repo_root. Resolve the git error above. If this checkout is incomplete, delete $repo_root and rerun bootstrap." >&2
+    return 1
+  fi
+
+  while IFS= read -r status_line; do
+    [ -z "$status_line" ] && continue
+    path="${status_line:3}"
+    path="${path#"${path%%[![:space:]]*}"}"
+    if [[ "$path" == *" -> "* ]]; then
+      path="${path##* -> }"
+    fi
+    case "$path" in
+      CLAUDE.md|.claude/*|.github/*) ;;
+      *)
+        only_generated=0
+        break
+        ;;
+    esac
+  done <<EOF
+$status_output
+EOF
+
+  if [ "$only_generated" -ne 1 ]; then
+    echo "git pull failed for managed checkout $repo_root. Resolve the git error above. If this checkout is incomplete, delete $repo_root and rerun bootstrap." >&2
+    return 1
+  fi
+
+  git -C "$repo_root" restore --source=HEAD --staged --worktree -- .claude .github CLAUDE.md || {
+    echo "Failed to restore generated platform artifacts in managed checkout $repo_root." >&2
+    return 1
+  }
+
+  git -C "$repo_root" clean -fd -- .claude .github CLAUDE.md >/dev/null 2>&1 || {
+    echo "Failed to clean generated platform artifacts in managed checkout $repo_root." >&2
+    return 1
+  }
+
+  echo "Warning: managed checkout had local generated platform changes. Restored generated artifacts before pulling updates." >&2
+  set +e
+  pull_output="$(git -C "$repo_root" pull --ff-only 2>&1)"
+  pull_status=$?
+  set -e
+  [ -n "$pull_output" ] && printf '%s\n' "$pull_output"
+  if [ "$pull_status" -ne 0 ]; then
+    echo "git pull failed for managed checkout $repo_root even after restoring generated platform artifacts. Resolve the git error above." >&2
+    return 1
+  fi
+}
+
 # Ensure the bootstrap flow fails early when git is unavailable.
 if ! command -v git >/dev/null 2>&1; then
   echo "git is required to install or update nebu-skills." >&2
@@ -28,7 +109,7 @@ if [ ! -d "$REPO_DIR/.git" ]; then
 
   git clone "$REPO_URL" "$REPO_DIR"
 elif [ "$SKIP_PULL" != "1" ]; then
-  git -C "$REPO_DIR" pull --ff-only
+  bootstrap_pull_managed_checkout "$REPO_DIR"
 fi
 
 [ -f "$HELPERS_PATH" ] || {
