@@ -88,15 +88,17 @@ Playwright CLI examples:
 
 ```bash
 # Desktop full page
-npx playwright screenshot --browser chromium --viewport-size "1440,900" --full-page --wait-for-timeout 4000 <url> /tmp/opencode/nebu-ui-ux-review/<run-id>/desktop-full.png
+npx playwright screenshot --browser chromium --viewport-size "1440,900" --full-page --wait-for-timeout 6000 <url> /tmp/opencode/nebu-ui-ux-review/<run-id>/desktop-full.png
 
 # Mobile full page
-npx playwright screenshot --browser chromium --viewport-size "390,844" --full-page --wait-for-timeout 4000 <url> /tmp/opencode/nebu-ui-ux-review/<run-id>/mobile-full.png
+npx playwright screenshot --browser chromium --viewport-size "390,844" --full-page --wait-for-timeout 6000 <url> /tmp/opencode/nebu-ui-ux-review/<run-id>/mobile-full.png
 ```
+
+For lazy-loaded or highly animated pages, prefer a tiny Playwright script that waits for `networkidle` before capturing instead of relying only on the CLI timeout.
 
 Then pass the screenshot back to vision review with this prompt:
 
-> Review this UI screenshot. Flag any of these: generic purple or violet accents, uniform card grids, hero gradient banners, oversized centered headlines, frosted glass overuse, or weak visual hierarchy. Suggest one concrete fix per issue.
+> Review this UI screenshot. For each issue found: name it, locate it (component or section), and apply the fix immediately. Flag any of these when present: generic purple or violet accents, uniform card grids, hero gradient banners, oversized centered headlines, frosted glass overuse, or weak visual hierarchy. Do not ask for confirmation unless the visual direction itself needs to change.
 
 If the first review finds real issues, fix the highest-signal one first and repeat the loop instead of stacking speculative changes.
 
