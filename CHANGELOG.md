@@ -6,6 +6,13 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [0.1.9] - 2026-06-05
+
+### Changed
+
+- `nebu-code-review`: mandatory after every code edit; review depth scales with risk but no edit skips review — tiny changes get a quick checklist pass instead of self-review bypass
+- `export-platform-skills.js`: generated Copilot and Claude instructions now enforce always-invoke review rule instead of the softer handoff-only trigger
+
 ## [0.1.8] - 2026-06-03
 
 ### Fixed

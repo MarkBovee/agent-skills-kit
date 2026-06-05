@@ -6,7 +6,7 @@ description: "Use when code changed and a meaningful diff is ready; fresh eyes s
 
 Review for correctness, requirements, and risk first. Style is optional; broken behavior is not.
 
-This is the default second pass after non-trivial code edits. Tiny local changes may stay self-reviewed, but medium or risky diffs should not jump straight from coding to `done`.
+This is a mandatory second pass after **every** code edit. Review depth scales with risk — but no edit skips review entirely.
 
 ## Review checklist
 
@@ -18,7 +18,7 @@ This is the default second pass after non-trivial code edits. Tiny local changes
 
 ## Apply proportionally
 
-- Tiny, local change: self-review may be enough.
+- Tiny, local change: quick checklist pass — still required, just fast.
 - Medium or subtle change: use a review agent or second pass.
 - Risky or cross-cutting diff: review against requirements and likely regressions explicitly.
 
