@@ -14,6 +14,18 @@ read_repo_version() {
   printf '0.0.0\n'
 }
 
+# Emit the managed stale skill names that should be removed during upgrades.
+stale_skill_names() {
+  cat <<'EOF'
+refactor
+ui-ux-pro-max
+using-nebu-skills
+writing-nebu-skills
+workspace-wrapup
+nebu-test-driven-development
+EOF
+}
+
 # Resolve the current git ref for user-facing release messages.
 read_repo_ref() {
   local repo_root="$1"
@@ -55,6 +67,61 @@ refresh_repo_tags() {
   if git -C "$repo_root" remote get-url origin >/dev/null 2>&1; then
     git -C "$repo_root" fetch --tags --force origin
   fi
+}
+
+# Remove older skill-pack installs that used the legacy lean naming.
+remove_legacy_skill_installs() {
+  local base_dir="$1"
+  [ -d "$base_dir" ] || return 0
+
+  find "$base_dir" -mindepth 1 -maxdepth 1 \( -name 'lean-*' -o -name '*leanctx*' \) -exec rm -rf {} +
+}
+
+# Remove stale managed skill directories that should no longer survive upgrades.
+remove_stale_skill_installs() {
+  local base_dir="$1"
+  local skill_name=""
+  [ -d "$base_dir" ] || return 0
+
+  while IFS= read -r skill_name; do
+    [ -n "$skill_name" ] || continue
+    rm -rf "$base_dir/$skill_name"
+  done <<EOF
+$(stale_skill_names)
+EOF
+}
+
+# Build the current managed skill list from the canonical source directory.
+write_current_skill_manifest() {
+  local source_dir="$1"
+  local output_path="$2"
+  local skill_dir=""
+
+  : > "$output_path"
+
+  for skill_dir in "$source_dir"/*; do
+    [ -d "$skill_dir" ] || continue
+    basename "$skill_dir" >> "$output_path"
+  done
+}
+
+# Remove previously managed skills that no longer exist in the current source set.
+remove_missing_managed_skills() {
+  local target_dir="$1"
+  local previous_manifest="$2"
+  local current_manifest="$3"
+  local skill_name=""
+  [ -d "$target_dir" ] || return 0
+  [ -f "$previous_manifest" ] || return 0
+
+  while IFS= read -r skill_name; do
+    [ -n "$skill_name" ] || continue
+    [ -d "$target_dir/$skill_name" ] || continue
+
+    if ! grep -Fxq "$skill_name" "$current_manifest"; then
+      rm -rf "$target_dir/$skill_name"
+    fi
+  done < "$previous_manifest"
 }
 
 # Detect whether one git status line only touches generated platform artifacts.

@@ -60,7 +60,20 @@ Stable installs resolve the latest `vX.Y.Z` tag before copying managed assets. T
 
 Bootstrap scripts are the recommended path. They clone if needed, move the managed checkout to the latest stable tag, install managed assets, and stay safe to rerun.
 
-### OpenCode
+### Unified Installer
+
+The managed installer now does one thing: install all shared skills into `~/.agents/skills`, install Copilot instructions, install the OpenCode router/plugin, and, when `~/.claude/` already exists, write Claude rules and link `~/.claude/skills` back to `~/.agents/skills`.
+
+The three bootstrap entrypoints are now convenience aliases to the same unified install flow. They remain separate so existing copy-paste entrypoints stay easy to discover per host, but they all execute the same managed install.
+
+If you want non-default locations, set environment variables before running the installer:
+
+- `AGENTS_DIR`
+- `COPILOT_DIR`
+- `OPENCODE_DIR`
+- `CLAUDE_DIR`
+
+### OpenCode Bootstrap
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-opencode.sh | bash
@@ -70,7 +83,7 @@ curl -fsSL https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/
 irm https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-opencode.ps1 | iex
 ```
 
-### GitHub Copilot
+### GitHub Copilot Bootstrap
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-copilot.sh | bash
@@ -80,7 +93,7 @@ curl -fsSL https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/
 irm https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-copilot.ps1 | iex
 ```
 
-### Claude Code
+### Claude Code Bootstrap
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-claude-code.sh | bash
@@ -100,26 +113,16 @@ Local clone install:
 ```bash
 gh repo clone MarkBovee/nebu-skills
 cd nebu-skills
-bash ./scripts/install-opencode.sh
+bash ./scripts/install.sh
 ```
 
 ```powershell
-pwsh -NoLogo -NoProfile -File .\scripts\install-opencode.ps1
-```
-
-Custom OpenCode directory:
-
-```bash
-bash ./scripts/install-opencode.sh /path/to/opencode
-```
-
-```powershell
-pwsh -NoLogo -NoProfile -File .\scripts\install-opencode.ps1 -OpencodeDir "C:\path\to\opencode"
+pwsh -NoLogo -NoProfile -File .\scripts\install.ps1
 ```
 
 Manual install copies:
 
-- all folders under `skills/`
+- all folders under `~/.agents/skills/`
 - `core/router-core.js`
 - `plugins/nebu-skills-router.js`
 
@@ -132,38 +135,56 @@ Common OpenCode config locations:
 | macOS / Linux / WSL | `~/.config/opencode/` |
 | Windows PowerShell | `$HOME\.config\opencode\` |
 
+Custom roots use the unified installer via environment variables instead of platform-specific positional arguments.
+
 ### GitHub Copilot Details
 
 Installed paths:
 
-- `~/.copilot/skills/`
+- `~/.agents/skills/`
 - `~/.copilot/instructions/`
+
+VS Code / Copilot now consumes the shared skill root from `~/.agents/skills/`. The Copilot-specific part that remains native is `~/.copilot/instructions/`.
 
 Local clone install:
 
 ```bash
-bash ./scripts/install-copilot.sh
+bash ./scripts/install.sh
 ```
 
 ```powershell
-pwsh -NoLogo -NoProfile -File .\scripts\install-copilot.ps1
+pwsh -NoLogo -NoProfile -File .\scripts\install.ps1
 ```
 
 ### Claude Code Details
 
 Installed paths:
 
-- `~/.claude/skills/`
+- `~/.agents/skills/`
 - `~/.claude/rules/`
+
+If `~/.claude/` exists, the installer writes Claude rules under `~/.claude/rules/` and links `~/.claude/skills` back to `~/.agents/skills`.
+
+If `~/.claude/` does not exist, Claude-specific setup is skipped on purpose. Create the directory first if you want the installer to wire Claude into the shared `~/.agents/skills` root.
+
+### Shared Root Policy
+
+Skills are now centralized in `~/.agents/skills/`. The remaining editor-specific surfaces are:
+
+- VS Code / Copilot still uses `~/.copilot/instructions/` for user instructions
+- Claude Code still uses `~/.claude/CLAUDE.md` and `~/.claude/rules/` for instructions and rules
+- OpenCode still uses its own config/plugin surfaces under `~/.config/opencode/`
+
+The unified installer removes old managed skill copies from editor-specific skill directories so `~/.agents/skills/` becomes the single managed source of truth.
 
 Local clone install:
 
 ```bash
-bash ./scripts/install-claude-code.sh
+bash ./scripts/install.sh
 ```
 
 ```powershell
-pwsh -NoLogo -NoProfile -File .\scripts\install-claude-code.ps1
+pwsh -NoLogo -NoProfile -File .\scripts\install.ps1
 ```
 
 </details>

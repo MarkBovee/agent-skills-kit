@@ -3,7 +3,6 @@ set -euo pipefail
 
 REPO_URL="https://github.com/MarkBovee/nebu-skills.git"
 REPO_DIR="${REPO_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/nebu-skills}"
-COPILOT_DIR="${1:-$HOME/.copilot}"
 SKIP_PULL="${SKIP_PULL:-0}"
 HELPERS_PATH="$REPO_DIR/scripts/release-helpers.sh"
 
@@ -125,11 +124,19 @@ if SELECTED_REF="$(get_latest_stable_tag "$REPO_DIR")"; then
   RELEASE_WORKTREE="$(create_release_worktree "$REPO_DIR" "$SELECTED_REF")"
   INSTALL_SOURCE_ROOT="$RELEASE_WORKTREE"
   trap 'remove_release_worktree "$REPO_DIR" "$RELEASE_WORKTREE"' EXIT
-  echo "Using stable nebu-skills $(read_repo_version "$INSTALL_SOURCE_ROOT") ($SELECTED_REF)"
+  if [ ! -f "$INSTALL_SOURCE_ROOT/scripts/install.sh" ]; then
+    echo "Stable nebu-skills $(read_repo_version "$INSTALL_SOURCE_ROOT") ($SELECTED_REF) predates the unified installer. Falling back to current checkout $(read_repo_version "$REPO_DIR") ($(read_repo_ref "$REPO_DIR"))." >&2
+    remove_release_worktree "$REPO_DIR" "$RELEASE_WORKTREE"
+    RELEASE_WORKTREE=""
+    INSTALL_SOURCE_ROOT="$REPO_DIR"
+    trap - EXIT
+  else
+    echo "Using stable nebu-skills $(read_repo_version "$INSTALL_SOURCE_ROOT") ($SELECTED_REF)"
+  fi
 else
   SELECTED_REF="$(read_repo_ref "$REPO_DIR")"
   echo "No stable release tag found yet. Using current checkout $(read_repo_version "$REPO_DIR") ($SELECTED_REF)." >&2
 fi
 
-# Delegate the actual Copilot installation to the local installer script.
-bash "$INSTALL_SOURCE_ROOT/scripts/install-copilot.sh" "$COPILOT_DIR"
+# Delegate the actual installation to the unified installer script.
+bash "$INSTALL_SOURCE_ROOT/scripts/install.sh"

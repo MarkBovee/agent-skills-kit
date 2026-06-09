@@ -26,8 +26,17 @@ try {
     if ($selectedRef) {
         $releaseWorktree = New-ReleaseWorktree -RepoRoot $repoRoot -ReleaseRef $selectedRef
         $installSourceRoot = $releaseWorktree
-        $currentVersion = Get-RepoVersion -RepoRoot $installSourceRoot
-        "Using stable nebu-skills $currentVersion ($selectedRef)"
+        if (-not (Test-Path -LiteralPath (Join-Path $installSourceRoot "scripts\install.ps1"))) {
+            Write-Warning "Stable nebu-skills $(Get-RepoVersion -RepoRoot $installSourceRoot) ($selectedRef) predates the unified installer. Falling back to current checkout $(Get-RepoVersion -RepoRoot $repoRoot) ($(Get-CurrentGitRef -RepoRoot $repoRoot))."
+            Remove-ReleaseWorktree -RepoRoot $repoRoot -WorktreePath $releaseWorktree
+            $releaseWorktree = $null
+            $installSourceRoot = $repoRoot
+            $currentVersion = Get-RepoVersion -RepoRoot $installSourceRoot
+        }
+        else {
+            $currentVersion = Get-RepoVersion -RepoRoot $installSourceRoot
+            "Using stable nebu-skills $currentVersion ($selectedRef)"
+        }
     }
     else {
         $selectedRef = Get-CurrentGitRef -RepoRoot $repoRoot
@@ -53,7 +62,7 @@ try {
         }
     }
 
-    & (Join-Path $installSourceRoot "scripts\install-copilot.ps1") -CopilotDir $CopilotDir
+    & (Join-Path $installSourceRoot "scripts\install.ps1")
 }
 finally {
     if ($releaseWorktree) {

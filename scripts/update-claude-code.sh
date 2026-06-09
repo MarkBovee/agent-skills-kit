@@ -26,7 +26,15 @@ if SELECTED_REF="$(get_latest_stable_tag "$REPO_ROOT")"; then
   RELEASE_WORKTREE="$(create_release_worktree "$REPO_ROOT" "$SELECTED_REF")"
   INSTALL_SOURCE_ROOT="$RELEASE_WORKTREE"
   trap 'remove_release_worktree "$REPO_ROOT" "$RELEASE_WORKTREE"' EXIT
-  echo "Using stable nebu-skills $(read_repo_version "$INSTALL_SOURCE_ROOT") ($SELECTED_REF)"
+  if [ ! -f "$INSTALL_SOURCE_ROOT/scripts/install.sh" ]; then
+    echo "Stable nebu-skills $(read_repo_version "$INSTALL_SOURCE_ROOT") ($SELECTED_REF) predates the unified installer. Falling back to current checkout $(read_repo_version "$REPO_ROOT") ($(read_repo_ref "$REPO_ROOT"))." >&2
+    remove_release_worktree "$REPO_ROOT" "$RELEASE_WORKTREE"
+    RELEASE_WORKTREE=""
+    INSTALL_SOURCE_ROOT="$REPO_ROOT"
+    trap - EXIT
+  else
+    echo "Using stable nebu-skills $(read_repo_version "$INSTALL_SOURCE_ROOT") ($SELECTED_REF)"
+  fi
 else
   SELECTED_REF="$(read_repo_ref "$REPO_ROOT")"
   echo "No stable release tag found yet. Using current checkout $(read_repo_version "$REPO_ROOT") ($SELECTED_REF)." >&2
@@ -39,4 +47,4 @@ else
   echo "Managed checkout already on latest stable $CURRENT_VERSION ($SELECTED_REF)"
 fi
 
-bash "$INSTALL_SOURCE_ROOT/scripts/install-claude-code.sh" "$@"
+bash "$INSTALL_SOURCE_ROOT/scripts/install.sh"

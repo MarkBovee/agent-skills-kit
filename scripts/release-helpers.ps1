@@ -23,6 +23,18 @@ function Get-RepoVersion {
     return (Get-Content -LiteralPath $versionFile -Raw).Trim()
 }
 
+# Return the managed stale skill names that should be removed during upgrades.
+function Get-StaleSkillNames {
+    return @(
+        "refactor",
+        "ui-ux-pro-max",
+        "using-nebu-skills",
+        "writing-nebu-skills",
+        "workspace-wrapup",
+        "nebu-test-driven-development"
+    )
+}
+
 # Resolve the current git ref for user-facing release messages.
 function Get-CurrentGitRef {
     param([string]$RepoRoot)
@@ -77,6 +89,88 @@ function Update-RepoTags {
     }
 
     & $git.Source -C $RepoRoot fetch --tags --force origin | Out-Null
+}
+
+# Remove older skill-pack installs that used the legacy lean naming.
+function Remove-LegacySkillInstalls {
+    param([string]$BasePath)
+
+    if (-not (Test-Path -LiteralPath $BasePath)) {
+        return
+    }
+
+    foreach ($entry in Get-ChildItem -LiteralPath $BasePath -Directory -ErrorAction SilentlyContinue) {
+        if ($entry.Name -like "lean-*" -or $entry.Name -like "*leanctx*") {
+            Remove-Item -LiteralPath $entry.FullName -Recurse -Force
+        }
+    }
+
+    foreach ($entry in Get-ChildItem -LiteralPath $BasePath -File -ErrorAction SilentlyContinue) {
+        if ($entry.Name -like "lean-*" -or $entry.Name -like "*leanctx*") {
+            Remove-Item -LiteralPath $entry.FullName -Force
+        }
+    }
+}
+
+# Remove stale managed skill directories that should no longer survive upgrades.
+function Remove-StaleSkillInstalls {
+    param([string]$BasePath)
+
+    if (-not (Test-Path -LiteralPath $BasePath)) {
+        return
+    }
+
+    foreach ($skillName in Get-StaleSkillNames) {
+        $target = Join-Path $BasePath $skillName
+        if (Test-Path -LiteralPath $target) {
+            Remove-Item -LiteralPath $target -Recurse -Force
+        }
+    }
+}
+
+# Build the current managed skill list from the canonical source directory.
+function Get-ManagedSkillNames {
+    param([string]$SourcePath)
+
+    if (-not (Test-Path -LiteralPath $SourcePath)) {
+        return @()
+    }
+
+    return Get-ChildItem -LiteralPath $SourcePath -Directory | ForEach-Object { $_.Name }
+}
+
+# Remove previously managed skills that no longer exist in the current source set.
+function Remove-MissingManagedSkills {
+    param(
+        [string]$TargetPath,
+        [string]$PreviousManifestPath,
+        [string[]]$CurrentSkillNames
+    )
+
+    if (-not (Test-Path -LiteralPath $TargetPath) -or -not (Test-Path -LiteralPath $PreviousManifestPath)) {
+        return
+    }
+
+    $currentSkills = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+    foreach ($skillName in $CurrentSkillNames) {
+        [void]$currentSkills.Add($skillName)
+    }
+
+    foreach ($skillName in Get-Content -LiteralPath $PreviousManifestPath -ErrorAction SilentlyContinue) {
+        if ([string]::IsNullOrWhiteSpace($skillName)) {
+            continue
+        }
+
+        $trimmedSkillName = $skillName.Trim()
+        if ($currentSkills.Contains($trimmedSkillName)) {
+            continue
+        }
+
+        $target = Join-Path $TargetPath $trimmedSkillName
+        if (Test-Path -LiteralPath $target) {
+            Remove-Item -LiteralPath $target -Recurse -Force
+        }
+    }
 }
 
 # Detect whether one git status line only touches generated platform artifacts.

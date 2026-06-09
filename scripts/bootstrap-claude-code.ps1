@@ -1,7 +1,6 @@
 [CmdletBinding()]
 param(
     [string]$RepoDir = $(if ($env:XDG_DATA_HOME) { Join-Path $env:XDG_DATA_HOME "nebu-skills" } elseif ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA "nebu-skills" } else { Join-Path $HOME ".local\share\nebu-skills" }),
-    [string]$ClaudeDir = (Join-Path $HOME ".claude"),
     [switch]$SkipPull
 )
 
@@ -113,8 +112,16 @@ try {
     if ($selectedRef) {
         $releaseWorktree = New-ReleaseWorktree -RepoRoot $RepoDir -ReleaseRef $selectedRef
         $installSourceRoot = $releaseWorktree
-        $selectedVersion = Get-RepoVersion -RepoRoot $installSourceRoot
-        "Using stable nebu-skills $selectedVersion ($selectedRef)"
+        if (-not (Test-Path -LiteralPath (Join-Path $installSourceRoot "scripts\install.ps1"))) {
+            Write-Warning "Stable nebu-skills $(Get-RepoVersion -RepoRoot $installSourceRoot) ($selectedRef) predates the unified installer. Falling back to current checkout $(Get-RepoVersion -RepoRoot $RepoDir) ($(Get-CurrentGitRef -RepoRoot $RepoDir))."
+            Remove-ReleaseWorktree -RepoRoot $RepoDir -WorktreePath $releaseWorktree
+            $releaseWorktree = $null
+            $installSourceRoot = $RepoDir
+        }
+        else {
+            $selectedVersion = Get-RepoVersion -RepoRoot $installSourceRoot
+            "Using stable nebu-skills $selectedVersion ($selectedRef)"
+        }
     }
     else {
         $selectedRef = Get-CurrentGitRef -RepoRoot $RepoDir
@@ -122,8 +129,8 @@ try {
         Write-Warning "No stable release tag found yet. Using current checkout $selectedVersion ($selectedRef)."
     }
 
-    # Delegate the actual Claude Code installation to the local installer script.
-    & (Join-Path $installSourceRoot "scripts\install-claude-code.ps1") -ClaudeDir $ClaudeDir
+    # Delegate the actual installation to the unified installer script.
+    & (Join-Path $installSourceRoot "scripts\install.ps1")
 }
 finally {
     if ($releaseWorktree) {

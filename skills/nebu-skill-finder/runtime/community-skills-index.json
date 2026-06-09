@@ -1,7 +1,7 @@
 {
   "source": "github/awesome-copilot",
-  "commit": "9b74459b5ae5aad67781c4a9de1093605d620f23",
-  "fetched_at": "2026-06-02T07:50:50.044Z",
+  "commit": "8b1792d493d9f8f0a88d594eb23bb9196639ec3d",
+  "fetched_at": "2026-06-09T18:00:15.549Z",
   "items": [
     {
       "name": "dependency-license-checker",
@@ -5620,6 +5620,17 @@
         "mvvm",
         "toolkit",
         "mvvm-toolkit"
+      ]
+    },
+    {
+      "name": "namecheap",
+      "type": "skill",
+      "path": "skills/namecheap/SKILL.md",
+      "sha": "1fae5cea61281105ef590f7a661cac4f5ca3c280",
+      "description": "",
+      "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/skills/namecheap/SKILL.md",
+      "match_keywords": [
+        "namecheap"
       ]
     },
     {

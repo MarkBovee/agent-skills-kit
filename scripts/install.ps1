@@ -1,0 +1,201 @@
+[CmdletBinding()]
+param(
+    [string]$AgentsDir = (Join-Path $HOME ".agents"),
+    [string]$CopilotDir = (Join-Path $HOME ".copilot"),
+    [string]$OpencodeDir = $(if ($env:XDG_CONFIG_HOME) { Join-Path $env:XDG_CONFIG_HOME "opencode" } else { Join-Path $HOME ".config\opencode" }),
+    [string]$ClaudeDir = (Join-Path $HOME ".claude")
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "release-helpers.ps1")
+
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot ".." )).Path
+$sharedSkillsSource = Join-Path $repoRoot "skills"
+$copilotInstructionsSource = Join-Path $repoRoot ".github\copilot-instructions.md"
+$opencodeCoreSource = Join-Path $repoRoot "core"
+$opencodePluginsSource = Join-Path $repoRoot "plugins"
+
+$sharedSkillsTarget = Join-Path $AgentsDir "skills"
+$copilotSkillsTarget = Join-Path $CopilotDir "skills"
+$copilotInstructionsTarget = Join-Path $CopilotDir "instructions"
+$copilotInstructionsFile = Join-Path $copilotInstructionsTarget "nebu-skills.instructions.md"
+$opencodeCoreTarget = Join-Path $OpencodeDir "core"
+$opencodeSkillsTarget = Join-Path $OpencodeDir "skills"
+$opencodePluginsTarget = Join-Path $OpencodeDir "plugins"
+$claudeSkillsTarget = Join-Path $ClaudeDir "skills"
+$claudeRulesTarget = Join-Path $ClaudeDir "rules"
+$claudeRulesFile = Join-Path $claudeRulesTarget "nebu-skills.md"
+$installMetadataFile = Join-Path $AgentsDir ".nebu-skills-install.txt"
+$managedSkillsManifest = ".nebu-managed-skills.txt"
+
+# Write the Claude rule file when a Claude home already exists.
+function Write-ClaudeRulesFile {
+    @"
+# Nebu Skills
+
+- Prefer workflow skills under `~/.claude/skills/` when the user's request clearly matches one of them instead of rewriting the workflow inline.
+- Treat `nebu-kaizen` as the default execution baseline for normal software work and combine it with a more specific skill when needed.
+- After code edits, bias toward `nebu-code-review` before `nebu-verification` when the user is moving toward done, ready, finished, handoff, or klaar wording.
+- If review, verification, or wrap-up exposes a reusable workflow gap, capture it with `nebu-skill-improvement` before ending cold.
+- When editing code, add concise intent comments by default; place one short comment above each function unless the repo's local convention says otherwise.
+"@ | Set-Content -LiteralPath $claudeRulesFile -NoNewline
+}
+
+# Remove managed skills from one former install root without touching unrelated user content.
+function Clear-OldSkillRoot {
+    param([string]$TargetPath, [string[]]$CurrentSkillNames)
+
+    if (-not (Test-Path -LiteralPath $TargetPath)) {
+        return
+    }
+
+    $item = Get-Item -LiteralPath $TargetPath -Force
+    if ($item.LinkType) {
+        return
+    }
+
+    Remove-LegacySkillInstalls -BasePath $TargetPath
+    Remove-StaleSkillInstalls -BasePath $TargetPath
+    Remove-MissingManagedSkills -TargetPath $TargetPath -PreviousManifestPath (Join-Path $TargetPath $managedSkillsManifest) -CurrentSkillNames $CurrentSkillNames
+
+    foreach ($skillName in $CurrentSkillNames) {
+        $target = Join-Path $TargetPath $skillName
+        if (Test-Path -LiteralPath $target) {
+            Remove-Item -LiteralPath $target -Recurse -Force
+        }
+    }
+
+    $manifestPath = Join-Path $TargetPath $managedSkillsManifest
+    if (Test-Path -LiteralPath $manifestPath) {
+        Remove-Item -LiteralPath $manifestPath -Force
+    }
+
+    try {
+        Remove-Item -LiteralPath $TargetPath -Force
+    }
+    catch {
+    }
+}
+
+# Sync the canonical managed skills into the shared ~/.agents skill root.
+function Sync-SharedSkills {
+    param([string[]]$CurrentSkillNames)
+
+    New-Item -ItemType Directory -Force -Path $sharedSkillsTarget | Out-Null
+    Remove-LegacySkillInstalls -BasePath $sharedSkillsTarget
+    Remove-StaleSkillInstalls -BasePath $sharedSkillsTarget
+    Remove-MissingManagedSkills -TargetPath $sharedSkillsTarget -PreviousManifestPath (Join-Path $sharedSkillsTarget $managedSkillsManifest) -CurrentSkillNames $CurrentSkillNames
+
+    $installedSkills = @()
+    foreach ($skillDir in Get-ChildItem -LiteralPath $sharedSkillsSource -Directory) {
+        $destination = Join-Path $sharedSkillsTarget $skillDir.Name
+        if (Test-Path -LiteralPath $destination) {
+            Remove-Item -LiteralPath $destination -Recurse -Force
+        }
+
+        Copy-Item -LiteralPath $skillDir.FullName -Destination $destination -Recurse
+        $installedSkills += $skillDir.Name
+    }
+
+    $installedSkills | Set-Content -LiteralPath (Join-Path $sharedSkillsTarget $managedSkillsManifest)
+    return $installedSkills
+}
+
+# Replace one directory path with a link to the shared skill root.
+function Set-DirectoryLink {
+    param([string]$LinkPath, [string]$TargetPath)
+
+    if (Test-Path -LiteralPath $LinkPath) {
+        $existingItem = Get-Item -LiteralPath $LinkPath -Force
+        if ($existingItem.LinkType -and $existingItem.Target -contains $TargetPath) {
+            return
+        }
+
+        Remove-Item -LiteralPath $LinkPath -Recurse -Force
+    }
+
+    try {
+        New-Item -ItemType SymbolicLink -Path $LinkPath -Target $TargetPath | Out-Null
+    }
+    catch {
+        New-Item -ItemType Junction -Path $LinkPath -Target $TargetPath | Out-Null
+    }
+}
+
+$node = Get-Command node -ErrorAction SilentlyContinue
+if (-not $node) {
+    throw "node is required to export Copilot assets before install."
+}
+
+if (-not (Test-Path -LiteralPath $sharedSkillsSource)) {
+    throw "Shared skills source directory not found: $sharedSkillsSource"
+}
+
+if (-not (Test-Path -LiteralPath $copilotInstructionsSource)) {
+    throw "Copilot instructions source file not found: $copilotInstructionsSource"
+}
+
+if (-not (Test-Path -LiteralPath $opencodeCoreSource)) {
+    throw "OpenCode core source directory not found: $opencodeCoreSource"
+}
+
+if (-not (Test-Path -LiteralPath $opencodePluginsSource)) {
+    throw "OpenCode plugins source directory not found: $opencodePluginsSource"
+}
+
+$generatedAssetsLockHeld = $false
+
+try {
+    Acquire-GeneratedAssetsLock -RepoRoot $repoRoot
+    $generatedAssetsLockHeld = $true
+
+    & $node.Source (Join-Path $PSScriptRoot "export-platform-skills.js")
+
+    $currentSkillNames = Get-ManagedSkillNames -SourcePath $sharedSkillsSource
+    $installedSkills = Sync-SharedSkills -CurrentSkillNames $currentSkillNames
+
+    Clear-OldSkillRoot -TargetPath $copilotSkillsTarget -CurrentSkillNames $currentSkillNames
+    Clear-OldSkillRoot -TargetPath $opencodeSkillsTarget -CurrentSkillNames $currentSkillNames
+    Clear-OldSkillRoot -TargetPath $claudeSkillsTarget -CurrentSkillNames $currentSkillNames
+
+    New-Item -ItemType Directory -Force -Path $copilotInstructionsTarget | Out-Null
+    Copy-Item -LiteralPath $copilotInstructionsSource -Destination $copilotInstructionsFile -Force
+
+    New-Item -ItemType Directory -Force -Path $opencodePluginsTarget | Out-Null
+    if (Test-Path -LiteralPath $opencodeCoreTarget) {
+        Remove-Item -LiteralPath $opencodeCoreTarget -Recurse -Force
+    }
+
+    Copy-Item -LiteralPath $opencodeCoreSource -Destination $opencodeCoreTarget -Recurse
+    Copy-Item -LiteralPath (Join-Path $opencodePluginsSource "nebu-skills-router.js") -Destination (Join-Path $opencodePluginsTarget "nebu-skills-router.js") -Force
+
+    if (Test-Path -LiteralPath $ClaudeDir) {
+        New-Item -ItemType Directory -Force -Path $claudeRulesTarget | Out-Null
+        Write-ClaudeRulesFile
+        Set-DirectoryLink -LinkPath $claudeSkillsTarget -TargetPath $sharedSkillsTarget
+    }
+
+    New-Item -ItemType Directory -Force -Path $AgentsDir | Out-Null
+    Write-InstallMetadata -RepoRoot $repoRoot -Platform "shared-agents" -InstallRoot $AgentsDir -OutputPath $installMetadataFile
+
+    "Installed $($installedSkills.Count) nebu-skills to $sharedSkillsTarget"
+    "Installed Copilot instructions to $copilotInstructionsFile"
+    "Installed OpenCode router core to $opencodeCoreTarget"
+    "Installed OpenCode router plugin to $(Join-Path $opencodePluginsTarget 'nebu-skills-router.js')"
+    if (Test-Path -LiteralPath $ClaudeDir) {
+        "Installed Claude Code rules to $claudeRulesFile"
+        "Linked Claude skills at $claudeSkillsTarget -> $sharedSkillsTarget"
+    }
+    else {
+        "Skipped Claude linking because $ClaudeDir does not exist."
+    }
+    "Wrote install metadata to $installMetadataFile"
+    "Removed previous managed skill copies from editor-specific skill roots when present."
+    "Restart VS Code / OpenCode / Claude Code if the new files are not picked up immediately."
+}
+finally {
+    if ($generatedAssetsLockHeld) {
+        Release-GeneratedAssetsLock -RepoRoot $repoRoot
+    }
+}

@@ -6,6 +6,31 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [0.1.13] - 2026-06-09
+
+### Changed
+
+- replace the three per-platform install entrypoints with one unified installer per shell (`scripts/install.sh` and `scripts/install.ps1`)
+- centralize managed skills under `~/.agents/skills/` as the single source of truth for VS Code / Copilot and OpenCode skill discovery
+- bootstrap and update entrypoints now delegate to the unified installer instead of separate per-platform install scripts
+- non-default install roots now flow through `AGENTS_DIR`, `COPILOT_DIR`, `OPENCODE_DIR`, and `CLAUDE_DIR` environment variables instead of the old per-script positional installer arguments
+
+### Fixed
+
+- unified installer now removes older managed skill copies from `~/.copilot/skills/`, `~/.config/opencode/skills/`, and `~/.claude/skills/` so stale duplicated installs do not survive the new shared-root layout
+- when `~/.claude/` already exists, the installer now recreates `~/.claude/skills` as a link back to `~/.agents/skills/` while still maintaining Claude rules under `~/.claude/rules/`
+
+## [0.1.12] - 2026-06-09
+
+### Changed
+
+- centralize managed-skill cleanup and manifest helpers in the shared release helper scripts so Copilot, Claude Code, and OpenCode installers no longer duplicate the same stale-skill logic in each installer entrypoint
+
+### Fixed
+
+- Copilot and Claude Code installers now clean up older legacy installs from `~/.agents/skills/` during upgrades instead of leaving that legacy global path behind on machines that moved to editor-native install roots
+- document the verified editor-specific install roots and clarify that `~/.agents/` is a legacy cleanup location, not the single canonical global install target across all supported editors
+
 ## [0.1.11] - 2026-06-09
 
 ### Fixed
