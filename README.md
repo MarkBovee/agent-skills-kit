@@ -339,6 +339,8 @@ Bootstrap-managed installs update when you rerun the matching bootstrap command 
 Local clone updates:
 
 ```bash
+bash ./scripts/install.sh
+
 bash ./scripts/update-opencode.sh
 bash ./scripts/update-opencode.sh --skip-pull
 
@@ -350,6 +352,8 @@ bash ./scripts/update-claude-code.sh --skip-pull
 ```
 
 ```powershell
+pwsh -NoLogo -NoProfile -File .\scripts\install.ps1
+
 pwsh -NoLogo -NoProfile -File .\scripts\update-opencode.ps1
 pwsh -NoLogo -NoProfile -File .\scripts\update-opencode.ps1 -SkipPull
 
@@ -360,11 +364,11 @@ pwsh -NoLogo -NoProfile -File .\scripts\update-claude-code.ps1
 pwsh -NoLogo -NoProfile -File .\scripts\update-claude-code.ps1 -SkipPull
 ```
 
-Installers write local metadata files after each run:
+The unified installer writes one local metadata file after each run:
 
-- OpenCode: `~/.config/opencode/.nebu-skills-install.txt`
-- GitHub Copilot: `~/.copilot/.nebu-skills-install.txt`
-- Claude Code: `~/.claude/.nebu-skills-install.txt`
+- Shared managed root: `~/.agents/.nebu-skills-install.txt`
+
+The host-specific update scripts remain available as convenience aliases when you want to keep using the old OpenCode, Copilot, or Claude-specific entrypoints.
 
 </details>
 
@@ -405,17 +409,15 @@ core/community-skills-index.json
 plugins/nebu-skills-router.js
 
 scripts/bootstrap-opencode.*
-scripts/install-opencode.*
 scripts/update-opencode.*
 
 scripts/bootstrap-copilot.*
-scripts/install-copilot.*
 scripts/update-copilot.*
 
 scripts/bootstrap-claude-code.*
-scripts/install-claude-code.*
 scripts/update-claude-code.*
 
+scripts/install.*
 scripts/tag-release.*
 scripts/fetch-community-skills-index.js
 
@@ -437,7 +439,7 @@ scripts/check-release-readiness.js
 - `nebu-ui-ux` includes Python scripts and CSV data for design guidance and requires Python `3.8+`.
 - Installers overwrite only `nebu-skills` managed assets and preserve unrelated user customizations.
 - Installers also remove stale managed skills during reinstall or update, including skills retired from the pack.
-- Installers also write `.nebu-skills-install.txt` metadata in each managed target root.
+- The unified installer writes `.nebu-skills-install.txt` metadata in the shared `~/.agents/` root.
 - Generated platform artifacts are derived output. Edit `skills/*/SKILL.md`, then re-export.
 
 ---
