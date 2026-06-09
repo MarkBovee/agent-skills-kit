@@ -6,6 +6,13 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [0.1.11] - 2026-06-09
+
+### Fixed
+
+- close the lingering issue loop around `nebu-skill-finder` host-capability gating by shipping the execute-versus-proposal rubric already present on `main` and validating that unsupported hosts fall back cleanly to proposal mode
+- close the lingering PowerShell bootstrap helper-path issue by validating the managed-checkout bootstrap flow end-to-end and shipping the clearer incomplete-checkout handling already present in the bootstrap scripts
+
 ## [0.1.10] - 2026-06-09
 
 ### Changed
