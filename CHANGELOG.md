@@ -6,6 +6,13 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [0.1.10] - 2026-06-09
+
+### Changed
+
+- router scoring now emits a cost-aware execution profile so bounded chores such as version bumps, changelog edits, and release notes default to a cheap `mini`/small-agent path with subagent preference when the host supports it
+- `nebu-agent-workflows`, `nebu-implementation`, and `nebu-kaizen` now encode an explicit cheap-first escalation path so simple mechanical work stays off high-cost agents until scope or validation demands escalation
+
 ## [0.1.9] - 2026-06-05
 
 ### Changed

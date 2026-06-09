@@ -2,6 +2,8 @@
 name: nebu-kaizen
 description: Default baseline skill for normal software work where the next logical step is clear: small safe iterations, built-in validation, and no unnecessary pauses between clear next steps. Use this for autopilot mode, keep going, ga door, werk door, or werk de stappen af zonder onnodige stopmomenten.
 default: true
+execution_tier: standard
+delegation_default: auto
 triggers:
   - kaizen
   - autopilot
@@ -51,6 +53,7 @@ This also applies when the user phrases it in Dutch, such as `ga door`, `werk do
 7. When work reveals reusable workflow friction, capture the smallest durable improvement instead of treating it as one-off noise.
 8. Reuse the repo's existing durable planning or spec system when one exists; do not create a parallel doc tree by default.
 9. When editing code, follow the coding standards in `AGENTS.md` (`## Coding standards`). The intent-comment rule is a **hard rule**: every function, method, helper, closure handler, route handler, protocol dispatcher, and static utility gets a short comment above it. Add a brief docstring for non-obvious parameters, return values, side effects, or preconditions. Inline `why` comments stay focused on intent, not line-by-line narration.
+10. For bounded mechanical chores, prefer a cheap-first subagent or mini path before reaching for a high-cost execution mode.
 
 ## Use with
 

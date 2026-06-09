@@ -115,6 +115,43 @@ const COMPLETION_PHRASES = [
   "afronden",
   "afgerond",
 ]
+const LIGHT_TASK_PHRASES = [
+  "version bump",
+  "bump version",
+  "release notes",
+  "release note",
+  "changelog",
+  "change log",
+  "tag release",
+  "release prep",
+  "versie bump",
+  "release notes schrijven",
+  "changelog schrijven",
+  "bump de versie",
+]
+const HEAVY_TASK_PHRASES = [
+  "cross-repo",
+  "cross repo",
+  "cross-cutting",
+  "cross cutting",
+  "wide impact",
+  "large refactor",
+  "debug production",
+  "migration plan",
+  "multi-phase migration",
+  "security review",
+  "performance investigation",
+]
+const DEEP_TASK_PHRASES = [
+  "architecture",
+  "architectural",
+  "deep investigation",
+  "root cause analysis",
+  "xhigh",
+  "high effort analysis",
+]
+const VALID_EXECUTION_TIERS = new Set(["light", "standard", "heavy", "deep"])
+const VALID_DELEGATION_MODES = new Set(["auto", "prefer-subagent", "owner-only"])
 
 // Return the default per-session routing state when no session data exists yet.
 function createEmptySessionState() {
@@ -122,6 +159,7 @@ function createEmptySessionState() {
     matchedSkills: [],
     needsCodeReview: false,
     shouldCaptureImprovement: false,
+    executionProfile: null,
   }
 }
 
@@ -218,6 +256,20 @@ function parseBooleanField(value) {
   return value.trim().toLowerCase() === "true"
 }
 
+// Parse one execution tier field from frontmatter and fall back safely.
+function parseExecutionTier(value, fallback = "standard") {
+  if (typeof value !== "string") return fallback
+  const normalized = value.trim().toLowerCase()
+  return VALID_EXECUTION_TIERS.has(normalized) ? normalized : fallback
+}
+
+// Parse one delegation mode field from frontmatter and fall back safely.
+function parseDelegationMode(value, fallback = "auto") {
+  if (typeof value !== "string") return fallback
+  const normalized = value.trim().toLowerCase()
+  return VALID_DELEGATION_MODES.has(normalized) ? normalized : fallback
+}
+
 // Collapse multiline text into a bounded single-line preview for prompts and listings.
 function toSingleLine(text, maxLength = 120) {
   const singleLine = text.replace(/\s+/g, " ").trim()
@@ -233,6 +285,21 @@ function hasExecutionSignal(query) {
 // Detect ambiguity or direction-seeking wording that should bias routing toward kickoff.
 function hasAmbiguitySignal(query) {
   return hasPhraseSignal(query, AMBIGUITY_SIGNAL_PHRASES)
+}
+
+// Detect bounded mechanical chores that should prefer a cheap-first execution path.
+function hasLightTaskSignal(query) {
+  return hasPhraseSignal(query, LIGHT_TASK_PHRASES)
+}
+
+// Detect work that is broad enough to justify a stronger default execution tier.
+function hasHeavyTaskSignal(query) {
+  return hasPhraseSignal(query, HEAVY_TASK_PHRASES)
+}
+
+// Detect analysis-heavy work that should bias toward the most capable tier.
+function hasDeepTaskSignal(query) {
+  return hasPhraseSignal(query, DEEP_TASK_PHRASES)
 }
 
 // Check whether a file-system path exists without throwing on missing paths.
@@ -283,6 +350,8 @@ async function loadSkills(pathsToScan) {
     const description = (frontmatter.description || "").trim()
     const triggers = normalizeStringList(frontmatter.triggers)
     const isDefault = parseBooleanField(frontmatter.default)
+    const executionTier = parseExecutionTier(frontmatter.execution_tier)
+    const delegationDefault = parseDelegationMode(frontmatter.delegation_default)
 
     if (!name || !description) continue
 
@@ -291,6 +360,8 @@ async function loadSkills(pathsToScan) {
       description,
       triggers,
       isDefault,
+      executionTier,
+      delegationDefault,
       filePath,
       phrases: unique([...triggers.map((trigger) => trigger.toLowerCase()), ...extractQuotedPhrases(description)]),
       tokens: tokenize(`${name} ${description} ${triggers.join(" ")}`),
@@ -481,6 +552,49 @@ function applyBaselineRouting(query, matches, discoveredSkills, maxHints) {
   return [baseline, ...matches].slice(0, maxHints)
 }
 
+// Map the normalized task tier to the preferred host/model tier.
+function agentTierForExecutionTier(executionTier) {
+  switch (executionTier) {
+    case "light":
+      return "mini"
+    case "heavy":
+      return "high"
+    case "deep":
+      return "xhigh"
+    default:
+      return "default"
+  }
+}
+
+// Build one cheap-first execution profile from the query plus the current top skill matches.
+function buildExecutionProfile(query, matches) {
+  const topSkill = matches[0]
+  let executionTier = topSkill?.executionTier || "standard"
+
+  if (hasLightTaskSignal(query)) {
+    executionTier = "light"
+  } else if (hasDeepTaskSignal(query)) {
+    executionTier = "deep"
+  } else if (hasHeavyTaskSignal(query) || hasAmbiguitySignal(query)) {
+    executionTier = executionTier === "deep" ? "deep" : "heavy"
+  }
+
+  let delegationMode = topSkill?.delegationDefault || "auto"
+  if (executionTier === "light" && delegationMode === "auto") {
+    delegationMode = "prefer-subagent"
+  }
+  if (executionTier === "deep" && delegationMode === "auto") {
+    delegationMode = "owner-only"
+  }
+
+  return {
+    executionTier,
+    agentTier: agentTierForExecutionTier(executionTier),
+    delegationMode,
+    matchedSkill: topSkill?.name || "",
+  }
+}
+
 // Return the highest-scoring skills for the current query.
 function findMatches(query, skills, maxHints) {
   return skills
@@ -532,6 +646,7 @@ module.exports = {
   VERIFICATION_SKILL,
   WRAPUP_SKILL,
   applyBaselineRouting,
+  buildExecutionProfile,
   applyExecutionRouting,
   applyKickoffRouting,
   applyImprovementRouting,

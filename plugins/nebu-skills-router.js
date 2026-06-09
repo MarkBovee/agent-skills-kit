@@ -6,6 +6,7 @@ const {
   DEFAULT_MAX_LISTED_SKILLS,
   applyExecutionRouting,
   applyKickoffRouting,
+  buildExecutionProfile,
   IMPROVEMENT_SKILL,
   VERIFICATION_SKILL,
   WRAPUP_SKILL,
@@ -119,9 +120,11 @@ async function nebuSkillsRouterPlugin(_input, options = {}) {
         discoveredSkills,
         maxHints,
       )
+      const executionProfile = buildExecutionProfile(text, matchedSkills)
 
       setSessionState(sessionStateBySession, input.sessionID, {
         matchedSkills,
+        executionProfile,
       })
     },
     "tool.execute.before": async (input) => {
@@ -165,11 +168,14 @@ async function nebuSkillsRouterPlugin(_input, options = {}) {
     "experimental.chat.system.transform": async (input, output) => {
       const sessionState = getSessionState(sessionStateBySession, input.sessionID)
       const matchedSkills = sessionState.matchedSkills
+      const executionProfile = sessionState.executionProfile
       // Keep the injected guidance compact so it nudges routing without drowning the system prompt.
       const lines = [
         "Skill routing:",
         "- For concrete executable work, bias early toward `nebu-kaizen` and combine it with a more specific nebu skill when needed.",
         "- For ambiguous, cross-cutting, or behavior-changing starts, bias early toward `nebu-kickoff` so scope and success criteria get clarified before execution.",
+        "- Cost-aware default: bounded mechanical chores such as version bumps, changelog edits, release notes, and release-prep updates should start with a cheap small/mini subagent when the host supports it.",
+        "- Escalate from mini to default/high/xhigh only when scope expands, the task is analysis-heavy, or cheap-first validation fails.",
         "- Prefer the `skill` tool when a request clearly matches an installed nebu workflow skill.",
         "- When the session exposed a reusable workflow gap, consider `nebu-skill-improvement` before ending cold.",
         "- This router only suggests skills and should coexist cleanly with other plugins, including nebu-ctx.",
@@ -199,6 +205,12 @@ async function nebuSkillsRouterPlugin(_input, options = {}) {
           `- Best matches for this request: ${matchedSkills
             .map((skill) => `${skill.name} (${toSingleLine(skill.description, 80)})`)
             .join("; ")}`,
+        )
+      }
+
+      if (executionProfile) {
+        lines.push(
+          `- Suggested execution profile: task=${executionProfile.executionTier}, agent=${executionProfile.agentTier}, delegation=${executionProfile.delegationMode}${executionProfile.matchedSkill ? `, anchor=${executionProfile.matchedSkill}` : ""}.`,
         )
       }
 

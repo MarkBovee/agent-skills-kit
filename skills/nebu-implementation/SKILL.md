@@ -1,6 +1,8 @@
 ---
 name: nebu-implementation
 description: Use when implementing a multi-step change and the right mode is not yet obvious: pick between direct work, batching related edits, and subagent delegation. Add this on top of nebu-kaizen when the work needs an explicit mode decision.
+execution_tier: standard
+delegation_default: auto
 triggers:
   - implement
   - implementeer dit
@@ -12,6 +14,10 @@ triggers:
   - delegate work
   - subagent
   - maak dit werkend
+  - version bump
+  - bump version
+  - release notes
+  - changelog
 ---
 
 # Nebu Implementation
@@ -25,6 +31,13 @@ Once the path is clear, keep moving through implementation loops without waiting
 - **Direct:** known files, tight coupling, fast iteration, nuanced judgment
 - **Delegate:** independent research, parallelizable subtasks, noisy command runs, or specialized review
 - **Batch:** related reads, searches, and edits that can be done safely together
+
+## Cheap-first escalation path
+
+1. Start bounded mechanical chores on the smallest viable agent or subagent.
+2. Validate the result before widening context.
+3. Escalate to the default agent only if scope grows beyond the original bounded task.
+4. Escalate to high or xhigh only for cross-cutting, analysis-heavy, or repeatedly failing work.
 
 ## Default loop
 
@@ -52,6 +65,7 @@ Once the path is clear, keep moving through implementation loops without waiting
 ## Avoid
 
 - Mandatory subagent-per-task workflows
+- defaulting simple release chores to an expensive agent before trying the cheap path
 - Re-reading the same files without learning anything new
 - Delegating tightly coupled changes that need shared judgment
 - Stopping after each edit when the next move is already obvious
