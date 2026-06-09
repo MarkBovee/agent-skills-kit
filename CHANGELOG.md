@@ -6,6 +6,13 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [0.1.14] - 2026-06-09
+
+### Changed
+
+- remove the per-host bootstrap and update alias scripts in favor of one generic `scripts/bootstrap.*` and one generic `scripts/update.*` entrypoint per shell
+- simplify the README and agent docs to document one bootstrap flow, one install flow, and one update flow instead of six host-named wrappers
+
 ## [0.1.13] - 2026-06-09
 
 ### Changed

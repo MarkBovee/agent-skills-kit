@@ -52,19 +52,17 @@
 
 Project changes are tracked in [CHANGELOG.md](./CHANGELOG.md).
 
-Stable installs resolve the latest `vX.Y.Z` tag before copying managed assets. The bootstrap entrypoints are still fetched from `main`, but the managed checkout now prefers the newest stable tag and only falls back to the current checkout when no stable tag exists yet.
+Stable installs resolve the latest `vX.Y.Z` tag before copying managed assets. The bootstrap entrypoints are fetched from `main`, but the managed checkout prefers the newest stable tag and only falls back to the current checkout when no stable tag exists yet.
 
 ---
 
 ## Install
 
-Bootstrap scripts are the recommended path. They clone if needed, move the managed checkout to the latest stable tag, install managed assets, and stay safe to rerun.
+The bootstrap script is the recommended path. It clones if needed, moves the managed checkout to the latest stable tag, installs managed assets, and stays safe to rerun.
 
 ### Unified Installer
 
 The managed installer now does one thing: install all shared skills into `~/.agents/skills`, install Copilot instructions, install the OpenCode router/plugin, and, when `~/.claude/` already exists, write Claude rules and link `~/.claude/skills` back to `~/.agents/skills`.
-
-The three bootstrap entrypoints are now convenience aliases to the same unified install flow. They remain separate so existing copy-paste entrypoints stay easy to discover per host, but they all execute the same managed install.
 
 If you want non-default locations, set environment variables before running the installer:
 
@@ -73,40 +71,18 @@ If you want non-default locations, set environment variables before running the 
 - `OPENCODE_DIR`
 - `CLAUDE_DIR`
 
-### OpenCode Bootstrap
+### Bootstrap
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-opencode.sh | bash
+curl -fsSL https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap.sh | bash
 ```
 
 ```powershell
-irm https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-opencode.ps1 | iex
-```
-
-### GitHub Copilot Bootstrap
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-copilot.sh | bash
-```
-
-```powershell
-irm https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-copilot.ps1 | iex
-```
-
-### Claude Code Bootstrap
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-claude-code.sh | bash
-```
-
-```powershell
-irm https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap-claude-code.ps1 | iex
+irm https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap.ps1 | iex
 ```
 
 <details>
 <summary><strong>Detailed install paths and local-clone commands</strong></summary>
-
-### OpenCode Details
 
 Local clone install:
 
@@ -119,6 +95,8 @@ bash ./scripts/install.sh
 ```powershell
 pwsh -NoLogo -NoProfile -File .\scripts\install.ps1
 ```
+
+### OpenCode Details
 
 Manual install copies:
 
@@ -146,16 +124,6 @@ Installed paths:
 
 VS Code / Copilot now consumes the shared skill root from `~/.agents/skills/`. The Copilot-specific part that remains native is `~/.copilot/instructions/`.
 
-Local clone install:
-
-```bash
-bash ./scripts/install.sh
-```
-
-```powershell
-pwsh -NoLogo -NoProfile -File .\scripts\install.ps1
-```
-
 ### Claude Code Details
 
 Installed paths:
@@ -176,16 +144,6 @@ Skills are now centralized in `~/.agents/skills/`. The remaining editor-specific
 - OpenCode still uses its own config/plugin surfaces under `~/.config/opencode/`
 
 The unified installer removes old managed skill copies from editor-specific skill directories so `~/.agents/skills/` becomes the single managed source of truth.
-
-Local clone install:
-
-```bash
-bash ./scripts/install.sh
-```
-
-```powershell
-pwsh -NoLogo -NoProfile -File .\scripts\install.ps1
-```
 
 </details>
 
@@ -332,43 +290,29 @@ skills/nebu-github-issues/check-existing-issue.sh "<query>" [owner/repo]
 <details>
 <summary><strong>Update commands</strong></summary>
 
-Bootstrap-managed installs update when you rerun the matching bootstrap command unless `SKIP_PULL=1` or `-SkipPull` is used.
+Bootstrap-managed installs update when you rerun `bootstrap.sh` or `bootstrap.ps1` unless `SKIP_PULL=1` or `-SkipPull` is used.
 
 `SKIP_PULL=1` and `-SkipPull` now skip the remote tag refresh step and reuse the current local checkout state.
 
-Local clone updates:
+Local clone install or update:
 
 ```bash
 bash ./scripts/install.sh
 
-bash ./scripts/update-opencode.sh
-bash ./scripts/update-opencode.sh --skip-pull
-
-bash ./scripts/update-copilot.sh
-bash ./scripts/update-copilot.sh --skip-pull
-
-bash ./scripts/update-claude-code.sh
-bash ./scripts/update-claude-code.sh --skip-pull
+bash ./scripts/update.sh
+bash ./scripts/update.sh --skip-pull
 ```
 
 ```powershell
 pwsh -NoLogo -NoProfile -File .\scripts\install.ps1
 
-pwsh -NoLogo -NoProfile -File .\scripts\update-opencode.ps1
-pwsh -NoLogo -NoProfile -File .\scripts\update-opencode.ps1 -SkipPull
-
-pwsh -NoLogo -NoProfile -File .\scripts\update-copilot.ps1
-pwsh -NoLogo -NoProfile -File .\scripts\update-copilot.ps1 -SkipPull
-
-pwsh -NoLogo -NoProfile -File .\scripts\update-claude-code.ps1
-pwsh -NoLogo -NoProfile -File .\scripts\update-claude-code.ps1 -SkipPull
+pwsh -NoLogo -NoProfile -File .\scripts\update.ps1
+pwsh -NoLogo -NoProfile -File .\scripts\update.ps1 -SkipPull
 ```
 
 The unified installer writes one local metadata file after each run:
 
 - Shared managed root: `~/.agents/.nebu-skills-install.txt`
-
-The host-specific update scripts remain available as convenience aliases when you want to keep using the old OpenCode, Copilot, or Claude-specific entrypoints.
 
 </details>
 
@@ -409,15 +353,9 @@ core/community-skills-index.json
 plugins/nebu-skills-router.js
 
 scripts/bootstrap-opencode.*
-scripts/update-opencode.*
-
-scripts/bootstrap-copilot.*
-scripts/update-copilot.*
-
-scripts/bootstrap-claude-code.*
-scripts/update-claude-code.*
-
+scripts/bootstrap.*
 scripts/install.*
+scripts/update.*
 scripts/tag-release.*
 scripts/fetch-community-skills-index.js
 

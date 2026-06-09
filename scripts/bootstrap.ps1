@@ -84,12 +84,13 @@ if ($repoParent) {
 $gitDir = Join-Path $RepoDir ".git"
 $installSourceRoot = $RepoDir
 $releaseWorktree = $null
+
 # Clone the managed checkout on first run, or reuse the managed clone on update.
 if (-not (Test-Path -LiteralPath $gitDir)) {
     if (Test-Path -LiteralPath $RepoDir) {
         throw "Repo directory exists but is not a git checkout: $RepoDir"
     }
- 
+
     & $git.Source clone $repoUrl $RepoDir
     if ($LASTEXITCODE -ne 0) {
         throw "git clone failed for managed checkout $RepoDir (exit code $LASTEXITCODE). Resolve the git error above and rerun bootstrap."
@@ -98,7 +99,7 @@ if (-not (Test-Path -LiteralPath $gitDir)) {
 elseif (-not $SkipPull) {
     Invoke-BootstrapManagedCheckoutPull -RepoRoot $RepoDir
 }
- 
+
 if (-not (Test-Path -LiteralPath $helpersPath)) {
     throw "Managed checkout is incomplete: expected bootstrap helpers at $helpersPath. Delete $RepoDir and rerun bootstrap."
 }

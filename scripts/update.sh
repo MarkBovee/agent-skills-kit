@@ -5,6 +5,7 @@ SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO_ROOT="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
 . "$SCRIPT_DIR/release-helpers.sh"
 
+# Support an optional fast path that skips the repository pull step.
 if [ "${1:-}" = "--skip-pull" ]; then
   shift
   SKIP_PULL=1
@@ -53,4 +54,5 @@ if command -v node >/dev/null 2>&1 && [ -f "$INSTALL_SOURCE_ROOT/scripts/fetch-c
   node "$INSTALL_SOURCE_ROOT/scripts/fetch-community-skills-index.js" || echo "Warning: community-skills index refresh failed; continuing with cached data." >&2
 fi
 
+# Delegate the actual install step through bash so execution does not depend on file mode bits.
 bash "$INSTALL_SOURCE_ROOT/scripts/install.sh"
