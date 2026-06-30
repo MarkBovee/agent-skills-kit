@@ -1,7 +1,7 @@
 {
   "source": "github/awesome-copilot",
-  "commit": "8b1792d493d9f8f0a88d594eb23bb9196639ec3d",
-  "fetched_at": "2026-06-09T18:00:15.549Z",
+  "commit": "28c3a14af4e6232091071ddb40272f72d9d96b2f",
+  "fetched_at": "2026-06-30T07:45:04.292Z",
   "items": [
     {
       "name": "dependency-license-checker",
@@ -15,6 +15,20 @@
         "license",
         "checker",
         "dependency-license-checker"
+      ]
+    },
+    {
+      "name": "fix-broken-links",
+      "type": "hook",
+      "path": "hooks/fix-broken-links/hooks.json",
+      "sha": "ac4c4714c235c7c254d85f273ebe48dbeb2570f7",
+      "description": "",
+      "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/hooks/fix-broken-links/hooks.json",
+      "match_keywords": [
+        "fix",
+        "broken",
+        "links",
+        "fix-broken-links"
       ]
     },
     {
@@ -111,7 +125,7 @@
       "name": "agent-skills",
       "type": "instruction",
       "path": "instructions/agent-skills.instructions.md",
-      "sha": "440d5831ff0f1f5c028c2d921c812a2d002fac16",
+      "sha": "9c0bc7cf46d23b6e48436b5f1e9de3d37f57f311",
       "description": "",
       "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/instructions/agent-skills.instructions.md",
       "match_keywords": [
@@ -201,7 +215,7 @@
       "name": "astro",
       "type": "instruction",
       "path": "instructions/astro.instructions.md",
-      "sha": "af0dc3566d9b2f65271d1c4d861b487998c49c3b",
+      "sha": "a767bf3534ac9348517953dddf9b8511f436aac8",
       "description": "",
       "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/instructions/astro.instructions.md",
       "match_keywords": [
@@ -268,7 +282,7 @@
       "name": "azure-functions-typescript",
       "type": "instruction",
       "path": "instructions/azure-functions-typescript.instructions.md",
-      "sha": "2e5c3424c4c8cc6969cd75f40d7895d8efccb189",
+      "sha": "f1c210fc99d1eab4ec68d6f730248a621a79a850",
       "description": "",
       "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/instructions/azure-functions-typescript.instructions.md",
       "match_keywords": [
@@ -371,7 +385,7 @@
       "name": "blazor",
       "type": "instruction",
       "path": "instructions/blazor.instructions.md",
-      "sha": "5113943c14898298951cad3e407b1db1f1c6b0b5",
+      "sha": "b90f1f09646a7eb66ac1a4bef59bd5e883430287",
       "description": "",
       "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/instructions/blazor.instructions.md",
       "match_keywords": [
@@ -624,7 +638,7 @@
       "name": "copilot-thought-logging",
       "type": "instruction",
       "path": "instructions/copilot-thought-logging.instructions.md",
-      "sha": "8377784c68ffa7f9668dc54a63aa3095cd9044ae",
+      "sha": "5a954d5c7537f476ff25bd93fb8c982f490ba98b",
       "description": "",
       "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/instructions/copilot-thought-logging.instructions.md",
       "match_keywords": [
@@ -638,7 +652,7 @@
       "name": "cpp-language-service-tools",
       "type": "instruction",
       "path": "instructions/cpp-language-service-tools.instructions.md",
-      "sha": "51a3dc6ee40d4f1fa3b6671d1e9dbd8b123039d6",
+      "sha": "e734769e58e754e2bca358860c08d6fe3d9cd07e",
       "description": "",
       "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/instructions/cpp-language-service-tools.instructions.md",
       "match_keywords": [
@@ -1114,7 +1128,7 @@
       "name": "genaiscript",
       "type": "instruction",
       "path": "instructions/genaiscript.instructions.md",
-      "sha": "fa753c28bd610c65ac244744dff6c86d3e6e28d7",
+      "sha": "d3fe9d6531512a912be8a563207a6e126629b2df",
       "description": "",
       "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/instructions/genaiscript.instructions.md",
       "match_keywords": [
@@ -1277,6 +1291,20 @@
       ]
     },
     {
+      "name": "java-junit5-assertions",
+      "type": "instruction",
+      "path": "instructions/java-junit5-assertions.instructions.md",
+      "sha": "65eaf363ea71185d9410fddcf519ed06e8d662ee",
+      "description": "",
+      "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/instructions/java-junit5-assertions.instructions.md",
+      "match_keywords": [
+        "java",
+        "junit5",
+        "assertions",
+        "java-junit5-assertions"
+      ]
+    },
+    {
       "name": "java-mcp-server",
       "type": "instruction",
       "path": "instructions/java-mcp-server.instructions.md",
@@ -1377,7 +1405,7 @@
       "name": "localization",
       "type": "instruction",
       "path": "instructions/localization.instructions.md",
-      "sha": "e7d3d35e45976c83ef4cce4babe9f18e45ed0bd8",
+      "sha": "47982be3684eddecf59cbf23f7d8809cc287cccc",
       "description": "",
       "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/instructions/localization.instructions.md",
       "match_keywords": [
@@ -1475,7 +1503,7 @@
       "name": "memory-bank",
       "type": "instruction",
       "path": "instructions/memory-bank.instructions.md",
-      "sha": "85e7b74163576b9276fef5e2023f28adc5dd11d7",
+      "sha": "53b8616e0eb4fdc70cb11c93383188d011a0be12",
       "description": "",
       "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/instructions/memory-bank.instructions.md",
       "match_keywords": [
@@ -2262,6 +2290,19 @@
       ]
     },
     {
+      "name": "scala-spark",
+      "type": "instruction",
+      "path": "instructions/scala-spark.instructions.md",
+      "sha": "3245174cb66a12546d9d2b9c1a6752721478f2b1",
+      "description": "",
+      "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/instructions/scala-spark.instructions.md",
+      "match_keywords": [
+        "scala",
+        "spark",
+        "scala-spark"
+      ]
+    },
+    {
       "name": "scala2",
       "type": "instruction",
       "path": "instructions/scala2.instructions.md",
@@ -2330,7 +2371,7 @@
       "name": "springboot-4-migration",
       "type": "instruction",
       "path": "instructions/springboot-4-migration.instructions.md",
-      "sha": "402bb83760cfb7c08f357e340b6e1be63e5347e6",
+      "sha": "729e48383092293bcb9234e8c86952a131977118",
       "description": "",
       "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/instructions/springboot-4-migration.instructions.md",
       "match_keywords": [
@@ -2368,7 +2409,7 @@
       "name": "svelte",
       "type": "instruction",
       "path": "instructions/svelte.instructions.md",
-      "sha": "7f2dfed5b390794f9610ca002b01064c6a571cd8",
+      "sha": "ec61ba948c314692d5e05abf3c6f23d0a3c50843",
       "description": "",
       "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/instructions/svelte.instructions.md",
       "match_keywords": [
@@ -2574,6 +2615,17 @@
       "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/instructions/vsixtoolkit.instructions.md",
       "match_keywords": [
         "vsixtoolkit"
+      ]
+    },
+    {
+      "name": "vue",
+      "type": "instruction",
+      "path": "instructions/vue.instructions.md",
+      "sha": "922bb421c1d228478e26544658e5933c0cc85b06",
+      "description": "",
+      "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/instructions/vue.instructions.md",
+      "match_keywords": [
+        "vue"
       ]
     },
     {
@@ -3046,6 +3098,78 @@
       ]
     },
     {
+      "name": "aws-cloudwatch-investigation",
+      "type": "skill",
+      "path": "skills/aws-cloudwatch-investigation/SKILL.md",
+      "sha": "ad433312bcf093a3e4b529131db9308d8a047a1d",
+      "description": "",
+      "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/skills/aws-cloudwatch-investigation/SKILL.md",
+      "match_keywords": [
+        "aws",
+        "cloudwatch",
+        "investigation",
+        "aws-cloudwatch-investigation"
+      ]
+    },
+    {
+      "name": "aws-cost-optimize",
+      "type": "skill",
+      "path": "skills/aws-cost-optimize/SKILL.md",
+      "sha": "a2fa67c7b86cd7ce8cb9aca137d14647c8e3194d",
+      "description": "",
+      "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/skills/aws-cost-optimize/SKILL.md",
+      "match_keywords": [
+        "aws",
+        "cost",
+        "optimize",
+        "aws-cost-optimize"
+      ]
+    },
+    {
+      "name": "aws-resource-health-diagnose",
+      "type": "skill",
+      "path": "skills/aws-resource-health-diagnose/SKILL.md",
+      "sha": "2c44a40bf4634e234fcdab1cdf4d47afb88962ac",
+      "description": "",
+      "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/skills/aws-resource-health-diagnose/SKILL.md",
+      "match_keywords": [
+        "aws",
+        "resource",
+        "health",
+        "diagnose",
+        "aws-resource-health-diagnose"
+      ]
+    },
+    {
+      "name": "aws-resource-query",
+      "type": "skill",
+      "path": "skills/aws-resource-query/SKILL.md",
+      "sha": "b2f14e2c7cbcc94df21b97516b5b3d234b303707",
+      "description": "",
+      "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/skills/aws-resource-query/SKILL.md",
+      "match_keywords": [
+        "aws",
+        "resource",
+        "query",
+        "aws-resource-query"
+      ]
+    },
+    {
+      "name": "aws-well-architected-review",
+      "type": "skill",
+      "path": "skills/aws-well-architected-review/SKILL.md",
+      "sha": "12f7976b39ba9cb048ef95879c2982837147ea75",
+      "description": "",
+      "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/skills/aws-well-architected-review/SKILL.md",
+      "match_keywords": [
+        "aws",
+        "well",
+        "architected",
+        "review",
+        "aws-well-architected-review"
+      ]
+    },
+    {
       "name": "az-cost-optimize",
       "type": "skill",
       "path": "skills/az-cost-optimize/SKILL.md",
@@ -3091,7 +3215,7 @@
       "name": "azure-devops-cli",
       "type": "skill",
       "path": "skills/azure-devops-cli/SKILL.md",
-      "sha": "c8e420fb548157a5ca870f51bb853f6dfce88f1d",
+      "sha": "c34f2c40fb696055972b71b1c15bf3b50b346a26",
       "description": "",
       "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/skills/azure-devops-cli/SKILL.md",
       "match_keywords": [
@@ -3722,7 +3846,7 @@
       "name": "create-implementation-plan",
       "type": "skill",
       "path": "skills/create-implementation-plan/SKILL.md",
-      "sha": "08a91438b669caa625a8f4340afdea1b73f1f158",
+      "sha": "4540a479c34d298d5f7e78f24d0806652411fcf8",
       "description": "",
       "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/skills/create-implementation-plan/SKILL.md",
       "match_keywords": [
@@ -4092,7 +4216,7 @@
       "name": "dependabot",
       "type": "skill",
       "path": "skills/dependabot/SKILL.md",
-      "sha": "1c3a59391e38cb0b369fdb29e61a75dc76830f4d",
+      "sha": "710ccb6c4f3e07d073a61714757d3b5bf9e187de",
       "description": "",
       "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/skills/dependabot/SKILL.md",
       "match_keywords": [
@@ -4280,6 +4404,19 @@
         "db",
         "diagram",
         "efcore-d2-db-diagram"
+      ]
+    },
+    {
+      "name": "em-dash",
+      "type": "skill",
+      "path": "skills/em-dash/SKILL.md",
+      "sha": "c8622a69341c0d32796e25e89ae50794b86e240b",
+      "description": "",
+      "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/skills/em-dash/SKILL.md",
+      "match_keywords": [
+        "em",
+        "dash",
+        "em-dash"
       ]
     },
     {
@@ -4743,6 +4880,36 @@
       ]
     },
     {
+      "name": "github-actions-hardening",
+      "type": "skill",
+      "path": "skills/github-actions-hardening/SKILL.md",
+      "sha": "61fa956e0ca6a0958ff6713b7b94ed22ecdc2e7e",
+      "description": "",
+      "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/skills/github-actions-hardening/SKILL.md",
+      "match_keywords": [
+        "github",
+        "actions",
+        "hardening",
+        "github-actions-hardening"
+      ]
+    },
+    {
+      "name": "github-actions-runtime-upgrade-conventions",
+      "type": "skill",
+      "path": "skills/github-actions-runtime-upgrade-conventions/SKILL.md",
+      "sha": "00bb2241d70662c33494214bfe2c13d41952e71c",
+      "description": "",
+      "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/skills/github-actions-runtime-upgrade-conventions/SKILL.md",
+      "match_keywords": [
+        "github",
+        "actions",
+        "runtime",
+        "upgrade",
+        "conventions",
+        "github-actions-runtime-upgrade-conventions"
+      ]
+    },
+    {
       "name": "github-codespaces-efficiency",
       "type": "skill",
       "path": "skills/github-codespaces-efficiency/SKILL.md",
@@ -4983,6 +5150,19 @@
       ]
     },
     {
+      "name": "harness-engineering",
+      "type": "skill",
+      "path": "skills/harness-engineering/SKILL.md",
+      "sha": "7dcaad853e624c8d418dd975118e757e2a30dfdc",
+      "description": "",
+      "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/skills/harness-engineering/SKILL.md",
+      "match_keywords": [
+        "harness",
+        "engineering",
+        "harness-engineering"
+      ]
+    },
+    {
       "name": "image-annotations",
       "type": "skill",
       "path": "skills/image-annotations/SKILL.md",
@@ -5034,6 +5214,19 @@
         "infrastructure",
         "code",
         "import-infrastructure-as-code"
+      ]
+    },
+    {
+      "name": "incident-postmortem",
+      "type": "skill",
+      "path": "skills/incident-postmortem/SKILL.md",
+      "sha": "1d3faf2176d90b6dda0a89640e227b2757959bc9",
+      "description": "",
+      "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/skills/incident-postmortem/SKILL.md",
+      "match_keywords": [
+        "incident",
+        "postmortem",
+        "incident-postmortem"
       ]
     },
     {
@@ -5852,6 +6045,19 @@
       ]
     },
     {
+      "name": "pinecone-rag",
+      "type": "skill",
+      "path": "skills/pinecone-rag/SKILL.md",
+      "sha": "de438a0cc0046266e3a810d1b066f0fcd9408c9f",
+      "description": "",
+      "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/skills/pinecone-rag/SKILL.md",
+      "match_keywords": [
+        "pinecone",
+        "rag",
+        "pinecone-rag"
+      ]
+    },
+    {
       "name": "planning-oracle-to-postgres-migration-integration-testing",
       "type": "skill",
       "path": "skills/planning-oracle-to-postgres-migration-integration-testing/SKILL.md",
@@ -6376,6 +6582,21 @@
       ]
     },
     {
+      "name": "react-container-presentation-component",
+      "type": "skill",
+      "path": "skills/react-container-presentation-component/SKILL.md",
+      "sha": "12e040c78eb224e39b07af8bb2ac3b8ad285a41a",
+      "description": "",
+      "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/skills/react-container-presentation-component/SKILL.md",
+      "match_keywords": [
+        "react",
+        "container",
+        "presentation",
+        "component",
+        "react-container-presentation-component"
+      ]
+    },
+    {
       "name": "react18-batching-patterns",
       "type": "skill",
       "path": "skills/react18-batching-patterns/SKILL.md",
@@ -6854,6 +7075,20 @@
       ]
     },
     {
+      "name": "setup-my-iq",
+      "type": "skill",
+      "path": "skills/setup-my-iq/SKILL.md",
+      "sha": "df6427627ff1a4a349640c36e3f3e50c6831747c",
+      "description": "",
+      "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/skills/setup-my-iq/SKILL.md",
+      "match_keywords": [
+        "setup",
+        "my",
+        "iq",
+        "setup-my-iq"
+      ]
+    },
+    {
       "name": "shuffle-json-data",
       "type": "skill",
       "path": "skills/shuffle-json-data/SKILL.md",
@@ -7082,6 +7317,20 @@
       ]
     },
     {
+      "name": "technical-job-search",
+      "type": "skill",
+      "path": "skills/technical-job-search/SKILL.md",
+      "sha": "2860691dfe9e9810be3da012f7d5c47c1e5c8ab5",
+      "description": "",
+      "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/skills/technical-job-search/SKILL.md",
+      "match_keywords": [
+        "technical",
+        "job",
+        "search",
+        "technical-job-search"
+      ]
+    },
+    {
       "name": "technology-stack-blueprint-generator",
       "type": "skill",
       "path": "skills/technology-stack-blueprint-generator/SKILL.md",
@@ -7124,6 +7373,19 @@
         "model",
         "analyst",
         "threat-model-analyst"
+      ]
+    },
+    {
+      "name": "tiny-stepping",
+      "type": "skill",
+      "path": "skills/tiny-stepping/SKILL.md",
+      "sha": "6e4128c4bcd4579152a74ffc8125b33073dae36b",
+      "description": "",
+      "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/skills/tiny-stepping/SKILL.md",
+      "match_keywords": [
+        "tiny",
+        "stepping",
+        "tiny-stepping"
       ]
     },
     {
@@ -7452,7 +7714,7 @@
       "name": "x-twitter-scraper",
       "type": "skill",
       "path": "skills/x-twitter-scraper/SKILL.md",
-      "sha": "bdea2f4f72c31b8fedff89f4d6f1ff53df3c6f7a",
+      "sha": "d64082d8ad548215bc45a923c3ec96fdf5792f9d",
       "description": "",
       "raw_url": "https://raw.githubusercontent.com/github/awesome-copilot/main/skills/x-twitter-scraper/SKILL.md",
       "match_keywords": [
