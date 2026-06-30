@@ -1,6 +1,6 @@
 ---
 name: nebu-implementation
-description: Use when implementing a multi-step change and the right mode is not yet obvious: pick between direct work, batching related edits, and subagent delegation. Add this on top of nebu-kaizen when the work needs an explicit mode decision.
+description: "Use when implementing a multi-step change and the right mode is not yet obvious: pick between direct work, batching related edits, and subagent delegation. Add this on top of nebu-kaizen when the work needs an explicit mode decision."
 execution_tier: standard
 delegation_default: auto
 triggers:
@@ -14,10 +14,6 @@ triggers:
   - delegate work
   - subagent
   - maak dit werkend
-  - version bump
-  - bump version
-  - release notes
-  - changelog
 ---
 
 # Nebu Implementation

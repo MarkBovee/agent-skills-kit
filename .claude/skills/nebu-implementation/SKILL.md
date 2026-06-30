@@ -1,7 +1,7 @@
 ---
 name: "nebu-implementation"
 description: "Use when implementing a multi-step change and the right mode is not yet obvious: pick between direct work, batching related edits, and subagent delegation. Add this on top of nebu-kaizen when the work needs an explicit mode decision."
-when_to_use: "Common triggers: implement, implementeer dit, keep coding, continue implementation, work through steps, code change, batch edits, delegate work, subagent, maak dit werkend, version bump, bump version, release notes, changelog."
+when_to_use: "Common triggers: implement, implementeer dit, keep coding, continue implementation, work through steps, code change, batch edits, delegate work, subagent, maak dit werkend."
 ---
 # Nebu Implementation
 

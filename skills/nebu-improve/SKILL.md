@@ -4,7 +4,6 @@ description: Use when the codebase needs a structured audit, audit-driven plans,
 triggers:
   - improve
   - audit
-  - code review
   - tech debt
   - tech debt audit
   - audit codebase

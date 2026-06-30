@@ -1,6 +1,6 @@
 ---
 name: "nebu-improve"
-description: "Use when the codebase needs a structured audit, audit-driven plans, or execution of those plans — correctness, security, performance, tech debt, migrations, DX, direction, or a focused slice of those. Run once at the start of a session to produce an audit + plans, or invoke a specific mode (execute, reconcile, next, branch) for targeted follow-through. Common triggers: improve, audit, code review, tech debt, tech debt audit, audit codebase, improve codebase, direction, next steps, what should we do next, plan this, audit and plan."
+description: "Use when the codebase needs a structured audit, audit-driven plans, or execution of those plans — correctness, security, performance, tech debt, migrations, DX, direction, or a focused slice of those. Run once at the start of a session to produce an audit + plans, or invoke a specific mode (execute, reconcile, next, branch) for targeted follow-through. Common triggers: improve, audit, tech debt, tech debt audit, audit codebase, improve codebase, direction, next steps, what should we do next, plan this, audit and plan."
 ---
 # Nebu Improve
 

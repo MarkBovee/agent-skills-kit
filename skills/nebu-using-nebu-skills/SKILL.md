@@ -1,6 +1,6 @@
 ---
 name: nebu-using-nebu-skills
-description: Discovery fallback for hosts without the router plugin: pick the right Nebu workflow skill for the current task. When the OpenCode router plugin is active, prefer its hints instead of loading this skill.
+description: "Discovery fallback for hosts without the router plugin: pick the right Nebu workflow skill for the current task. When the OpenCode router plugin is active, prefer its hints instead of loading this skill."
 triggers:
   - choose a skill
   - which skill

@@ -1,6 +1,6 @@
 ---
 name: nebu-kaizen
-description: Default baseline skill for normal software work where the next logical step is clear: small safe iterations, built-in validation, and no unnecessary pauses between clear next steps. Use this for autopilot mode, keep going, ga door, werk door, or werk de stappen af zonder onnodige stopmomenten.
+description: "Default baseline skill for normal software work where the next logical step is clear: small safe iterations, built-in validation, and no unnecessary pauses between clear next steps. Use this for autopilot mode, keep going, ga door, werk door, or werk de stappen af zonder onnodige stopmomenten."
 default: true
 execution_tier: standard
 delegation_default: auto

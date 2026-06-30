@@ -6,6 +6,20 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [0.1.15] - 2026-06-30
+
+### Added
+
+- `nebu-improve` skill for structured codebase audits and audit-driven implementation plans
+
+### Changed
+
+- Router trigger hygiene: removed duplicate triggers (`version bump`, `bump version`, `release notes`, `changelog`) from `nebu-implementation` (owned by `nebu-agent-workflows`); removed `code review` from `nebu-improve` (owned by `nebu-code-review`)
+
+### Fixed
+
+- `check-trigger-overlap.js` now passes cleanly with no duplicate triggers
+
 ## [0.1.14] - 2026-06-09
 
 ### Changed
