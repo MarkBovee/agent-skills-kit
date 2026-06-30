@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [0.1.16] - 2026-06-30
+
+### Fixed
+
+- repaired the managed skill reinstall path so exported skill frontmatter stays parseable in editor-native skill roots
+
 ## [0.1.15] - 2026-06-30
 
 ### Added
