@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [0.1.17] - 2026-07-01
+
+### Changed
+
+- Copilot and Claude exports now push the best matching Nebu skill at task start by default, so manual skill triggers are less necessary when the fit is clear.
+
 ## [0.1.16] - 2026-06-30
 
 ### Fixed

@@ -8,6 +8,8 @@ triggers:
   - debug
   - debuggen
   - error
+  - start debugging
+  - start investigating
   - fout opsporen
 ---
 

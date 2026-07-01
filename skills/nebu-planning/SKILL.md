@@ -8,6 +8,8 @@ triggers:
   - multi-phase work
   - migration
   - sequencing risk
+  - start planning
+  - start with a plan
   - werk voorplannen
 ---
 

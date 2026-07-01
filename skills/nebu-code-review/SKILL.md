@@ -8,6 +8,7 @@ triggers:
   - pull request
   - code review
   - fresh eyes
+  - start reviewing
   - review deze wijziging
   - after code changes
   - after coding

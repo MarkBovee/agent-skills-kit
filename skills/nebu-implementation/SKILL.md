@@ -10,6 +10,8 @@ triggers:
   - continue implementation
   - work through steps
   - code change
+  - start implementing
+  - start implementation
   - batch edits
   - delegate work
   - subagent

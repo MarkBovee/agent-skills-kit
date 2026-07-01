@@ -172,11 +172,12 @@ async function nebuSkillsRouterPlugin(_input, options = {}) {
       // Keep the injected guidance compact so it nudges routing without drowning the system prompt.
       const lines = [
         "Skill routing:",
+        "- At the start of a task, select the best matching skill immediately instead of waiting for a manual trigger when the fit is clear.",
         "- For concrete executable work, bias early toward `nebu-kaizen` and combine it with a more specific nebu skill when needed.",
         "- For ambiguous, cross-cutting, or behavior-changing starts, bias early toward `nebu-kickoff` so scope and success criteria get clarified before execution.",
         "- Cost-aware default: bounded mechanical chores such as version bumps, changelog edits, release notes, and release-prep updates should start with a cheap small/mini subagent when the host supports it.",
         "- Escalate from mini to default/high/xhigh only when scope expands, the task is analysis-heavy, or cheap-first validation fails.",
-        "- Prefer the `skill` tool when a request clearly matches an installed nebu workflow skill.",
+        "- Prefer the `skill` tool at task start when a request clearly matches an installed nebu workflow skill.",
         "- When the session exposed a reusable workflow gap, consider `nebu-skill-improvement` before ending cold.",
         "- This router only suggests skills and should coexist cleanly with other plugins, including nebu-ctx.",
       ]

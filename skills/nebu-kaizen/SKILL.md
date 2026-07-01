@@ -15,6 +15,9 @@ triggers:
   - werk door
   - volgende logische stap
   - volgende stap
+  - start working
+  - start coding
+  - get started
   - zonder te wachten
   - niet stoppen
   - gewoon doorgaan

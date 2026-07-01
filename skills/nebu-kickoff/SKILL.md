@@ -12,6 +12,8 @@ triggers:
   - best approach
   - how should we approach this
   - not sure where to start
+  - start by clarifying
+  - start with questions
   - ik weet niet waar te beginnen
   - hoe pakken we dit aan
 ---
