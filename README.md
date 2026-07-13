@@ -124,6 +124,18 @@ Installed paths:
 
 VS Code / Copilot now consumes the shared skill root from `~/.agents/skills/`. The Copilot-specific part that remains native is `~/.copilot/instructions/`.
 
+The repository also ships a VS Code Agent Plugin under `.claude-plugin/`, with native skills under `skills/` and lifecycle hooks under `hooks/`. Install it from the GitHub repository through `Chat: Install Plugin From Source`, or register a local checkout with `chat.pluginLocations`:
+
+```json
+{
+  "chat.pluginLocations": {
+    "/path/to/nebu-skills": true
+  }
+}
+```
+
+Native Agent Skills perform the automatic relevance-based loading. The plugin manifest and hooks are maintained source assets; `scripts/validate-plugin.js` checks their contract and version alignment. The plugin hooks only add compact session guidance and non-blocking prompt hints; they do not execute skills, rewrite commands, or approve tools. Hooks are preview functionality in VS Code. Inspect loaded skills in Agent Customizations and hook activity in Agent Debug Logs.
+
 ### Claude Code Details
 
 Installed paths:
@@ -232,7 +244,7 @@ Hard boundaries:
 | Platform | Ships | Generated assets or install target |
 | --- | --- | --- |
 | OpenCode | router plugin, routing support, bootstrap/install/update tooling | installs managed skills plus `core/router-core.js` and `plugins/nebu-skills-router.js`; `nebu-skill-finder` also carries a bundled runtime under its own skill directory |
-| GitHub Copilot | generated skills, reusable instructions, bootstrap/install/update tooling | `.github/skills/`, `.github/copilot-instructions.md`, `~/.copilot/skills/`, `~/.copilot/instructions/`; `nebu-skill-finder` ships its bundled runtime inside the exported skill directory |
+| GitHub Copilot | VS Code Agent Plugin, native skills, lifecycle hooks, generated skills, reusable instructions | `.claude-plugin/plugin.json`, `skills/`, `hooks/hooks.json`, `.github/skills/`, `.github/copilot-instructions.md`, `~/.agents/skills/`, `~/.copilot/instructions/`; `nebu-skill-finder` ships its bundled runtime inside the exported skill directory |
 | Claude Code | generated skills, reusable rules, bootstrap/install/update tooling | `.claude/skills/`, `CLAUDE.md`, `~/.claude/skills/`, `~/.claude/rules/`; `nebu-skill-finder` ships its bundled runtime inside the exported skill directory |
 
 OpenCode remains the reference implementation for routing behavior. GitHub Copilot and Claude Code exports are generated from the same canonical workflow source.
@@ -253,6 +265,12 @@ Check trigger ownership and routing hygiene:
 
 ```bash
 node ./scripts/check-trigger-overlap.js
+```
+
+Validate the VS Code plugin contract:
+
+```bash
+node ./scripts/validate-plugin.js
 ```
 
 Load the router plugin directly:

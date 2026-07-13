@@ -6,6 +6,13 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [0.1.18] - 2026-07-13
+
+### Added
+
+- VS Code and GitHub Copilot agent-plugin manifest with native Agent Skills and lifecycle hooks.
+- Lightweight hook routing that reuses the canonical skill router without executing tools or commands.
+
 ## [0.1.17] - 2026-07-01
 
 ### Changed

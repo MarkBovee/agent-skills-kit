@@ -1,0 +1,121 @@
+#!/usr/bin/env node
+
+const path = require("node:path")
+
+const {
+  DEFAULT_MAX_HINTS,
+  applyBaselineRouting,
+  applyExecutionRouting,
+  applyImprovementRouting,
+  applyKickoffRouting,
+  applySessionAwareRouting,
+  buildExecutionProfile,
+  findMatches,
+  getSessionState,
+  loadSkills,
+  setSessionState,
+  toSingleLine,
+  unique,
+} = require("../core/router-core")
+
+const SKILLS_ROOT = path.resolve(__dirname, "..", "skills")
+const MAX_SESSION_HINTS = 4
+
+// Read the hook payload without making malformed input fatal to the agent session.
+async function readInput() {
+  let input = ""
+  process.stdin.setEncoding("utf8")
+  for await (const chunk of process.stdin) input += chunk
+
+  if (!input.trim()) return {}
+
+  try {
+    return JSON.parse(input)
+  } catch {
+    return {}
+  }
+}
+
+// Resolve the prompt across VS Code-compatible payload shapes.
+function readPrompt(payload) {
+  return typeof payload.prompt === "string"
+    ? payload.prompt.trim()
+    : typeof payload.message === "string"
+      ? payload.message.trim()
+      : ""
+}
+
+// Resolve a session identifier when the host supplies one.
+function readSessionID(payload) {
+  const sessionID = payload.session_id || payload.sessionID
+  return typeof sessionID === "string" ? sessionID.trim() : "hook-session"
+}
+
+// Run the same routing precedence as the OpenCode adapter for one prompt.
+function routePrompt(prompt, skills, state) {
+  const sessionID = readSessionID(state.payload)
+  const currentState = getSessionState(state.sessions, sessionID)
+  const kickoffMatches = applyKickoffRouting(prompt, findMatches(prompt, skills, DEFAULT_MAX_HINTS), skills, DEFAULT_MAX_HINTS)
+  const reviewMatches = applySessionAwareRouting(prompt, kickoffMatches, skills, currentState.needsCodeReview, DEFAULT_MAX_HINTS)
+  const improvementMatches = applyImprovementRouting(prompt, reviewMatches, skills, currentState.shouldCaptureImprovement, DEFAULT_MAX_HINTS)
+  const executionMatches = applyExecutionRouting(prompt, improvementMatches, skills, DEFAULT_MAX_HINTS)
+  const matches = applyBaselineRouting(prompt, executionMatches, skills, DEFAULT_MAX_HINTS)
+  const executionProfile = buildExecutionProfile(prompt, matches)
+
+  setSessionState(state.sessions, sessionID, { matchedSkills: matches, executionProfile })
+  return { matches, executionProfile }
+}
+
+// Build compact session guidance so native Agent Skills remain responsible for loading bodies.
+function buildSessionContext(skills) {
+  const preview = skills
+    .slice(0, 8)
+    .map((skill) => `${skill.name}: ${toSingleLine(skill.description, 90)}`)
+    .join("; ")
+
+  return [
+    "Nebu Skills are installed as native Agent Skills and should be loaded when their descriptions match the task.",
+    "Use nebu-kaizen as the default for concrete work, combine it with a more specific skill when appropriate, and keep nebu-github-issues manual-only.",
+    "After code edits, route through nebu-code-review before verification or a completion claim.",
+    `Installed skill preview: ${preview}`,
+  ].join("\n")
+}
+
+// Build a non-blocking visible hint for the user's submitted prompt.
+function buildPromptMessage(prompt, skills, state) {
+  if (!prompt) return ""
+
+  const { matches, executionProfile } = routePrompt(prompt, skills, state)
+  if (matches.length === 0) return ""
+
+  const names = unique(matches.map((skill) => skill.name)).slice(0, MAX_SESSION_HINTS)
+  return `Nebu skill routing suggests: ${names.join(", ")}. Execution profile: ${executionProfile.executionTier}/${executionProfile.delegationMode}.`
+}
+
+// Handle one VS Code hook event and emit only the event-supported JSON shape.
+async function main() {
+  const event = process.argv[2]
+  const payload = await readInput()
+  const skills = await loadSkills([SKILLS_ROOT])
+  const state = { payload, sessions: new Map() }
+
+  if (event === "session-start") {
+    process.stdout.write(JSON.stringify({
+      hookSpecificOutput: {
+        hookEventName: "SessionStart",
+        additionalContext: buildSessionContext(skills),
+      },
+    }))
+    return
+  }
+
+  if (event === "prompt") {
+    const message = buildPromptMessage(readPrompt(payload), skills, state)
+    if (message) process.stdout.write(JSON.stringify({ systemMessage: message }))
+  }
+}
+
+main().catch((error) => {
+  console.error(`nebu-skills hook ignored an unexpected error: ${error.message}`)
+  process.exitCode = 0
+})

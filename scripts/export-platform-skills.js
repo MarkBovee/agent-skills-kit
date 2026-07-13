@@ -3,7 +3,7 @@
 const fs = require("node:fs/promises")
 const path = require("node:path")
 
-const { parseFrontmatter, toSingleLine } = require("../core/router-core")
+const { parseBooleanField, parseFrontmatter, toSingleLine } = require("../core/router-core")
 
 const REPO_ROOT = path.resolve(__dirname, "..")
 const SOURCE_SKILLS_DIR = path.join(REPO_ROOT, "skills")
@@ -13,10 +13,6 @@ const COPILOT_INSTRUCTIONS_PATH = path.join(REPO_ROOT, ".github", "copilot-instr
 const CLAUDE_MD_PATH = path.join(REPO_ROOT, "CLAUDE.md")
 
 const FRONTMATTER_PATTERN = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/
-
-const MANUAL_ONLY_SKILLS = new Set([
-  "nebu-github-issues",
-])
 
 // Render one scalar as YAML while keeping booleans unquoted.
 function yamlScalar(value) {
@@ -69,21 +65,21 @@ function buildSkillDocument(frontmatterEntries, body) {
 }
 
 // Build the Copilot-facing skill document with the metadata Copilot cares about.
-function buildCopilotSkill(skillName, description, triggers, body) {
+function buildCopilotSkill(skillName, description, triggers, disableModelInvocation, body) {
   return buildSkillDocument([
     ["name", skillName],
     ["description", buildPortableDescription(description, triggers, 1000)],
-    ["disable-model-invocation", MANUAL_ONLY_SKILLS.has(skillName) ? true : undefined],
+    ["disable-model-invocation", disableModelInvocation ? true : undefined],
   ], body)
 }
 
 // Build the Claude-facing skill document with Claude-specific discovery metadata.
-function buildClaudeSkill(skillName, description, triggers, body) {
+function buildClaudeSkill(skillName, description, triggers, disableModelInvocation, body) {
   return buildSkillDocument([
     ["name", skillName],
     ["description", description],
     ["when_to_use", triggers.length > 0 ? `Common triggers: ${triggers.join(", ")}.` : undefined],
-    ["disable-model-invocation", MANUAL_ONLY_SKILLS.has(skillName) ? true : undefined],
+    ["disable-model-invocation", disableModelInvocation ? true : undefined],
   ], body)
 }
 
@@ -209,6 +205,7 @@ async function exportSkills() {
     const frontmatter = parseFrontmatter(sourceSkill)
     const description = (frontmatter.description || "").trim()
     const triggers = getSkillTriggers(frontmatter)
+    const disableModelInvocation = parseBooleanField(frontmatter["disable-model-invocation"])
 
     skillSummaries.push({ name: skillName, description })
 
@@ -219,12 +216,12 @@ async function exportSkills() {
 
     await fs.writeFile(
       path.join(copilotTarget, "SKILL.md"),
-      buildCopilotSkill(skillName, description, triggers, transformBody(sourceSkill, "copilot", skillName)),
+      buildCopilotSkill(skillName, description, triggers, disableModelInvocation, transformBody(sourceSkill, "copilot", skillName)),
       "utf8",
     )
     await fs.writeFile(
       path.join(claudeTarget, "SKILL.md"),
-      buildClaudeSkill(skillName, description, triggers, transformBody(sourceSkill, "claude", skillName)),
+      buildClaudeSkill(skillName, description, triggers, disableModelInvocation, transformBody(sourceSkill, "claude", skillName)),
       "utf8",
     )
   }
