@@ -3,7 +3,7 @@
 const fs = require("node:fs/promises")
 const path = require("node:path")
 
-const { parseFrontmatter } = require("../core/router-core")
+const { parseFrontmatter, VALID_DELEGATION_MODES, VALID_EXECUTION_TIERS } = require("../core/router-core")
 
 const REPO_ROOT = path.resolve(__dirname, "..")
 const PLUGIN_PATH = path.join(REPO_ROOT, ".claude-plugin", "plugin.json")
@@ -84,6 +84,12 @@ async function validateSkills(errors) {
       if (!isBooleanValue && !isBooleanString) {
         errors.push(`${path.relative(REPO_ROOT, skillPath)} has an unsupported disable-model-invocation value`)
       }
+    }
+    if (frontmatter.execution_tier !== undefined && !VALID_EXECUTION_TIERS.has(String(frontmatter.execution_tier).trim().toLowerCase())) {
+      errors.push(`${path.relative(REPO_ROOT, skillPath)} has an unsupported execution_tier value`)
+    }
+    if (frontmatter.delegation_default !== undefined && !VALID_DELEGATION_MODES.has(String(frontmatter.delegation_default).trim().toLowerCase())) {
+      errors.push(`${path.relative(REPO_ROOT, skillPath)} has an unsupported delegation_default value`)
     }
   }
 }

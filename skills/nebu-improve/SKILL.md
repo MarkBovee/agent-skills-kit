@@ -1,6 +1,8 @@
 ---
 name: nebu-improve
 description: Use when the codebase needs a structured audit, audit-driven plans, or execution of those plans — correctness, security, performance, tech debt, migrations, DX, direction, or a focused slice of those. Run once at the start of a session to produce an audit + plans, or invoke a specific mode (execute, reconcile, next, branch) for targeted follow-through.
+execution_tier: heavy
+delegation_default: prefer-subagent
 triggers:
   - improve
   - audit

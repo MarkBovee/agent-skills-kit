@@ -65,6 +65,11 @@ Repository-specific instructions win over this skill.
 - run the nearest relevant tests, build, or lint path first
 - if validation cost becomes large, reconsider refactor size
 
+## Use with
+
+- `nebu-code-review` for a fresh-eyes pass on the refactor before handoff
+- `nebu-verification` to confirm preserved behavior before claiming done
+
 ## Output
 
 When summarizing, focus on:

@@ -20,6 +20,11 @@ Match the proof to the claim. Bigger claim, stronger evidence.
 4. Do not inflate a partial check into a full-success statement.
 5. Use verification to finish the loop, not as a pause for reassurance mid-flow.
 
+## Use with
+
+- `nebu-code-review` before verification when meaningful code changed
+- `nebu-workspace-wrapup` when verification confirms a multi-repo task is ready to hand off
+
 ## Avoid
 
 - "Should work now"

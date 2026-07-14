@@ -46,6 +46,11 @@ Plan only when the task is large enough to benefit from one. The plan should be 
 - If more than one candidate exists or the active record is unclear, ask one short question instead of guessing.
 - Never create a parallel branded planning tree by default.
 
+## Use with
+
+- `nebu-kickoff` when scope or success criteria are still unclear before a plan can be written
+- `nebu-implementation` to execute the plan once sequencing is set
+
 ## Avoid
 
 - Giant plan files full of placeholder code

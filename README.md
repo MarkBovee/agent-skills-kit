@@ -134,7 +134,7 @@ The repository also ships a VS Code Agent Plugin under `.claude-plugin/`, with n
 }
 ```
 
-Native Agent Skills perform the automatic relevance-based loading. The plugin manifest and hooks are maintained source assets; `scripts/validate-plugin.js` checks their contract and version alignment. The plugin hooks only add compact session guidance and non-blocking prompt hints; they do not execute skills, rewrite commands, or approve tools. Hooks are preview functionality in VS Code. Inspect loaded skills in Agent Customizations and hook activity in Agent Debug Logs.
+Native Agent Skills perform the automatic relevance-based loading. The plugin manifest and hooks are maintained source assets; `scripts/validate-plugin.js` checks their contract and version alignment. The plugin hooks only add compact session guidance and non-blocking prompt hints; they do not execute skills, rewrite commands, or approve tools. The `SessionStart` hook also surfaces the same cost-aware execution-profile hint described under [Router](#router), and the `UserPromptSubmit` hook recomputes it per prompt (it does not yet track code-edit state across calls the way the OpenCode plugin does, since no post-tool-execution hook event is wired here). Hooks are preview functionality in VS Code. Inspect loaded skills in Agent Customizations and hook activity in Agent Debug Logs.
 
 ### Claude Code Details
 
@@ -228,6 +228,21 @@ Core behavior:
 - tracks code edits so `nebu-code-review` can be nudged before a done claim
 - keeps `nebu-verification` close to review in completion-oriented turns
 - keeps `nebu-skill-improvement` visible when sessions expose reusable workflow friction
+
+### Cost-aware execution profile
+
+Two optional frontmatter fields let a skill declare how expensive its default flow is, so hosts that support cheaper subagents or models can route mechanical work to them instead of the primary agent:
+
+| `execution_tier` | Suggested `agentTier` | When to use | Example |
+| --- | --- | --- | --- |
+| `light` | `mini` | bounded, mechanical, single-pass work | `nebu-github-issues` |
+| `standard` (default) | `default` | normal judgment-heavy work | `nebu-kaizen`, `nebu-implementation` |
+| `heavy` | `high` | broad or multi-part work, e.g. a full codebase audit | `nebu-improve` |
+| `deep` | `xhigh` | analysis-heavy or architectural work | — |
+
+`delegation_default` (`auto` / `prefer-subagent` / `owner-only`) hints whether the work should default to a subagent when the host supports one. Both fields are read by `buildExecutionProfile` in `core/router-core.js`, which also upgrades the tier when the prompt itself signals light or heavy/deep work (e.g. "version bump" vs. "cross-repo migration"), regardless of which skill matched.
+
+The result is injected as a single line, e.g. `Suggested execution profile: task=light, agent=mini, delegation=prefer-subagent, anchor=nebu-github-issues.` Treat it as a hint: pick the smallest/cheapest model or subagent class the host offers for `mini`, and escalate to `default`/`high`/`xhigh` only when scope grows or a cheap-first attempt fails. This only nudges routing — it never blocks a tool or forces delegation.
 
 Hard boundaries:
 

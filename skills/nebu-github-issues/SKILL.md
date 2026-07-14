@@ -2,6 +2,8 @@
 name: nebu-github-issues
 description: Use when creating a GitHub issue from a bug report, review finding, failed attempt, or requested follow-up, especially when the repo may need to be inferred from the current checkout.
 disable-model-invocation: true
+execution_tier: light
+delegation_default: prefer-subagent
 triggers:
   - create issue
   - github issue

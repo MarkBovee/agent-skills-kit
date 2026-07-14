@@ -34,6 +34,7 @@ Coordinate multiple agents only when parallel work will actually help.
 ## Cheap-first defaults
 
 - When the host supports subagents, start bounded mechanical chores on a small or mini subagent first.
+- When the delegation surface exposes a model parameter, pick the smallest or cheapest available model class for mechanical work and reserve the top-capability model for judgment-heavy work.
 - Keep the owner thread responsible for merge, review, validation, and final communication.
 - Escalate to default, high, or xhigh only when scope expands, validation fails, or the task stops being mechanical.
 
@@ -51,6 +52,12 @@ Coordinate multiple agents only when parallel work will actually help.
 - Prefer the host's public agent, skill, or context surfaces for coordination and state sharing.
 - Use shared context to avoid re-reading the same files across sessions.
 - Treat shared transport as support for clear ownership, not as a substitute for it.
+
+## Use with
+
+- `nebu-implementation` when the mode decision (direct/batch/delegate) needs more nuance than this skill covers
+- `nebu-kaizen` for the default steady-progress loop once ownership and scope are set
+- `nebu-verification` after delegated work completes, to match proof to the scope of what was delegated
 
 ## Avoid
 

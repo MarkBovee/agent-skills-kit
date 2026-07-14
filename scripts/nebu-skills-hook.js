@@ -77,6 +77,7 @@ function buildSessionContext(skills) {
     "Nebu Skills are installed as native Agent Skills and should be loaded when their descriptions match the task.",
     "Use nebu-kaizen as the default for concrete work, combine it with a more specific skill when appropriate, and keep nebu-github-issues manual-only.",
     "After code edits, route through nebu-code-review before verification or a completion claim.",
+    "Cost-aware default: bounded mechanical chores such as version bumps, changelog edits, release notes, and release-prep updates should start with a cheap small/mini subagent when the host supports it. Escalate to a stronger agent only when scope expands or cheap-first validation fails.",
     `Installed skill preview: ${preview}`,
   ].join("\n")
 }
@@ -97,6 +98,11 @@ async function main() {
   const event = process.argv[2]
   const payload = await readInput()
   const skills = await loadSkills([SKILLS_ROOT])
+  // ponytail: sessions resets every hook invocation because each call is a separate process.
+  // needsCodeReview/shouldCaptureImprovement can never flip true today anyway — hooks.json
+  // only wires SessionStart and UserPromptSubmit, and no post-tool-execution event exists here
+  // to set them (unlike the OpenCode plugin's tool.execute.after handler). If a tool-completion
+  // hook event becomes available, wire it here and persist this Map across invocations then.
   const state = { payload, sessions: new Map() }
 
   if (event === "session-start") {

@@ -6,6 +6,20 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [0.1.19] - 2026-07-14
+
+### Added
+
+- README now documents the cost-aware execution-profile mechanism (`execution_tier`/`delegation_default` frontmatter, tier table, and how hosts should read the injected "Suggested execution profile" hint).
+- `nebu-improve` and `nebu-github-issues` now declare `execution_tier`/`delegation_default` (`heavy`/`prefer-subagent` and `light`/`prefer-subagent` respectively) so cheap-first routing reflects their actual default scope.
+- `nebu-agent-workflows`, `nebu-planning`, `nebu-refactoring`, and `nebu-verification` gained `## Use with` cross-references for better skill-to-skill collaboration.
+- The Copilot `SessionStart` hook now surfaces the same cost-aware default hint as the OpenCode router plugin.
+- `scripts/validate-plugin.js` now validates `execution_tier`/`delegation_default` frontmatter values against the enums exported from `core/router-core.js`.
+
+### Changed
+
+- `nebu-agent-workflows` cheap-first guidance now also calls out picking the smallest/cheapest model class when a delegation surface exposes a model parameter.
+
 ## [0.1.18] - 2026-07-13
 
 ### Added
