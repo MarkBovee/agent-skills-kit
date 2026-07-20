@@ -1,19 +1,17 @@
 #!/usr/bin/env node
 // Verify that no trigger string is shared across skills and that the
-// baseline routing produces the expected skill for a fixed set of
+// cascade routing produces the expected skill for a fixed set of
 // canonical queries. Exits non-zero on any failure.
 
 const path = require("node:path")
 const {
-  applyBaselineRouting,
-  findMatches,
+  cascadeRoute,
   loadSkills,
 } = require("../core/router-core")
 
 const SKILLS_PATH = path.resolve(__dirname, "..", "skills")
 
-// Each entry asserts that the biased top match for the query is exactly
-// the expected skill. Use null to assert "no match expected".
+// Each entry asserts the cascade top match for the query is the expected skill.
 const ROUTING_CASES = [
   ["ga door", "nebu-kaizen"],
   ["werk door", "nebu-kaizen"],
@@ -21,27 +19,33 @@ const ROUTING_CASES = [
   ["start coding", "nebu-kaizen"],
   ["continue without waiting", "nebu-kaizen"],
   ["keep going", "nebu-kaizen"],
+  ["implement this feature", "nebu-kaizen"],
+  ["implementeer dit", "nebu-kaizen"],
+  ["start implementing", "nebu-kaizen"],
+  ["add a login page", "nebu-kaizen"],
   ["start by clarifying", "nebu-kickoff"],
+  ["brainstormen", "nebu-kickoff"],
+  ["plan dit werk", "nebu-kickoff"],
+  ["start planning", "nebu-kickoff"],
+  ["what should we build", "nebu-kickoff"],
   ["klaar", "nebu-verification"],
   ["verifiëren", "nebu-verification"],
-  ["refactor dit", "nebu-refactoring"],
+  ["afronden", "nebu-verification"],
+  ["done", "nebu-verification"],
   ["fix this bug", "nebu-debugging"],
-  ["plan dit werk", "nebu-planning"],
-  ["start planning", "nebu-planning"],
-  ["implementeer dit", "nebu-implementation"],
-  ["start implementing", "nebu-implementation"],
-  ["bouwen", "nebu-kickoff"],
-  ["brainstormen", "nebu-brainstorming"],
+  ["start debugging", "nebu-debugging"],
+  ["debuggen", "nebu-debugging"],
+  ["refactoren", "nebu-improve"],
+  ["refactor this", "nebu-improve"],
+  ["opschonen", "nebu-improve"],
+  ["audit codebase", "nebu-improve"],
   ["create issue", "nebu-github-issues"],
-  ["skill gap", "nebu-skill-improvement"],
+  ["skill gap", "nebu-writing-nebu-skills"],
   ["review deze wijziging", "nebu-code-review"],
   ["start reviewing", "nebu-code-review"],
-  ["debuggen", "nebu-debugging"],
-  ["start debugging", "nebu-debugging"],
-  ["refactoren", "nebu-refactoring"],
-  ["opschonen", "nebu-refactoring"],
-  ["afronden", "nebu-workspace-wrapup"],
   ["nakijken", "nebu-code-review"],
+  ["design a ui", "nebu-ui-ux"],
+  ["bump version", "nebu-agent-workflows"],
 ]
 
 // Detect any trigger string that appears in more than one skill.
@@ -58,13 +62,12 @@ function findDuplicateTriggers(skills) {
   return [...owners.entries()].filter(([, list]) => list.length > 1)
 }
 
-// Run the routing checks against the full chain used by the plugin.
+// Run cascade routing checks.
 function runRoutingChecks(skills) {
   const failures = []
   for (const [query, expected] of ROUTING_CASES) {
-    const raw = findMatches(query, skills, 4)
-    const biased = applyBaselineRouting(query, raw, skills, 4)
-    const winner = biased[0]?.name
+    const { matchedSkills } = cascadeRoute(query, skills, {})
+    const winner = matchedSkills[0]?.name
     if (expected === null) {
       if (winner) {
         failures.push({ query, expected, winner, reason: "expected no match" })

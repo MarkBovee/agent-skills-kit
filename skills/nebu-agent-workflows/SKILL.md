@@ -13,6 +13,7 @@ triggers:
   - bump version
   - release notes
   - changelog
+  - tag release
   - release prep
 ---
 
@@ -69,7 +70,6 @@ Coordinate multiple agents only when parallel work will actually help.
 
 ## Use with
 
-- `nebu-implementation` when the mode decision (direct/batch/delegate) needs more nuance than this skill covers
 - `nebu-kaizen` for the default steady-progress loop once ownership and scope are set
 - `nebu-verification` after delegated work completes, to match proof to the scope of what was delegated
 

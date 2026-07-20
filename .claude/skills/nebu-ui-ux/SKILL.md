@@ -75,51 +75,21 @@ Reference anchors for intentional direction when no existing system exists:
 
 ## Review
 
-Use review as part of the default UI loop, not as a final optional pass.
+Use screenshot review as part of the default UI loop, not as a final optional pass.
 
-Default capture setup:
+Default capture: `1440x900` desktop, `390x844` mobile, `device_scale_factor=1`, store in `/tmp/opencode/nebu-ui-ux-review/<run-id>/`. Use `npx playwright screenshot` or a tiny Playwright script waiting for `networkidle`. Delete temp screenshots after review unless explicitly needed.
 
-- store screenshots in an OS temp directory outside the repo, for example `/tmp/opencode/nebu-ui-ux-review/<run-id>/`
-- use `1440x900` for desktop and `390x844` for mobile unless the product has a more relevant breakpoint
-- keep browser zoom at `100%`
-- prefer `device_scale_factor=1` when using a small Playwright script so before/after comparisons stay at native 1x pixels
-- delete temporary screenshots after review unless the user explicitly wants to keep them for a PR, issue, or handoff artifact
+Vision review prompt:
 
-Playwright CLI examples:
+> Review this UI screenshot. For each issue found: name it, locate it (component or section), and apply the fix immediately. Flag generic purple accents, uniform card grids, hero gradient banners, oversized centered headlines, frosted glass overuse, or weak visual hierarchy. Do not ask for confirmation unless the visual direction itself needs to change.
 
-```bash
-# Desktop full page
-npx playwright screenshot --browser chromium --viewport-size "1440,900" --full-page --wait-for-timeout 6000 <url> /tmp/opencode/nebu-ui-ux-review/<run-id>/desktop-full.png
-
-# Mobile full page
-npx playwright screenshot --browser chromium --viewport-size "390,844" --full-page --wait-for-timeout 6000 <url> /tmp/opencode/nebu-ui-ux-review/<run-id>/mobile-full.png
-```
-
-For lazy-loaded or highly animated pages, prefer a tiny Playwright script that waits for `networkidle` before capturing instead of relying only on the CLI timeout.
-
-Then pass the screenshot back to vision review with this prompt:
-
-> Review this UI screenshot. For each issue found: name it, locate it (component or section), and apply the fix immediately. Flag any of these when present: generic purple or violet accents, uniform card grids, hero gradient banners, oversized centered headlines, frosted glass overuse, or weak visual hierarchy. Do not ask for confirmation unless the visual direction itself needs to change.
-
-If the first review finds real issues, fix the highest-signal one first and repeat the loop instead of stacking speculative changes.
+Fix the highest-signal issue first and repeat the loop instead of stacking speculative changes.
 
 ## Bundled search helper
 
-Use the bundled search tool when you want concrete style, UX, typography, color, chart, or stack guidance fast.
-Use the path to this skill's [search script](./scripts/search.py) when you invoke it from the terminal.
-
-Primary entry point:
-
+Use the bundled search tool for concrete style, UX, typography, color, or stack guidance:
 ```bash
 python3 ${CLAUDE_SKILL_DIR}/scripts/search.py "<product_type> <industry> <keywords>" --design-system [-p "Project Name"]
-```
-
-Useful follow-ups:
-
-```bash
-python3 ${CLAUDE_SKILL_DIR}/scripts/search.py "animation accessibility" --domain ux
-python3 ${CLAUDE_SKILL_DIR}/scripts/search.py "elegant luxury serif" --domain typography
-python3 ${CLAUDE_SKILL_DIR}/scripts/search.py "layout responsive form" --stack html-tailwind
 ```
 
 Use the helper as input to judgment, not as a substitute for it.

@@ -1,6 +1,8 @@
 ---
 name: nebu-code-review
 description: Use when code changed and a meaningful diff is ready; fresh eyes should catch requirement gaps, regressions, or risky design mistakes before handoff or success claims.
+execution_tier: standard
+delegation_default: auto
 triggers:
   - review
   - nakijken
@@ -49,9 +51,9 @@ This is a mandatory second pass after **every** code edit. Review depth scales w
 
 ## Use with
 
-- `nebu-implementation` when the coding pass is done and the diff needs a second look
+- `nebu-kaizen` when the coding pass is done and the diff needs a second look
 - `nebu-verification` after review passes to confirm the claim is proven
-- `nebu-skill-improvement` when review exposes a recurring miss in agent workflow
+- `nebu-writing-nebu-skills` when review exposes a recurring miss in agent workflow
 
 ## Avoid
 

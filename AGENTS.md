@@ -7,8 +7,8 @@ This is a multi-platform skill-pack repo for OpenCode, GitHub Copilot, and Claud
 ## Structure
 
 - `skills/<name>/SKILL.md` — one skill per directory, always named `SKILL.md`
-- `plugins/nebu-skills-router.js` — OpenCode plugin that scores skills against user messages and injects routing hints into the system prompt
-- `core/router-core.js` — shared router helpers (scoring, session state, frontmatter parsing)
+- `plugins/nebu-skills-router.js` — OpenCode plugin that routes user messages through a deterministic cascade to pick the right skill, then injects routing hints into the system prompt
+- `core/router-core.js` — shared router helpers (cascade routing, session state, frontmatter parsing)
 - `core/community-skills.js` — helper for fetching, ranking, and installing community skills from `github/awesome-copilot`; consumed by `nebu-skill-finder`
 - `core/community-skills-index.json` — cached awesome-copilot catalog, commit-pinned, refreshed by `scripts/fetch-community-skills-index.js`
 - `scripts/` — install/update/bootstrap scripts (bash + PowerShell parity required)
@@ -64,8 +64,8 @@ Keep skills short (30-90 lines). Prefer this shape:
 ### Naming
 
 - Workflow skills: `nebu-<topic>` (e.g. `nebu-debugging`, `nebu-kaizen`)
-- Meta/router skills: `nebu-using-nebu-skills`, `nebu-writing-nebu-skills`
-- Utility skills: prefer the `nebu-` prefix too (e.g. `nebu-workspace-wrapup`)
+- Meta/router skills: `nebu-writing-nebu-skills`
+- Utility skills: prefer the `nebu-` prefix too (e.g. `nebu-github-issues`)
 
 ### Cross-references
 
@@ -80,10 +80,10 @@ When one skill naturally leads into another, add a `## Use with` section with on
 
 ## Router plugin
 
-The router (`plugins/nebu-skills-router.js`) reads frontmatter from all installed skills, scores them against user messages, and injects hints into the system prompt. When changing the router:
+The router (`plugins/nebu-skills-router.js`) uses a deterministic cascade: it checks signal phrases in priority order and the first matching step wins. When changing the router:
 
-- Test with `node -e "const r = require('./plugins/nebu-skills-router.js'); ..."` to verify it loads and parses.
-- Verify frontmatter parsing with the `parseFrontmatter` function against a sample skill.
+- Test with `node -e "require('./plugins/nebu-skills-router.js')"` to verify it loads.
+- Test cascade routing: `node -e "const {cascadeRoute,loadSkills}=require('./core/router-core'); loadSkills(['./skills']).then(s=>console.log(cascadeRoute('fix this bug',s,{})))"`
 - Keep the plugin stateless except for the session-scoped match cache.
 
 ## Install scripts

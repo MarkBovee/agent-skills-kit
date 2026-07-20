@@ -1,6 +1,6 @@
 ---
 name: "nebu-agent-workflows"
-description: "Use when coordinating multi-agent work, parallel execution, task handoff, shared context, or clean session shutdown across multiple agents or terminals. Especially useful when the host supports subagents, hooks, or shared context. Common triggers: multi-agent, parallel work, agent coordination, task handoff, subagent delegation, version bump, bump version, release notes, changelog, release prep."
+description: "Use when coordinating multi-agent work, parallel execution, task handoff, shared context, or clean session shutdown across multiple agents or terminals. Especially useful when the host supports subagents, hooks, or shared context. Common triggers: multi-agent, parallel work, agent coordination, task handoff, subagent delegation, version bump, bump version, release notes, changelog, tag release, release prep."
 ---
 # Nebu Agent Workflows
 
@@ -55,7 +55,6 @@ Coordinate multiple agents only when parallel work will actually help.
 
 ## Use with
 
-- `nebu-implementation` when the mode decision (direct/batch/delegate) needs more nuance than this skill covers
 - `nebu-kaizen` for the default steady-progress loop once ownership and scope are set
 - `nebu-verification` after delegated work completes, to match proof to the scope of what was delegated
 

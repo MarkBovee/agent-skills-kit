@@ -6,6 +6,35 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [0.2.0] - 2026-07-20
+
+### Changed
+
+- **Skills reduced from 17 to 10.** Merged overlapping skills to eliminate redundancy and make routing predictable:
+  - `nebu-brainstorming` + `nebu-planning` + `nebu-kickoff` → `nebu-kickoff` (pre-execution: design, scoping, planning)
+  - `nebu-implementation` → `nebu-kaizen` (mode selection + cheap-first escalation absorbed into default baseline)
+  - `nebu-workspace-wrapup` → `nebu-verification` (wrap-up pattern merged into verification)
+  - `nebu-refactoring` → `nebu-improve` (refactoring as a category in the audit skill)
+  - `nebu-skill-improvement` → `nebu-writing-nebu-skills` (one meta-skill for writing + improvement)
+  - `nebu-using-nebu-skills` removed (router always active; fallback skill served no purpose)
+- **Router rewired from score-based to deterministic cascade.** Signal phrases checked in priority order; first match wins. No more ad-hoc scoring + 5 correction layers.
+- **`execution_tier` added to all 10 skills.** Every skill declares its cost tier (`light`/`standard`/`heavy`):
+  - `light`: `nebu-agent-workflows`, `nebu-github-issues` → Flash model, mini subagent
+  - `standard`: `nebu-kaizen`, `nebu-kickoff`, `nebu-code-review`, `nebu-debugging`, `nebu-verification`, `nebu-writing-nebu-skills` → Flash model, default agent
+  - `heavy`: `nebu-improve`, `nebu-ui-ux` → Pro model, high agent
+- System prompt injection now shows the cascade order for transparency.
+- Export script references updated: `nebu-skill-improvement` → `nebu-writing-nebu-skills`.
+
+### Removed
+
+- 7 skills: `nebu-brainstorming`, `nebu-planning`, `nebu-implementation`, `nebu-workspace-wrapup`, `nebu-refactoring`, `nebu-skill-improvement`, `nebu-using-nebu-skills`.
+- Scoring functions (`scoreSkill`, `findMatches`) and 5 ad-hoc routing correction functions from `router-core.js`.
+
+### Added
+
+- `cascadeRoute()` in `router-core.js` — deterministic cascade router with phrase-based signal detection.
+- Per-cascade-step signal phrase sets: `BUG_PHRASES`, `IMPROVE_PHRASES`, `UI_PHRASES`, `ISSUE_PHRASES`, `AGENT_PHRASES`, `WRITING_PHRASES`, `COMPLETION_PHRASES`, `AMBIGUITY_PHRASES`.
+
 ## [0.1.19] - 2026-07-14
 
 ### Added

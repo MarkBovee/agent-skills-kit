@@ -37,9 +37,9 @@ This is a mandatory second pass after **every** code edit. Review depth scales w
 
 ## Use with
 
-- `nebu-implementation` when the coding pass is done and the diff needs a second look
+- `nebu-kaizen` when the coding pass is done and the diff needs a second look
 - `nebu-verification` after review passes to confirm the claim is proven
-- `nebu-skill-improvement` when review exposes a recurring miss in agent workflow
+- `nebu-writing-nebu-skills` when review exposes a recurring miss in agent workflow
 
 ## Avoid
 

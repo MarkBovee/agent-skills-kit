@@ -1,15 +1,24 @@
 ---
 name: "nebu-kaizen"
-description: "Default baseline skill for normal software work where the next logical step is clear: small safe iterations, built-in validation, and no unnecessary pauses between clear next steps. Use this for autopilot mode, keep going, ga door, werk door, or werk de stappen af zonder onnodige stopmomenten."
-when_to_use: "Common triggers: kaizen, autopilot, keep going, continue without waiting, do not stop, don't stop, ga door, werk door, volgende logische stap, volgende stap, start working, start coding, get started, zonder te wachten, niet stoppen, gewoon doorgaan, ga verder, implement this, fix this, add this, pas dit aan, maak dit af."
+description: "Default baseline skill for normal software work: small safe iterations, built-in validation, no unnecessary pauses between clear next steps. Includes mode selection (direct, batch, delegate) and cheap-first escalation for bounded mechanical chores."
+when_to_use: "Common triggers: kaizen, autopilot, keep going, continue without waiting, do not stop, don't stop, ga door, werk door, volgende logische stap, volgende stap, start working, start coding, get started, zonder te wachten, niet stoppen, gewoon doorgaan, ga verder, implement this, fix this, add this, pas dit aan, maak dit af, implement, implementeer dit, keep coding, continue implementation, work through steps, code change, start implementing, start implementation, batch edits, delegate work, subagent, maak dit werkend."
 ---
 # Nebu Kaizen
 
-Default to steady progress: inspect, create, test, review, continue.
+Default to steady progress: inspect, create, test, review, continue. If the next logical step is clear, keep going without pausing for routine check-ins.
 
-If the next logical step is clear, keep going in autopilot mode instead of pausing for routine check-ins.
+## Choose the mode
 
-This also applies when the user phrases it in Dutch, such as `ga door`, `werk door`, `ga verder`, or `zonder te wachten`.
+- **Direct:** known files, tight coupling, fast iteration, nuanced judgment
+- **Delegate:** independent research, parallelizable subtasks, noisy command runs, or specialized review
+- **Batch:** related reads, searches, and edits that can be done safely together
+
+## Cheap-first escalation
+
+1. Start bounded mechanical chores on the smallest viable agent or subagent.
+2. Validate the result before widening context.
+3. Escalate to default agent only if scope grows beyond the original bounded task.
+4. Escalate to high or xhigh only for cross-cutting, analysis-heavy, or repeatedly failing work.
 
 ## Core loop
 
@@ -17,36 +26,34 @@ This also applies when the user phrases it in Dutch, such as `ga door`, `werk do
 2. Create the smallest coherent improvement.
 3. Test it with the fastest trustworthy proof.
 4. Review it for clarity, safety, consistency, and scope.
-5. Keep going until the goal is done or a real blocker appears.
+5. Continue unless a real blocker or decision point appears.
 
 ## Default rules
 
 1. Do not stop after every milestone when the next step is already clear.
 2. Ask only when the answer changes scope, product behavior, architecture, safety, or acceptance.
 3. Prefer preventing mistakes early with types, validation, guards, and simpler control flow.
-4. Follow existing repo patterns before inventing new ones.
-5. Build only what the current requirement needs.
-6. After code changes, do a proportional review pass. Load `nebu-code-review` when the diff is meaningful, subtle, or risky; tiny local diffs may stay self-reviewed.
-7. When work reveals reusable workflow friction, capture the smallest durable improvement instead of treating it as one-off noise.
-8. Reuse the repo's existing durable planning or spec system when one exists; do not create a parallel doc tree by default.
-9. When editing code, follow the coding standards in `AGENTS.md` (`## Coding standards`). The intent-comment rule is a **hard rule**: every function, method, helper, closure handler, route handler, protocol dispatcher, and static utility gets a short comment above it. Add a brief docstring for non-obvious parameters, return values, side effects, or preconditions. Inline `why` comments stay focused on intent, not line-by-line narration.
-10. For bounded mechanical chores, prefer a cheap-first subagent or mini path before reaching for a high-cost execution mode.
+4. Follow existing repo patterns before inventing new ones. Build only what the current requirement needs.
+5. After code changes, do a proportional review pass. Load `nebu-code-review` when the diff is meaningful, subtle, or risky.
+6. When work reveals reusable workflow friction, capture it with `nebu-writing-nebu-skills`.
+7. Reuse the repo's existing durable planning or spec system; do not create a parallel doc tree.
+8. Delegate only when the work is parallel, repetitive, or context-heavy.
 
 ## Use with
 
 - `nebu-kickoff` for ambiguity that could change the implementation
-- `nebu-planning` when sequencing or coordination needs a plan
-- `nebu-implementation` for coupled edits and execution choices
 - `nebu-ui-ux` for interface work that needs visual direction and screenshot-based review
 - `nebu-code-review` after meaningful code edits and before handoff
 - `nebu-debugging` for bugs, failing tests, and broken builds
-- `nebu-refactoring` when the work is cleanup or simplification
-- `nebu-skill-improvement` when repeated friction should become reusable skill or router fix
 - `nebu-verification` before claiming success
+- `nebu-improve` when the codebase needs a structured audit or refactoring pass
 
 ## Avoid
 
-- big-bang rewrites when an incremental change will do
-- speculative abstractions or future-proofing theater
-- repeated approval pauses during obvious execution
-- leaving small in-scope paper cuts behind when they are cheap to fix safely
+- Big-bang rewrites when an incremental change will do
+- Speculative abstractions or future-proofing theater
+- Repeated approval pauses during obvious execution
+- Leaving small in-scope paper cuts behind when they are cheap to fix safely
+- Re-reading the same files without learning anything new
+- Delegating tightly coupled changes that need shared judgment
+- Treating process as a substitute for thinking

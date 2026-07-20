@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <code>17 skills</code>
+  <code>10 skills</code>
   <code>1 router plugin</code>
   <code>3 platforms</code>
   <code>review + verification</code>
@@ -169,34 +169,27 @@ All managed workflow skills use the `nebu-` prefix for predictable routing and e
 
 | Stage | Skills | Purpose |
 | --- | --- | --- |
-| Start | `nebu-kickoff`, `nebu-brainstorming`, `nebu-planning` | clarify fuzzy work before it gets expensive |
-| Execute | `nebu-kaizen`, `nebu-implementation`, `nebu-debugging`, `nebu-refactoring` | move code forward with small coherent loops |
-| Validate | `nebu-code-review`, `nebu-verification` | review the diff and prove the claim proportionally |
-| Improve | `nebu-skill-improvement`, `nebu-github-issues`, `nebu-skill-finder` | capture reusable workflow fixes and adopt stronger stack-specific help |
-| Coordinate | `nebu-agent-workflows`, `nebu-workspace-wrapup`, `nebu-using-nebu-skills`, `nebu-writing-nebu-skills` | route work, finish cleanly, and keep the skill system healthy |
+| Start | `nebu-kickoff` | clarify fuzzy work before it gets expensive (brainstorming + scoping + planning) |
+| Execute | `nebu-kaizen`, `nebu-debugging` | move code forward with small coherent loops |
+| Validate | `nebu-code-review`, `nebu-verification` | review the diff and prove the claim (includes workspace wrap-up) |
+| Improve | `nebu-improve`, `nebu-github-issues` | audit, refactor, track issues |
+| Coordinate | `nebu-agent-workflows`, `nebu-writing-nebu-skills` | route work, finish cleanly, keep the skill system healthy |
 | Product | `nebu-ui-ux` | push interface work beyond bland default SaaS output |
 
 ### Full Roster
 
-| Skill | Purpose |
-| --- | --- |
-| `nebu-kaizen` | Small, safe iterative software work |
-| `nebu-brainstorming` | Early-stage idea shaping |
-| `nebu-kickoff` | Clarifying ambiguous work |
-| `nebu-planning` | Multi-phase execution planning |
-| `nebu-implementation` | Structured implementation flow |
-| `nebu-debugging` | Root-cause investigation |
-| `nebu-code-review` | Engineering review passes |
-| `nebu-github-issues` | Structured issue management |
-| `nebu-verification` | Validation before claiming completion |
-| `nebu-refactoring` | Cleanup and simplification |
-| `nebu-ui-ux` | UI and UX implementation support |
-| `nebu-agent-workflows` | Multi-agent coordination |
-| `nebu-skill-improvement` | Workflow improvement tracking |
-| `nebu-skill-finder` | Adopt community skills from `github/awesome-copilot` for the active stack with a self-contained runtime bundle |
-| `nebu-workspace-wrapup` | Workspace cleanup and handoff |
-| `nebu-using-nebu-skills` | Skill discovery guidance |
-| `nebu-writing-nebu-skills` | Skill authoring support |
+| Skill | Tier | Purpose |
+| --- | --- | --- |
+| `nebu-kaizen` | standard | Default baseline: small, safe iterative software work (includes implementation mode selection) |
+| `nebu-kickoff` | standard | Pre-execution: design exploration, scope clarification, and multi-phase planning |
+| `nebu-debugging` | standard | Root-cause investigation |
+| `nebu-code-review` | standard | Engineering review passes |
+| `nebu-verification` | standard | Validation + workspace wrap-up before claiming completion |
+| `nebu-improve` | heavy | Audit-driven improvement + focused refactoring |
+| `nebu-github-issues` | light | Structured issue management |
+| `nebu-ui-ux` | heavy | UI and UX implementation support |
+| `nebu-agent-workflows` | light | Multi-agent coordination + release chores |
+| `nebu-writing-nebu-skills` | standard | Skill authoring + workflow improvement tracking |
 
 ---
 
@@ -218,16 +211,22 @@ The pack favors fast trustworthy checks, then proportional review and verificati
 
 ## Router
 
-`plugins/nebu-skills-router.js` reads installed skills, scores them against user intent, and injects lightweight routing hints into the system prompt.
+`plugins/nebu-skills-router.js` uses a deterministic cascade: signal phrases are checked in priority order and the first match wins. No scoring, no ambiguity.
 
-Core behavior:
+Cascade order:
 
-- reads YAML frontmatter from source skills
-- scores against `name`, `description`, and `triggers`
-- applies the `default: true` baseline when no stronger skill is clearly ahead
-- tracks code edits so `nebu-code-review` can be nudged before a done claim
-- keeps `nebu-verification` close to review in completion-oriented turns
-- keeps `nebu-skill-improvement` visible when sessions expose reusable workflow friction
+1. Bug/error → `nebu-debugging`
+2. Audit/refactor/improve → `nebu-improve`
+3. UI/UX → `nebu-ui-ux`
+4. GitHub issue → `nebu-github-issues`
+5. Multi-agent/release chores → `nebu-agent-workflows`
+6. Skill writing/improvement → `nebu-writing-nebu-skills`
+7. Code edited + done/ready → `nebu-code-review`
+8. Done/ready/handoff → `nebu-verification`
+9. Ambiguous/planning → `nebu-kickoff`
+10. Default → `nebu-kaizen`
+
+Session state tracks code edits so code-review activates when completion signals follow code changes.
 
 ### Cost-aware execution profile
 
@@ -236,8 +235,8 @@ Two optional frontmatter fields let a skill declare how expensive its default fl
 | `execution_tier` | Suggested `agentTier` | When to use | Example |
 | --- | --- | --- | --- |
 | `light` | `mini` | bounded, mechanical, single-pass work | `nebu-github-issues` |
-| `standard` (default) | `default` | normal judgment-heavy work | `nebu-kaizen`, `nebu-implementation` |
-| `heavy` | `high` | broad or multi-part work, e.g. a full codebase audit | `nebu-improve` |
+| `standard` (default) | `default` | normal judgment-heavy work | `nebu-kaizen`, `nebu-kickoff`, `nebu-code-review`, `nebu-debugging`, `nebu-verification`, `nebu-writing-nebu-skills` |
+| `heavy` | `high` | broad or multi-part work, e.g. a full codebase audit or complex UI design | `nebu-improve`, `nebu-ui-ux` |
 | `deep` | `xhigh` | analysis-heavy or architectural work | — |
 
 `delegation_default` (`auto` / `prefer-subagent` / `owner-only`) hints whether the work should default to a subagent when the host supports one. Both fields are read by `buildExecutionProfile` in `core/router-core.js`, which also upgrades the tier when the prompt itself signals light or heavy/deep work (e.g. "version bump" vs. "cross-repo migration"), regardless of which skill matched.

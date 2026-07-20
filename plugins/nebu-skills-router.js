@@ -1,19 +1,12 @@
 const path = require("node:path")
 const {
   CODE_EDIT_TOOL_IDS,
-  CODE_REVIEW_SKILL,
   DEFAULT_MAX_HINTS,
   DEFAULT_MAX_LISTED_SKILLS,
-  applyExecutionRouting,
-  applyKickoffRouting,
-  buildExecutionProfile,
-  IMPROVEMENT_SKILL,
-  VERIFICATION_SKILL,
-  WRAPUP_SKILL,
-  applyBaselineRouting,
-  applySessionAwareRouting,
-  applyImprovementRouting,
-  findMatches,
+  SKILL_CODE_REVIEW,
+  SKILL_VERIFICATION,
+  SKILL_WRITING,
+  cascadeRoute,
   getSessionState,
   loadSkills,
   setSessionState,
@@ -21,40 +14,29 @@ const {
   unique,
 } = require("../core/router-core")
 
-// Normalize tool identifiers from the different hook payload shapes the host may send.
+// Normalize tool identifiers from different hook payload shapes.
 function resolveToolID(input) {
   const toolID = input?.toolID || input?.tool
   return typeof toolID === "string" ? toolID.trim() : ""
 }
 
-// Resolve the invoked skill name from the possible input and output payload locations.
+// Resolve the invoked skill name from possible input and output payload locations.
 function resolveInvokedSkillName(input, output) {
   const candidates = [
-    input?.name,
-    input?.skill,
-    input?.args?.name,
-    input?.args?.skill,
-    input?.arguments?.name,
-    input?.arguments?.skill,
-    output?.args?.name,
-    output?.args?.skill,
-    output?.arguments?.name,
-    output?.arguments?.skill,
+    input?.name, input?.skill, input?.args?.name, input?.args?.skill,
+    input?.arguments?.name, input?.arguments?.skill,
+    output?.args?.name, output?.args?.skill,
+    output?.arguments?.name, output?.arguments?.skill,
   ]
-
   for (const candidate of candidates) {
-    if (typeof candidate === "string" && candidate.trim()) {
-      return candidate.trim()
-    }
+    if (typeof candidate === "string" && candidate.trim()) return candidate.trim()
   }
-
   return ""
 }
 
 // Join text parts from chat output into the plain text query used for routing.
 function readTextParts(parts) {
   if (!Array.isArray(parts)) return ""
-
   return parts
     .filter((part) => part && part.type === "text" && typeof part.text === "string")
     .map((part) => part.text)
@@ -62,7 +44,7 @@ function readTextParts(parts) {
     .trim()
 }
 
-// Build the OpenCode router plugin around the shared scoring and session helpers.
+// Build the OpenCode router plugin around the deterministic cascade router.
 async function nebuSkillsRouterPlugin(_input, options = {}) {
   const configuredPaths = Array.isArray(options.paths) ? options.paths : []
   const preferredSkillPaths = unique([
@@ -70,7 +52,6 @@ async function nebuSkillsRouterPlugin(_input, options = {}) {
     ...configuredPaths,
   ])
   const discoveredSkills = await loadSkills(preferredSkillPaths)
-  const maxHints = Number.isInteger(options.maxHints) ? options.maxHints : DEFAULT_MAX_HINTS
   const maxListedSkills = Number.isInteger(options.maxListedSkills)
     ? options.maxListedSkills
     : DEFAULT_MAX_LISTED_SKILLS
@@ -88,39 +69,7 @@ async function nebuSkillsRouterPlugin(_input, options = {}) {
       if (!text) return
 
       const currentState = getSessionState(sessionStateBySession, input.sessionID)
-      const kickoffAwareMatches = applyKickoffRouting(
-        text,
-        findMatches(text, discoveredSkills, maxHints),
-        discoveredSkills,
-        maxHints,
-      )
-      const reviewAwareMatches = applySessionAwareRouting(
-        text,
-        kickoffAwareMatches,
-        discoveredSkills,
-        currentState.needsCodeReview,
-        maxHints,
-      )
-      const improvementAwareMatches = applyImprovementRouting(
-        text,
-        reviewAwareMatches,
-        discoveredSkills,
-        currentState.shouldCaptureImprovement,
-        maxHints,
-      )
-      const executionAwareMatches = applyExecutionRouting(
-        text,
-        improvementAwareMatches,
-        discoveredSkills,
-        maxHints,
-      )
-      const matchedSkills = applyBaselineRouting(
-        text,
-        executionAwareMatches,
-        discoveredSkills,
-        maxHints,
-      )
-      const executionProfile = buildExecutionProfile(text, matchedSkills)
+      const { matchedSkills, executionProfile } = cascadeRoute(text, discoveredSkills, currentState)
 
       setSessionState(sessionStateBySession, input.sessionID, {
         matchedSkills,
@@ -129,15 +78,12 @@ async function nebuSkillsRouterPlugin(_input, options = {}) {
     },
     "tool.execute.before": async (input) => {
       if (!input.sessionID) return
-
       const toolID = resolveToolID(input)
       if (!CODE_EDIT_TOOL_IDS.has(toolID)) return
-
       setSessionState(sessionStateBySession, input.sessionID, { needsCodeReview: true })
     },
     "tool.execute.after": async (input, output) => {
       if (!input.sessionID) return
-
       const toolID = resolveToolID(input)
 
       if (CODE_EDIT_TOOL_IDS.has(toolID)) {
@@ -148,7 +94,7 @@ async function nebuSkillsRouterPlugin(_input, options = {}) {
       if (toolID !== "skill") return
 
       const invokedSkillName = resolveInvokedSkillName(input, output)
-      if (invokedSkillName === CODE_REVIEW_SKILL) {
+      if (invokedSkillName === SKILL_CODE_REVIEW) {
         setSessionState(sessionStateBySession, input.sessionID, {
           needsCodeReview: false,
           shouldCaptureImprovement: true,
@@ -156,30 +102,37 @@ async function nebuSkillsRouterPlugin(_input, options = {}) {
         return
       }
 
-      if (invokedSkillName === WRAPUP_SKILL || invokedSkillName === VERIFICATION_SKILL) {
+      if (invokedSkillName === SKILL_VERIFICATION) {
         setSessionState(sessionStateBySession, input.sessionID, { shouldCaptureImprovement: true })
         return
       }
 
-      if (invokedSkillName !== IMPROVEMENT_SKILL) return
+      if (invokedSkillName !== SKILL_WRITING) return
 
       setSessionState(sessionStateBySession, input.sessionID, { shouldCaptureImprovement: false })
     },
     "experimental.chat.system.transform": async (input, output) => {
       const sessionState = getSessionState(sessionStateBySession, input.sessionID)
-      const matchedSkills = sessionState.matchedSkills
+      const matchedSkills = sessionState.matchedSkills || []
       const executionProfile = sessionState.executionProfile
-      // Keep the injected guidance compact so it nudges routing without drowning the system prompt.
+
       const lines = [
-        "Skill routing:",
-        "- At the start of a task, select the best matching skill immediately instead of waiting for a manual trigger when the fit is clear.",
-        "- For concrete executable work, bias early toward `nebu-kaizen` and combine it with a more specific nebu skill when needed.",
-        "- For ambiguous, cross-cutting, or behavior-changing starts, bias early toward `nebu-kickoff` so scope and success criteria get clarified before execution.",
-        "- Cost-aware default: bounded mechanical chores such as version bumps, changelog edits, release notes, and release-prep updates should start with a cheap small/mini subagent when the host supports it.",
-        "- Escalate from mini to default/high/xhigh only when scope expands, the task is analysis-heavy, or cheap-first validation fails.",
+        "Skill routing (cascade, first match wins):",
+        "- GitHub issues → nebu-github-issues",
+        "- Debug/bug/error → nebu-debugging",
+        "- Audit/refactor/improve → nebu-improve",
+        "- UI/UX design → nebu-ui-ux",
+        "- Multi-agent/release chores → nebu-agent-workflows",
+        "- Skill writing/improvement → nebu-writing-nebu-skills",
+        "- Explicit review request → nebu-code-review",
+        "- Code edited + done/ready → nebu-code-review",
+        "- Done/ready/handoff → nebu-verification",
+        "- Ambiguous/planning → nebu-kickoff",
+        "- Everything else → nebu-kaizen (default)",
+        "- At task start, select the best matching skill immediately instead of waiting for a manual trigger.",
         "- Prefer the `skill` tool at task start when a request clearly matches an installed nebu workflow skill.",
-        "- When the session exposed a reusable workflow gap, consider `nebu-skill-improvement` before ending cold.",
-        "- This router only suggests skills and should coexist cleanly with other plugins, including nebu-ctx.",
+        "- Cost-aware: bounded mechanical chores (version bumps, changelogs, release notes) start with cheap mini subagent.",
+        "- Escalate from mini to default/high/xhigh only when scope expands or cheap-first validation fails.",
       ]
 
       if (skillPreview) {
@@ -188,16 +141,13 @@ async function nebuSkillsRouterPlugin(_input, options = {}) {
 
       if (sessionState.needsCodeReview) {
         lines.push(
-          "- Code was edited in this session. Before `nebu-verification` or a done/handoff claim, treat `nebu-code-review` as the default next skill unless the diff is truly tiny and a self-review is enough.",
-        )
-        lines.push(
-          "- If the user says `done`, `ready`, `finished`, `handoff`, or Dutch equivalents like `klaar`, bias routing toward `nebu-code-review` before `nebu-verification`.",
+          "- Code was edited in this session. Before verification or a done/handoff claim, treat `nebu-code-review` as the default next skill unless the diff is truly tiny and a self-review is enough.",
         )
       }
 
       if (sessionState.shouldCaptureImprovement) {
         lines.push(
-          "- Review, verification, or wrap-up happened in this session. Before ending cold, consider whether a reusable workflow gap was exposed and route toward `nebu-skill-improvement` when there is a concrete improvement to capture.",
+          "- Review or verification happened in this session. Before ending cold, consider whether a reusable workflow gap was exposed and route toward `nebu-writing-nebu-skills` when there is a concrete improvement to capture.",
         )
       }
 
@@ -219,7 +169,6 @@ async function nebuSkillsRouterPlugin(_input, options = {}) {
     },
     "tool.definition": async (input, output) => {
       if (resolveToolID(input) !== "skill" || !skillPreview) return
-
       output.description = `${output.description} Prefer this tool when the request matches an installed nebu workflow skill. Installed nebu-skills: ${skillPreview}`
     },
   }

@@ -32,7 +32,7 @@ Turn concrete context into a real GitHub issue quickly.
 
 - `nebu-kickoff` when the problem statement or scope is still unclear
 - `nebu-code-review` when review findings should become follow-up issues
-- `nebu-skill-improvement` when the issue is about improving reusable agent workflow or skill behavior
+- `nebu-writing-nebu-skills` when the issue is about improving reusable agent workflow or skill behavior
 
 ## Avoid
 
