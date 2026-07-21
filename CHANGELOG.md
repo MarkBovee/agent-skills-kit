@@ -4,6 +4,12 @@ All notable changes to `nebu-skills` live here.
 
 Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` form.
 
+## [0.3.6] - 2026-07-21
+
+### Changed
+
+- **skills/nebu-agent-workflows/SKILL.md** aangescherpt: default-delegate reflex, partial/blocked/timeout contract, stuck recovery. Overlap verwijderd, 124→106 lines strakker. (`## Good fit`, `## Context retention`, `### Output contract`, `### Concrete flows`)
+
 ## [0.3.5] - 2026-07-21
 
 ### Changed

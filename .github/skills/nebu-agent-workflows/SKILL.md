@@ -4,37 +4,33 @@ description: "Use when coordinating multi-agent work, parallel execution, task h
 ---
 # Nebu Agent Workflows
 
-Coordinate multiple agents only when parallel work will actually help.
-
 ## Good fit
 
-- the task splits into independent parts
-- one agent can research while another implements
-- one branch of work is blocked on a slow command or external wait
-- a handoff between sessions or terminals is already happening
-- shared context would prevent duplicate work
-- the work is a bounded release chore such as a version bump, changelog edit, or release-notes pass
+Default to delegating auxiliary work. Spawn subagents freely; keep only what needs to persist in main context.
+
+- **any auxiliary work (default)** — grep, review, research, isolated edit
+- the work splits into independent parts
+- one branch is blocked on a slow command or external wait
+- a handoff between sessions is already happening
+- bounded release chore (version bump, changelog, release notes)
 
 ## Not a good fit
 
 - the steps are tightly coupled and need one shared thread of judgment
-- the task is small enough that handoff cost outweighs the gain
 - the next step depends directly on the exact output of the previous step
 - the reasoning or intermediate state is needed for the next step — losing it means re-deriving
 
 ## Context retention
 
-Not all work belongs in the main thread. Classify before delegating:
+Default to delegate. Only keep in main when the reasoning must survive — structured output never needs to.
 
-| Keep in main context | Delegate to subagent |
+| Keep in main | Delegate |
 |---|---|
-| Architecture decisions, tradeoffs | grep / locate / map structure |
-| Reasoning chains (>2 steps) | Isolated edit with fixed spec |
-| Code that still needs to change | Review of bounded scope |
+| Architecture / tradeoffs | grep, locate, map |
+| Reasoning chains (2+ steps) | Isolated edit, fixed spec |
+| Code that still changes | Bounded review |
 | Cross-cutting refactors | Research → summary |
-| Bug analysis needing full context | Mechanical changes (rename, lint, format) |
-
-Decision rule: *if the subagent's output fits in a structured table or a few lines of findings, delegate. If the reasoning path is needed for the next step, keep in main.*
+| Bug analysis needing full context | Mechanical rename, lint, format |
 
 ## Core lifecycle
 
@@ -48,10 +44,9 @@ Decision rule: *if the subagent's output fits in a structured table or a few lin
 
 ## Cheap-first defaults
 
-- When the host supports subagents, start bounded mechanical chores on a small or mini subagent first.
-- When the delegation surface exposes a model parameter, pick the smallest or cheapest available model class for mechanical work and reserve the top-capability model for judgment-heavy work.
+- Pick the smallest capable model for mechanical work; reserve top model for judgment-heavy work.
 - Keep the owner thread responsible for merge, review, validation, and final communication.
-- Escalate to default, high, or xhigh only when scope expands, validation fails, or the task stops being mechanical.
+- Escalate to a larger model only when scope expands, validation fails, or the task stops being mechanical.
 
 ## Practical pattern
 
@@ -66,10 +61,12 @@ Decision rule: *if the subagent's output fits in a structured table or a few lin
 
 What a subagent returns to the main thread:
 
-- **Structured findings** — one line per finding, or a table/list for multiple results. No narrative, no reasoning trail.
-- **Empty result** — `No match.` / `No issues.` / `Out of scope.` No "I also checked X."
-- **Blockers** — what prevented completion, in one sentence.
-- **Keep only the result.** The subagent's journey, dead ends, and intermediate state stay in its context, not yours.
+- **Structured findings** — one line per finding, or a table/list. No narrative, no reasoning trail.
+- **Empty result** — `No match.` / `No issues.` / `Out of scope.`
+- **Blockers** — `[blocked]` + one-line reason. Do not spin; return immediately.
+- **Partial result** — `[partial]` + findings so far. Do not wait for 100%.
+- **Timeout every call** — 30s grep/locate, 60s review, 120s research. If the host supports timeout parameters, use them.
+- **Main never waits forever** — after timeout, use what came back or re-delegate with narrower scope. Never retry unchanged.
 
 ### Concrete flows
 
@@ -79,11 +76,7 @@ What a subagent returns to the main thread:
 
 **Research→summary flow:** Investigator explores → returns only the conclusion and key evidence (2-5 lines) → main thread uses that for the next decision. No exploration log kept.
 
-## When shared context is available
-
-- Prefer the host's public agent, skill, or context surfaces for coordination and state sharing.
-- Use shared context to avoid re-reading the same files across sessions.
-- Treat shared transport as support for clear ownership, not as a substitute for it.
+**Stuck recovery:** `[blocked]`/`[partial]`/timeout → main narrows scope, re-delegates. Never retry unchanged. Usable partials stay, no retry.
 
 ## Use with
 
@@ -92,9 +85,7 @@ What a subagent returns to the main thread:
 
 ## Avoid
 
-- spawning agents just because the tool exists
 - burning a high-cost agent on a version bump, changelog tweak, or release-notes draft with a clean scope
 - fuzzy handoffs with no owner, no scope, or no success criteria
 - parallel edits in the same files without an explicit merge plan
-- claiming the task is finished while unread messages or blockers remain
-- keeping subagent reasoning verbatim when only the structured result matters — this defeats the purpose of delegation
+- keeping subagent reasoning verbatim — defeats the purpose of delegation
