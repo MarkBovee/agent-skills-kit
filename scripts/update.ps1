@@ -50,17 +50,6 @@ try {
         "Managed checkout already on latest stable $currentVersion ($selectedRef)"
     }
 
-    # Refresh the cached awesome-copilot index when it is stale so nebu-skill-finder
-    # has up-to-date candidates without doing network work during a normal skill run.
-    $node = Get-Command node -ErrorAction SilentlyContinue
-    $fetchScript = Join-Path $installSourceRoot "scripts/fetch-community-skills-index.js"
-    if ($node -and (Test-Path -LiteralPath $fetchScript)) {
-        & $node.Source $fetchScript
-        if ($LASTEXITCODE -ne 0) {
-            Write-Warning "community-skills index refresh failed; continuing with cached data."
-        }
-    }
-
     & (Join-Path $installSourceRoot "scripts\install.ps1")
 }
 finally {

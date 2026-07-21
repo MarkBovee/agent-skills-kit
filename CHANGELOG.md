@@ -4,6 +4,21 @@ All notable changes to `nebu-skills` live here.
 
 Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` form.
 
+## [0.3.4] - 2026-07-21
+
+### Removed
+
+- **nebu-skill-finder** verwijderd. `core/community-skills.js`, `core/community-skills-index.json` (257KB), `scripts/fetch-community-skills-index.js` en alle runtime bundling verwijdert. AI agent context niet langer belast met ~290KB aan community index data.
+
+### Changed
+
+- **AGENTS.md gecomprimeerd naar caveman format.** ~60% korter (8KB→3.3KB). Minder tokens per sessie.
+- **AGENTS.md coding-standards inline vervangen met verwijzing naar `rules/coding-standards.md`.** Geen dubbele content meer.
+- **Router hints gecomprimeerd.** `buildRoutingLines()` output ~70% korter (~1KB→~300B per prompt injectie).
+- **router-core.js + plugin gecomprimeerd.** router-core 16KB→13.5KB, plugin 6KB→4.9KB. Total ~8KB besparing in verplichte context per sessie.
+- **update.sh/update.ps1 opgeschoond.** Geen community-skills index refresh meer tijdens update.
+- **README opgeschoond.** Platform matrix, maintenance, repo map zonder skill-finder references.
+
 ## [0.3.3] - 2026-07-21
 
 ### Fixed

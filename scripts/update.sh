@@ -48,11 +48,5 @@ else
   echo "Managed checkout already on latest stable $CURRENT_VERSION ($SELECTED_REF)"
 fi
 
-# Refresh the cached awesome-copilot index when it is stale so nebu-skill-finder
-# has up-to-date candidates without doing network work during a normal skill run.
-if command -v node >/dev/null 2>&1 && [ -f "$INSTALL_SOURCE_ROOT/scripts/fetch-community-skills-index.js" ]; then
-  node "$INSTALL_SOURCE_ROOT/scripts/fetch-community-skills-index.js" || echo "Warning: community-skills index refresh failed; continuing with cached data." >&2
-fi
-
 # Delegate the actual install step through bash so execution does not depend on file mode bits.
 bash "$INSTALL_SOURCE_ROOT/scripts/install.sh"
