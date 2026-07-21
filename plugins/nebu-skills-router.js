@@ -149,17 +149,17 @@ async function nebuSkillsRouterPlugin(_input, options = {}) {
         "!!! CRITICAL: You MUST load a skill before starting work. Call `skill` with the name of the best-matching workflow skill from the list below BEFORE writing any code or running any tool. This is mandatory, not optional. !!!",
         "",
         "Skill routing (cascade, first match wins):",
-        "- GitHub issues → nebu-github-issues",
-        "- Debug/bug/error → nebu-debugging",
-        "- Audit/refactor/improve → nebu-improve",
-        "- UI/UX design → nebu-ui-ux",
-        "- Multi-agent/release chores → nebu-agent-workflows",
-        "- Skill writing/improvement → nebu-writing-nebu-skills",
-        "- Explicit review request → nebu-code-review",
-        "- Code edited + done/ready → nebu-code-review",
-        "- Done/ready/handoff → nebu-verification",
-        "- Ambiguous/planning → nebu-kickoff",
-        "- Everything else → nebu-kaizen (default)",
+        "- GitHub issues → github-issues",
+        "- Debug/bug/error → debugging",
+        "- Audit/refactor/improve → improve",
+        "- UI/UX design → ui-ux",
+        "- Multi-agent/release chores → agent-workflows",
+        "- Skill writing/improvement → writing-nebu-skills",
+        "- Explicit review request → code-review",
+        "- Code edited + done/ready → code-review",
+        "- Done/ready/handoff → verification",
+        "- Ambiguous/planning → kickoff",
+        "- Everything else → kaizen (default)",
         "- Best match is listed below under 'Best matches for this request'. If none listed, use the cascade above to pick.",
         "- Cost-aware: bounded mechanical chores (version bumps, changelogs, release notes) start with cheap mini subagent.",
         "- Escalate from mini to default/high/xhigh only when scope expands or cheap-first validation fails.",
@@ -171,13 +171,13 @@ async function nebuSkillsRouterPlugin(_input, options = {}) {
 
       if (sessionState.needsCodeReview) {
         lines.push(
-          "- Code was edited in this session. Before verification or a done/handoff claim, treat `nebu-code-review` as the default next skill unless the diff is truly tiny and a self-review is enough.",
+          "- Code was edited in this session. Before verification or a done/handoff claim, treat `code-review` as the default next skill unless the diff is truly tiny and a self-review is enough.",
         )
       }
 
       if (sessionState.shouldCaptureImprovement) {
         lines.push(
-          "- Review or verification happened in this session. Before ending cold, consider whether a reusable workflow gap was exposed and route toward `nebu-writing-nebu-skills` when there is a concrete improvement to capture.",
+          "- Review or verification happened in this session. Before ending cold, consider whether a reusable workflow gap was exposed and route toward `writing-nebu-skills` when there is a concrete improvement to capture.",
         )
       }
 

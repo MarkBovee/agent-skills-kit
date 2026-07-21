@@ -1,5 +1,5 @@
 ---
-name: nebu-kaizen
+name: kaizen
 description: "Default baseline skill for normal software work: small safe iterations, built-in validation, no unnecessary pauses between clear next steps. Includes mode selection (direct, batch, delegate) and cheap-first escalation for bounded mechanical chores."
 default: true
 execution_tier: standard
@@ -72,19 +72,19 @@ Default to steady progress: inspect, create, test, review, continue. If the next
 2. Ask only when the answer changes scope, product behavior, architecture, safety, or acceptance.
 3. Prefer preventing mistakes early with types, validation, guards, and simpler control flow.
 4. Follow existing repo patterns before inventing new ones. Build only what the current requirement needs.
-5. After code changes, do a proportional review pass. Load `nebu-code-review` when the diff is meaningful, subtle, or risky.
-6. When work reveals reusable workflow friction, capture it with `nebu-writing-nebu-skills`.
+5. After code changes, do a proportional review pass. Load `code-review` when the diff is meaningful, subtle, or risky.
+6. When work reveals reusable workflow friction, capture it with `writing-nebu-skills`.
 7. Reuse the repo's existing durable planning or spec system; do not create a parallel doc tree.
 8. Delegate only when the work is parallel, repetitive, or context-heavy.
 
 ## Use with
 
-- `nebu-kickoff` for ambiguity that could change the implementation
-- `nebu-ui-ux` for interface work that needs visual direction and screenshot-based review
-- `nebu-code-review` after meaningful code edits and before handoff
-- `nebu-debugging` for bugs, failing tests, and broken builds
-- `nebu-verification` before claiming success
-- `nebu-improve` when the codebase needs a structured audit or refactoring pass
+- `kickoff` for ambiguity that could change the implementation
+- `ui-ux` for interface work that needs visual direction and screenshot-based review
+- `code-review` after meaningful code edits and before handoff
+- `debugging` for bugs, failing tests, and broken builds
+- `verification` before claiming success
+- `improve` when the codebase needs a structured audit or refactoring pass
 
 ## Avoid
 

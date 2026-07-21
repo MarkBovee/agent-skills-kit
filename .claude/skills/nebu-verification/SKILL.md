@@ -1,5 +1,5 @@
 ---
-name: "nebu-verification"
+name: "verification"
 description: "Use when about to claim something works, is fixed, or ready to hand off — and when a task changed one or more repos and needs intentional cleanup before stopping."
 when_to_use: "Common triggers: verify, verifiëren, prove, controleren of het werkt, bewijzen dat het werkt, claim success, done, finished, ready, handoff, klaar, gereed, wrap up, hand off, task complete, finishing work, workspace done, afronden, afgerond, inleveren."
 ---
@@ -36,9 +36,9 @@ Close out multi-repo work: verify integrated state, leave the workspace intentio
 
 ## Use with
 
-- `nebu-code-review` before verification when meaningful code changed
-- `nebu-agent-workflows` when multiple agents or terminals touched different repos
-- `nebu-writing-nebu-skills` when the session uncovered reusable process or routing gaps
+- `code-review` before verification when meaningful code changed
+- `agent-workflows` when multiple agents or terminals touched different repos
+- `writing-nebu-skills` when the session uncovered reusable process or routing gaps
 
 ## Avoid
 

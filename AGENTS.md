@@ -64,8 +64,8 @@ Keep skills short (30-90 lines). Prefer this shape:
 ### Naming
 
 - Workflow skills: `nebu-<topic>` (e.g. `nebu-debugging`, `nebu-kaizen`)
-- Meta/router skills: `nebu-writing-nebu-skills`
-- Utility skills: prefer the `nebu-` prefix too (e.g. `nebu-github-issues`)
+- Meta/router skills: `writing-nebu-skills`
+- Utility skills: prefer the `nebu-` prefix too (e.g. `github-issues`)
 
 ### Cross-references
 
@@ -75,7 +75,7 @@ When one skill naturally leads into another, add a `## Use with` section with on
 
 - Skills are self-contained — each skill must be usable without loading others.
 - No repo-specific file paths or branded artifact trees in generic skills.
-- No external code dependencies unless the skill explicitly documents them (see `nebu-ui-ux`).
+- No external code dependencies unless the skill explicitly documents them (see `ui-ux`).
 - Support files (scripts, data) belong in the skill's own directory.
 
 ## Router plugin

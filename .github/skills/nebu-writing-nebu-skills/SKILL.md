@@ -1,5 +1,5 @@
 ---
-name: "nebu-writing-nebu-skills"
+name: "writing-nebu-skills"
 description: "Use when creating or revising skills, or when agent behavior reveals a reusable workflow improvement, routing gap, or missing guardrail that should become a skill, plugin, or prompt-pack follow-up. Common triggers: create skill, revise skill, skill design, trigger-focused, write skills, improve skills, skill improvement, skill gap, workflow improvement, routing gap, missing guardrail, prompt pack improvement, reusable improvement, agent missed, auto improvement."
 ---
 # Writing Nebu Skills
@@ -49,9 +49,9 @@ When agent behavior reveals a reusable gap:
 
 ## Use with
 
-- `nebu-github-issues` when improvement should become tracked follow-up
-- `nebu-code-review` when improvement was discovered during review
-- `nebu-verification` when session is closing and reusable learning should not get lost
+- `github-issues` when improvement should become tracked follow-up
+- `code-review` when improvement was discovered during review
+- `verification` when session is closing and reusable learning should not get lost
 
 ## Avoid
 

@@ -1,5 +1,5 @@
 ---
-name: "nebu-ui-ux"
+name: "ui-ux"
 description: "Use when the request is to design, redesign, polish, review, or implement UI/UX for web or mobile interfaces, landing pages, dashboards, flows, or visual systems. Common triggers: design a ui, redesign this page, improve ux, polish the frontend, landing page design, dashboard design, mobile app ui, design system, ui review, redesign the frontend, improve this page."
 ---
 # Nebu UI/UX
@@ -101,6 +101,6 @@ Use the helper as input to judgment, not as a substitute for it.
 
 ## Use with
 
-- `nebu-kaizen` for steady inspect-change-review loops during UI work
-- `nebu-code-review` after meaningful frontend diffs
-- `nebu-verification` before claiming the UI is done
+- `kaizen` for steady inspect-change-review loops during UI work
+- `code-review` after meaningful frontend diffs
+- `verification` before claiming the UI is done

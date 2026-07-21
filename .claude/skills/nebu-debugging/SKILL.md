@@ -1,5 +1,5 @@
 ---
-name: "nebu-debugging"
+name: "debugging"
 description: "Use when a bug, failing test, or broken build is not already explained by a clear local mistake, or when a first fix did not work."
 when_to_use: "Common triggers: bug, failing test, broken build, debug, debuggen, error, crash, stack trace, not working, does not work, broke, start debugging, start investigating, fout opsporen."
 ---
@@ -32,7 +32,7 @@ Fix obvious one-line mistakes directly. For everything else, earn the fix by nar
 
 ## Use with
 
-- `nebu-verification` to prove the bug path is fixed with focused fresh evidence
+- `verification` to prove the bug path is fixed with focused fresh evidence
 
 ## Avoid
 

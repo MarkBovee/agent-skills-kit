@@ -1,5 +1,5 @@
 ---
-name: "nebu-kickoff"
+name: "kickoff"
 description: "Use when the goal, constraints, or success criteria are not yet crisp — from fuzzy design ideas through ambiguous scope to multi-file planning. Covers brainstorming, scoping, and execution planning in one skill. Common triggers: brainstorm, brainstormen, fuzzy idea, design tradeoff, unsure what to build, product direction, idee uitwerken, ambiguous request, unclear scope, behavior-changing work, fuzzy requirements, what should we build, wat moeten we bouwen, wat moeten we maken, best approach, how should we approach this, not sure where to start, start by clarifying, start with questions, ik weet niet waar te beginnen, hoe pakken we dit aan, plan, plannen, multi-file work, multi-phase work, migration, sequencing risk, start planning, start with a plan, werk voorplannen."
 ---
 # Nebu Kickoff
@@ -33,7 +33,7 @@ Clarify enough to avoid wrong work, then move. One skill for the full pre-execut
 
 ## Use with
 
-- `nebu-kaizen` once the path is clear and execution can begin
+- `kaizen` once the path is clear and execution can begin
 
 ## Avoid
 

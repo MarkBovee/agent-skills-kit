@@ -1,5 +1,5 @@
 ---
-name: nebu-improve
+name: improve
 description: Use when the codebase needs a structured audit, audit-driven plans, execution of those plans, or a focused refactoring/simplification pass. Covers correctness, security, performance, tech debt, migrations, DX, direction, and code cleanup in one skill.
 execution_tier: heavy
 delegation_default: prefer-subagent
@@ -39,8 +39,8 @@ Use when:
 - the user asks for a refactor, cleanup, simplification, or deduplication
 
 Skip when:
-- the problem is a single known bug (use `nebu-debugging`)
-- you only need a quick code review (use `nebu-code-review`)
+- the problem is a single known bug (use `debugging`)
+- you only need a quick code review (use `code-review`)
 
 ## Audit flow
 
@@ -79,10 +79,10 @@ Skip when:
 
 ## Use with
 
-- `nebu-kickoff` when the work scope is ambiguous
-- `nebu-code-review` for executor diffs or standalone PRs
-- `nebu-debugging` when audit finds a bug that needs tracing
-- `nebu-verification` to confirm preserved behavior or executed plans
+- `kickoff` when the work scope is ambiguous
+- `code-review` for executor diffs or standalone PRs
+- `debugging` when audit finds a bug that needs tracing
+- `verification` to confirm preserved behavior or executed plans
 
 ## Avoid
 

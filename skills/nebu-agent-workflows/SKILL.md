@@ -1,5 +1,5 @@
 ---
-name: nebu-agent-workflows
+name: agent-workflows
 description: Use when coordinating multi-agent work, parallel execution, task handoff, shared context, or clean session shutdown across multiple agents or terminals. Especially useful when the host supports subagents, hooks, or shared context.
 execution_tier: light
 delegation_default: prefer-subagent
@@ -70,8 +70,8 @@ Coordinate multiple agents only when parallel work will actually help.
 
 ## Use with
 
-- `nebu-kaizen` for the default steady-progress loop once ownership and scope are set
-- `nebu-verification` after delegated work completes, to match proof to the scope of what was delegated
+- `kaizen` for the default steady-progress loop once ownership and scope are set
+- `verification` after delegated work completes, to match proof to the scope of what was delegated
 
 ## Avoid
 

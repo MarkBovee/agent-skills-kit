@@ -1,5 +1,5 @@
 ---
-name: "nebu-code-review"
+name: "code-review"
 description: "Use when code changed and a meaningful diff is ready; fresh eyes should catch requirement gaps, regressions, or risky design mistakes before handoff or success claims. Common triggers: review, nakijken, diff, pull request, code review, fresh eyes, start reviewing, review deze wijziging, after code changes, after coding, before claiming done."
 ---
 # Nebu Code Review
@@ -36,9 +36,9 @@ This is a mandatory second pass after **every** code edit. Review depth scales w
 
 ## Use with
 
-- `nebu-kaizen` when the coding pass is done and the diff needs a second look
-- `nebu-verification` after review passes to confirm the claim is proven
-- `nebu-writing-nebu-skills` when review exposes a recurring miss in agent workflow
+- `kaizen` when the coding pass is done and the diff needs a second look
+- `verification` after review passes to confirm the claim is proven
+- `writing-nebu-skills` when review exposes a recurring miss in agent workflow
 
 ## Avoid
 

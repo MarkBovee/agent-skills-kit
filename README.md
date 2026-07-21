@@ -163,33 +163,33 @@ The unified installer removes old managed skill copies from editor-specific skil
 
 ## Skills
 
-All managed workflow skills use the `nebu-` prefix for predictable routing and easier debugging.
+Skills use short display names (e.g. `debugging`, `kaizen`) for easy reference. The `nebu-` prefix remains in directory names for namespace isolation.
 
 ### By Stage
 
 | Stage | Skills | Purpose |
 | --- | --- | --- |
-| Start | `nebu-kickoff` | clarify fuzzy work before it gets expensive (brainstorming + scoping + planning) |
-| Execute | `nebu-kaizen`, `nebu-debugging` | move code forward with small coherent loops |
-| Validate | `nebu-code-review`, `nebu-verification` | review the diff and prove the claim (includes workspace wrap-up) |
-| Improve | `nebu-improve`, `nebu-github-issues` | audit, refactor, track issues |
-| Coordinate | `nebu-agent-workflows`, `nebu-writing-nebu-skills` | route work, finish cleanly, keep the skill system healthy |
-| Product | `nebu-ui-ux` | push interface work beyond bland default SaaS output |
+| Start | `kickoff` | clarify fuzzy work before it gets expensive (brainstorming + scoping + planning) |
+| Execute | `kaizen`, `debugging` | move code forward with small coherent loops |
+| Validate | `code-review`, `verification` | review the diff and prove the claim (includes workspace wrap-up) |
+| Improve | `improve`, `github-issues` | audit, refactor, track issues |
+| Coordinate | `agent-workflows`, `writing-nebu-skills` | route work, finish cleanly, keep the skill system healthy |
+| Product | `ui-ux` | push interface work beyond bland default SaaS output |
 
 ### Full Roster
 
 | Skill | Tier | Purpose |
 | --- | --- | --- |
-| `nebu-kaizen` | standard | Default baseline: small, safe iterative software work (includes implementation mode selection) |
-| `nebu-kickoff` | standard | Pre-execution: design exploration, scope clarification, and multi-phase planning |
-| `nebu-debugging` | standard | Root-cause investigation |
-| `nebu-code-review` | standard | Engineering review passes |
-| `nebu-verification` | standard | Validation + workspace wrap-up before claiming completion |
-| `nebu-improve` | heavy | Audit-driven improvement + focused refactoring |
-| `nebu-github-issues` | light | Structured issue management |
-| `nebu-ui-ux` | heavy | UI and UX implementation support |
-| `nebu-agent-workflows` | light | Multi-agent coordination + release chores |
-| `nebu-writing-nebu-skills` | standard | Skill authoring + workflow improvement tracking |
+| `kaizen` | standard | Default baseline: small, safe iterative software work (includes implementation mode selection) |
+| `kickoff` | standard | Pre-execution: design exploration, scope clarification, and multi-phase planning |
+| `debugging` | standard | Root-cause investigation |
+| `code-review` | standard | Engineering review passes |
+| `verification` | standard | Validation + workspace wrap-up before claiming completion |
+| `improve` | heavy | Audit-driven improvement + focused refactoring |
+| `github-issues` | light | Structured issue management |
+| `ui-ux` | heavy | UI and UX implementation support |
+| `agent-workflows` | light | Multi-agent coordination + release chores |
+| `writing-nebu-skills` | standard | Skill authoring + workflow improvement tracking |
 
 ---
 
@@ -203,7 +203,7 @@ Default rhythm across the pack:
 4. Review the diff before claiming victory.
 5. Continue until done or blocked for real.
 
-That is why `nebu-kaizen` carries `default: true` in frontmatter. The router uses it as a baseline nudge without overriding a clearly stronger match.
+That is why `kaizen` carries `default: true` in frontmatter. The router uses it as a baseline nudge without overriding a clearly stronger match.
 
 The pack favors fast trustworthy checks, then proportional review and verification before completion claims.
 
@@ -215,16 +215,16 @@ The pack favors fast trustworthy checks, then proportional review and verificati
 
 Cascade order:
 
-1. Bug/error → `nebu-debugging`
-2. Audit/refactor/improve → `nebu-improve`
-3. UI/UX → `nebu-ui-ux`
-4. GitHub issue → `nebu-github-issues`
-5. Multi-agent/release chores → `nebu-agent-workflows`
-6. Skill writing/improvement → `nebu-writing-nebu-skills`
-7. Code edited + done/ready → `nebu-code-review`
-8. Done/ready/handoff → `nebu-verification`
-9. Ambiguous/planning → `nebu-kickoff`
-10. Default → `nebu-kaizen`
+1. Bug/error → `debugging`
+2. Audit/refactor/improve → `improve`
+3. UI/UX → `ui-ux`
+4. GitHub issue → `github-issues`
+5. Multi-agent/release chores → `agent-workflows`
+6. Skill writing/improvement → `writing-nebu-skills`
+7. Code edited + done/ready → `code-review`
+8. Done/ready/handoff → `verification`
+9. Ambiguous/planning → `kickoff`
+10. Default → `kaizen`
 
 Session state tracks code edits so code-review activates when completion signals follow code changes.
 
@@ -234,14 +234,14 @@ Two optional frontmatter fields let a skill declare how expensive its default fl
 
 | `execution_tier` | Suggested `agentTier` | When to use | Example |
 | --- | --- | --- | --- |
-| `light` | `mini` | bounded, mechanical, single-pass work | `nebu-github-issues` |
-| `standard` (default) | `default` | normal judgment-heavy work | `nebu-kaizen`, `nebu-kickoff`, `nebu-code-review`, `nebu-debugging`, `nebu-verification`, `nebu-writing-nebu-skills` |
-| `heavy` | `high` | broad or multi-part work, e.g. a full codebase audit or complex UI design | `nebu-improve`, `nebu-ui-ux` |
+| `light` | `mini` | bounded, mechanical, single-pass work | `github-issues` |
+| `standard` (default) | `default` | normal judgment-heavy work | `kaizen`, `kickoff`, `code-review`, `debugging`, `verification`, `writing-nebu-skills` |
+| `heavy` | `high` | broad or multi-part work, e.g. a full codebase audit or complex UI design | `improve`, `ui-ux` |
 | `deep` | `xhigh` | analysis-heavy or architectural work | — |
 
 `delegation_default` (`auto` / `prefer-subagent` / `owner-only`) hints whether the work should default to a subagent when the host supports one. Both fields are read by `buildExecutionProfile` in `core/router-core.js`, which also upgrades the tier when the prompt itself signals light or heavy/deep work (e.g. "version bump" vs. "cross-repo migration"), regardless of which skill matched.
 
-The result is injected as a single line, e.g. `Suggested execution profile: task=light, agent=mini, delegation=prefer-subagent, anchor=nebu-github-issues.` Treat it as a hint: pick the smallest/cheapest model or subagent class the host offers for `mini`, and escalate to `default`/`high`/`xhigh` only when scope grows or a cheap-first attempt fails. This only nudges routing — it never blocks a tool or forces delegation.
+The result is injected as a single line, e.g. `Suggested execution profile: task=light, agent=mini, delegation=prefer-subagent, anchor=github-issues.` Treat it as a hint: pick the smallest/cheapest model or subagent class the host offers for `mini`, and escalate to `default`/`high`/`xhigh` only when scope grows or a cheap-first attempt fails. This only nudges routing — it never blocks a tool or forces delegation.
 
 Hard boundaries:
 
@@ -316,7 +316,7 @@ The release-readiness check also fails when shipped install surfaces changed sin
 Issue helper for duplicate checks before filing follow-up work:
 
 ```bash
-skills/nebu-github-issues/check-existing-issue.sh "<query>" [owner/repo]
+skills/github-issues/check-existing-issue.sh "<query>" [owner/repo]
 ```
 
 <details>
@@ -406,7 +406,7 @@ scripts/check-release-readiness.js
 - Restart OpenCode after install or update.
 - Bootstrap scripts store a managed checkout in `REPO_DIR` when set. Default path is `XDG_DATA_HOME/nebu-skills` when available, otherwise `LOCALAPPDATA\nebu-skills` on PowerShell, then `~/.local/share/nebu-skills`.
 - Stable updates use the newest SemVer tag available in the managed checkout.
-- `nebu-ui-ux` includes Python scripts and CSV data for design guidance and requires Python `3.8+`.
+- `ui-ux` includes Python scripts and CSV data for design guidance and requires Python `3.8+`.
 - Installers overwrite only `nebu-skills` managed assets and preserve unrelated user customizations.
 - Installers also remove stale managed skills during reinstall or update, including skills retired from the pack.
 - The unified installer writes `.nebu-skills-install.txt` metadata in the shared `~/.agents/` root.

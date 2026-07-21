@@ -13,16 +13,16 @@ const DEFAULT_MAX_LISTED_SKILLS = 8
 const MAX_SESSION_CACHE = 100
 const CODE_EDIT_TOOL_IDS = new Set(["edit", "write", "apply_patch"])
 
-const SKILL_KAZEN = "nebu-kaizen"
-const SKILL_KICKOFF = "nebu-kickoff"
-const SKILL_CODE_REVIEW = "nebu-code-review"
-const SKILL_VERIFICATION = "nebu-verification"
-const SKILL_DEBUGGING = "nebu-debugging"
-const SKILL_IMPROVE = "nebu-improve"
-const SKILL_UI_UX = "nebu-ui-ux"
-const SKILL_GITHUB_ISSUES = "nebu-github-issues"
-const SKILL_AGENT_WORKFLOWS = "nebu-agent-workflows"
-const SKILL_WRITING = "nebu-writing-nebu-skills"
+const SKILL_KAZEN = "kaizen"
+const SKILL_KICKOFF = "kickoff"
+const SKILL_CODE_REVIEW = "code-review"
+const SKILL_VERIFICATION = "verification"
+const SKILL_DEBUGGING = "debugging"
+const SKILL_IMPROVE = "improve"
+const SKILL_UI_UX = "ui-ux"
+const SKILL_GITHUB_ISSUES = "github-issues"
+const SKILL_AGENT_WORKFLOWS = "agent-workflows"
+const SKILL_WRITING = "writing-nebu-skills"
 
 const VALID_EXECUTION_TIERS = new Set(["light", "standard", "heavy", "deep"])
 const VALID_DELEGATION_MODES = new Set(["auto", "prefer-subagent", "owner-only"])

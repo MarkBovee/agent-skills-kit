@@ -1,5 +1,5 @@
 ---
-name: nebu-kickoff
+name: kickoff
 description: Use when the goal, constraints, or success criteria are not yet crisp — from fuzzy design ideas through ambiguous scope to multi-file planning. Covers brainstorming, scoping, and execution planning in one skill.
 execution_tier: standard
 triggers:
@@ -66,7 +66,7 @@ Clarify enough to avoid wrong work, then move. One skill for the full pre-execut
 
 ## Use with
 
-- `nebu-kaizen` once the path is clear and execution can begin
+- `kaizen` once the path is clear and execution can begin
 
 ## Avoid
 

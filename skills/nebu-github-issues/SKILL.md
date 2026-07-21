@@ -1,5 +1,5 @@
 ---
-name: nebu-github-issues
+name: github-issues
 description: Use when creating a GitHub issue from a bug report, review finding, failed attempt, or requested follow-up, especially when the repo may need to be inferred from the current checkout.
 disable-model-invocation: true
 execution_tier: light
@@ -30,9 +30,9 @@ Turn concrete context into a real GitHub issue quickly.
 
 ## Use with
 
-- `nebu-kickoff` when the problem statement or scope is still unclear
-- `nebu-code-review` when review findings should become follow-up issues
-- `nebu-writing-nebu-skills` when the issue is about improving reusable agent workflow or skill behavior
+- `kickoff` when the problem statement or scope is still unclear
+- `code-review` when review findings should become follow-up issues
+- `writing-nebu-skills` when the issue is about improving reusable agent workflow or skill behavior
 
 ## Avoid
 

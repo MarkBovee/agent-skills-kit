@@ -159,9 +159,9 @@ This repository ships portable workflow skills under [.github/skills](./skills).
 
 - At the start of a task, choose the best matching skill immediately; do not wait for a manual trigger when the fit is clear.
 - Prefer these skills when the user's request clearly matches one of them instead of restating the full workflow inline.
-- Treat \`nebu-kaizen\` as the default execution baseline for normal software work and combine it with a more specific skill when needed.
-- After every code edit, always invoke \`nebu-code-review\` before claiming done or moving on — regardless of change size. The skill itself determines the review depth.
-- If review or verification exposes a reusable workflow gap, capture it with \`nebu-writing-nebu-skills\` before ending cold.
+- Treat \`kaizen\` as the default execution baseline for normal software work and combine it with a more specific skill when needed.
+- After every code edit, always invoke \`code-review\` before claiming done or moving on — regardless of change size. The skill itself determines the review depth.
+- If review or verification exposes a reusable workflow gap, capture it with \`writing-nebu-skills\` before ending cold.
 - When editing code, add concise intent comments by default; place one short comment above each function unless the repo's local convention says otherwise.
 - Keep always-on instructions compact; put reusable procedures in skills so Copilot can load them on demand.
 
@@ -180,9 +180,9 @@ function buildClaudeMd() {
     "",
     "- Prefer workflow skills under [.claude/skills](.claude/skills) when the user's request clearly matches one of them.",
     "- At the start of a task, choose the best matching skill immediately; do not wait for a manual trigger when the fit is clear.",
-    "- Treat `nebu-kaizen` as the default execution baseline for normal software work and combine it with a more specific skill when needed.",
-    "- After every code edit, always invoke `nebu-code-review` before claiming done or moving on — regardless of change size. The skill itself determines the review depth.",
-    "- If review or verification exposes a reusable workflow gap, capture it with `nebu-writing-nebu-skills` before ending cold.",
+    "- Treat `kaizen` as the default execution baseline for normal software work and combine it with a more specific skill when needed.",
+    "- After every code edit, always invoke `code-review` before claiming done or moving on — regardless of change size. The skill itself determines the review depth.",
+    "- If review or verification exposes a reusable workflow gap, capture it with `writing-nebu-skills` before ending cold.",
     "- When editing code, add concise intent comments by default; place one short comment above each function unless the repo's local convention says otherwise.",
   ].join("\n")
 }
@@ -204,11 +204,12 @@ async function exportSkills() {
     const sourceSkillPath = path.join(sourceDir, "SKILL.md")
     const sourceSkill = await fs.readFile(sourceSkillPath, "utf8")
     const frontmatter = parseFrontmatter(sourceSkill)
+    const displayName = (frontmatter.name || skillName).trim()
     const description = (frontmatter.description || "").trim()
     const triggers = getSkillTriggers(frontmatter)
     const disableModelInvocation = parseBooleanField(frontmatter["disable-model-invocation"])
 
-    skillSummaries.push({ name: skillName, description })
+    skillSummaries.push({ name: displayName, description })
 
     const copilotTarget = path.join(COPILOT_SKILLS_DIR, skillName)
     const claudeTarget = path.join(CLAUDE_SKILLS_DIR, skillName)
@@ -217,12 +218,12 @@ async function exportSkills() {
 
     await fs.writeFile(
       path.join(copilotTarget, "SKILL.md"),
-      buildCopilotSkill(skillName, description, triggers, disableModelInvocation, transformBody(sourceSkill, "copilot", skillName)),
+      buildCopilotSkill(displayName, description, triggers, disableModelInvocation, transformBody(sourceSkill, "copilot", skillName)),
       "utf8",
     )
     await fs.writeFile(
       path.join(claudeTarget, "SKILL.md"),
-      buildClaudeSkill(skillName, description, triggers, disableModelInvocation, transformBody(sourceSkill, "claude", skillName)),
+      buildClaudeSkill(displayName, description, triggers, disableModelInvocation, transformBody(sourceSkill, "claude", skillName)),
       "utf8",
     )
   }
