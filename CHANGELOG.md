@@ -6,6 +6,14 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [0.3.1] - 2026-07-21
+
+### Fixed
+
+- **nebu-skills-router plugin rewritten for OpenCode's actual plugin API.** The old plugin used `chat.message`, `experimental.chat.system.transform`, and `tool.definition` hooks that do not exist in OpenCode. Replaced with `tui.prompt.append` (routing hints injected per-prompt), `session.created`, and the existing `tool.execute.before`/`after` that already worked. Plugin format changed from CommonJS to ESM for OpenCode compatibility.
+- **Plugin now finds nebu skills in installed location.** Previously hardcoded to `../skills` relative to plugin dir (which resolves to `~/.config/opencode/skills/` — only caveman skills). Now prefers `~/.agents/skills/` where the installer deploys them, with fallback to project-relative path in development.
+- **Installer now symlinks managed skills into `~/.config/opencode/skills/`** so OpenCode's native Agent Skills system discovers nebu skills globally, not just inside the nebu-skills project directory.
+
 ## [0.3.0] - 2026-07-21
 
 ### Changed

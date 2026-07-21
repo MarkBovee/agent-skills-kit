@@ -1,7 +1,21 @@
-const path = require("node:path")
+// nebu-skills-router — opencode plugin
+//
+// Routes user prompts to the best-matching nebu-skill using deterministic
+// cascade routing. Injects routing hints into every prompt so the model
+// knows which skill to load before acting. Tracks code-edit and skill-
+// invocation session state.
+
+import { createRequire } from "node:module"
+import { fileURLToPath } from "node:url"
+import { dirname, resolve } from "node:path"
+import { existsSync } from "node:fs"
+import { homedir } from "node:os"
+
+const require = createRequire(import.meta.url)
+const here = dirname(fileURLToPath(import.meta.url))
+
 const {
   CODE_EDIT_TOOL_IDS,
-  DEFAULT_MAX_HINTS,
   DEFAULT_MAX_LISTED_SKILLS,
   SKILL_CODE_REVIEW,
   SKILL_VERIFICATION,
@@ -11,198 +25,161 @@ const {
   loadSkills,
   setSessionState,
   toSingleLine,
-  unique,
-} = require("../core/router-core")
+} = require(resolve(here, "../core/router-core"))
 
-// Normalize tool identifiers from different hook payload shapes.
-function resolveToolID(input) {
-  const toolID = input?.toolID || input?.tool
-  return typeof toolID === "string" ? toolID.trim() : ""
+// Resolve skill search path. Prefer the installed canonical location
+// (~/.agents/skills), fall back to project-relative (development mode).
+function resolveSkillPath() {
+  const candidates = [
+    resolve(homedir(), ".agents", "skills"),
+    resolve(here, "../skills"),
+  ]
+  for (const p of candidates) {
+    if (existsSync(p)) return p
+  }
+  return candidates[0]
 }
 
-// Resolve the invoked skill name from possible input and output payload locations.
-function resolveInvokedSkillName(input, output) {
+// Resolve invoked skill name from tool.execute.after input shapes.
+function resolveSkillName(input, output) {
   const candidates = [
     input?.name, input?.skill, input?.args?.name, input?.args?.skill,
     input?.arguments?.name, input?.arguments?.skill,
     output?.args?.name, output?.args?.skill,
     output?.arguments?.name, output?.arguments?.skill,
+    output?.name, output?.skill,
   ]
-  for (const candidate of candidates) {
-    if (typeof candidate === "string" && candidate.trim()) return candidate.trim()
+  for (const c of candidates) {
+    if (typeof c === "string" && c.trim()) return c.trim()
   }
   return ""
 }
 
-// Join text parts from chat output into the plain text query used for routing.
-function readTextParts(parts) {
-  if (!Array.isArray(parts)) return ""
-  return parts
-    .filter((part) => part && part.type === "text" && typeof part.text === "string")
-    .map((part) => part.text)
-    .join("\n")
-    .trim()
-}
+// Flatten session-state key to a single default slot. tui.prompt.append does
+// not carry sessionID, and OpenCode sessions are single-user anyway.
+const SESSION_KEY = "default"
 
-// Try to extract the user's latest text from the system.transform input, supporting multiple input shapes.
-function extractUserText(input) {
-  if (!input) return ""
-  if (typeof input.text === "string" && input.text.trim()) return input.text.trim()
-  const parts = readTextParts(input.parts)
-  if (parts) return parts
-  if (Array.isArray(input.messages)) {
-    for (let i = input.messages.length - 1; i >= 0; i--) {
-      const msg = input.messages[i]
-      if (msg.role !== "user") continue
-      if (typeof msg.content === "string" && msg.content.trim()) return msg.content.trim()
-      if (Array.isArray(msg.content)) {
-        const t = readTextParts(msg.content)
-        if (t) return t
-      }
+// Build the routing guidance block injected into every prompt.
+function buildRoutingLines(discoveredSkills, sessionState) {
+  const lines = [
+    "Skill routing (cascade, first match wins):",
+    "- GitHub issues → github-issues",
+    "- Debug/bug/error → debugging",
+    "- Audit/refactor/improve → improve",
+    "- UI/UX design → ui-ux",
+    "- Multi-agent/release chores → agent-workflows",
+    "- Skill writing/improvement → writing-nebu-skills",
+    "- Explicit review request → code-review",
+    "- Code edited + done/ready → code-review",
+    "- Done/ready/handoff → verification",
+    "- Ambiguous/planning → kickoff",
+    "- Everything else → kaizen (default)",
+    "- Cost-aware: bounded mechanical chores start with cheap mini subagent.",
+  ]
+
+  const matchedSkills = sessionState.matchedSkills || []
+  if (matchedSkills.length > 0) {
+    lines.push(
+      `- Best matches: ${matchedSkills.map((s) => `${s.name} (${toSingleLine(s.description, 80)})`).join("; ")}`,
+    )
+    const ep = sessionState.executionProfile
+    if (ep) {
+      lines.push(`- Execution profile: task=${ep.executionTier}, agent=${ep.agentTier}, delegation=${ep.delegationMode}${ep.matchedSkill ? `, anchor=${ep.matchedSkill}` : ""}.`)
     }
   }
-  return ""
+
+  if (discoveredSkills.length > 0) {
+    lines.push(
+      `- Available nebu-skills: ${discoveredSkills.slice(0, DEFAULT_MAX_LISTED_SKILLS).map((s) => `${s.name}: ${toSingleLine(s.description, 70)}`).join("; ")}`,
+    )
+  }
+
+  if (sessionState.needsCodeReview) {
+    lines.push("- Code was edited. Use code-review before verification or handoff.")
+  }
+
+  if (sessionState.shouldCaptureImprovement) {
+    lines.push("- Review/verification happened. Consider writing-nebu-skills if a reusable gap emerged.")
+  }
+
+  return lines.join("\n")
 }
 
-// Build the OpenCode router plugin around the deterministic cascade router.
-async function nebuSkillsRouterPlugin(_input, options = {}) {
-  const configuredPaths = Array.isArray(options.paths) ? options.paths : []
-  const preferredSkillPaths = unique([
-    path.resolve(__dirname, "../skills"),
-    ...configuredPaths,
-  ])
-  const discoveredSkills = await loadSkills(preferredSkillPaths)
-  const maxListedSkills = Number.isInteger(options.maxListedSkills)
-    ? options.maxListedSkills
-    : DEFAULT_MAX_LISTED_SKILLS
+// Single shared skill loader so every hook reuses the same skill list.
+let skillsCache = null
 
-  const skillPreview = discoveredSkills
-    .slice(0, maxListedSkills)
-    .map((skill) => `${skill.name}: ${toSingleLine(skill.description, 70)}`)
-    .join("; ")
+async function getSkills() {
+  if (skillsCache) return skillsCache
+  const skillPath = resolveSkillPath()
+  skillsCache = await loadSkills([skillPath])
+  return skillsCache
+}
 
-  const sessionStateBySession = new Map()
+export const NebuSkillsRouter = async () => {
+  const sessionState = new Map()
 
   return {
-    "chat.message": async (input, output) => {
-      const text = readTextParts(output.parts)
-      if (!text) return
-
-      const currentState = getSessionState(sessionStateBySession, input.sessionID)
-      const { matchedSkills, executionProfile } = cascadeRoute(text, discoveredSkills, currentState)
-
-      setSessionState(sessionStateBySession, input.sessionID, {
-        matchedSkills,
-        executionProfile,
-      })
+    "session.created": async () => {
+      // Warm skill cache on first session. Swallow errors so a missing
+      // skills directory never breaks session start.
+      try { await getSkills() } catch { /* skills dir may not exist */ }
     },
+
+    // Inject routing hints before every model prompt. This is the OpenCode
+    // equivalent of the old experimental.chat.system.transform hook.
+    "tui.prompt.append": async (input) => {
+      const promptText = (input?.prompt || input?.text || "").trim()
+      if (!promptText) return
+
+      const skills = await getSkills()
+      const state = getSessionState(sessionState, SESSION_KEY)
+      const { matchedSkills, executionProfile } = cascadeRoute(promptText, skills, state)
+
+      // Persist discovered routing into session state.
+      setSessionState(sessionState, SESSION_KEY, { matchedSkills, executionProfile })
+
+      const lines = buildRoutingLines(skills, { ...state, matchedSkills, executionProfile })
+      return { append: `\n--- Nebu Skills ---\n${lines}` }
+    },
+
     "tool.execute.before": async (input) => {
-      if (!input.sessionID) return
-      const toolID = resolveToolID(input)
-      if (!CODE_EDIT_TOOL_IDS.has(toolID)) return
-      setSessionState(sessionStateBySession, input.sessionID, { needsCodeReview: true })
+      const toolID = (typeof input?.tool === "string" ? input.tool : "").trim()
+      if (!toolID || !CODE_EDIT_TOOL_IDS.has(toolID)) return
+      setSessionState(sessionState, SESSION_KEY, { needsCodeReview: true })
     },
+
     "tool.execute.after": async (input, output) => {
-      if (!input.sessionID) return
-      const toolID = resolveToolID(input)
+      const toolID = (typeof input?.tool === "string" ? input.tool : "").trim()
+      if (!toolID) return
 
       if (CODE_EDIT_TOOL_IDS.has(toolID)) {
-        setSessionState(sessionStateBySession, input.sessionID, { needsCodeReview: true })
+        setSessionState(sessionState, SESSION_KEY, { needsCodeReview: true })
         return
       }
 
       if (toolID !== "skill") return
 
-      const invokedSkillName = resolveInvokedSkillName(input, output)
-      if (invokedSkillName === SKILL_CODE_REVIEW) {
-        setSessionState(sessionStateBySession, input.sessionID, {
+      const skillName = resolveSkillName(input, output)
+      if (!skillName) return
+
+      if (skillName === SKILL_CODE_REVIEW) {
+        setSessionState(sessionState, SESSION_KEY, {
           needsCodeReview: false,
           shouldCaptureImprovement: true,
         })
         return
       }
 
-      if (invokedSkillName === SKILL_VERIFICATION) {
-        setSessionState(sessionStateBySession, input.sessionID, { shouldCaptureImprovement: true })
+      if (skillName === SKILL_VERIFICATION) {
+        setSessionState(sessionState, SESSION_KEY, { shouldCaptureImprovement: true })
         return
       }
 
-      if (invokedSkillName !== SKILL_WRITING) return
-
-      setSessionState(sessionStateBySession, input.sessionID, { shouldCaptureImprovement: false })
-    },
-    "experimental.chat.system.transform": async (input, output) => {
-      const sessionState = getSessionState(sessionStateBySession, input.sessionID)
-
-      // Fallback: route on user's message directly if session state has no matches yet (first-turn blind fix).
-      let matchedSkills = sessionState.matchedSkills || []
-      let executionProfile = sessionState.executionProfile
-      const userMessage = extractUserText(input)
-      if (matchedSkills.length === 0 && userMessage) {
-        const result = cascadeRoute(userMessage, discoveredSkills, sessionState)
-        matchedSkills = result.matchedSkills || []
-        executionProfile = result.executionProfile
-        setSessionState(sessionStateBySession, input.sessionID, { matchedSkills, executionProfile })
+      if (skillName === SKILL_WRITING) {
+        setSessionState(sessionState, SESSION_KEY, { shouldCaptureImprovement: false })
       }
-
-      const lines = [
-        "!!! CRITICAL: You MUST load a skill before starting work. Call `skill` with the name of the best-matching workflow skill from the list below BEFORE writing any code or running any tool. This is mandatory, not optional. !!!",
-        "",
-        "Skill routing (cascade, first match wins):",
-        "- GitHub issues → github-issues",
-        "- Debug/bug/error → debugging",
-        "- Audit/refactor/improve → improve",
-        "- UI/UX design → ui-ux",
-        "- Multi-agent/release chores → agent-workflows",
-        "- Skill writing/improvement → writing-nebu-skills",
-        "- Explicit review request → code-review",
-        "- Code edited + done/ready → code-review",
-        "- Done/ready/handoff → verification",
-        "- Ambiguous/planning → kickoff",
-        "- Everything else → kaizen (default)",
-        "- Best match is listed below under 'Best matches for this request'. If none listed, use the cascade above to pick.",
-        "- Cost-aware: bounded mechanical chores (version bumps, changelogs, release notes) start with cheap mini subagent.",
-        "- Escalate from mini to default/high/xhigh only when scope expands or cheap-first validation fails.",
-      ]
-
-      if (skillPreview) {
-        lines.push(`- Installed nebu-skills: ${skillPreview}`)
-      }
-
-      if (sessionState.needsCodeReview) {
-        lines.push(
-          "- Code was edited in this session. Before verification or a done/handoff claim, treat `code-review` as the default next skill unless the diff is truly tiny and a self-review is enough.",
-        )
-      }
-
-      if (sessionState.shouldCaptureImprovement) {
-        lines.push(
-          "- Review or verification happened in this session. Before ending cold, consider whether a reusable workflow gap was exposed and route toward `writing-nebu-skills` when there is a concrete improvement to capture.",
-        )
-      }
-
-      if (matchedSkills.length > 0) {
-        lines.push(
-          `- Best matches for this request: ${matchedSkills
-            .map((skill) => `${skill.name} (${toSingleLine(skill.description, 80)})`)
-            .join("; ")}`,
-        )
-      }
-
-      if (executionProfile) {
-        lines.push(
-          `- Suggested execution profile: task=${executionProfile.executionTier}, agent=${executionProfile.agentTier}, delegation=${executionProfile.delegationMode}${executionProfile.matchedSkill ? `, anchor=${executionProfile.matchedSkill}` : ""}.`,
-        )
-      }
-
-      output.system.push(lines.join("\n"))
-    },
-    "tool.definition": async (input, output) => {
-      if (resolveToolID(input) !== "skill" || !skillPreview) return
-      output.description = `${output.description} CRITICAL: You MUST call this tool at the start of every task before writing code or running tools. Installed nebu-skills: ${skillPreview}`
     },
   }
 }
 
-module.exports = nebuSkillsRouterPlugin
-module.exports.default = nebuSkillsRouterPlugin
+export default NebuSkillsRouter

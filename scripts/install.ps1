@@ -166,6 +166,21 @@ try {
     Clear-OldSkillRoot -TargetPath $opencodeSkillsTarget -CurrentSkillNames $currentSkillNames
     Clear-OldSkillRoot -TargetPath $claudeSkillsTarget -CurrentSkillNames $currentSkillNames
 
+    # Symlink managed nebu skills into OpenCode skills dir for native discovery.
+    New-Item -ItemType Directory -Force -Path $opencodeSkillsTarget | Out-Null
+    foreach ($skillDir in Get-ChildItem -LiteralPath $sharedSkillsTarget -Directory) {
+        $linkPath = Join-Path $opencodeSkillsTarget $skillDir.Name
+        $targetPath = $skillDir.FullName
+        if (Test-Path -LiteralPath $linkPath) {
+            $existingItem = Get-Item -LiteralPath $linkPath -Force
+            if ($existingItem.LinkType -and ($existingItem.Target -contains $targetPath)) {
+                continue
+            }
+            Remove-Item -LiteralPath $linkPath -Recurse -Force
+        }
+        New-Item -ItemType SymbolicLink -Path $linkPath -Target $targetPath -Force | Out-Null
+    }
+
     New-Item -ItemType Directory -Force -Path $copilotInstructionsTarget | Out-Null
     Copy-Item -LiteralPath $copilotInstructionsSource -Destination $copilotInstructionsFile -Force
 

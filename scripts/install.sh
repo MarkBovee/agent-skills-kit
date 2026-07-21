@@ -159,6 +159,21 @@ clean_old_skill_root "$COPILOT_SKILLS_TARGET"
 clean_old_skill_root "$OPENCODE_SKILLS_TARGET"
 clean_old_skill_root "$CLAUDE_SKILLS_TARGET"
 
+# Symlink managed nebu skills into opencode skills dir so native Agent Skills
+# discovers them globally without clobbering existing non-nebu skills.
+mkdir -p "$OPENCODE_SKILLS_TARGET"
+for skill_dir in "$SHARED_SKILLS_TARGET"/*/; do
+  [ -d "$skill_dir" ] || continue
+  skill_name="$(basename "$skill_dir")"
+  link_path="$OPENCODE_SKILLS_TARGET/$skill_name"
+  target_path="$skill_dir"
+  if [ -L "$link_path" ] && [ "$(readlink "$link_path")" = "$target_path" ]; then
+    continue
+  fi
+  rm -rf "$link_path"
+  ln -s "$target_path" "$link_path"
+done
+
 mkdir -p "$COPILOT_INSTRUCTIONS_TARGET"
 cp "$COPILOT_INSTRUCTIONS_SOURCE" "$COPILOT_INSTRUCTIONS_FILE"
 
