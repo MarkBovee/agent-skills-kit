@@ -43,7 +43,7 @@ Every SKILL.md must start with YAML frontmatter containing:
 ```yaml
 ---
 name: skill-name
-description: One sentence starting with "Use when..." — say when to use, not how.
+description: One accurate, informative sentence describing when to use this skill — say when, not how.
 triggers:
   - keyword or phrase
   - another trigger

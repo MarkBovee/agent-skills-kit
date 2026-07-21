@@ -1,5 +1,6 @@
 const fs = require("node:fs/promises")
 const path = require("node:path")
+const { stripFrontmatter, toSingleLine, unique } = require("./router-core")
 
 const DEFAULT_REPO = "github/awesome-copilot"
 const DEFAULT_REF = "main"
@@ -79,11 +80,6 @@ function extractKeywords(text) {
   if (!text) return []
   const matches = String(text).toLowerCase().match(/[a-z0-9]+(?:-[a-z0-9]+)*/g) || []
   return unique(matches.flatMap((word) => word.split("-")).filter((word) => word.length > 1 && !STOP_KEYWORDS.has(word)))
-}
-
-// Preserve order while removing falsy and duplicate values.
-function unique(values) {
-  return [...new Set(values.filter(Boolean))]
 }
 
 // Resolve the cache file path so callers can override the default location.
@@ -250,18 +246,6 @@ async function runWithConcurrency(producers, limit) {
   const workers = Array.from({ length: Math.max(1, Math.min(limit, producers.length)) }, () => worker())
   await Promise.all(workers)
   return results
-}
-
-// Strip YAML frontmatter from a markdown document so descriptions are body-only.
-function stripFrontmatter(content) {
-  return content.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, "")
-}
-
-// Collapse multiline text into a bounded single-line preview.
-function toSingleLine(text, maxLength = 240) {
-  const singleLine = String(text || "").replace(/\s+/g, " ").trim()
-  if (singleLine.length <= maxLength) return singleLine
-  return `${singleLine.slice(0, maxLength - 3).trim()}...`
 }
 
 // Refresh the community-skills index, optionally refreshing descriptions too.
@@ -824,7 +808,6 @@ module.exports = {
   fetchJson,
   fetchText,
   filterSeenCandidates,
-  filterVSCopyOnly: isVSCodeOnly,
   formatProposal,
   installItem,
   isIndexStale,

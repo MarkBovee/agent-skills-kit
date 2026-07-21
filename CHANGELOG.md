@@ -4,7 +4,14 @@ All notable changes to `nebu-skills` live here.
 
 Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` form.
 
-## Unreleased
+## [0.3.3] - 2026-07-21
+
+### Fixed
+
+- **coding-standards.md made language-agnostic.** Removed C#-specific rules, added intent-comments hard rule, per-language sections (JS/TS, Python, Go, Rust, Shell), expanded delivery patterns and quality checklist.
+- **AGENTS.md description rule relaxed.** No longer enforces "Use when..." prefix — requires accurate, informative description.
+- **DRY fixes: duplicate helpers consolidated into router-core.** `unique()`, `toSingleLine()`, `stripFrontmatter()` defined once, imported everywhere.
+- **cascadeRoute comment numbering fixed.** Duplicate step 3 removed, cascade order 1-11 matches body.
 
 ## [0.3.2] - 2026-07-21
 

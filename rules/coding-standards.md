@@ -1,56 +1,78 @@
 # Coding Standards
 
-Geldt voor alle projecten.
+Language-agnostic. Applies to every file in every project unless an explicit repo-local convention overrides.
 
 ## Core Principles
 
-- **DRY**: Before adding code, check if similar functionality exists. Refactor 3+ duplications into shared components.
-- **SOLID**: Single responsibility, open/closed, Liskov substitution, interface segregation, dependency inversion.
-- **Small functions**: Prefer small focused helpers with a single level of abstraction. Orchestrator methods may be larger when coordinating phases, but must delegate real work to named helpers.
-- **Pure functions**: Prefer functions without side effects when possible.
-- **Meaningful names**: Use descriptive, intention-revealing names for all identifiers.
+- **DRY and SOLID.** Before adding code, check whether the behavior already exists. Refactor 3+ duplications into shared components. Single responsibility, open/closed, Liskov substitution, interface segregation, dependency inversion.
+- **Small focused functions.** One clear level of abstraction per function. Use guard clauses and early returns to keep control flow flat. Orchestrator functions may be larger when coordinating phases, but delegate real work to named helpers.
+- **Pure helpers.** Prefer side-effect-free helpers when practical. Keep orchestration separate from object construction, formatting, parsing, and normalization.
+- **Meaningful names.** Use intention-revealing names for identifiers, variables, parameters, and return values. Avoid generic `data`, `result`, `code`, `updated`.
+- **Intent comments above every function (hard rule).** Every function, method, helper, closure handler, route handler, protocol dispatcher, and static utility gets a short comment above it stating its purpose. This is non-negotiable for reviewability. For non-obvious behavior, add a brief docstring covering parameters, return value, side effects, and any preconditions or invariants. Inline `why` comments stay focused on intent, not line-by-line narration.
+- **Self-documenting body.** Use small named helpers, switch/pattern dispatch, and extracted builders instead of long `if/else` chains, deeply nested blocks, or growing parameter lists.
+- **Explicit data shapes.** Prefer named types, records, or DTOs over loose catch-all payloads, `object`, or `dynamic`. Three or more positional parameters belong in a request/options object.
 
 ## Senior Delivery Patterns
 
-- **Domain naming over transport naming**: Rename models and helpers to business language when that improves intent and downstream readability.
-- **Structured diagnostics**: Log with business identifiers and operation context to make production troubleshooting deterministic.
-- **Refactor by extraction**: Reduce large services by moving object-building and report-aggregation logic into dedicated builders/helpers while keeping behavior unchanged.
-- **Keep generic builders generic**: Infrastructure helpers may assemble reusable templates, but domain-specific logic stays in domain helpers.
-- **Prefer direct config lookups for simple settings**: For small, single-use config values, use direct `Configuration["Section:Key"]` access over dedicated settings classes.
+- **Domain naming over transport naming.** Rename models and helpers to business language when that improves intent and downstream readability.
+- **Structured diagnostics.** Log with business identifiers and operation context to make production troubleshooting deterministic.
+- **Refactor by extraction.** Reduce large services by moving object-building and report-aggregation logic into dedicated builders/helpers while keeping behavior unchanged.
+- **Keep generic builders generic.** Infrastructure helpers may assemble reusable templates, domain-specific logic stays in domain helpers.
+- **Centralize cross-cutting concerns.** Normalize paths, timestamps, locale, and other cross-cutting metadata at the boundary where they enter the system. Reuse existing core helpers before adding new utility layers.
+- **Reuse over reinvention.** Reuse existing core helpers, plan/spec systems, and patterns before introducing new utility layers, parallel doc trees, or alternative config systems.
+- **Keep public behavior narrow.** Public API and tool behavior changes are minimal and explicit. Avoid widening behavior accidentally when fixing path, session, routing, hook, or export bugs.
 
-## C# Specific Rules
+## Language-Specific Rules
 
-- **Integration tests**: API responses must use concrete client/service models. `ApiJsonRequestAsync<object>` and `ApiJsonRequestAsync<JsonElement>` are forbidden when a real model exists.
-- **No fully qualified type names**: Add `using` directives and use short names.
-- **No long parameter lists**: 3+ parameters → use a request DTO.
-- **Parameter formatting**: Keep on one line if it fits; prefer DTO over multiline.
-- **Method invocation formatting**: Keep on one line when possible.
-- **Variable naming**: Use intention-revealing names, avoid generic `code`/`result`/`data`.
-- **No `dynamic`**: Use strongly-typed classes, `object` with safe casting, or `JsonElement`/`JObject`.
-- **Constructor optimization**: Prefer optional params with defaults, factory methods, or builders over touching many files.
-- **XML docs**: Add `///` to all methods, classes, records, and helpers (public, internal, private).
-- **Control flow**: Prefer `switch`/pattern matching over long `if/else` chains. Guard clauses and early returns.
-- **System.Text.Json**: Don't combine `[Required]` with non-public setters unless `[JsonInclude]` is added.
+### All typed languages
 
-## EF Core
+- **No fully qualified type names** where imports resolve them.
+- **No `dynamic` or its equivalents.** Use strongly-typed classes, `object` with safe casting, or language-native discriminated unions.
+- **Control flow.** Prefer switch/pattern matching over long `if/else` chains. Guard clauses and early returns.
+- **Constructor and initialization.** Prefer optional params with defaults, factory methods, or builders over touching many files.
 
-- **Centralize timestamps** in `DbContext.SaveChanges()` override.
-- **Fluent API**: Use `HasDefaultValueSql("GETUTCDATE()")` for DB-level defaults.
-- **Bulk operations**: Manually set timestamps before `BulkInsertAsync()`/`BulkUpdateAsync()`.
+### JavaScript / TypeScript
+
+- Prefer `const` over `let`, `let` over `var`.
+- Use `===` not `==`.
+- Use `node:fs/promises` over `node:fs` with callbacks.
+- Async functions return promises; avoid callback patterns.
+
+### Python
+
+- Type hints on all function signatures.
+- Prefer `pathlib` over `os.path`.
+- Use `with` statements for resource management.
+
+### Go
+
+- Standard formatting (`gofmt`).
+- Errors are values; check them explicitly.
+
+### Rust
+
+- Standard formatting (`rustfmt`).
+- Prefer `Result` over panics in library code.
+
+### Shell
+
+- `set -euo pipefail` at the top of every bash script.
+- Quote all variable expansions.
+- Prefer `[[ ]]` over `[ ]` in bash.
 
 ## Error Handling & Performance
 
-- **Fail fast**: Validate inputs early with clear error messages.
-- **Resource management**: Use `using` for disposable resources.
-- **Lazy loading**: Don't compute values until needed.
-- **Caching**: Cache expensive computations and frequently accessed data.
+- **Fail fast.** Validate inputs early with clear error messages.
+- **Resource management.** Use language-native resource management (`using`, `with`, defer, etc.).
+- **Lazy loading.** Don't compute values until needed.
+- **Caching.** Cache expensive computations and frequently accessed data.
 
 ## Quality Checklist (after every change)
 
-- No code duplication introduced
-- Performance impact acceptable
-- Error handling comprehensive
-- Build: 0 errors, 0 warnings
-- All tests passing
-- External integration changes include dry-run and idempotency coverage
-- Code is self-documenting or has "why" comments where needed
+- No code duplication introduced.
+- Performance impact acceptable.
+- Error handling covers edge cases, not just happy path.
+- All existing tests passing.
+- If external integration changed: dry-run and idempotency coverage included.
+- Code is self-documenting or has "why" comments where needed.
+- Relevant checks (lint, typecheck, tests) are warning-free and error-free.

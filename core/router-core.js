@@ -171,6 +171,11 @@ function parseFrontmatter(content) {
   return result
 }
 
+// Strip YAML frontmatter from a markdown document.
+function stripFrontmatter(content) {
+  return content.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, "")
+}
+
 // Collapse multiline text into a bounded single-line preview.
 function toSingleLine(text, maxLength = 120) {
   const singleLine = text.replace(/\s+/g, " ").trim()
@@ -289,18 +294,17 @@ function buildExecutionProfile(matchedSkill, query) {
 // the first matching step wins. Session state influences code-review routing.
 //
 // Cascade order:
-//   1. GitHub issue        → nebu-github-issues
-//   2. Bug/error           → nebu-debugging
-//   3. Audit/improve/refac → nebu-improve
-//   3. UI/UX               → nebu-ui-ux
-//   4. GitHub issue        → nebu-github-issues
-//   5. Multi-agent/release → nebu-agent-workflows
-//   6. Skill writing       → nebu-writing-nebu-skills
-//   7. Explicit review     → nebu-code-review
-//   8. Code edited + done  → nebu-code-review (+ nebu-verification)
-//   9. Completion          → nebu-verification
-//  10. Ambiguity/planning  → nebu-kickoff
-//  11. Default             → nebu-kaizen
+//   1. GitHub issue          → nebu-github-issues
+//   2. Bug/error             → nebu-debugging
+//   3. Audit/improve/refac   → nebu-improve
+//   4. UI/UX                 → nebu-ui-ux
+//   5. Multi-agent/release   → nebu-agent-workflows
+//   6. Skill writing         → nebu-writing-nebu-skills
+//   7. Explicit review       → nebu-code-review
+//   8. Code edited + done    → nebu-code-review (+ nebu-verification)
+//   9. Completion            → nebu-verification
+//  10. Ambiguity/planning    → nebu-kickoff
+//  11. Default               → nebu-kaizen
 function cascadeRoute(query, skills, sessionState) {
   const q = query.trim().toLowerCase()
   if (!q) {
@@ -329,31 +333,31 @@ function cascadeRoute(query, skills, sessionState) {
     if (skill) return { matchedSkills: [skill], executionProfile: buildExecutionProfile(skill, q) }
   }
 
-  // 3. UI/UX → ui-ux
+  // 4. UI/UX → ui-ux
   if (hasPhraseSignal(q, UI_PHRASES)) {
     const skill = findSkill(skills, SKILL_UI_UX)
     if (skill) return { matchedSkills: [skill], executionProfile: buildExecutionProfile(skill, q) }
   }
 
-  // 4. Multi-agent / release chores → agent-workflows
+  // 5. Multi-agent / release chores → agent-workflows
   if (hasPhraseSignal(q, AGENT_PHRASES)) {
     const skill = findSkill(skills, SKILL_AGENT_WORKFLOWS)
     if (skill) return { matchedSkills: [skill], executionProfile: buildExecutionProfile(skill, q) }
   }
 
-  // 5. Skill writing → writing-nebu-skills
+  // 6. Skill writing → writing-nebu-skills
   if (hasPhraseSignal(q, WRITING_PHRASES)) {
     const skill = findSkill(skills, SKILL_WRITING)
     if (skill) return { matchedSkills: [skill], executionProfile: buildExecutionProfile(skill, q) }
   }
 
-  // 6. Explicit review request → code-review (independent of session state)
+  // 7. Explicit review request → code-review (independent of session state)
   if (hasPhraseSignal(q, REVIEW_PHRASES)) {
     const skill = findSkill(skills, SKILL_CODE_REVIEW)
     if (skill) return { matchedSkills: [skill], executionProfile: buildExecutionProfile(skill, q) }
   }
 
-  // 7. Code was edited + completion signal → code-review (+ verification)
+  // 8. Code was edited + completion signal → code-review (+ verification)
   if (sessionState.needsCodeReview && hasPhraseSignal(q, COMPLETION_PHRASES)) {
     const primary = findSkill(skills, SKILL_CODE_REVIEW)
     const secondary = findSkill(skills, SKILL_VERIFICATION)
@@ -363,19 +367,19 @@ function cascadeRoute(query, skills, sessionState) {
     }
   }
 
-  // 8. Completion → verification
+  // 9. Completion → verification
   if (hasPhraseSignal(q, COMPLETION_PHRASES)) {
     const skill = findSkill(skills, SKILL_VERIFICATION)
     if (skill) return { matchedSkills: [skill], executionProfile: buildExecutionProfile(skill, q) }
   }
 
-  // 9. Ambiguity/planning → kickoff
+  // 10. Ambiguity/planning → kickoff
   if (hasPhraseSignal(q, AMBIGUITY_PHRASES)) {
     const skill = findSkill(skills, SKILL_KICKOFF)
     if (skill) return { matchedSkills: [skill], executionProfile: buildExecutionProfile(skill, q) }
   }
 
-  // 10. Default → kaizen
+  // 11. Default → kaizen
   const fallback = findSkill(skills, SKILL_KAZEN)
   return {
     matchedSkills: fallback ? [fallback] : [],
@@ -445,6 +449,7 @@ module.exports = {
 
   // Utilities
   findSkill,
+  stripFrontmatter,
   toSingleLine,
   normalizeStringList,
   parseBooleanField,

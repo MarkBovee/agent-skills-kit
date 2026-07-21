@@ -3,7 +3,7 @@
 const fs = require("node:fs/promises")
 const path = require("node:path")
 
-const { parseBooleanField, parseFrontmatter, toSingleLine } = require("../core/router-core")
+const { parseBooleanField, parseFrontmatter, stripFrontmatter, toSingleLine } = require("../core/router-core")
 
 const REPO_ROOT = path.resolve(__dirname, "..")
 const SOURCE_SKILLS_DIR = path.join(REPO_ROOT, "skills")
@@ -11,8 +11,6 @@ const COPILOT_SKILLS_DIR = path.join(REPO_ROOT, ".github", "skills")
 const CLAUDE_SKILLS_DIR = path.join(REPO_ROOT, ".claude", "skills")
 const COPILOT_INSTRUCTIONS_PATH = path.join(REPO_ROOT, ".github", "copilot-instructions.md")
 const CLAUDE_MD_PATH = path.join(REPO_ROOT, "CLAUDE.md")
-
-const FRONTMATTER_PATTERN = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/
 
 // Render one scalar as YAML while keeping booleans unquoted.
 function yamlScalar(value) {
@@ -45,11 +43,6 @@ function renderFrontmatter(entries) {
 
   lines.push("---", "")
   return lines.join("\n")
-}
-
-// Remove the source frontmatter before writing platform-specific frontmatter.
-function stripFrontmatter(content) {
-  return content.replace(FRONTMATTER_PATTERN, "")
 }
 
 // Combine description and triggers into one bounded portable discovery string.
