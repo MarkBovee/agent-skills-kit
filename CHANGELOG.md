@@ -6,6 +6,13 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [0.3.2] - 2026-07-21
+
+### Fixed
+
+- **plugin.json version drift synced with VERSION.** plugin.json was stuck at 0.1.19 while VERSION read 0.3.1. Bumped to match canonical VERSION source.
+- **validate-plugin.js now accepts `nebu-{name}` directory pattern.** Skills use `nebu-` prefix for directory names (`nebu-debugging/`) but frontmatter `name` strips it (`debugging`). Validator now accepts both exact match and `nebu-{name}` convention, fixing 10 false-positive errors.
+
 ## [0.3.1] - 2026-07-21
 
 ### Fixed

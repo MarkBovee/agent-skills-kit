@@ -67,7 +67,8 @@ async function validateSkills(errors) {
     const content = await fs.readFile(skillPath, "utf8")
     const frontmatter = parseFrontmatter(content)
 
-    if (frontmatter.name !== entry.name || !NAME_PATTERN.test(entry.name)) {
+    const nameMatches = frontmatter.name === entry.name || entry.name === `nebu-${frontmatter.name}`
+    if (!nameMatches || !NAME_PATTERN.test(entry.name)) {
       errors.push(`${path.relative(REPO_ROOT, skillPath)} name must match its kebab-case directory`)
     }
     if (typeof frontmatter.description !== "string" || frontmatter.description.trim().length === 0) {
