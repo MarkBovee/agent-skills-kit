@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [0.3.0] - 2026-07-21
+
+### Changed
+
+- **Skill display names stripped of `nebu-` prefix.** Frontmatter `name`, router constants, cascade text, docs, cross-refs, and generated exports all use short names (`debugging`, `kaizen`, `code-review`, etc.). Directory names and file paths keep the `nebu-` prefix for namespace isolation.
+
 ## [0.2.2] - 2026-07-21
 
 ### Fixed
