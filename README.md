@@ -316,7 +316,7 @@ The release-readiness check also fails when shipped install surfaces changed sin
 Issue helper for duplicate checks before filing follow-up work:
 
 ```bash
-skills/github-issues/check-existing-issue.sh "<query>" [owner/repo]
+skills/nebu-github-issues/check-existing-issue.sh "<query>" [owner/repo]
 ```
 
 <details>
