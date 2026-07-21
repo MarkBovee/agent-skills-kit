@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [0.2.1] - 2026-07-21
+
+### Added
+
+- **Global coding standards injected via OpenCode instructions.** `rules/coding-standards.md` ships coding principles, C# rules, EF Core practices, and quality checklist. Installer copies it to `$OPENCODE_DIR/rules/` and patches `opencode.json` `instructions` array so it loads every session automatically. Supports idempotent reinstall — already-present entry is never duplicated.
+
 ## [0.2.0] - 2026-07-20
 
 ### Changed

@@ -15,6 +15,7 @@ $sharedSkillsSource = Join-Path $repoRoot "skills"
 $copilotInstructionsSource = Join-Path $repoRoot ".github\copilot-instructions.md"
 $opencodeCoreSource = Join-Path $repoRoot "core"
 $opencodePluginsSource = Join-Path $repoRoot "plugins"
+$opencodeRulesSource = Join-Path $repoRoot "rules"
 
 $sharedSkillsTarget = Join-Path $AgentsDir "skills"
 $copilotSkillsTarget = Join-Path $CopilotDir "skills"
@@ -23,6 +24,7 @@ $copilotInstructionsFile = Join-Path $copilotInstructionsTarget "nebu-skills.ins
 $opencodeCoreTarget = Join-Path $OpencodeDir "core"
 $opencodeSkillsTarget = Join-Path $OpencodeDir "skills"
 $opencodePluginsTarget = Join-Path $OpencodeDir "plugins"
+$opencodeRulesTarget = Join-Path $OpencodeDir "rules"
 $claudeSkillsTarget = Join-Path $ClaudeDir "skills"
 $claudeRulesTarget = Join-Path $ClaudeDir "rules"
 $claudeRulesFile = Join-Path $claudeRulesTarget "nebu-skills.md"
@@ -144,6 +146,11 @@ if (-not (Test-Path -LiteralPath $opencodePluginsSource)) {
     throw "OpenCode plugins source directory not found: $opencodePluginsSource"
 }
 
+$opencodeRulesFile = Join-Path $opencodeRulesSource "coding-standards.md"
+if (-not (Test-Path -LiteralPath $opencodeRulesFile)) {
+    throw "OpenCode rules source file not found: $opencodeRulesFile"
+}
+
 $generatedAssetsLockHeld = $false
 
 try {
@@ -170,6 +177,23 @@ try {
     Copy-Item -LiteralPath $opencodeCoreSource -Destination $opencodeCoreTarget -Recurse
     Copy-Item -LiteralPath (Join-Path $opencodePluginsSource "nebu-skills-router.js") -Destination (Join-Path $opencodePluginsTarget "nebu-skills-router.js") -Force
 
+    # Install coding-standards rules for OpenCode.
+    New-Item -ItemType Directory -Force -Path $opencodeRulesTarget | Out-Null
+    Copy-Item -LiteralPath (Join-Path $opencodeRulesSource "coding-standards.md") -Destination (Join-Path $opencodeRulesTarget "coding-standards.md") -Force
+
+    # Add coding-standards.md to opencode.json instructions if not already present.
+    $opencodeJsonPath = Join-Path $OpencodeDir "opencode.json"
+    if (Test-Path -LiteralPath $opencodeJsonPath) {
+        $cfg = Get-Content -LiteralPath $opencodeJsonPath -Raw | ConvertFrom-Json
+        if (-not $cfg.instructions) { $cfg.instructions = @() }
+        $entry = "./rules/coding-standards.md"
+        if ($entry -notin $cfg.instructions) {
+            $cfg.instructions += $entry
+            $cfg | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $opencodeJsonPath
+            "Patched opencode.json: added coding-standards.md"
+        }
+    }
+
     if (Test-Path -LiteralPath $ClaudeDir) {
         New-Item -ItemType Directory -Force -Path $claudeRulesTarget | Out-Null
         Write-ClaudeRulesFile
@@ -183,6 +207,7 @@ try {
     "Installed Copilot instructions to $copilotInstructionsFile"
     "Installed OpenCode router core to $opencodeCoreTarget"
     "Installed OpenCode router plugin to $(Join-Path $opencodePluginsTarget 'nebu-skills-router.js')"
+    "Installed OpenCode rules to $(Join-Path $opencodeRulesTarget 'coding-standards.md')"
     if (Test-Path -LiteralPath $ClaudeDir) {
         "Installed Claude Code rules to $claudeRulesFile"
         "Linked Claude skills at $claudeSkillsTarget -> $sharedSkillsTarget"

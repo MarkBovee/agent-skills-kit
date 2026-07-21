@@ -14,6 +14,7 @@ SHARED_SKILLS_SOURCE="$REPO_ROOT/skills"
 COPILOT_INSTRUCTIONS_SOURCE="$REPO_ROOT/.github/copilot-instructions.md"
 OPENCODE_CORE_SOURCE="$REPO_ROOT/core"
 OPENCODE_PLUGINS_SOURCE="$REPO_ROOT/plugins"
+OPENCODE_RULES_SOURCE="$REPO_ROOT/rules"
 
 SHARED_SKILLS_TARGET="$AGENTS_DIR/skills"
 COPILOT_SKILLS_TARGET="$COPILOT_DIR/skills"
@@ -22,6 +23,7 @@ COPILOT_INSTRUCTIONS_FILE="$COPILOT_INSTRUCTIONS_TARGET/nebu-skills.instructions
 OPENCODE_CORE_TARGET="$OPENCODE_DIR/core"
 OPENCODE_SKILLS_TARGET="$OPENCODE_DIR/skills"
 OPENCODE_PLUGINS_TARGET="$OPENCODE_DIR/plugins"
+OPENCODE_RULES_TARGET="$OPENCODE_DIR/rules"
 CLAUDE_SKILLS_TARGET="$CLAUDE_DIR/skills"
 CLAUDE_RULES_TARGET="$CLAUDE_DIR/rules"
 CLAUDE_RULES_FILE="$CLAUDE_RULES_TARGET/nebu-skills.md"
@@ -143,6 +145,11 @@ node "$SCRIPT_DIR/export-platform-skills.js"
   exit 1
 }
 
+[ -f "$OPENCODE_RULES_SOURCE/coding-standards.md" ] || {
+  echo "OpenCode rules source file not found: $OPENCODE_RULES_SOURCE/coding-standards.md" >&2
+  exit 1
+}
+
 CURRENT_MANAGED_SKILLS="$(mktemp)"
 write_current_skill_manifest "$SHARED_SKILLS_SOURCE" "$CURRENT_MANAGED_SKILLS"
 
@@ -160,6 +167,20 @@ rm -rf "$OPENCODE_CORE_TARGET"
 cp -R "$OPENCODE_CORE_SOURCE" "$OPENCODE_CORE_TARGET"
 cp "$OPENCODE_PLUGINS_SOURCE/nebu-skills-router.js" "$OPENCODE_PLUGINS_TARGET/nebu-skills-router.js"
 
+# Install coding-standards rules for OpenCode.
+mkdir -p "$OPENCODE_RULES_TARGET"
+cp "$OPENCODE_RULES_SOURCE/coding-standards.md" "$OPENCODE_RULES_TARGET/coding-standards.md"
+OPENCODE_JSON="$OPENCODE_DIR/opencode.json"
+if [ -f "$OPENCODE_JSON" ]; then
+  node -e "
+    var fs=require('fs'), f='$OPENCODE_JSON';
+    var c=JSON.parse(fs.readFileSync(f,'utf-8'));
+    c.instructions=c.instructions||[];
+    var e='./rules/coding-standards.md';
+    if(!c.instructions.includes(e)){c.instructions.push(e);fs.writeFileSync(f,JSON.stringify(c,null,2)+'\n');}
+  "
+fi
+
 if [ -d "$CLAUDE_DIR" ]; then
   mkdir -p "$CLAUDE_RULES_TARGET"
   write_claude_rules_file
@@ -173,6 +194,7 @@ echo "Installed ${installed_count} nebu-skills to $SHARED_SKILLS_TARGET"
 echo "Installed Copilot instructions to $COPILOT_INSTRUCTIONS_FILE"
 echo "Installed OpenCode router core to $OPENCODE_CORE_TARGET"
 echo "Installed OpenCode router plugin to $OPENCODE_PLUGINS_TARGET/nebu-skills-router.js"
+echo "Installed OpenCode rules to $OPENCODE_RULES_TARGET/coding-standards.md"
 if [ -d "$CLAUDE_DIR" ]; then
   echo "Installed Claude Code rules to $CLAUDE_RULES_FILE"
   echo "Linked Claude skills at $CLAUDE_SKILLS_TARGET -> $SHARED_SKILLS_TARGET"
