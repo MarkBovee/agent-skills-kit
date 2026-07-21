@@ -177,7 +177,11 @@ if [ -f "$OPENCODE_JSON" ]; then
     var c=JSON.parse(fs.readFileSync(f,'utf-8'));
     c.instructions=c.instructions||[];
     var e='./rules/coding-standards.md';
-    if(!c.instructions.includes(e)){c.instructions.push(e);fs.writeFileSync(f,JSON.stringify(c,null,2)+'\n');}
+    if(!c.instructions.includes(e)){c.instructions.push(e);}
+    c.plugin=c.plugin||[];
+    var p='./plugins/nebu-skills-router.js';
+    if(!c.plugin.includes(p)){c.plugin.push(p);}
+    fs.writeFileSync(f,JSON.stringify(c,null,2)+'\n');
   "
 fi
 

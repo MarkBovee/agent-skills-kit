@@ -44,6 +44,26 @@ function readTextParts(parts) {
     .trim()
 }
 
+// Try to extract the user's latest text from the system.transform input, supporting multiple input shapes.
+function extractUserText(input) {
+  if (!input) return ""
+  if (typeof input.text === "string" && input.text.trim()) return input.text.trim()
+  const parts = readTextParts(input.parts)
+  if (parts) return parts
+  if (Array.isArray(input.messages)) {
+    for (let i = input.messages.length - 1; i >= 0; i--) {
+      const msg = input.messages[i]
+      if (msg.role !== "user") continue
+      if (typeof msg.content === "string" && msg.content.trim()) return msg.content.trim()
+      if (Array.isArray(msg.content)) {
+        const t = readTextParts(msg.content)
+        if (t) return t
+      }
+    }
+  }
+  return ""
+}
+
 // Build the OpenCode router plugin around the deterministic cascade router.
 async function nebuSkillsRouterPlugin(_input, options = {}) {
   const configuredPaths = Array.isArray(options.paths) ? options.paths : []
@@ -113,10 +133,21 @@ async function nebuSkillsRouterPlugin(_input, options = {}) {
     },
     "experimental.chat.system.transform": async (input, output) => {
       const sessionState = getSessionState(sessionStateBySession, input.sessionID)
-      const matchedSkills = sessionState.matchedSkills || []
-      const executionProfile = sessionState.executionProfile
+
+      // Fallback: route on user's message directly if session state has no matches yet (first-turn blind fix).
+      let matchedSkills = sessionState.matchedSkills || []
+      let executionProfile = sessionState.executionProfile
+      const userMessage = extractUserText(input)
+      if (matchedSkills.length === 0 && userMessage) {
+        const result = cascadeRoute(userMessage, discoveredSkills, sessionState)
+        matchedSkills = result.matchedSkills || []
+        executionProfile = result.executionProfile
+        setSessionState(sessionStateBySession, input.sessionID, { matchedSkills, executionProfile })
+      }
 
       const lines = [
+        "!!! CRITICAL: You MUST load a skill before starting work. Call `skill` with the name of the best-matching workflow skill from the list below BEFORE writing any code or running any tool. This is mandatory, not optional. !!!",
+        "",
         "Skill routing (cascade, first match wins):",
         "- GitHub issues → nebu-github-issues",
         "- Debug/bug/error → nebu-debugging",
@@ -129,8 +160,7 @@ async function nebuSkillsRouterPlugin(_input, options = {}) {
         "- Done/ready/handoff → nebu-verification",
         "- Ambiguous/planning → nebu-kickoff",
         "- Everything else → nebu-kaizen (default)",
-        "- At task start, select the best matching skill immediately instead of waiting for a manual trigger.",
-        "- Prefer the `skill` tool at task start when a request clearly matches an installed nebu workflow skill.",
+        "- Best match is listed below under 'Best matches for this request'. If none listed, use the cascade above to pick.",
         "- Cost-aware: bounded mechanical chores (version bumps, changelogs, release notes) start with cheap mini subagent.",
         "- Escalate from mini to default/high/xhigh only when scope expands or cheap-first validation fails.",
       ]
@@ -169,7 +199,7 @@ async function nebuSkillsRouterPlugin(_input, options = {}) {
     },
     "tool.definition": async (input, output) => {
       if (resolveToolID(input) !== "skill" || !skillPreview) return
-      output.description = `${output.description} Prefer this tool when the request matches an installed nebu workflow skill. Installed nebu-skills: ${skillPreview}`
+      output.description = `${output.description} CRITICAL: You MUST call this tool at the start of every task before writing code or running tools. Installed nebu-skills: ${skillPreview}`
     },
   }
 }

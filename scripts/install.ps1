@@ -181,17 +181,18 @@ try {
     New-Item -ItemType Directory -Force -Path $opencodeRulesTarget | Out-Null
     Copy-Item -LiteralPath (Join-Path $opencodeRulesSource "coding-standards.md") -Destination (Join-Path $opencodeRulesTarget "coding-standards.md") -Force
 
-    # Add coding-standards.md to opencode.json instructions if not already present.
+    # Patch opencode.json: add instructions and plugin entries idempotently.
     $opencodeJsonPath = Join-Path $OpencodeDir "opencode.json"
     if (Test-Path -LiteralPath $opencodeJsonPath) {
         $cfg = Get-Content -LiteralPath $opencodeJsonPath -Raw | ConvertFrom-Json
+        $changed = $false
         if (-not $cfg.instructions) { $cfg.instructions = @() }
-        $entry = "./rules/coding-standards.md"
-        if ($entry -notin $cfg.instructions) {
-            $cfg.instructions += $entry
-            $cfg | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $opencodeJsonPath
-            "Patched opencode.json: added coding-standards.md"
-        }
+        $ins = "./rules/coding-standards.md"
+        if ($ins -notin $cfg.instructions) { $cfg.instructions += $ins; $changed = $true }
+        if (-not $cfg.plugin) { $cfg.plugin = @() }
+        $pl = "./plugins/nebu-skills-router.js"
+        if ($pl -notin $cfg.plugin) { $cfg.plugin += $pl; $changed = $true }
+        if ($changed) { $cfg | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $opencodeJsonPath }
     }
 
     if (Test-Path -LiteralPath $ClaudeDir) {

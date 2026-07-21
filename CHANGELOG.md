@@ -6,6 +6,14 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [0.2.2] - 2026-07-21
+
+### Fixed
+
+- **nebu-skills-router plugin now actually activates.** Installer patched `opencode.json` `plugin` array to include `./plugins/nebu-skills-router.js`. Previously the file was copied but never registered — plugin never ran, so no routing hints were injected and no skills were auto-suggested.
+- **First-turn routing blind spot fixed.** `system.transform` hook now runs `cascadeRoute` directly on the user's message when session state has no prior matches, so routing hints are available from turn 1 instead of turn 2+.
+- **Hardened skill-loading enforcement.** System prompt now includes a CRITICAL instruction: the model MUST call `skill` at task start before any code or tools. Same mandate injected into the `skill` tool's definition description.
+
 ## [0.2.1] - 2026-07-21
 
 ### Added
