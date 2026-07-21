@@ -4,6 +4,13 @@ All notable changes to `nebu-skills` live here.
 
 Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` form.
 
+## [0.3.5] - 2026-07-21
+
+### Changed
+
+- **skills/nebu-agent-workflows/SKILL.md** uitgebreid met context-retentie denkkader, output contract, concrete flow voorbeelden, en keep/delegeer tabel. Beter subagent gebruik bespaart hoofdcontext. (`## Not a good fit`, `## Context retention`, `### Output contract`, `### Concrete flows`)
+- **Cavecrew skill verwijderd** uit opencode — vervangen door context-retentie patronen in agent-workflows skill.
+
 ## [0.3.4] - 2026-07-21
 
 ### Removed

@@ -35,6 +35,21 @@ Coordinate multiple agents only when parallel work will actually help.
 - the steps are tightly coupled and need one shared thread of judgment
 - the task is small enough that handoff cost outweighs the gain
 - the next step depends directly on the exact output of the previous step
+- the reasoning or intermediate state is needed for the next step — losing it means re-deriving
+
+## Context retention
+
+Not all work belongs in the main thread. Classify before delegating:
+
+| Keep in main context | Delegate to subagent |
+|---|---|
+| Architecture decisions, tradeoffs | grep / locate / map structure |
+| Reasoning chains (>2 steps) | Isolated edit with fixed spec |
+| Code that still needs to change | Review of bounded scope |
+| Cross-cutting refactors | Research → summary |
+| Bug analysis needing full context | Mechanical changes (rename, lint, format) |
+
+Decision rule: *if the subagent's output fits in a structured table or a few lines of findings, delegate. If the reasoning path is needed for the next step, keep in main.*
 
 ## Core lifecycle
 
@@ -62,6 +77,23 @@ Coordinate multiple agents only when parallel work will actually help.
 5. Aggregate create, test, and review outcomes into the owner thread instead of spamming status noise.
 6. Finish with one clear summary and no dangling follow-ups.
 
+### Output contract
+
+What a subagent returns to the main thread:
+
+- **Structured findings** — one line per finding, or a table/list for multiple results. No narrative, no reasoning trail.
+- **Empty result** — `No match.` / `No issues.` / `Out of scope.` No "I also checked X."
+- **Blockers** — what prevented completion, in one sentence.
+- **Keep only the result.** The subagent's journey, dead ends, and intermediate state stay in its context, not yours.
+
+### Concrete flows
+
+**Review flow:** Main thread delegates a bounded review → subagent returns structured findings (1 line per issue, severity-tagged) → main thread applies or delegates fixes. Only the findings table stays in context, not the diff.
+
+**Locate→fix flow:** Investigator finds sites → main thread picks 1-2 → hands exact path:line to builder → builder returns diff receipt. Investigator's full output discarded after selection.
+
+**Research→summary flow:** Investigator explores → returns only the conclusion and key evidence (2-5 lines) → main thread uses that for the next decision. No exploration log kept.
+
 ## When shared context is available
 
 - Prefer the host's public agent, skill, or context surfaces for coordination and state sharing.
@@ -80,3 +112,4 @@ Coordinate multiple agents only when parallel work will actually help.
 - fuzzy handoffs with no owner, no scope, or no success criteria
 - parallel edits in the same files without an explicit merge plan
 - claiming the task is finished while unread messages or blockers remain
+- keeping subagent reasoning verbatim when only the structured result matters — this defeats the purpose of delegation
