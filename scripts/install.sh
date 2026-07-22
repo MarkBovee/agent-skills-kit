@@ -184,7 +184,10 @@ cp "$OPENCODE_PLUGINS_SOURCE/nebu-skills-router.js" "$OPENCODE_PLUGINS_TARGET/ne
 
 # Install coding-standards rules for OpenCode.
 mkdir -p "$OPENCODE_RULES_TARGET"
-cp "$OPENCODE_RULES_SOURCE/coding-standards.md" "$OPENCODE_RULES_TARGET/coding-standards.md"
+if [ -L "$OPENCODE_RULES_TARGET/coding-standards.md" ]; then
+  rm "$OPENCODE_RULES_TARGET/coding-standards.md"
+fi
+ln -s "$OPENCODE_RULES_SOURCE/coding-standards.md" "$OPENCODE_RULES_TARGET/coding-standards.md"
 OPENCODE_JSON="$OPENCODE_DIR/opencode.json"
 if [ -f "$OPENCODE_JSON" ]; then
   node -e "
