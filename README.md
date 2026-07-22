@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/readme-banner.svg" alt="nebu-skills banner" width="100%" />
+  <img src="assets/social-preview.png" alt="nebu-skills banner" width="100%" />
 </p>
 
 <p align="center">
@@ -389,7 +389,7 @@ scripts/check-release-readiness.js
 ## Notes
 
 - OpenCode is the routing reference implementation.
-- Visual assets live in `assets/readme-banner.svg` and `assets/social-preview.png`.
+- Visual assets live in `assets/social-preview.png`.
 - For GitHub repo cards, use `assets/social-preview.png` as the social preview image.
 - Restart OpenCode after install or update.
 - Bootstrap scripts store a managed checkout in `REPO_DIR` when set. Default path is `XDG_DATA_HOME/nebu-skills` when available, otherwise `LOCALAPPDATA\nebu-skills` on PowerShell, then `~/.local/share/nebu-skills`.
