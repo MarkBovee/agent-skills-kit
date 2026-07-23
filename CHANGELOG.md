@@ -4,6 +4,8 @@ All notable changes to `nebu-skills` live here.
 
 Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` form.
 
+## Unreleased
+
 ## [0.3.8] - 2026-07-23
 
 ### Changed
