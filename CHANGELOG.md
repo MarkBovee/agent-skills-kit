@@ -4,6 +4,13 @@ All notable changes to `nebu-skills` live here.
 
 Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` form.
 
+## [0.3.8] - 2026-07-23
+
+### Changed
+
+- **copilot-instructions.md:** "always invoke code-review after every edit" → only for meaningful/subtle/risky changes. Trivial edits skip review.
+- **code-review triggers verscherpt:** `diff`, `after code changes`, `after coding`, `before claiming done` verwijderd. Laadt alleen nog bij expliciete review-intent.
+
 ## [0.3.6] - 2026-07-21
 
 ### Changed

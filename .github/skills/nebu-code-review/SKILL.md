@@ -1,6 +1,6 @@
 ---
 name: "code-review"
-description: "Use when code changed and a meaningful diff is ready; fresh eyes should catch requirement gaps, regressions, or risky design mistakes before handoff or success claims. Common triggers: review, nakijken, diff, pull request, code review, fresh eyes, start reviewing, review deze wijziging, after code changes, after coding, before claiming done."
+description: "Use when code changed and a meaningful diff is ready; fresh eyes should catch requirement gaps, regressions, or risky design mistakes before handoff or success claims. Common triggers: review, nakijken, pull request, code review, fresh eyes, start reviewing, review deze wijziging."
 ---
 # Nebu Code Review
 

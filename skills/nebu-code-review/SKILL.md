@@ -6,15 +6,11 @@ delegation_default: auto
 triggers:
   - review
   - nakijken
-  - diff
   - pull request
   - code review
   - fresh eyes
   - start reviewing
   - review deze wijziging
-  - after code changes
-  - after coding
-  - before claiming done
 ---
 
 # Nebu Code Review
