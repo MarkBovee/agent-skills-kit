@@ -47,10 +47,9 @@ This is a mandatory second pass after **every** code edit. Review depth scales w
 
 ## Use with
 
-- `kaizen` when the coding pass is done and the diff needs a second look
+- `develop` when the coding pass is done and the diff needs a second look
 - `verification` after review passes to confirm the claim is proven
-- `writing-nebu-skills` when review exposes a recurring miss in agent workflow
-
+- `write-skill` when review exposes a recurring miss in agent workflow
 ## Avoid
 
 - Nit-only reviews on otherwise risky code

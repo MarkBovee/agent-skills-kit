@@ -11,7 +11,7 @@
   <img alt="OpenCode first" src="https://img.shields.io/badge/OpenCode-first-00E6FF?style=for-the-badge&labelColor=10131A" />
   <img alt="GitHub Copilot export" src="https://img.shields.io/badge/GitHub_Copilot-exported-FF4FD8?style=for-the-badge&labelColor=10131A" />
   <img alt="Claude Code export" src="https://img.shields.io/badge/Claude_Code-exported-FFD166?style=for-the-badge&labelColor=10131A" />
-  <img alt="Kaizen default" src="https://img.shields.io/badge/Kaizen-default-7C5CFF?style=for-the-badge&labelColor=10131A" />
+  <img alt="Develop default" src="https://img.shields.io/badge/Develop-default-7C5CFF?style=for-the-badge&labelColor=10131A" />
 </p>
 
 <p align="center">
@@ -39,7 +39,7 @@
 | --- | --- |
 | One canonical source | Skills live once under `skills/` and export into native GitHub Copilot and Claude Code formats. |
 | OpenCode is reference | Router behavior and plugin support are designed around OpenCode first. |
-| Kaizen by default | Normal software work starts with steady iterative progress, not heavyweight process. |
+| Develop by default | Normal software work starts with steady iterative progress, not heavyweight process. |
 | Hints only | Router suggests skills. It does not rewrite commands, auto-run tools, or hijack sessions. |
 
 ## Goals
@@ -163,33 +163,33 @@ The unified installer removes old managed skill copies from editor-specific skil
 
 ## Skills
 
-Skills use short display names (e.g. `debugging`, `kaizen`) for easy reference. The `nebu-` prefix remains in directory names for namespace isolation.
+Skills use short display names (e.g. `debugging`, `develop`) for easy reference. The `nebu-` prefix remains in directory names for namespace isolation.
 
 ### By Stage
 
 | Stage | Skills | Purpose |
 | --- | --- | --- |
-| Start | `kickoff` | clarify fuzzy work before it gets expensive (brainstorming + scoping + planning) |
-| Execute | `kaizen`, `debugging` | move code forward with small coherent loops |
+| Start | `intake` | clarify fuzzy work before it gets expensive (brainstorming + scoping + planning) |
+| Execute | `develop`, `debugging` | move code forward with small coherent loops |
 | Validate | `code-review`, `verification` | review the diff and prove the claim (includes workspace wrap-up) |
-| Improve | `improve`, `github-issues` | audit, refactor, track issues |
-| Coordinate | `agent-workflows`, `writing-nebu-skills` | route work, finish cleanly, keep the skill system healthy |
+| Improve | `refactor`, `github-issues` | audit, refactor, track issues |
+| Coordinate | `agent-workflows`, `write-skill` | route work, finish cleanly, keep the skill system healthy |
 | Product | `ui-ux` | push interface work beyond bland default SaaS output |
 
 ### Full Roster
 
 | Skill | Tier | Purpose |
 | --- | --- | --- |
-| `kaizen` | standard | Default baseline: small, safe iterative software work (includes implementation mode selection) |
-| `kickoff` | standard | Pre-execution: design exploration, scope clarification, and multi-phase planning |
+| `develop` | standard | Default baseline: small, safe iterative software work (includes implementation mode selection) |
+| `intake` | standard | Pre-execution: design exploration, scope clarification, and multi-phase planning |
 | `debugging` | standard | Root-cause investigation |
 | `code-review` | standard | Engineering review passes |
 | `verification` | standard | Validation + workspace wrap-up before claiming completion |
-| `improve` | heavy | Audit-driven improvement + focused refactoring |
+| `refactor` | heavy | Audit-driven improvement + focused refactoring |
 | `github-issues` | light | Structured issue management |
 | `ui-ux` | heavy | UI and UX implementation support |
 | `agent-workflows` | light | Multi-agent coordination + release chores |
-| `writing-nebu-skills` | standard | Skill authoring + workflow improvement tracking |
+| `write-skill` | standard | Skill authoring + workflow improvement tracking |
 
 ---
 
@@ -203,7 +203,7 @@ Default rhythm across the pack:
 4. Review the diff before claiming victory.
 5. Continue until done or blocked for real.
 
-That is why `kaizen` carries `default: true` in frontmatter. The router uses it as a baseline nudge without overriding a clearly stronger match.
+That is why `develop` carries `default: true` in frontmatter. The router uses it as a baseline nudge without overriding a clearly stronger match.
 
 The pack favors fast trustworthy checks, then proportional review and verification before completion claims.
 
@@ -216,15 +216,15 @@ The pack favors fast trustworthy checks, then proportional review and verificati
 Cascade order:
 
 1. Bug/error → `debugging`
-2. Audit/refactor/improve → `improve`
+2. Audit/refactor → `refactor`
 3. UI/UX → `ui-ux`
 4. GitHub issue → `github-issues`
 5. Multi-agent/release chores → `agent-workflows`
-6. Skill writing/improvement → `writing-nebu-skills`
+6. Skill writing → `write-skill`
 7. Code edited + done/ready → `code-review`
 8. Done/ready/handoff → `verification`
-9. Ambiguous/planning → `kickoff`
-10. Default → `kaizen`
+9. Ambiguous/planning → `intake`
+10. Default → `develop`
 
 Session state tracks code edits so code-review activates when completion signals follow code changes.
 
@@ -235,8 +235,8 @@ Two optional frontmatter fields let a skill declare how expensive its default fl
 | `execution_tier` | Suggested `agentTier` | When to use | Example |
 | --- | --- | --- | --- |
 | `light` | `mini` | bounded, mechanical, single-pass work | `github-issues` |
-| `standard` (default) | `default` | normal judgment-heavy work | `kaizen`, `kickoff`, `code-review`, `debugging`, `verification`, `writing-nebu-skills` |
-| `heavy` | `high` | broad or multi-part work, e.g. a full codebase audit or complex UI design | `improve`, `ui-ux` |
+| `standard` (default) | `default` | normal judgment-heavy work | `develop`, `intake`, `code-review`, `debugging`, `verification`, `write-skill` |
+| `heavy` | `high` | broad or multi-part work, e.g. a full codebase audit or complex UI design | `refactor`, `ui-ux` |
 | `deep` | `xhigh` | analysis-heavy or architectural work | — |
 
 `delegation_default` (`auto` / `prefer-subagent` / `owner-only`) hints whether the work should default to a subagent when the host supports one. Both fields are read by `buildExecutionProfile` in `core/router-core.js`, which also upgrades the tier when the prompt itself signals light or heavy/deep work (e.g. "version bump" vs. "cross-repo migration"), regardless of which skill matched.

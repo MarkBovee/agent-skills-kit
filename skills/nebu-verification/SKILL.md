@@ -60,8 +60,7 @@ Close out multi-repo work: verify integrated state, leave the workspace intentio
 
 - `code-review` before verification when meaningful code changed
 - `agent-workflows` when multiple agents or terminals touched different repos
-- `writing-nebu-skills` when the session uncovered reusable process or routing gaps
-
+- `write-skill` when the session uncovered reusable process or routing gaps
 ## Avoid
 
 - "Should work now"

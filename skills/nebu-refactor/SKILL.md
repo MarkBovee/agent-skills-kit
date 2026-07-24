@@ -1,8 +1,31 @@
 ---
-name: "improve"
-description: "Use when the codebase needs a structured audit, audit-driven plans, execution of those plans, or a focused refactoring/simplification pass. Covers correctness, security, performance, tech debt, migrations, DX, direction, and code cleanup in one skill."
-when_to_use: "Common triggers: improve, audit, tech debt, tech debt audit, audit codebase, improve codebase, direction, audit and plan, refactor this, refactoren, code cleanup, opschonen, simplify this code, vereenvoudigen, remove over-engineering, deduplicate logic, restructure this code, reduce complexity, untangle this, clean architecture mess."
+name: refactor
+description: Use when the codebase needs a structured audit, audit-driven plans, execution of those plans, or a focused refactoring/simplification pass. Covers correctness, security, performance, tech debt, migrations, DX, direction, and code cleanup in one skill.
+execution_tier: heavy
+delegation_default: prefer-subagent
+triggers:
+  - improve
+  - audit
+  - tech debt
+  - tech debt audit
+  - audit codebase
+  - improve codebase
+  - direction
+  - audit and plan
+  - refactor this
+  - refactoren
+  - code cleanup
+  - opschonen
+  - simplify this code
+  - vereenvoudigen
+  - remove over-engineering
+  - deduplicate logic
+  - restructure this code
+  - reduce complexity
+  - untangle this
+  - clean architecture mess
 ---
+
 # Nebu Improve
 
 Structured, evidence-first codebase audit that produces executable implementation plans. Also covers focused refactoring and simplification passes. Runs once to audit and plan; re-invoke `execute`, `reconcile`, or `next` modes for follow-through.
@@ -56,7 +79,7 @@ Skip when:
 
 ## Use with
 
-- `kickoff` when the work scope is ambiguous
+- `intake` when the work scope is ambiguous
 - `code-review` for executor diffs or standalone PRs
 - `debugging` when audit finds a bug that needs tracing
 - `verification` to confirm preserved behavior or executed plans

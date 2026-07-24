@@ -1,6 +1,7 @@
 ---
-name: "writing-nebu-skills"
-description: "Use when creating or revising skills, or when agent behavior reveals a reusable workflow improvement, routing gap, or missing guardrail that should become a skill, plugin, or prompt-pack follow-up. Common triggers: create skill, revise skill, skill design, trigger-focused, write skills, improve skills, skill improvement, skill gap, workflow improvement, routing gap, missing guardrail, prompt pack improvement, reusable improvement, agent missed, auto improvement."
+name: "write-skill"
+description: "Use when creating or revising skills, or when agent behavior reveals a reusable workflow improvement, routing gap, or missing guardrail that should become a skill, plugin, or prompt-pack follow-up."
+when_to_use: "Common triggers: create skill, revise skill, skill design, trigger-focused, write skills, improve skills, skill improvement, skill gap, workflow improvement, routing gap, missing guardrail, prompt pack improvement, reusable improvement, agent missed, auto improvement."
 ---
 # Writing Nebu Skills
 

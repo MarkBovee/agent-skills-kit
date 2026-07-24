@@ -23,6 +23,12 @@ using-nebu-skills
 writing-nebu-skills
 workspace-wrapup
 nebu-test-driven-development
+kaizen
+nebu-kaizen
+kickoff
+nebu-kickoff
+improve
+nebu-improve
 EOF
 }
 

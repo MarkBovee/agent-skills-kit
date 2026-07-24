@@ -115,6 +115,6 @@ Use the helper as input to judgment, not as a substitute for it.
 
 ## Use with
 
-- `kaizen` for steady inspect-change-review loops during UI work
+- `develop` for steady inspect-change-review loops during UI work
 - `code-review` after meaningful frontend diffs
 - `verification` before claiming the UI is done

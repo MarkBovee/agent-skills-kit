@@ -13,19 +13,27 @@ const DEFAULT_MAX_LISTED_SKILLS = 8
 const MAX_SESSION_CACHE = 100
 const CODE_EDIT_TOOL_IDS = new Set(["edit", "write", "apply_patch"])
 
-const SKILL_KAZEN = "kaizen"
-const SKILL_KICKOFF = "kickoff"
+const SKILL_DEVELOP = "develop"
+const SKILL_INTAKE = "intake"
 const SKILL_CODE_REVIEW = "code-review"
 const SKILL_VERIFICATION = "verification"
 const SKILL_DEBUGGING = "debugging"
-const SKILL_IMPROVE = "improve"
+const SKILL_REFACTOR = "refactor"
 const SKILL_UI_UX = "ui-ux"
 const SKILL_GITHUB_ISSUES = "github-issues"
 const SKILL_AGENT_WORKFLOWS = "agent-workflows"
-const SKILL_WRITING = "writing-nebu-skills"
-
+const SKILL_WRITE_SKILL = "write-skill"
 const VALID_EXECUTION_TIERS = new Set(["light", "standard", "heavy", "deep"])
 const VALID_DELEGATION_MODES = new Set(["auto", "prefer-subagent", "owner-only"])
+
+const REFACTOR_PHRASES = [
+  "improve", "audit", "tech debt", "tech debt audit", "audit codebase",
+  "improve codebase", "direction", "audit and plan", "refactor this",
+  "refactoren", "code cleanup", "opschonen", "simplify this code",
+  "vereenvoudigen", "remove over-engineering", "deduplicate logic",
+  "restructure this code", "reduce complexity", "untangle this",
+  "clean architecture mess", "clean up", "debt", "code smell",
+]
 
 // Signal phrases per skill. Case-insensitive match. Order = cascade priority.
 const BUG_PHRASES = [
@@ -33,14 +41,6 @@ const BUG_PHRASES = [
   "start debugging", "start investigating", "fout opsporen", "crash",
   "stack trace", "race condition", "memory leak", "not working",
   "doesn't work", "broke", "regression",
-]
-const IMPROVE_PHRASES = [
-  "improve", "audit", "tech debt", "tech debt audit", "audit codebase",
-  "improve codebase", "direction", "audit and plan", "refactor this",
-  "refactoren", "code cleanup", "opschonen", "simplify this code",
-  "vereenvoudigen", "remove over-engineering", "deduplicate logic",
-  "restructure this code", "reduce complexity", "untangle this",
-  "clean architecture mess", "clean up", "debt", "code smell",
 ]
 const UI_PHRASES = [
   "design a ui", "redesign this page", "improve ux", "polish the frontend",
@@ -54,11 +54,9 @@ const ISSUE_PHRASES = [
 ]
 const AGENT_PHRASES = [
   "multi-agent", "parallel work", "agent coordination", "task handoff",
-  "subagent delegation", "version bump", "bump version", "release notes",
-  "changelog", "change log", "release prep", "tag release",
-  "versie bump", "bump de versie", "parallelize",
+  "subagent delegation", "parallelize",
 ]
-const WRITING_PHRASES = [
+const WRITE_SKILL_PHRASES = [
   "create skill", "revise skill", "skill design", "trigger-focused",
   "write skills", "improve skills", "skill improvement", "skill gap",
   "workflow improvement", "routing gap", "missing guardrail",
@@ -94,29 +92,24 @@ const AMBIGUITY_PHRASES = [
   "requirements are unclear", "what should we do next", "what next",
 ]
 
-// Return default per-session routing state.
 function createEmptySessionState() {
   return { matchedSkills: [], needsCodeReview: false, shouldCaptureImprovement: false, executionProfile: null }
 }
 
-// Deduplicate + remove falsy values, preserve order.
 function unique(values) {
   return [...new Set(values.filter(Boolean))]
 }
 
-// Check if normalized query contains any of the phrases.
 function hasPhraseSignal(query, phrases) {
   const normalized = query.trim().toLowerCase()
   if (!normalized) return false
   return phrases.some((phrase) => normalized.includes(phrase))
 }
 
-// Strip surrounding quotes from YAML scalar value.
 function stripQuotes(value) {
   return value.replace(/^['"]|['"]$/g, "").trim()
 }
 
-// Parse YAML frontmatter subset used by skill files.
 function parseFrontmatter(content) {
   const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
   if (!match) return {}
@@ -141,52 +134,44 @@ function parseFrontmatter(content) {
   return result
 }
 
-// Strip YAML frontmatter from markdown document.
 function stripFrontmatter(content) {
   return content.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, "")
 }
 
-// Collapse multiline text into bounded single-line preview.
 function toSingleLine(text, maxLength = 120) {
   const singleLine = text.replace(/\s+/g, " ").trim()
   if (singleLine.length <= maxLength) return singleLine
   return `${singleLine.slice(0, maxLength - 3).trim()}...`
 }
 
-// Normalize frontmatter value that may be string or string[].
 function normalizeStringList(value) {
   if (Array.isArray(value)) return value.map((entry) => String(entry).trim()).filter(Boolean)
   if (typeof value === "string") return [value.trim()].filter(Boolean)
   return []
 }
 
-// Parse loose boolean frontmatter value.
 function parseBooleanField(value) {
   if (value === true || value === false) return value
   if (typeof value !== "string") return false
   return value.trim().toLowerCase() === "true"
 }
 
-// Parse execution_tier frontmatter with safe fallback.
 function parseExecutionTier(value, fallback = "standard") {
   if (typeof value !== "string") return fallback
   const normalized = value.trim().toLowerCase()
   return VALID_EXECUTION_TIERS.has(normalized) ? normalized : fallback
 }
 
-// Parse delegation_default frontmatter with safe fallback.
 function parseDelegationMode(value, fallback = "auto") {
   if (typeof value !== "string") return fallback
   const normalized = value.trim().toLowerCase()
   return VALID_DELEGATION_MODES.has(normalized) ? normalized : fallback
 }
 
-// Check whether filesystem path exists.
 async function pathExists(target) {
   try { await fs.access(target); return true } catch { return false }
 }
 
-// Recursively discover SKILL.md files below root directory.
 async function findSkillFiles(root) {
   const results = []
   const entries = await fs.readdir(root, { withFileTypes: true })
@@ -198,7 +183,6 @@ async function findSkillFiles(root) {
   return results
 }
 
-// Load installed skills, parse frontmatter, precompute match metadata.
 async function loadSkills(pathsToScan) {
   const files = []
   for (const skillPath of pathsToScan) {
@@ -221,12 +205,10 @@ async function loadSkills(pathsToScan) {
   return skills.sort((left, right) => left.name.localeCompare(right.name))
 }
 
-// Resolve one skill by name from loaded skill list.
 function findSkill(skills, name) {
   return skills.find((skill) => skill.name === name)
 }
 
-// Map execution tier to host/model tier: light→mini, heavy→high, deep→xhigh.
 function agentTierForExecutionTier(executionTier) {
   switch (executionTier) {
     case "light": return "mini"
@@ -236,7 +218,6 @@ function agentTierForExecutionTier(executionTier) {
   }
 }
 
-// Build execution profile from matched skill + query signals.
 function buildExecutionProfile(matchedSkill, query) {
   if (!matchedSkill) return null
   let executionTier = matchedSkill.executionTier || "standard"
@@ -246,14 +227,10 @@ function buildExecutionProfile(matchedSkill, query) {
   return { executionTier, agentTier: agentTierForExecutionTier(executionTier), delegationMode, matchedSkill: matchedSkill.name }
 }
 
-// Deterministic cascade router. Checks signal phrases in priority order.
-// First match wins. Session state influences code-review routing.
-// Cascade order: github-issues → debugging → improve → ui-ux → agent-workflows
-// → writing-nebu-skills → code-review → [code-edited+done] → verification → kickoff → kaizen(default)
 function cascadeRoute(query, skills, sessionState) {
   const q = query.trim().toLowerCase()
   if (!q) {
-    const fallback = findSkill(skills, SKILL_KAZEN)
+    const fallback = findSkill(skills, SKILL_DEVELOP)
     return { matchedSkills: fallback ? [fallback] : [], executionProfile: buildExecutionProfile(fallback, "") }
   }
   const tryRoute = (phrases, name) => {
@@ -264,10 +241,10 @@ function cascadeRoute(query, skills, sessionState) {
   return (
     tryRoute(ISSUE_PHRASES, SKILL_GITHUB_ISSUES) ||
     tryRoute(BUG_PHRASES, SKILL_DEBUGGING) ||
-    tryRoute(IMPROVE_PHRASES, SKILL_IMPROVE) ||
+    tryRoute(REFACTOR_PHRASES, SKILL_REFACTOR) ||
     tryRoute(UI_PHRASES, SKILL_UI_UX) ||
     tryRoute(AGENT_PHRASES, SKILL_AGENT_WORKFLOWS) ||
-    tryRoute(WRITING_PHRASES, SKILL_WRITING) ||
+    tryRoute(WRITE_SKILL_PHRASES, SKILL_WRITE_SKILL) ||
     tryRoute(REVIEW_PHRASES, SKILL_CODE_REVIEW) ||
     (sessionState.needsCodeReview && (() => {
       if (!hasPhraseSignal(q, COMPLETION_PHRASES)) return null
@@ -277,15 +254,14 @@ function cascadeRoute(query, skills, sessionState) {
       return { matchedSkills: secondary ? [primary, secondary] : [primary], executionProfile: buildExecutionProfile(primary, q) }
     })()) ||
     tryRoute(COMPLETION_PHRASES, SKILL_VERIFICATION) ||
-    tryRoute(AMBIGUITY_PHRASES, SKILL_KICKOFF) ||
+    tryRoute(AMBIGUITY_PHRASES, SKILL_INTAKE) ||
     (() => {
-      const fallback = findSkill(skills, SKILL_KAZEN)
+      const fallback = findSkill(skills, SKILL_DEVELOP)
       return { matchedSkills: fallback ? [fallback] : [], executionProfile: buildExecutionProfile(fallback, q) }
     })()
   )
 }
 
-// Trim session cache by evicting oldest entries.
 function trimSessionCache(cache, maxEntries) {
   while (cache.size > maxEntries) {
     const oldestKey = cache.keys().next().value
@@ -294,7 +270,6 @@ function trimSessionCache(cache, maxEntries) {
   }
 }
 
-// Merge updates into session state record, refresh recency.
 function setSessionState(cache, sessionID, updates) {
   if (!sessionID) return null
   const current = cache.get(sessionID) || createEmptySessionState()
@@ -305,7 +280,6 @@ function setSessionState(cache, sessionID, updates) {
   return next
 }
 
-// Read cached session state or return default empty state.
 function getSessionState(cache, sessionID) {
   if (!sessionID) return createEmptySessionState()
   return cache.get(sessionID) || createEmptySessionState()
@@ -314,8 +288,9 @@ function getSessionState(cache, sessionID) {
 module.exports = {
   CODE_EDIT_TOOL_IDS, DEFAULT_MAX_HINTS, DEFAULT_MAX_LISTED_SKILLS,
   VALID_DELEGATION_MODES, VALID_EXECUTION_TIERS,
-  SKILL_AGENT_WORKFLOWS, SKILL_CODE_REVIEW, SKILL_DEBUGGING, SKILL_GITHUB_ISSUES,
-  SKILL_IMPROVE, SKILL_KAZEN, SKILL_KICKOFF, SKILL_UI_UX, SKILL_VERIFICATION, SKILL_WRITING,
+  SKILL_AGENT_WORKFLOWS, SKILL_CODE_REVIEW, SKILL_DEBUGGING,
+  SKILL_GITHUB_ISSUES, SKILL_REFACTOR, SKILL_DEVELOP, SKILL_INTAKE, SKILL_UI_UX,
+  SKILL_VERIFICATION, SKILL_WRITE_SKILL,
   cascadeRoute, buildExecutionProfile, loadSkills,
   createEmptySessionState, getSessionState, setSessionState,
   findSkill, stripFrontmatter, toSingleLine, normalizeStringList,

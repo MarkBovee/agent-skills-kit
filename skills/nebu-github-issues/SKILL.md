@@ -30,9 +30,9 @@ Turn concrete context into a real GitHub issue quickly.
 
 ## Use with
 
-- `kickoff` when the problem statement or scope is still unclear
+- `intake` when the problem statement or scope is still unclear
 - `code-review` when review findings should become follow-up issues
-- `writing-nebu-skills` when the issue is about improving reusable agent workflow or skill behavior
+- `write-skill` when the issue is about improving reusable agent workflow or skill behavior
 
 ## Avoid
 

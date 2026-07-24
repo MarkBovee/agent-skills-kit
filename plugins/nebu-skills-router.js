@@ -11,18 +11,16 @@ const here = dirname(fileURLToPath(import.meta.url))
 
 const {
   CODE_EDIT_TOOL_IDS, DEFAULT_MAX_LISTED_SKILLS,
-  SKILL_CODE_REVIEW, SKILL_VERIFICATION, SKILL_WRITING,
+  SKILL_CODE_REVIEW, SKILL_VERIFICATION, SKILL_WRITE_SKILL,
   cascadeRoute, getSessionState, loadSkills, setSessionState, toSingleLine,
 } = require(resolve(here, "../core/router-core"))
 
-// Resolve skill search path: prefer ~/.agents/skills, fall back to project-relative (dev mode).
 function resolveSkillPath() {
   const candidates = [resolve(homedir(), ".agents", "skills"), resolve(here, "../skills")]
   for (const p of candidates) { if (existsSync(p)) return p }
   return candidates[0]
 }
 
-// Resolve invoked skill name from various tool.execute.after input shapes.
 function resolveSkillName(input, output) {
   const candidates = [
     input?.name, input?.skill, input?.args?.name, input?.args?.skill,
@@ -35,13 +33,11 @@ function resolveSkillName(input, output) {
   return ""
 }
 
-// Flatten session-state key: tui.prompt.append has no sessionID, single-user anyway.
 const SESSION_KEY = "default"
 
-// Build compact routing guidance injected into every prompt.
 function buildRoutingLines(discoveredSkills, sessionState) {
   const lines = [
-    "Cascade routing (first match wins): debugging → improve → ui-ux → github-issues → agent-workflows → writing-nebu-skills → code-review → verification → kickoff → kaizen(default). Cost-aware: mechanical chores → mini subagent.",
+    "Cascade routing (first match wins): debugging → refactor → ui-ux → github-issues → agent-workflows → write-skill → code-review → verification → intake → develop (default). Cost-aware: mechanical chores → mini subagent.",
   ]
   const matched = sessionState.matchedSkills || []
   if (matched.length > 0) {
@@ -51,11 +47,10 @@ function buildRoutingLines(discoveredSkills, sessionState) {
     lines.push(`Skills: ${discoveredSkills.slice(0, DEFAULT_MAX_LISTED_SKILLS).map(s => `${s.name}: ${toSingleLine(s.description, 60)}`).join("; ")}`)
   }
   if (sessionState.needsCodeReview) lines.push("Code edited. Run code-review before done.")
-  if (sessionState.shouldCaptureImprovement) lines.push("Gap found? writing-nebu-skills.")
+  if (sessionState.shouldCaptureImprovement) lines.push("Gap found? write-skill.")
   return lines.join("\n")
 }
 
-// Shared skill loader - reused across all hooks.
 let skillsCache = null
 async function getSkills() {
   if (skillsCache) return skillsCache
@@ -68,7 +63,6 @@ export const NebuSkillsRouter = async () => {
   const sessionState = new Map()
   return {
     "session.created": async () => {
-      // Warm cache on first session. Missing skills dir never blocks session start.
       try { await getSkills() } catch { /* ok */ }
     },
     "tui.prompt.append": async (input) => {
@@ -95,7 +89,7 @@ export const NebuSkillsRouter = async () => {
       if (!skillName) return
       if (skillName === SKILL_CODE_REVIEW) { setSessionState(sessionState, SESSION_KEY, { needsCodeReview: false, shouldCaptureImprovement: true }); return }
       if (skillName === SKILL_VERIFICATION) { setSessionState(sessionState, SESSION_KEY, { shouldCaptureImprovement: true }); return }
-      if (skillName === SKILL_WRITING) { setSessionState(sessionState, SESSION_KEY, { shouldCaptureImprovement: false }) }
+      if (skillName === SKILL_WRITE_SKILL) { setSessionState(sessionState, SESSION_KEY, { shouldCaptureImprovement: false }) }
     },
   }
 }

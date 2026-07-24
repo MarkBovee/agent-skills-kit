@@ -1,6 +1,6 @@
 ---
-name: "kaizen"
-description: "Default baseline skill for normal software work: small safe iterations, built-in validation, no unnecessary pauses between clear next steps. Includes mode selection (direct, batch, delegate) and cheap-first escalation for bounded mechanical chores. Common triggers: kaizen, autopilot, keep going, continue without waiting, do not stop, don't stop, ga door, werk door, volgende logische stap, volgende stap, start working, start coding, get started, zonder te wachten, niet stoppen, gewoon doorgaan, ga verder, implement this, fix this, add this, pas dit aan, maak dit af, implement, implementeer dit, keep coding, continue implementation, work through steps, code change, start implementing, start implementation, batch edits, delegate work, subagent, maak dit werkend."
+name: "develop"
+description: "Default baseline skill for normal software work: small safe iterations, built-in validation, no unnecessary pauses between clear next steps. Includes mode selection (direct, batch, delegate) and cheap-first escalation for bounded mechanical chores. Common triggers: develop, kaizen, autopilot, keep going, continue without waiting, do not stop, don't stop, ga door, werk door, volgende logische stap, volgende stap, start working, start coding, get started, zonder te wachten, niet stoppen, gewoon doorgaan, ga verder, implement this, fix this, add this, pas dit aan, maak dit af, implement, implementeer dit, keep coding, continue implementation, work through steps, code change, start implementing, start implementation, batch edits, delegate work, subagent, maak dit werkend."
 ---
 # Nebu Kaizen
 
@@ -27,6 +27,21 @@ Default to steady progress: inspect, create, test, review, continue. If the next
 4. Review it for clarity, safety, consistency, and scope.
 5. Continue unless a real blocker or decision point appears.
 
+## Git workflow (default)
+
+### Feature
+1. Branch van main: `git checkout -b feat/description main`
+2. Open draft PR meteen met titel + korte scope beschrijving
+3. Commit iteratief, push regelmatig, PR updatet vanzelf
+4. Klaar? Mark PR ready → review → squash merge met Conventional Commits message
+5. Delete remote + local branch, `git checkout main && git pull`
+
+### Bugfix
+Zelfde flow, `git checkout -b fix/description main`. Draft PR optioneel (klein genoeg om direct te openen).
+
+### Hotfix
+Zelfde flow als release: fix branch → PR → merge → tag. Geen feature iteratie.
+
 ## Default rules
 
 1. Do not stop after every milestone when the next step is already clear.
@@ -34,18 +49,19 @@ Default to steady progress: inspect, create, test, review, continue. If the next
 3. Prefer preventing mistakes early with types, validation, guards, and simpler control flow.
 4. Follow existing repo patterns before inventing new ones. Build only what the current requirement needs.
 5. After code changes, do a proportional review pass. Load `code-review` when the diff is meaningful, subtle, or risky.
-6. When work reveals reusable workflow friction, capture it with `writing-nebu-skills`.
+6. When work reveals reusable workflow friction, capture it with `write-skill`.
 7. Reuse the repo's existing durable planning or spec system; do not create a parallel doc tree.
 8. Delegate only when the work is parallel, repetitive, or context-heavy.
+9. Volg de standaard git workflow: branch, draft PR, commits, squash merge, cleanup.
 
 ## Use with
 
-- `kickoff` for ambiguity that could change the implementation
+- `intake` for ambiguity that could change the implementation
 - `ui-ux` for interface work that needs visual direction and screenshot-based review
 - `code-review` after meaningful code edits and before handoff
 - `debugging` for bugs, failing tests, and broken builds
 - `verification` before claiming success
-- `improve` when the codebase needs a structured audit or refactoring pass
+- `refactor` when the codebase needs a structured audit or refactoring pass
 
 ## Avoid
 

@@ -1,5 +1,5 @@
 ---
-name: writing-nebu-skills
+name: write-skill
 description: Use when creating or revising skills, or when agent behavior reveals a reusable workflow improvement, routing gap, or missing guardrail that should become a skill, plugin, or prompt-pack follow-up.
 execution_tier: standard
 triggers:

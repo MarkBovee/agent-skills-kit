@@ -6,6 +6,28 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [0.4.0] - 2026-07-24
+
+### Added
+
+- **Git workflow als standaard in `develop` skill.** Feature/bugfix/hotfix branches, meteen draft PR, squash merge, cleanup. Vervangt `dev-release-flow` (verwijderd).
+
+### Changed
+
+- **Skills hernoemd (breaking):** `kaizen`→`develop`, `kickoff`→`intake`, `improve`→`refactor`, `writing-nebu-skills`→`write-skill`. Router constants, plugin, cross-refs, exports, README, AGENTS.md, install scripts allemaal mee.
+- **Router cascade:** `DEV_FLOW_PHRASES` verwijderd, `IMPROVE_PHRASES`→`REFACTOR_PHRASES`, `WRITING_PHRASES`→`WRITE_SKILL_PHRASES`.
+- **Export script:** hardcoded skill references geüpdatet (CLAUDE.md, copilot-instructions.md).
+
+### Fixed
+
+- **`home-assistant` frontmatter:** YAML folded scalar (`>`) brak `parseFrontmatter`. Omgerekend naar single-line description.
+- **`home-assistant` te lang:** 353→83 regels SKILL.md + aparte REFERENCE.md (128 regels). Skill verplaatst naar persoonlijke `~/.config/opencode/skills/`.
+
+### Removed
+
+- **`dev-release-flow` skill verwijderd.** Git workflow zit nu in `develop` als standaard.
+- **Install scripts:** stale skill lijst uitgebreid met `kaizen`, `nebu-kaizen`, `kickoff`, `nebu-kickoff`, `improve`, `nebu-improve`.
+
 ## [0.3.8] - 2026-07-23
 
 ### Changed

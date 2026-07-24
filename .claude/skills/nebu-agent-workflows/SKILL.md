@@ -81,7 +81,7 @@ What a subagent returns to the main thread:
 
 ## Use with
 
-- `kaizen` for the default steady-progress loop once ownership and scope are set
+- `develop` for the default steady-progress loop once ownership and scope are set
 - `verification` after delegated work completes, to match proof to the scope of what was delegated
 
 ## Avoid
