@@ -4,7 +4,7 @@
 
 <p align="center">
   <strong>Workflow skills and routing support for coding agents.</strong><br />
-  OpenCode-first skill pack with generated exports for GitHub Copilot and Claude Code.
+  A curated skill pack for OpenCode, GitHub Copilot, and Claude Code — purpose-built workflow guidance without the boilerplate.
 </p>
 
 <p align="center">
@@ -42,13 +42,13 @@
 | Develop by default | Normal software work starts with steady iterative progress, not heavyweight process. |
 | Hints only | Router suggests skills. It does not rewrite commands, auto-run tools, or hijack sessions. |
 
-## Goals
+## Design Goals
 
-- make workflow routing sharper without building a giant prompt constitution
-- keep implementation, debugging, review, verification, and wrap-up as explicit stages
-- let one repo ship portable workflow guidance to three agent platforms
-- encourage proof that matches the claim instead of ritual for its own sake
-- stay compatible with existing tooling such as `nebu-ctx`
+- Sharpen workflow routing without building a monolithic prompt constitution.
+- Treat implementation, debugging, review, verification, and wrap-up as explicit, intentional stages.
+- Ship portable workflow guidance from a single repository to three agent platforms.
+- Require proof that matches the claim — not ritual for its own sake.
+- Stay compatible with existing tooling such as `nebu-ctx`.
 
 Project changes are tracked in [CHANGELOG.md](./CHANGELOG.md).
 
@@ -73,10 +73,12 @@ If you want non-default locations, set environment variables before running the 
 
 ### Bootstrap
 
+**Linux / macOS — Bash:**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap.sh | bash
 ```
 
+**Windows — PowerShell:**
 ```powershell
 irm https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap.ps1 | iex
 ```
@@ -86,12 +88,14 @@ irm https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstr
 
 Local clone install:
 
+**Linux / macOS — Bash:**
 ```bash
 gh repo clone MarkBovee/nebu-skills
 cd nebu-skills
 bash ./scripts/install.sh
 ```
 
+**Windows — PowerShell:**
 ```powershell
 pwsh -NoLogo -NoProfile -File .\scripts\install.ps1
 ```
@@ -226,6 +230,32 @@ Cascade order:
 9. Ambiguous/planning → `intake`
 10. Default → `develop`
 
+```mermaid
+flowchart TD
+    P[Prompt] --> C{Priority match?}
+    C -->|"bug / error"| D[debugging]
+    C -->|"audit / refactor"| R[refactor]
+    C -->|"UI / UX"| U[ui-ux]
+    C -->|"GitHub issue"| G[github-issues]
+    C -->|"multi-agent / release"| A[agent-workflows]
+    C -->|"write skill"| W[write-skill]
+    C -->|"code changed + done"| CR[code-review]
+    C -->|"done / handoff"| V[verification]
+    C -->|"ambiguous / planning"| I[intake]
+    C -->|"no match"| DE[develop]
+
+    style D fill:#1a1a2e,stroke:#e94560,color:#fff
+    style R fill:#1a1a2e,stroke:#e94560,color:#fff
+    style U fill:#1a1a2e,stroke:#e94560,color:#fff
+    style G fill:#1a1a2e,stroke:#e94560,color:#fff
+    style A fill:#1a1a2e,stroke:#e94560,color:#fff
+    style W fill:#1a1a2e,stroke:#e94560,color:#fff
+    style CR fill:#1a1a2e,stroke:#e94560,color:#fff
+    style V fill:#1a1a2e,stroke:#e94560,color:#fff
+    style I fill:#1a1a2e,stroke:#e94560,color:#fff
+    style DE fill:#16213e,stroke:#0f3460,color:#7C5CFF
+```
+
 Session state tracks code edits so code-review activates when completion signals follow code changes.
 
 ### Cost-aware execution profile
@@ -299,6 +329,7 @@ node ./scripts/check-release-readiness.js --require-version-entry
 bash ./scripts/tag-release.sh --dry-run
 ```
 
+**Windows — PowerShell:**
 ```powershell
 pwsh -NoLogo -NoProfile -File .\scripts\tag-release.ps1 -DryRun
 ```
@@ -320,6 +351,7 @@ Bootstrap-managed installs update when you rerun `bootstrap.sh` or `bootstrap.ps
 
 Local clone install or update:
 
+**Linux / macOS — Bash:**
 ```bash
 bash ./scripts/install.sh
 
@@ -327,6 +359,7 @@ bash ./scripts/update.sh
 bash ./scripts/update.sh --skip-pull
 ```
 
+**Windows — PowerShell:**
 ```powershell
 pwsh -NoLogo -NoProfile -File .\scripts\install.ps1
 
