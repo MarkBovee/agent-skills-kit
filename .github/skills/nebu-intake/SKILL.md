@@ -34,6 +34,7 @@ Clarify enough to avoid wrong work, then move. One skill for the full pre-execut
 ## Use with
 
 - `develop` once the path is clear and execution can begin
+- `session-review` when intake reveals missing skills or routing gaps worth tracking
 
 ## Avoid
 

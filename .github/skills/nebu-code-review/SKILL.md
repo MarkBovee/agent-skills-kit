@@ -24,9 +24,9 @@ This is a mandatory second pass after **every** code edit. Review depth scales w
 
 ## Improvement hook
 
-- If review reveals reusable workflow gap, capture it before handoff.
+- If review reveals reusable workflow gap or skill usage miss, run `session-review` to file improvement.
 - Prefer updating an existing skill or router rule when that would prevent same miss next time.
-- If not fixing now, create or reuse follow-up issue.
+- If not fixing now, create or reuse follow-up issue via `session-review`.
 
 ## Good review comments
 
@@ -38,7 +38,8 @@ This is a mandatory second pass after **every** code edit. Review depth scales w
 
 - `develop` when the coding pass is done and the diff needs a second look
 - `verification` after review passes to confirm the claim is proven
-- `write-skill` when review exposes a recurring miss in agent workflow
+- `session-review` when review exposes a skill usage gap or workflow miss worth tracking
+- `write-skill` when improvement needs a new or revised skill
 ## Avoid
 
 - Nit-only reviews on otherwise risky code
