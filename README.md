@@ -232,17 +232,25 @@ Cascade order:
 
 ```mermaid
 flowchart TD
-    P[Prompt] --> C{Priority match?}
-    C -->|"bug / error"| D[debugging]
-    C -->|"audit / refactor"| R[refactor]
-    C -->|"UI / UX"| U[ui-ux]
-    C -->|"GitHub issue"| G[github-issues]
-    C -->|"multi-agent / release"| A[agent-workflows]
-    C -->|"write skill"| W[write-skill]
-    C -->|"code changed + done"| CR[code-review]
-    C -->|"done / handoff"| V[verification]
-    C -->|"ambiguous / planning"| I[intake]
-    C -->|"no match"| DE[develop]
+    P[User prompt] --> C1{"Bug / error?"}
+    C1 -->|Yes| D[debugging]
+    C1 -->|No| C2{"Audit / refactor?"}
+    C2 -->|Yes| R[refactor]
+    C2 -->|No| C3{"UI / UX?"}
+    C3 -->|Yes| U[ui-ux]
+    C3 -->|No| C4{"GitHub issue?"}
+    C4 -->|Yes| G[github-issues]
+    C4 -->|No| C5{"Multi-agent / release?"}
+    C5 -->|Yes| A[agent-workflows]
+    C5 -->|No| C6{"Write skill?"}
+    C6 -->|Yes| W[write-skill]
+    C6 -->|No| C7{"Code edited + done?"}
+    C7 -->|Yes| CR[code-review]
+    C7 -->|No| C8{"Done / handoff?"}
+    C8 -->|Yes| V[verification]
+    C8 -->|No| C9{"Ambiguous / planning?"}
+    C9 -->|Yes| I[intake]
+    C9 -->|No| DE[develop]
 
     style D fill:#1a1a2e,stroke:#e94560,color:#fff
     style R fill:#1a1a2e,stroke:#e94560,color:#fff
@@ -253,7 +261,7 @@ flowchart TD
     style CR fill:#1a1a2e,stroke:#e94560,color:#fff
     style V fill:#1a1a2e,stroke:#e94560,color:#fff
     style I fill:#1a1a2e,stroke:#e94560,color:#fff
-    style DE fill:#16213e,stroke:#0f3460,color:#7C5CFF
+    style DE fill:#16213e,stroke:#7C5CFF,color:#fff
 ```
 
 Session state tracks code edits so code-review activates when completion signals follow code changes.
