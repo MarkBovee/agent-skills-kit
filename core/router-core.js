@@ -239,13 +239,9 @@ function cascadeRoute(query, skills, sessionState) {
     return skill ? { matchedSkills: [skill], executionProfile: buildExecutionProfile(skill, q) } : null
   }
   return (
-    tryRoute(ISSUE_PHRASES, SKILL_GITHUB_ISSUES) ||
-    tryRoute(BUG_PHRASES, SKILL_DEBUGGING) ||
-    tryRoute(REFACTOR_PHRASES, SKILL_REFACTOR) ||
-    tryRoute(UI_PHRASES, SKILL_UI_UX) ||
-    tryRoute(AGENT_PHRASES, SKILL_AGENT_WORKFLOWS) ||
-    tryRoute(WRITE_SKILL_PHRASES, SKILL_WRITE_SKILL) ||
-    tryRoute(REVIEW_PHRASES, SKILL_CODE_REVIEW) ||
+    tryRoute(AMBIGUITY_PHRASES, SKILL_INTAKE) ||           // 1. Start
+    tryRoute(BUG_PHRASES, SKILL_DEBUGGING) ||               // 2. Execute
+    tryRoute(REVIEW_PHRASES, SKILL_CODE_REVIEW) ||          // 3. Validate
     (sessionState.needsCodeReview && (() => {
       if (!hasPhraseSignal(q, COMPLETION_PHRASES)) return null
       const primary = findSkill(skills, SKILL_CODE_REVIEW)
@@ -253,12 +249,16 @@ function cascadeRoute(query, skills, sessionState) {
       const secondary = findSkill(skills, SKILL_VERIFICATION)
       return { matchedSkills: secondary ? [primary, secondary] : [primary], executionProfile: buildExecutionProfile(primary, q) }
     })()) ||
-    tryRoute(COMPLETION_PHRASES, SKILL_VERIFICATION) ||
-    tryRoute(AMBIGUITY_PHRASES, SKILL_INTAKE) ||
+    tryRoute(COMPLETION_PHRASES, SKILL_VERIFICATION) ||     // 4. Validate
+    tryRoute(REFACTOR_PHRASES, SKILL_REFACTOR) ||           // 5. Improve
+    tryRoute(ISSUE_PHRASES, SKILL_GITHUB_ISSUES) ||         // 6. Improve
+    tryRoute(AGENT_PHRASES, SKILL_AGENT_WORKFLOWS) ||       // 7. Coordinate
+    tryRoute(WRITE_SKILL_PHRASES, SKILL_WRITE_SKILL) ||     // 8. Coordinate
+    tryRoute(UI_PHRASES, SKILL_UI_UX) ||                    // 9. Product
     (() => {
       const fallback = findSkill(skills, SKILL_DEVELOP)
       return { matchedSkills: fallback ? [fallback] : [], executionProfile: buildExecutionProfile(fallback, q) }
-    })()
+    })()                                                     // 10. Execute (default)
   )
 }
 

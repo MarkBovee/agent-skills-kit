@@ -217,52 +217,67 @@ The pack favors fast trustworthy checks, then proportional review and verificati
 
 `plugins/nebu-skills-router.js` uses a deterministic cascade: signal phrases are checked in priority order and the first match wins. No scoring, no ambiguity.
 
-Cascade order:
+Cascade order (grouped by stage):
 
-1. Bug/error → `debugging`
-2. Audit/refactor → `refactor`
-3. UI/UX → `ui-ux`
-4. GitHub issue → `github-issues`
-5. Multi-agent/release chores → `agent-workflows`
-6. Skill writing → `write-skill`
-7. Code edited + done/ready → `code-review`
-8. Done/ready/handoff → `verification`
-9. Ambiguous/planning → `intake`
-10. Default → `develop`
+| # | Stage | Check | Routes to |
+| --- | --- | --- | --- |
+| 1 | **Start** | Ambiguous / planning | `intake` |
+| 2 | **Execute** | Bug / error | `debugging` |
+| 3 | **Validate** | Review request | `code-review` |
+| 4 | **Validate** | Code edited + done/ready | `code-review` (+ `verification`) |
+| 5 | **Validate** | Done / handoff | `verification` |
+| 6 | **Improve** | Audit / refactor | `refactor` |
+| 7 | **Improve** | GitHub issue | `github-issues` |
+| 8 | **Coordinate** | Multi-agent / release | `agent-workflows` |
+| 9 | **Coordinate** | Write skill | `write-skill` |
+| 10 | **Product** | UI / UX | `ui-ux` |
+| 11 | **Execute** | *(default)* | `develop` |
 
 ```mermaid
 flowchart TD
-    P[User prompt] --> C1{"Bug / error?"}
-    C1 -->|Yes| D[debugging]
-    C1 -->|No| C2{"Audit / refactor?"}
-    C2 -->|Yes| R[refactor]
-    C2 -->|No| C3{"UI / UX?"}
-    C3 -->|Yes| U[ui-ux]
-    C3 -->|No| C4{"GitHub issue?"}
-    C4 -->|Yes| G[github-issues]
-    C4 -->|No| C5{"Multi-agent / release?"}
-    C5 -->|Yes| A[agent-workflows]
-    C5 -->|No| C6{"Write skill?"}
-    C6 -->|Yes| W[write-skill]
-    C6 -->|No| C7{"Code edited + done?"}
-    C7 -->|Yes| CR[code-review]
-    C7 -->|No| C8{"Done / handoff?"}
-    C8 -->|Yes| V[verification]
-    C8 -->|No| C9{"Ambiguous / planning?"}
-    C9 -->|Yes| I[intake]
-    C9 -->|No| DE[develop]
+    P[User prompt] --> C1{"Ambiguous /<br>planning?"}
+    C1 -->|Yes| I[intake]
+    C1 -->|No| C2{"Bug /<br>error?"}
+    C2 -->|Yes| D[debugging]
+    C2 -->|No| C3{"Review<br>request?"}
+    C3 -->|Yes| CR[code-review]
+    C3 -->|No| C4{"Code edited<br>+ done?"}
+    C4 -->|Yes| CRV["code-review +<br>verification"]
+    C4 -->|No| C5{"Done /<br>handoff?"}
+    C5 -->|Yes| V[verification]
+    C5 -->|No| C6{"Audit /<br>refactor?"}
+    C6 -->|Yes| R[refactor]
+    C6 -->|No| C7{"GitHub<br>issue?"}
+    C7 -->|Yes| G[github-issues]
+    C7 -->|No| C8{"Multi-agent /<br>release?"}
+    C8 -->|Yes| A[agent-workflows]
+    C8 -->|No| C9{"Write<br>skill?"}
+    C9 -->|Yes| W[write-skill]
+    C9 -->|No| C10{"UI / UX?"}
+    C10 -->|Yes| U[ui-ux]
+    C10 -->|No| DE[develop]
 
+    style I fill:#2d1b69,stroke:#7C5CFF,color:#fff
     style D fill:#1a1a2e,stroke:#e94560,color:#fff
-    style R fill:#1a1a2e,stroke:#e94560,color:#fff
-    style U fill:#1a1a2e,stroke:#e94560,color:#fff
-    style G fill:#1a1a2e,stroke:#e94560,color:#fff
-    style A fill:#1a1a2e,stroke:#e94560,color:#fff
-    style W fill:#1a1a2e,stroke:#e94560,color:#fff
-    style CR fill:#1a1a2e,stroke:#e94560,color:#fff
-    style V fill:#1a1a2e,stroke:#e94560,color:#fff
-    style I fill:#1a1a2e,stroke:#e94560,color:#fff
-    style DE fill:#16213e,stroke:#7C5CFF,color:#fff
+    style DE fill:#1a1a2e,stroke:#e94560,color:#fff
+    style CR fill:#1a1a2e,stroke:#2ecc71,color:#fff
+    style CRV fill:#1a1a2e,stroke:#2ecc71,color:#fff
+    style V fill:#1a1a2e,stroke:#2ecc71,color:#fff
+    style R fill:#1a1a2e,stroke:#f39c12,color:#fff
+    style G fill:#1a1a2e,stroke:#f39c12,color:#fff
+    style A fill:#1a1a2e,stroke:#1abc9c,color:#fff
+    style W fill:#1a1a2e,stroke:#1abc9c,color:#fff
+    style U fill:#1a1a2e,stroke:#e91e8c,color:#fff
 ```
+
+| Stage | Skills | Color |
+| --- | --- | --- |
+| **Start** | `intake` | `#7C5CFF` purple |
+| **Execute** | `debugging`, `develop` | `#e94560` red |
+| **Validate** | `code-review`, `verification` | `#2ecc71` green |
+| **Improve** | `refactor`, `github-issues` | `#f39c12` orange |
+| **Coordinate** | `agent-workflows`, `write-skill` | `#1abc9c` teal |
+| **Product** | `ui-ux` | `#e91e8c` pink |
 
 Session state tracks code edits so code-review activates when completion signals follow code changes.
 
