@@ -8,6 +8,14 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ### Changed
 
+- **Auto-trigger session-review after verification.** Router hint and verification skill now suggest session-review at session close. Cross-references added in code-review and intake skills.
+- **Fixed stale references in check-trigger-overlap.js.** Routing test cases now use correct frontmatter names and cover all 10 skills.
+- **Bumped plugin.json version** to match VERSION (0.4.0 → 0.4.1).
+
+## [0.4.1] - 2026-07-24
+
+### Changed
+
 - **Renamed `github-issues` → `session-review`.** Skill refocused on agent self-review of skill usage and filing improvements in `MarkBovee/nebu-skills`. General issue filing kept as secondary mode. Router cascade updated to new skill name and phrases.
 - **Router cascade reordered by lifecycle stage:** Start → Execute → Validate → Improve → Coordinate → Product. README diagram and legend updated accordingly.
 

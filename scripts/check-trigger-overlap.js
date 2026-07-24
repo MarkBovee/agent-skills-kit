@@ -13,39 +13,54 @@ const SKILLS_PATH = path.resolve(__dirname, "..", "skills")
 
 // Each entry asserts the cascade top match for the query is the expected skill.
 const ROUTING_CASES = [
-  ["ga door", "nebu-kaizen"],
-  ["werk door", "nebu-kaizen"],
-  ["autopilot", "nebu-kaizen"],
-  ["start coding", "nebu-kaizen"],
-  ["continue without waiting", "nebu-kaizen"],
-  ["keep going", "nebu-kaizen"],
-  ["implement this feature", "nebu-kaizen"],
-  ["implementeer dit", "nebu-kaizen"],
-  ["start implementing", "nebu-kaizen"],
-  ["add a login page", "nebu-kaizen"],
-  ["start by clarifying", "nebu-kickoff"],
-  ["brainstormen", "nebu-kickoff"],
-  ["plan dit werk", "nebu-kickoff"],
-  ["start planning", "nebu-kickoff"],
-  ["what should we build", "nebu-kickoff"],
-  ["klaar", "nebu-verification"],
-  ["verifiëren", "nebu-verification"],
-  ["afronden", "nebu-verification"],
-  ["done", "nebu-verification"],
-  ["fix this bug", "nebu-debugging"],
-  ["start debugging", "nebu-debugging"],
-  ["debuggen", "nebu-debugging"],
-  ["refactoren", "nebu-improve"],
-  ["refactor this", "nebu-improve"],
-  ["opschonen", "nebu-improve"],
-  ["audit codebase", "nebu-improve"],
-  ["create issue", "nebu-session-review"],
-  ["skill gap", "nebu-writing-nebu-skills"],
-  ["review deze wijziging", "nebu-code-review"],
-  ["start reviewing", "nebu-code-review"],
-  ["nakijken", "nebu-code-review"],
-  ["design a ui", "nebu-ui-ux"],
-  ["bump version", "nebu-agent-workflows"],
+  // Start — intake
+  ["brainstorm", "intake"],
+  ["plan dit werk", "intake"],
+  ["start planning", "intake"],
+  ["what should we build", "intake"],
+  ["ambiguous scope", "intake"],
+  // Execute — debugging
+  ["fix this bug", "debugging"],
+  ["start debugging", "debugging"],
+  ["debuggen", "debugging"],
+  ["crash in production", "debugging"],
+  // Validate — code-review
+  ["review my pr", "code-review"],
+  ["check this diff", "code-review"],
+  ["code review deze code", "code-review"],
+  // Validate — verification
+  ["done with task", "verification"],
+  ["klaar", "verification"],
+  ["verifiëren", "verification"],
+  ["verify this works", "verification"],
+  ["ready to handoff", "verification"],
+  ["wrap up", "verification"],
+  // Improve — refactor
+  ["refactor this", "refactor"],
+  ["audit codebase", "refactor"],
+  ["refactoren", "refactor"],
+  ["opschonen", "refactor"],
+  ["tech debt cleanup", "refactor"],
+  // Improve — session-review
+  ["retrospective", "session-review"],
+  ["create issue", "session-review"],
+  ["retro", "session-review"],
+  ["file an issue", "session-review"],
+  // Coordinate — agent-workflows
+  ["multi-agent coordination", "agent-workflows"],
+  ["parallel work", "agent-workflows"],
+  // Coordinate — write-skill
+  ["create skill", "write-skill"],
+  ["skill gap", "write-skill"],
+  ["write skills", "write-skill"],
+  // Product — ui-ux
+  ["design a ui", "ui-ux"],
+  ["redesign this page", "ui-ux"],
+  ["polish the frontend", "ui-ux"],
+  // Default
+  ["hello world", "develop"],
+  ["bump version", "develop"],
+  ["continue working", "develop"],
 ]
 
 // Detect any trigger string that appears in more than one skill.
