@@ -67,7 +67,7 @@ When agent behavior reveals a reusable gap:
 
 ## Use with
 
-- `github-issues` when improvement should become tracked follow-up
+- `session-review` when improvement should become a tracked issue
 - `code-review` when improvement was discovered during review
 - `verification` when session is closing and reusable learning should not get lost
 

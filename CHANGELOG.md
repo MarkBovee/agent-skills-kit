@@ -6,6 +6,11 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+### Changed
+
+- **Renamed `github-issues` → `session-review`.** Skill refocused on agent self-review of skill usage and filing improvements in `MarkBovee/nebu-skills`. General issue filing kept as secondary mode. Router cascade updated to new skill name and phrases.
+- **Router cascade reordered by lifecycle stage:** Start → Execute → Validate → Improve → Coordinate → Product. README diagram and legend updated accordingly.
+
 ## [0.4.0] - 2026-07-24
 
 ### Added

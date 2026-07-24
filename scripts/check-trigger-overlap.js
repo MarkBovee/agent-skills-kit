@@ -39,7 +39,7 @@ const ROUTING_CASES = [
   ["refactor this", "nebu-improve"],
   ["opschonen", "nebu-improve"],
   ["audit codebase", "nebu-improve"],
-  ["create issue", "nebu-github-issues"],
+  ["create issue", "nebu-session-review"],
   ["skill gap", "nebu-writing-nebu-skills"],
   ["review deze wijziging", "nebu-code-review"],
   ["start reviewing", "nebu-code-review"],

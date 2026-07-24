@@ -176,7 +176,7 @@ Skills use short display names (e.g. `debugging`, `develop`) for easy reference.
 | Start | `intake` | clarify fuzzy work before it gets expensive (brainstorming + scoping + planning) |
 | Execute | `develop`, `debugging` | move code forward with small coherent loops |
 | Validate | `code-review`, `verification` | review the diff and prove the claim (includes workspace wrap-up) |
-| Improve | `refactor`, `github-issues` | audit, refactor, track issues |
+| Improve | `refactor`, `session-review` | audit, refactor, session review, skill improvement |
 | Coordinate | `agent-workflows`, `write-skill` | route work, finish cleanly, keep the skill system healthy |
 | Product | `ui-ux` | push interface work beyond bland default SaaS output |
 
@@ -190,7 +190,7 @@ Skills use short display names (e.g. `debugging`, `develop`) for easy reference.
 | `code-review` | standard | Engineering review passes |
 | `verification` | standard | Validation + workspace wrap-up before claiming completion |
 | `refactor` | heavy | Audit-driven improvement + focused refactoring |
-| `github-issues` | light | Structured issue management |
+| `session-review` | light | Session self-review + GitHub issue filing |
 | `ui-ux` | heavy | UI and UX implementation support |
 | `agent-workflows` | light | Multi-agent coordination + release chores |
 | `write-skill` | standard | Skill authoring + workflow improvement tracking |
@@ -227,7 +227,7 @@ Cascade order (grouped by stage):
 | 4 | **Validate** | Code edited + done/ready | `code-review` (+ `verification`) |
 | 5 | **Validate** | Done / handoff | `verification` |
 | 6 | **Improve** | Audit / refactor | `refactor` |
-| 7 | **Improve** | GitHub issue | `github-issues` |
+| 7 | **Improve** | Session review / GitHub issue | `session-review` |
 | 8 | **Coordinate** | Multi-agent / release | `agent-workflows` |
 | 9 | **Coordinate** | Write skill | `write-skill` |
 | 10 | **Product** | UI / UX | `ui-ux` |
@@ -248,7 +248,7 @@ flowchart TD
     C5 -->|No| C6{"Audit /<br>refactor?"}
     C6 -->|Yes| R[refactor]
     C6 -->|No| C7{"GitHub<br>issue?"}
-    C7 -->|Yes| G[github-issues]
+    C7 -->|Yes| G["session-review"]
     C7 -->|No| C8{"Multi-agent /<br>release?"}
     C8 -->|Yes| A[agent-workflows]
     C8 -->|No| C9{"Write<br>skill?"}
@@ -275,7 +275,7 @@ flowchart TD
 | **Start** | `intake` | `#7C5CFF` purple |
 | **Execute** | `debugging`, `develop` | `#e94560` red |
 | **Validate** | `code-review`, `verification` | `#2ecc71` green |
-| **Improve** | `refactor`, `github-issues` | `#f39c12` orange |
+| **Improve** | `refactor`, `session-review` | `#f39c12` orange |
 | **Coordinate** | `agent-workflows`, `write-skill` | `#1abc9c` teal |
 | **Product** | `ui-ux` | `#e91e8c` pink |
 
@@ -287,14 +287,14 @@ Two optional frontmatter fields let a skill declare how expensive its default fl
 
 | `execution_tier` | Suggested `agentTier` | When to use | Example |
 | --- | --- | --- | --- |
-| `light` | `mini` | bounded, mechanical, single-pass work | `github-issues` |
+| `light` | `mini` | bounded, mechanical, single-pass work | `session-review` |
 | `standard` (default) | `default` | normal judgment-heavy work | `develop`, `intake`, `code-review`, `debugging`, `verification`, `write-skill` |
 | `heavy` | `high` | broad or multi-part work, e.g. a full codebase audit or complex UI design | `refactor`, `ui-ux` |
 | `deep` | `xhigh` | analysis-heavy or architectural work | — |
 
 `delegation_default` (`auto` / `prefer-subagent` / `owner-only`) hints whether the work should default to a subagent when the host supports one. Both fields are read by `buildExecutionProfile` in `core/router-core.js`, which also upgrades the tier when the prompt itself signals light or heavy/deep work (e.g. "version bump" vs. "cross-repo migration"), regardless of which skill matched.
 
-The result is injected as a single line, e.g. `Suggested execution profile: task=light, agent=mini, delegation=prefer-subagent, anchor=github-issues.` Treat it as a hint: pick the smallest/cheapest model or subagent class the host offers for `mini`, and escalate to `default`/`high`/`xhigh` only when scope grows or a cheap-first attempt fails. This only nudges routing — it never blocks a tool or forces delegation.
+The result is injected as a single line, e.g. `Suggested execution profile: task=light, agent=mini, delegation=prefer-subagent, anchor=session-review.` Treat it as a hint: pick the smallest/cheapest model or subagent class the host offers for `mini`, and escalate to `default`/`high`/`xhigh` only when scope grows or a cheap-first attempt fails. This only nudges routing — it never blocks a tool or forces delegation.
 
 Hard boundaries:
 
@@ -362,7 +362,7 @@ The release-readiness check also fails when shipped install surfaces changed sin
 Issue helper for duplicate checks before filing follow-up work:
 
 ```bash
-skills/nebu-github-issues/check-existing-issue.sh "<query>" [owner/repo]
+skills/nebu-session-review/check-existing-issue.sh "<query>" [owner/repo]
 ```
 
 <details>

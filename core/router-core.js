@@ -20,7 +20,7 @@ const SKILL_VERIFICATION = "verification"
 const SKILL_DEBUGGING = "debugging"
 const SKILL_REFACTOR = "refactor"
 const SKILL_UI_UX = "ui-ux"
-const SKILL_GITHUB_ISSUES = "github-issues"
+const SKILL_SESSION_REVIEW = "session-review"
 const SKILL_AGENT_WORKFLOWS = "agent-workflows"
 const SKILL_WRITE_SKILL = "write-skill"
 const VALID_EXECUTION_TIERS = new Set(["light", "standard", "heavy", "deep"])
@@ -48,9 +48,10 @@ const UI_PHRASES = [
   "ui review", "redesign the frontend", "improve this page", "ux",
   "user interface", "frontend design", "visual design", "css polish",
 ]
-const ISSUE_PHRASES = [
-  "create issue", "github issue", "file issue", "gh issue create",
-  "bug report", "open issue", "create ticket",
+const SESSION_REVIEW_PHRASES = [
+  "retrospective", "retro", "reflect on session", "how did i use skills",
+  "file an issue", "create issue", "github issue",
+  "file issue", "gh issue create", "open issue", "create ticket",
 ]
 const AGENT_PHRASES = [
   "multi-agent", "parallel work", "agent coordination", "task handoff",
@@ -251,7 +252,7 @@ function cascadeRoute(query, skills, sessionState) {
     })()) ||
     tryRoute(COMPLETION_PHRASES, SKILL_VERIFICATION) ||     // 4. Validate
     tryRoute(REFACTOR_PHRASES, SKILL_REFACTOR) ||           // 5. Improve
-    tryRoute(ISSUE_PHRASES, SKILL_GITHUB_ISSUES) ||         // 6. Improve
+    tryRoute(SESSION_REVIEW_PHRASES, SKILL_SESSION_REVIEW) ||         // 6. Improve
     tryRoute(AGENT_PHRASES, SKILL_AGENT_WORKFLOWS) ||       // 7. Coordinate
     tryRoute(WRITE_SKILL_PHRASES, SKILL_WRITE_SKILL) ||     // 8. Coordinate
     tryRoute(UI_PHRASES, SKILL_UI_UX) ||                    // 9. Product
@@ -289,7 +290,7 @@ module.exports = {
   CODE_EDIT_TOOL_IDS, DEFAULT_MAX_HINTS, DEFAULT_MAX_LISTED_SKILLS,
   VALID_DELEGATION_MODES, VALID_EXECUTION_TIERS,
   SKILL_AGENT_WORKFLOWS, SKILL_CODE_REVIEW, SKILL_DEBUGGING,
-  SKILL_GITHUB_ISSUES, SKILL_REFACTOR, SKILL_DEVELOP, SKILL_INTAKE, SKILL_UI_UX,
+  SKILL_SESSION_REVIEW, SKILL_REFACTOR, SKILL_DEVELOP, SKILL_INTAKE, SKILL_UI_UX,
   SKILL_VERIFICATION, SKILL_WRITE_SKILL,
   cascadeRoute, buildExecutionProfile, loadSkills,
   createEmptySessionState, getSessionState, setSessionState,

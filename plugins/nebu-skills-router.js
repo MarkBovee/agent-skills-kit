@@ -37,7 +37,7 @@ const SESSION_KEY = "default"
 
 function buildRoutingLines(discoveredSkills, sessionState) {
   const lines = [
-    "Cascade routing (first match wins): debugging → refactor → ui-ux → github-issues → agent-workflows → write-skill → code-review → verification → intake → develop (default). Cost-aware: mechanical chores → mini subagent.",
+    "Cascade routing (first match wins): intake → debugging → code-review → verification → refactor → session-review → agent-workflows → write-skill → ui-ux → develop (default). Cost-aware: mechanical chores → mini subagent.",
   ]
   const matched = sessionState.matchedSkills || []
   if (matched.length > 0) {

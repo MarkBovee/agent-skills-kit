@@ -75,7 +75,7 @@ function buildSessionContext(skills) {
 
   return [
     "Nebu Skills are installed as native Agent Skills and should be loaded when their descriptions match the task.",
-    "Use nebu-kaizen as the default for concrete work, combine it with a more specific skill when appropriate, and keep nebu-github-issues manual-only.",
+    "Use nebu-kaizen as the default for concrete work, combine it with a more specific skill when appropriate, and keep nebu-session-review manual-only.",
     "After code edits, route through nebu-code-review before verification or a completion claim.",
     "Cost-aware default: bounded mechanical chores such as version bumps, changelog edits, release notes, and release-prep updates should start with a cheap small/mini subagent when the host supports it. Escalate to a stronger agent only when scope expands or cheap-first validation fails.",
     `Installed skill preview: ${preview}`,

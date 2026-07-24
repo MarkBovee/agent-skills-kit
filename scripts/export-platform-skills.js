@@ -87,12 +87,12 @@ function transformBody(body, platform, skillName) {
   let transformed = stripFrontmatter(body)
 
   // Keep runtime references valid after the source skills are copied into platform-specific directories.
-  if (skillName === "nebu-github-issues") {
+  if (skillName === "nebu-session-review") {
     transformed = transformed.replace(
       /\[check-existing-issue\.sh\]\(\.\/check-existing-issue\.sh\)/g,
       platform === "claude"
         ? "`${CLAUDE_SKILL_DIR}/check-existing-issue.sh`"
-        : "`.github/skills/nebu-github-issues/check-existing-issue.sh`",
+        : "`.github/skills/nebu-session-review/check-existing-issue.sh`",
     )
   }
 
