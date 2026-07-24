@@ -47,7 +47,7 @@ function buildRoutingLines(discoveredSkills, sessionState) {
     lines.push(`Skills: ${discoveredSkills.slice(0, DEFAULT_MAX_LISTED_SKILLS).map(s => `${s.name}: ${toSingleLine(s.description, 60)}`).join("; ")}`)
   }
   if (sessionState.needsCodeReview) lines.push("Code edited. Run code-review before done.")
-  if (sessionState.shouldCaptureImprovement) lines.push("Gap found? write-skill.")
+  if (sessionState.shouldCaptureImprovement) lines.push("Improvement opportunity? session-review to reflect on skill usage, then write-skill to implement.")
   return lines.join("\n")
 }
 

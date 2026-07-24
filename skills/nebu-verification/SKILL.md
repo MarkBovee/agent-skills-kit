@@ -53,14 +53,15 @@ Close out multi-repo work: verify integrated state, leave the workspace intentio
 3. Check each repo: branch of record, remote target, working tree cleanliness.
 4. Define the proof target for each repo before mutating anything.
 5. Remove disposable worktrees before disposable branches; leave branch of record clean.
-6. Before final claim, check whether the session exposed a reusable workflow improvement.
+6. Before final claim, check whether the session exposed a reusable workflow improvement or skill usage gap. If so, run `session-review` to file an improvement issue.
 7. Claim completion only when every touched repo is either reconciled or explicitly blocked.
 
 ## Use with
 
 - `code-review` before verification when meaningful code changed
 - `agent-workflows` when multiple agents or terminals touched different repos
-- `write-skill` when the session uncovered reusable process or routing gaps
+- `session-review` when the session uncovered skill usage gaps worth tracking
+- `write-skill` when improvement needs a new or revised skill
 ## Avoid
 
 - "Should work now"
