@@ -1,5 +1,5 @@
 ---
-name: "refactor"
+name: "improve"
 description: "Use when the codebase needs a structured audit, audit-driven plans, execution of those plans, or a focused refactoring/simplification pass. Covers correctness, security, performance, tech debt, migrations, DX, direction, and code cleanup in one skill."
 when_to_use: "Common triggers: improve, audit, tech debt, tech debt audit, audit codebase, improve codebase, direction, audit and plan, refactor this, refactoren, code cleanup, opschonen, simplify this code, vereenvoudigen, remove over-engineering, deduplicate logic, restructure this code, reduce complexity, untangle this, clean architecture mess."
 ---

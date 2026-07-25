@@ -18,7 +18,7 @@ const SKILL_INTAKE = "intake"
 const SKILL_CODE_REVIEW = "code-review"
 const SKILL_VERIFICATION = "verification"
 const SKILL_DEBUGGING = "debugging"
-const SKILL_REFACTOR = "refactor"
+const SKILL_IMPROVE = "improve"
 const SKILL_UI_UX = "ui-ux"
 const SKILL_SESSION_REVIEW = "session-review"
 const SKILL_AGENT_WORKFLOWS = "agent-workflows"
@@ -26,7 +26,7 @@ const SKILL_WRITE_SKILL = "write-skill"
 const VALID_EXECUTION_TIERS = new Set(["light", "standard", "heavy", "deep"])
 const VALID_DELEGATION_MODES = new Set(["auto", "prefer-subagent", "owner-only"])
 
-const REFACTOR_PHRASES = [
+const IMPROVE_PHRASES = [
   "improve", "audit", "tech debt", "tech debt audit", "audit codebase",
   "improve codebase", "direction", "audit and plan", "refactor this",
   "refactoren", "code cleanup", "opschonen", "simplify this code",
@@ -251,7 +251,7 @@ function cascadeRoute(query, skills, sessionState) {
       return { matchedSkills: secondary ? [primary, secondary] : [primary], executionProfile: buildExecutionProfile(primary, q) }
     })()) ||
     tryRoute(COMPLETION_PHRASES, SKILL_VERIFICATION) ||     // 4. Validate
-    tryRoute(REFACTOR_PHRASES, SKILL_REFACTOR) ||           // 5. Improve
+    tryRoute(IMPROVE_PHRASES, SKILL_IMPROVE) ||           // 5. Improve
     tryRoute(SESSION_REVIEW_PHRASES, SKILL_SESSION_REVIEW) ||         // 6. Improve
     tryRoute(AGENT_PHRASES, SKILL_AGENT_WORKFLOWS) ||       // 7. Coordinate
     tryRoute(WRITE_SKILL_PHRASES, SKILL_WRITE_SKILL) ||     // 8. Coordinate
@@ -290,7 +290,7 @@ module.exports = {
   CODE_EDIT_TOOL_IDS, DEFAULT_MAX_HINTS, DEFAULT_MAX_LISTED_SKILLS,
   VALID_DELEGATION_MODES, VALID_EXECUTION_TIERS,
   SKILL_AGENT_WORKFLOWS, SKILL_CODE_REVIEW, SKILL_DEBUGGING,
-  SKILL_SESSION_REVIEW, SKILL_REFACTOR, SKILL_DEVELOP, SKILL_INTAKE, SKILL_UI_UX,
+  SKILL_SESSION_REVIEW, SKILL_IMPROVE, SKILL_DEVELOP, SKILL_INTAKE, SKILL_UI_UX,
   SKILL_VERIFICATION, SKILL_WRITE_SKILL,
   cascadeRoute, buildExecutionProfile, loadSkills,
   createEmptySessionState, getSessionState, setSessionState,

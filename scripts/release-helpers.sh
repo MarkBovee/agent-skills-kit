@@ -18,6 +18,7 @@ read_repo_version() {
 stale_skill_names() {
   cat <<'EOF'
 refactor
+nebu-refactor
 ui-ux-pro-max
 using-nebu-skills
 writing-nebu-skills
@@ -27,8 +28,6 @@ kaizen
 nebu-kaizen
 kickoff
 nebu-kickoff
-improve
-nebu-improve
 EOF
 }
 

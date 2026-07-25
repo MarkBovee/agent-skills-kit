@@ -27,6 +27,7 @@ function Get-RepoVersion {
 function Get-StaleSkillNames {
     return @(
         "refactor",
+        "nebu-refactor",
         "ui-ux-pro-max",
         "using-nebu-skills",
         "writing-nebu-skills",
@@ -35,9 +36,7 @@ function Get-StaleSkillNames {
         "kaizen",
         "nebu-kaizen",
         "kickoff",
-        "nebu-kickoff",
-        "improve",
-        "nebu-improve"
+        "nebu-kickoff"
     )
 }
 

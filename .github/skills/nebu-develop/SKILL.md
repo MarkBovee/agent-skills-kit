@@ -61,7 +61,7 @@ Zelfde flow als release: fix branch → PR → merge → tag. Geen feature itera
 - `code-review` after meaningful code edits and before handoff
 - `debugging` for bugs, failing tests, and broken builds
 - `verification` before claiming success
-- `refactor` when the codebase needs a structured audit or refactoring pass
+- `improve` when the codebase needs a structured audit or refactoring pass
 
 ## Avoid
 

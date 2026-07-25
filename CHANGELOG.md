@@ -27,8 +27,8 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ### Changed
 
-- **Skills hernoemd (breaking):** `kaizen`→`develop`, `kickoff`→`intake`, `improve`→`refactor`, `writing-nebu-skills`→`write-skill`. Router constants, plugin, cross-refs, exports, README, AGENTS.md, install scripts allemaal mee.
-- **Router cascade:** `DEV_FLOW_PHRASES` verwijderd, `IMPROVE_PHRASES`→`REFACTOR_PHRASES`, `WRITING_PHRASES`→`WRITE_SKILL_PHRASES`.
+- **Skills hernoemd (breaking):** `kaizen`→`develop`, `kickoff`→`intake`, `writing-nebu-skills`→`write-skill`. Router constants, plugin, cross-refs, exports, README, AGENTS.md, install scripts allemaal mee.
+- **Router cascade:** `DEV_FLOW_PHRASES` verwijderd, `WRITING_PHRASES`→`WRITE_SKILL_PHRASES`.
 - **Export script:** hardcoded skill references geüpdatet (CLAUDE.md, copilot-instructions.md).
 
 ### Fixed
@@ -39,7 +39,7 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 ### Removed
 
 - **`dev-release-flow` skill verwijderd.** Git workflow zit nu in `develop` als standaard.
-- **Install scripts:** stale skill lijst uitgebreid met `kaizen`, `nebu-kaizen`, `kickoff`, `nebu-kickoff`, `improve`, `nebu-improve`.
+- **Install scripts:** stale skill lijst uitgebreid met `kaizen`, `nebu-kaizen`, `kickoff`, `nebu-kickoff`, `refactor`, `nebu-refactor`.
 
 ## [0.3.8] - 2026-07-23
 

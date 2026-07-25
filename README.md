@@ -176,7 +176,7 @@ Skills use short display names (e.g. `debugging`, `develop`) for easy reference.
 | Start | `intake` | clarify fuzzy work before it gets expensive (brainstorming + scoping + planning) |
 | Execute | `develop`, `debugging` | move code forward with small coherent loops |
 | Validate | `code-review`, `verification` | review the diff and prove the claim (includes workspace wrap-up) |
-| Improve | `refactor`, `session-review` | audit, refactor, session review, skill improvement |
+| Improve | `improve`, `session-review` | audit, refactor, session review, skill improvement |
 | Coordinate | `agent-workflows`, `write-skill` | route work, finish cleanly, keep the skill system healthy |
 | Product | `ui-ux` | push interface work beyond bland default SaaS output |
 
@@ -189,7 +189,7 @@ Skills use short display names (e.g. `debugging`, `develop`) for easy reference.
 | `debugging` | standard | Root-cause investigation |
 | `code-review` | standard | Engineering review passes |
 | `verification` | standard | Validation + workspace wrap-up before claiming completion |
-| `refactor` | heavy | Audit-driven improvement + focused refactoring |
+| `improve` | heavy | Audit-driven improvement + focused refactoring |
 | `session-review` | light | Session self-review + GitHub issue filing |
 | `ui-ux` | heavy | UI and UX implementation support |
 | `agent-workflows` | light | Multi-agent coordination + release chores |
@@ -226,7 +226,7 @@ Cascade order (grouped by stage):
 | 3 | **Validate** | Review request | `code-review` |
 | 4 | **Validate** | Code edited + done/ready | `code-review` (+ `verification`) |
 | 5 | **Validate** | Done / handoff | `verification` |
-| 6 | **Improve** | Audit / refactor | `refactor` |
+| 6 | **Improve** | Audit / refactor | `improve` |
 | 7 | **Improve** | Session review / GitHub issue | `session-review` |
 | 8 | **Coordinate** | Multi-agent / release | `agent-workflows` |
 | 9 | **Coordinate** | Write skill | `write-skill` |
@@ -246,7 +246,7 @@ flowchart TD
     C4 -->|No| C5{"Done /<br>handoff?"}
     C5 -->|Yes| V[verification]
     C5 -->|No| C6{"Audit /<br>refactor?"}
-    C6 -->|Yes| R[refactor]
+    C6 -->|Yes| R[improve]
     C6 -->|No| C7{"GitHub<br>issue?"}
     C7 -->|Yes| G["session-review"]
     C7 -->|No| C8{"Multi-agent /<br>release?"}
@@ -275,7 +275,7 @@ flowchart TD
 | **Start** | `intake` | `#7C5CFF` purple |
 | **Execute** | `debugging`, `develop` | `#e94560` red |
 | **Validate** | `code-review`, `verification` | `#2ecc71` green |
-| **Improve** | `refactor`, `session-review` | `#f39c12` orange |
+| **Improve** | `improve`, `session-review` | `#f39c12` orange |
 | **Coordinate** | `agent-workflows`, `write-skill` | `#1abc9c` teal |
 | **Product** | `ui-ux` | `#e91e8c` pink |
 
@@ -289,7 +289,7 @@ Two optional frontmatter fields let a skill declare how expensive its default fl
 | --- | --- | --- | --- |
 | `light` | `mini` | bounded, mechanical, single-pass work | `session-review` |
 | `standard` (default) | `default` | normal judgment-heavy work | `develop`, `intake`, `code-review`, `debugging`, `verification`, `write-skill` |
-| `heavy` | `high` | broad or multi-part work, e.g. a full codebase audit or complex UI design | `refactor`, `ui-ux` |
+| `heavy` | `high` | broad or multi-part work, e.g. a full codebase audit or complex UI design | `improve`, `ui-ux` |
 | `deep` | `xhigh` | analysis-heavy or architectural work | — |
 
 `delegation_default` (`auto` / `prefer-subagent` / `owner-only`) hints whether the work should default to a subagent when the host supports one. Both fields are read by `buildExecutionProfile` in `core/router-core.js`, which also upgrades the tier when the prompt itself signals light or heavy/deep work (e.g. "version bump" vs. "cross-repo migration"), regardless of which skill matched.
