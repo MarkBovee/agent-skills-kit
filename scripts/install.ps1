@@ -192,9 +192,14 @@ try {
     Copy-Item -LiteralPath $opencodeCoreSource -Destination $opencodeCoreTarget -Recurse
     Copy-Item -LiteralPath (Join-Path $opencodePluginsSource "nebu-skills-router.js") -Destination (Join-Path $opencodePluginsTarget "nebu-skills-router.js") -Force
 
-    # Install coding-standards rules for OpenCode.
+    # Install rules for OpenCode.
     New-Item -ItemType Directory -Force -Path $opencodeRulesTarget | Out-Null
-    Copy-Item -LiteralPath (Join-Path $opencodeRulesSource "coding-standards.md") -Destination (Join-Path $opencodeRulesTarget "coding-standards.md") -Force
+    foreach ($rule in @("coding-standards.md", "nebu-skills.md")) {
+        $src = Join-Path $opencodeRulesSource $rule
+        if (Test-Path -LiteralPath $src) {
+            Copy-Item -LiteralPath $src -Destination (Join-Path $opencodeRulesTarget $rule) -Force
+        }
+    }
 
     # Patch opencode.json: add instructions and plugin entries idempotently.
     $opencodeJsonPath = Join-Path $OpencodeDir "opencode.json"
@@ -202,8 +207,9 @@ try {
         $cfg = Get-Content -LiteralPath $opencodeJsonPath -Raw | ConvertFrom-Json
         $changed = $false
         if (-not $cfg.instructions) { $cfg.instructions = @() }
-        $ins = "./rules/coding-standards.md"
-        if ($ins -notin $cfg.instructions) { $cfg.instructions += $ins; $changed = $true }
+        foreach ($ins in @("./rules/coding-standards.md", "./rules/nebu-skills.md")) {
+            if ($ins -notin $cfg.instructions) { $cfg.instructions += $ins; $changed = $true }
+        }
         if (-not $cfg.plugin) { $cfg.plugin = @() }
         $pl = "./plugins/nebu-skills-router.js"
         if ($pl -notin $cfg.plugin) { $cfg.plugin += $pl; $changed = $true }
@@ -224,6 +230,7 @@ try {
     "Installed OpenCode router core to $opencodeCoreTarget"
     "Installed OpenCode router plugin to $(Join-Path $opencodePluginsTarget 'nebu-skills-router.js')"
     "Installed OpenCode rules to $(Join-Path $opencodeRulesTarget 'coding-standards.md')"
+    "Installed OpenCode nebu-skills usage guide to $(Join-Path $opencodeRulesTarget 'nebu-skills.md')"
     if (Test-Path -LiteralPath $ClaudeDir) {
         "Installed Claude Code rules to $claudeRulesFile"
         "Linked Claude skills at $claudeSkillsTarget -> $sharedSkillsTarget"

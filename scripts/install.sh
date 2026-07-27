@@ -182,20 +182,24 @@ rm -rf "$OPENCODE_CORE_TARGET"
 cp -R "$OPENCODE_CORE_SOURCE" "$OPENCODE_CORE_TARGET"
 cp "$OPENCODE_PLUGINS_SOURCE/nebu-skills-router.js" "$OPENCODE_PLUGINS_TARGET/nebu-skills-router.js"
 
-# Install coding-standards rules for OpenCode.
+# Install rules for OpenCode.
 mkdir -p "$OPENCODE_RULES_TARGET"
-if [ -L "$OPENCODE_RULES_TARGET/coding-standards.md" ]; then
-  rm "$OPENCODE_RULES_TARGET/coding-standards.md"
-fi
-ln -s "$OPENCODE_RULES_SOURCE/coding-standards.md" "$OPENCODE_RULES_TARGET/coding-standards.md"
+for rule in coding-standards.md nebu-skills.md; do
+  if [ -L "$OPENCODE_RULES_TARGET/$rule" ]; then
+    rm "$OPENCODE_RULES_TARGET/$rule"
+  fi
+  if [ -f "$OPENCODE_RULES_SOURCE/$rule" ]; then
+    ln -s "$OPENCODE_RULES_SOURCE/$rule" "$OPENCODE_RULES_TARGET/$rule"
+  fi
+done
 OPENCODE_JSON="$OPENCODE_DIR/opencode.json"
 if [ -f "$OPENCODE_JSON" ]; then
   node -e "
     var fs=require('fs'), f='$OPENCODE_JSON';
     var c=JSON.parse(fs.readFileSync(f,'utf-8'));
     c.instructions=c.instructions||[];
-    var e='./rules/coding-standards.md';
-    if(!c.instructions.includes(e)){c.instructions.push(e);}
+    var rules=['./rules/coding-standards.md','./rules/nebu-skills.md'];
+    for(var i=0;i<rules.length;i++){if(!c.instructions.includes(rules[i])){c.instructions.push(rules[i]);}}
     c.plugin=c.plugin||[];
     var p='./plugins/nebu-skills-router.js';
     if(!c.plugin.includes(p)){c.plugin.push(p);}
@@ -217,6 +221,7 @@ echo "Installed Copilot instructions to $COPILOT_INSTRUCTIONS_FILE"
 echo "Installed OpenCode router core to $OPENCODE_CORE_TARGET"
 echo "Installed OpenCode router plugin to $OPENCODE_PLUGINS_TARGET/nebu-skills-router.js"
 echo "Installed OpenCode rules to $OPENCODE_RULES_TARGET/coding-standards.md"
+echo "Installed OpenCode nebu-skills usage guide to $OPENCODE_RULES_TARGET/nebu-skills.md"
 if [ -d "$CLAUDE_DIR" ]; then
   echo "Installed Claude Code rules to $CLAUDE_RULES_FILE"
   echo "Linked Claude skills at $CLAUDE_SKILLS_TARGET -> $SHARED_SKILLS_TARGET"
