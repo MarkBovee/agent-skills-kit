@@ -1,4 +1,4 @@
-// nebu-skills-router - opencode plugin. Cascade routing, injects hints per prompt, tracks code-edit + skill-invocation state.
+// nebu-skills-router - opencode plugin. Injects beslisboom every prompt, tracks code-edit + skill-invocation state, nudges contextually.
 
 import { createRequire } from "node:module"
 import { fileURLToPath } from "node:url"
@@ -51,27 +51,29 @@ export const NebuSkillsRouter = async () => {
       try { await getSkills() } catch { /* ok */ }
     },
     "tui.prompt.append": async (input) => {
-      const promptText = (input?.prompt || input?.text || "").trim()
-      if (!promptText) return
-      const state = getSessionState(sessionState, SESSION_KEY)
+      try {
+        const promptText = (input?.prompt || input?.text || "").trim()
+        if (!promptText) return
+        const state = getSessionState(sessionState, SESSION_KEY)
 
-      if (!state.hasDoneSessionAudit) {
-        const skills = await getSkills()
-        const auditLines = ["Session start — load via `skill(name: '...')`:"]
-        for (const s of skills) {
-          auditLines.push(`  • ${s.name}: ${toSingleLine(s.description, 70)}`)
+        if (!state.hasDoneSessionAudit) {
+          const skills = await getSkills()
+          const auditLines = ["Session start — load via `skill(name: '...')`:"]
+          for (const s of skills) {
+            auditLines.push(`  • ${s.name}: ${toSingleLine(s.description, 70)}`)
+          }
+          setSessionState(sessionState, SESSION_KEY, { hasDoneSessionAudit: true })
+          const overview = buildSkillOverview(state)
+          return { append: `\n--- Nebu Skills ---\n${auditLines.join("\n")}\n\n${overview}` }
         }
-        setSessionState(sessionState, SESSION_KEY, { hasDoneSessionAudit: true })
-        const overview = buildSkillOverview(state)
-        return { append: `\n--- Nebu Skills ---\n${auditLines.join("\n")}\n\n${overview}` }
-      }
 
-      if (state.needsCodeReview && hasPhraseSignal(promptText, COMPLETION_PHRASES)) {
-        setSessionState(sessionState, SESSION_KEY, { needsCodeReview: false, shouldCaptureImprovement: true })
-      }
+        if (state.needsCodeReview && hasPhraseSignal(promptText, COMPLETION_PHRASES)) {
+          setSessionState(sessionState, SESSION_KEY, { needsCodeReview: false, shouldCaptureImprovement: true })
+        }
 
-      const lines = buildSkillOverview(state)
-      return { append: `\n--- Nebu Skills ---\n${lines}` }
+        const lines = buildSkillOverview(state)
+        return { append: `\n--- Nebu Skills ---\n${lines}` }
+      } catch { /* plugin error, skip nebu hints this prompt */ }
     },
     "tool.execute.before": async (input) => {
       const toolID = (typeof input?.tool === "string" ? input.tool : "").trim()

@@ -60,11 +60,21 @@ When one skill leads into another, add `## Use with` with one-line descriptions.
 
 ## Router plugin
 
-`plugins/nebu-skills-router.js` uses deterministic cascade: signal phrases in priority order, first match wins. When changing:
+`plugins/nebu-skills-router.js` injects a beslisboom (decision tree) every prompt — agent self-selects skills via `skill(name: '...')`. No automatic phrase matching. When changing:
 
 - `node -e "require('./plugins/nebu-skills-router.js')"` — verify it loads
-- `node -e "const {cascadeRoute,loadSkills}=require('./core/router-core'); loadSkills(['./skills']).then(s=>console.log(cascadeRoute('fix this bug',s,{})))"` — test cascade
-- Keep plugin stateless except session-scoped match cache
+- `node -e "const {buildSkillOverview,createEmptySessionState}=require('./core/router-core'); const s=createEmptySessionState(); s.matchedSkills=[{name:'develop'}]; console.log(buildSkillOverview(s))"` — test beslisboom output
+- `node -e "import('./plugins/nebu-skills-router.js').then(async m=>{const p=await m.NebuSkillsRouter(); await p['session.created'](); const r=await p['tui.prompt.append']({prompt:'test'}); console.log(r?.append?.slice(0,200))})"` — test plugin hooks
+- Keep plugin stateless except session-scoped state (tool tracking, skill-load events, audit flag)
+
+### New-session validation
+
+Before claiming a fix ships:
+
+1. `node -e "require('./plugins/nebu-skills-router.js')"` — plugin loads without error
+2. `node ./scripts/export-platform-skills.js` — exports regenerate
+3. Beslisboom check: `node -e "const {buildSkillOverview,createEmptySessionState}=require('./core/router-core'); console.log(buildSkillOverview(createEmptySessionState()))"` — output contains `╌ Nebu Skills ╌` and all 10 skills
+4. OpenCode plugin check: in a test session, verify `╌ Nebu Skills ╌` appears in the system prompt with the beslisboom. If missing, check `opencode.json` `plugins` array includes `./plugins/nebu-skills-router.js` and the file exists at that path.
 
 ## Install scripts
 
