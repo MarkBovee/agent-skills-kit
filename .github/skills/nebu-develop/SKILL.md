@@ -21,6 +21,7 @@ Default to steady progress: inspect, create, test, review, continue. If the next
 
 ## Core loop
 
+0. **Plan if missing.** Non-trivial task (3+ changes, multi-file, risky) without a plan? Generate inline plan with `todowrite` or short bullets. Trivial 1-2 edits: skip.
 1. Inspect the next boundary that matters.
 2. Create the smallest coherent improvement.
 3. Test it with the fastest trustworthy proof.
@@ -45,14 +46,15 @@ Zelfde flow als release: fix branch → PR → merge → tag. Geen feature itera
 ## Default rules
 
 1. Do not stop after every milestone when the next step is already clear.
-2. Ask only when the answer changes scope, product behavior, architecture, safety, or acceptance.
-3. Prefer preventing mistakes early with types, validation, guards, and simpler control flow.
-4. Follow existing repo patterns before inventing new ones. Build only what the current requirement needs.
-5. After code changes, do a proportional review pass. Load `code-review` when the diff is meaningful, subtle, or risky.
-6. When work reveals reusable workflow friction, capture it with `write-skill`.
-7. Reuse the repo's existing durable planning or spec system; do not create a parallel doc tree.
-8. Delegate only when the work is parallel, repetitive, or context-heavy.
-9. Volg de standaard git workflow: branch, draft PR, commits, squash merge, cleanup.
+2. Plan before doing. If task is non-trivial and no plan exists, generate one before moving to inspection.
+3. Ask only when the answer changes scope, product behavior, architecture, safety, or acceptance.
+4. Prefer preventing mistakes early with types, validation, guards, and simpler control flow.
+5. Follow existing repo patterns before inventing new ones. Build only what the current requirement needs.
+6. After code changes, do a proportional review pass. Load `code-review` when the diff is meaningful, subtle, or risky.
+7. When work reveals reusable workflow friction, capture it with `write-skill`.
+8. Reuse the repo's existing durable planning or spec system; do not create a parallel doc tree.
+9. Delegate only when the work is parallel, repetitive, or context-heavy.
+10. Volg de standaard git workflow: branch, draft PR, commits, squash merge, cleanup.
 
 ## Use with
 

@@ -11,6 +11,7 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 - **Auto-trigger session-review after verification.** Router hint and verification skill now suggest session-review at session close. Cross-references added in code-review and intake skills.
 - **Fixed stale references in check-trigger-overlap.js.** Routing test cases now use correct frontmatter names and cover all 10 skills.
 - **Bumped plugin.json version** to match VERSION (0.4.0 → 0.4.1).
+- **Develop skill: plan check before execution.** Core loop now starts with "Plan if missing" — generates inline plan for non-trivial tasks (3+ changes, multi-file, risky) before inspecting. Skip for trivial 1-2 edits. New default rule #2: "Plan before doing." Existing rules renumbered.
 
 ## [0.4.1] - 2026-07-24
 
