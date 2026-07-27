@@ -185,11 +185,15 @@ try {
     Copy-Item -LiteralPath $copilotInstructionsSource -Destination $copilotInstructionsFile -Force
 
     New-Item -ItemType Directory -Force -Path $opencodePluginsTarget | Out-Null
+    $opencodePluginCoreTarget = Join-Path $opencodePluginsTarget "core"
     if (Test-Path -LiteralPath $opencodeCoreTarget) {
         Remove-Item -LiteralPath $opencodeCoreTarget -Recurse -Force
     }
+    if (Test-Path -LiteralPath $opencodePluginCoreTarget) {
+        Remove-Item -LiteralPath $opencodePluginCoreTarget -Recurse -Force
+    }
 
-    Copy-Item -LiteralPath $opencodeCoreSource -Destination $opencodeCoreTarget -Recurse
+    Copy-Item -LiteralPath $opencodeCoreSource -Destination $opencodePluginCoreTarget -Recurse
     Copy-Item -LiteralPath (Join-Path $opencodePluginsSource "nebu-skills-router.mjs") -Destination (Join-Path $opencodePluginsTarget "nebu-skills-router.mjs") -Force
 
     # Install rules for OpenCode.
@@ -201,7 +205,7 @@ try {
         }
     }
 
-    # Patch opencode.json: add instructions and plugin entries idempotently.
+    # Patch opencode.json: add instructions, plugin entries, and permissions idempotently.
     $opencodeJsonPath = Join-Path $OpencodeDir "opencode.json"
     if (Test-Path -LiteralPath $opencodeJsonPath) {
         $cfg = Get-Content -LiteralPath $opencodeJsonPath -Raw | ConvertFrom-Json
@@ -213,6 +217,11 @@ try {
         if (-not $cfg.plugin) { $cfg.plugin = @() }
         $pl = "./plugins/nebu-skills-router.mjs"
         if ($pl -notin $cfg.plugin) { $cfg.plugin += $pl; $changed = $true }
+        # Grant OpenCode access to its own config directory (needed for plugin/core/rules)
+        if (-not $cfg.permission) { $cfg.permission = @{}; $changed = $true }
+        if (-not $cfg.permission.external_directory) { $cfg.permission.external_directory = @{}; $changed = $true }
+        $ocPath = Join-Path $HOME ".config" "opencode" "*"
+        if ($cfg.permission.external_directory.$ocPath -ne "allow") { $cfg.permission.external_directory | Add-Member -NotePropertyName $ocPath -NotePropertyValue "allow"; $changed = $true }
         if ($changed) { $cfg | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $opencodeJsonPath }
     }
 
@@ -227,7 +236,7 @@ try {
 
     "Installed $($installedSkills.Count) nebu-skills to $sharedSkillsTarget"
     "Installed Copilot instructions to $copilotInstructionsFile"
-    "Installed OpenCode router core to $opencodeCoreTarget"
+    "Installed OpenCode router core to $(Join-Path $opencodePluginsTarget 'core')"
     "Installed OpenCode router plugin to $(Join-Path $opencodePluginsTarget 'nebu-skills-router.mjs')"
     "Installed OpenCode rules to $(Join-Path $opencodeRulesTarget 'coding-standards.md')"
     "Installed OpenCode nebu-skills usage guide to $(Join-Path $opencodeRulesTarget 'nebu-skills.md')"
