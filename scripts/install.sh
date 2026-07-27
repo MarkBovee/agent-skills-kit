@@ -180,7 +180,7 @@ cp "$COPILOT_INSTRUCTIONS_SOURCE" "$COPILOT_INSTRUCTIONS_FILE"
 mkdir -p "$OPENCODE_PLUGINS_TARGET"
 rm -rf "$OPENCODE_CORE_TARGET"
 cp -R "$OPENCODE_CORE_SOURCE" "$OPENCODE_CORE_TARGET"
-cp "$OPENCODE_PLUGINS_SOURCE/nebu-skills-router.js" "$OPENCODE_PLUGINS_TARGET/nebu-skills-router.js"
+cp "$OPENCODE_PLUGINS_SOURCE/nebu-skills-router.mjs" "$OPENCODE_PLUGINS_TARGET/nebu-skills-router.mjs"
 
 # Install rules for OpenCode.
 mkdir -p "$OPENCODE_RULES_TARGET"
@@ -199,7 +199,7 @@ if [ -f "$OPENCODE_JSON" ]; then
     var rules=['./rules/coding-standards.md','./rules/nebu-skills.md'];
     for(var i=0;i<rules.length;i++){if(!c.instructions.includes(rules[i])){c.instructions.push(rules[i]);}}
     c.plugin=c.plugin||[];
-    var p='./plugins/nebu-skills-router.js';
+    var p='./plugins/nebu-skills-router.mjs';
     if(!c.plugin.includes(p)){c.plugin.push(p);}
     fs.writeFileSync(f,JSON.stringify(c,null,2)+'\n');
   "
@@ -217,7 +217,7 @@ write_install_metadata "$REPO_ROOT" "shared-agents" "$AGENTS_DIR" "$INSTALL_META
 echo "Installed ${installed_count} nebu-skills to $SHARED_SKILLS_TARGET"
 echo "Installed Copilot instructions to $COPILOT_INSTRUCTIONS_FILE"
 echo "Installed OpenCode router core to $OPENCODE_CORE_TARGET"
-echo "Installed OpenCode router plugin to $OPENCODE_PLUGINS_TARGET/nebu-skills-router.js"
+echo "Installed OpenCode router plugin to $OPENCODE_PLUGINS_TARGET/nebu-skills-router.mjs"
 echo "Installed OpenCode rules to $OPENCODE_RULES_TARGET/coding-standards.md"
 echo "Installed OpenCode nebu-skills usage guide to $OPENCODE_RULES_TARGET/nebu-skills.md"
 if [ -d "$CLAUDE_DIR" ]; then

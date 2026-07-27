@@ -190,7 +190,7 @@ try {
     }
 
     Copy-Item -LiteralPath $opencodeCoreSource -Destination $opencodeCoreTarget -Recurse
-    Copy-Item -LiteralPath (Join-Path $opencodePluginsSource "nebu-skills-router.js") -Destination (Join-Path $opencodePluginsTarget "nebu-skills-router.js") -Force
+    Copy-Item -LiteralPath (Join-Path $opencodePluginsSource "nebu-skills-router.mjs") -Destination (Join-Path $opencodePluginsTarget "nebu-skills-router.mjs") -Force
 
     # Install rules for OpenCode.
     New-Item -ItemType Directory -Force -Path $opencodeRulesTarget | Out-Null
@@ -211,7 +211,7 @@ try {
             if ($ins -notin $cfg.instructions) { $cfg.instructions += $ins; $changed = $true }
         }
         if (-not $cfg.plugin) { $cfg.plugin = @() }
-        $pl = "./plugins/nebu-skills-router.js"
+        $pl = "./plugins/nebu-skills-router.mjs"
         if ($pl -notin $cfg.plugin) { $cfg.plugin += $pl; $changed = $true }
         if ($changed) { $cfg | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $opencodeJsonPath }
     }
@@ -228,7 +228,7 @@ try {
     "Installed $($installedSkills.Count) nebu-skills to $sharedSkillsTarget"
     "Installed Copilot instructions to $copilotInstructionsFile"
     "Installed OpenCode router core to $opencodeCoreTarget"
-    "Installed OpenCode router plugin to $(Join-Path $opencodePluginsTarget 'nebu-skills-router.js')"
+    "Installed OpenCode router plugin to $(Join-Path $opencodePluginsTarget 'nebu-skills-router.mjs')"
     "Installed OpenCode rules to $(Join-Path $opencodeRulesTarget 'coding-standards.md')"
     "Installed OpenCode nebu-skills usage guide to $(Join-Path $opencodeRulesTarget 'nebu-skills.md')"
     if (Test-Path -LiteralPath $ClaudeDir) {

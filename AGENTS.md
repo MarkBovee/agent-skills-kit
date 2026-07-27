@@ -7,7 +7,7 @@ Multi-platform skill-pack for OpenCode, GitHub Copilot, Claude Code. Ships workf
 ## Structure
 
 - `skills/<name>/SKILL.md` — one skill per directory
-- `plugins/nebu-skills-router.js` — OpenCode plugin: deterministic cascade routing, injects routing hints into system prompt
+- `plugins/nebu-skills-router.mjs` — OpenCode plugin: deterministic cascade routing, injects routing hints into system prompt
 - `core/router-core.js` — shared router helpers (cascade routing, session state, frontmatter parsing)
 - `scripts/` — install/update/bootstrap scripts (bash + PowerShell parity)
 - `README.md` — public docs
@@ -60,21 +60,21 @@ When one skill leads into another, add `## Use with` with one-line descriptions.
 
 ## Router plugin
 
-`plugins/nebu-skills-router.js` injects a beslisboom (decision tree) every prompt — agent self-selects skills via `skill(name: '...')`. No automatic phrase matching. When changing:
+`plugins/nebu-skills-router.mjs` injects a beslisboom (decision tree) every prompt — agent self-selects skills via `skill(name: '...')`. No automatic phrase matching. When changing:
 
-- `node -e "require('./plugins/nebu-skills-router.js')"` — verify it loads
+- `node --input-type=module -e "import('./plugins/nebu-skills-router.mjs')"` — verify it loads
 - `node -e "const {buildSkillOverview,createEmptySessionState}=require('./core/router-core'); const s=createEmptySessionState(); s.matchedSkills=[{name:'develop'}]; console.log(buildSkillOverview(s))"` — test beslisboom output
-- `node -e "import('./plugins/nebu-skills-router.js').then(async m=>{const p=await m.NebuSkillsRouter(); await p['session.created'](); const r=await p['tui.prompt.append']({prompt:'test'}); console.log(r?.append?.slice(0,200))})"` — test plugin hooks
+- `node -e "import('./plugins/nebu-skills-router.mjs').then(async m=>{const p=await m.NebuSkillsRouter(); await p['session.created'](); const r=await p['tui.prompt.append']({prompt:'test'}); console.log(r?.append?.slice(0,200))})"` — test plugin hooks
 - Keep plugin stateless except session-scoped state (tool tracking, skill-load events, audit flag)
 
 ### New-session validation
 
 Before claiming a fix ships:
 
-1. `node -e "require('./plugins/nebu-skills-router.js')"` — plugin loads without error
+1. `node -e "import('./plugins/nebu-skills-router.mjs')"` — plugin loads without error
 2. `node ./scripts/export-platform-skills.js` — exports regenerate
 3. Beslisboom check: `node -e "const {buildSkillOverview,createEmptySessionState}=require('./core/router-core'); console.log(buildSkillOverview(createEmptySessionState()))"` — output contains `╌ Nebu Skills ╌` and all 10 skills
-4. OpenCode plugin check: in a test session, verify `╌ Nebu Skills ╌` appears in the system prompt with the beslisboom. If missing, check `opencode.json` `plugins` array includes `./plugins/nebu-skills-router.js` and the file exists at that path.
+4. OpenCode plugin check: in a test session, verify `╌ Nebu Skills ╌` appears in the system prompt with the beslisboom. If missing, check `opencode.json` `plugins` array includes `./plugins/nebu-skills-router.mjs` and the file exists at that path.
 
 ## Install scripts
 
@@ -97,7 +97,7 @@ Change both `.sh` and `.ps1` together.
 After changes:
 
 1. Every `skills/*/SKILL.md` has valid frontmatter (`name`, `description`, `triggers`)
-2. Router loads: `node -e "require('./plugins/nebu-skills-router.js')"`
+2. Router loads: `node -e "import('./plugins/nebu-skills-router.mjs')"`
 3. Exports regenerate: `node ./scripts/export-platform-skills.js`
 4. Install/bootstrap scripts idempotent: run twice, same output
 5. No hardcoded workspace-specific paths in generic skills

@@ -106,7 +106,7 @@ Manual install copies:
 
 - all folders under `~/.agents/skills/`
 - `core/router-core.js`
-- `plugins/nebu-skills-router.js`
+- `plugins/nebu-skills-router.mjs`
 
 
 
@@ -215,7 +215,7 @@ The pack favors fast trustworthy checks, then proportional review and verificati
 
 ## Router
 
-`plugins/nebu-skills-router.js` presents a **beslisboom** (decision tree) every prompt. The agent — not the router — evaluates the task against the beslisboom and loads the matching skill via `skill(name: '...')`. No automated phrase matching, no scoring, no hidden routing.
+`plugins/nebu-skills-router.mjs` presents a **beslisboom** (decision tree) every prompt. The agent — not the router — evaluates the task against the beslisboom and loads the matching skill via `skill(name: '...')`. No automated phrase matching, no scoring, no hidden routing.
 
 The beslisboom injected every prompt:
 
@@ -285,7 +285,7 @@ Hard boundaries:
 
 | Platform | Ships | Generated assets or install target |
 | --- | --- | --- |
-| OpenCode | router plugin, routing support, bootstrap/install/update tooling | installs managed skills plus `core/router-core.js` and `plugins/nebu-skills-router.js` |
+| OpenCode | router plugin, routing support, bootstrap/install/update tooling | installs managed skills plus `core/router-core.js` and `plugins/nebu-skills-router.mjs` |
 | GitHub Copilot | VS Code Agent Plugin, native skills, lifecycle hooks, generated skills, reusable instructions | `.claude-plugin/plugin.json`, `skills/`, `hooks/hooks.json`, `.github/skills/`, `.github/copilot-instructions.md`, `~/.agents/skills/`, `~/.copilot/instructions/` |
 | Claude Code | generated skills, reusable rules, bootstrap/install/update tooling | `.claude/skills/`, `CLAUDE.md`, `~/.claude/skills/`, `~/.claude/rules/` |
 
@@ -316,7 +316,7 @@ node ./scripts/validate-plugin.js
 Load the router plugin directly:
 
 ```bash
-node -e "require('./plugins/nebu-skills-router.js')"
+node -e "import('./plugins/nebu-skills-router.mjs')"
 ```
 
 Check release metadata before tagging:
@@ -402,7 +402,7 @@ skills/                     Canonical workflow skills
 .claude/skills/             Generated Claude Code export
 
 core/router-core.js         Shared scoring, frontmatter, and session helpers
-plugins/nebu-skills-router.js
+plugins/nebu-skills-router.mjs
 
 scripts/bootstrap-opencode.*
 scripts/bootstrap.*
