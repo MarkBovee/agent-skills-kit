@@ -12,15 +12,11 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 - **Context-aware nudges in router.** Tracks tool usage, code edits, and skill-load events. Nudges when code is edited without review, or when many tools run without loading any skill. Session-start audit shows all available skills with descriptions.
 - **Skill triggers enriched.** `develop` (rewrite, refactor, coordinator), `debugging` (slow startup, timeout, crash loop, None), `verification` (test de fix, cleanup, validate), `code-review` (check de wijziging, review changes, second look). Corresponding cascade phrase lists updated.
 - **hasPhraseSignal uses word-boundary regex.** Prevents false positives (e.g. "prove" matching inside "improve") for the completion-state check.
+- **Plugin error handling.** `tui.prompt.append` wrapped in try/catch — plugin errors don't break the session.
+- **rules/nebu-skills.md ships with installer.** Beslisboom usage instructions registered in `opencode.json` instructions array so every new session has the decision tree context. Both `install.sh` and `install.ps1` updated.
+- **AGENTS.md updated.** New-session validation steps (beslisboom check, plugin registration check, export check).
 
 ## Unreleased
-
-### Changed
-
-- **Auto-trigger session-review after verification.** Router hint and verification skill now suggest session-review at session close. Cross-references added in code-review and intake skills.
-- **Fixed stale references in check-trigger-overlap.js.** Routing test cases now use correct frontmatter names and cover all 10 skills.
-- **Bumped plugin.json version** to match VERSION (0.4.0 → 0.4.1).
-- **Develop skill: plan check before execution.** Core loop now starts with "Plan if missing" — generates inline plan for non-trivial tasks (3+ changes, multi-file, risky) before inspecting. Skip for trivial 1-2 edits. New default rule #2: "Plan before doing." Existing rules renumbered.
 
 ## [0.4.1] - 2026-07-24
 
