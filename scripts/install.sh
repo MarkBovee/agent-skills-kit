@@ -185,11 +185,9 @@ cp "$OPENCODE_PLUGINS_SOURCE/nebu-skills-router.js" "$OPENCODE_PLUGINS_TARGET/ne
 # Install rules for OpenCode.
 mkdir -p "$OPENCODE_RULES_TARGET"
 for rule in coding-standards.md nebu-skills.md; do
-  if [ -L "$OPENCODE_RULES_TARGET/$rule" ]; then
-    rm "$OPENCODE_RULES_TARGET/$rule"
-  fi
+  rm -f "$OPENCODE_RULES_TARGET/$rule"
   if [ -f "$OPENCODE_RULES_SOURCE/$rule" ]; then
-    ln -s "$OPENCODE_RULES_SOURCE/$rule" "$OPENCODE_RULES_TARGET/$rule"
+    cp "$OPENCODE_RULES_SOURCE/$rule" "$OPENCODE_RULES_TARGET/$rule"
   fi
 done
 OPENCODE_JSON="$OPENCODE_DIR/opencode.json"
