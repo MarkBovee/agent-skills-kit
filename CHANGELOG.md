@@ -4,6 +4,15 @@ All notable changes to `nebu-skills` live here.
 
 Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` form.
 
+## [0.5.0] - 2026-07-27
+
+### Changed
+
+- **Agent self-selects skills via beslisboom.** Router no longer does automatic phrase-based skill matching. Instead, `buildSkillOverview()` injects a decision tree every prompt — agent evaluates the task and loads via `skill(name: '...')`. Eliminates false positives and gives the agent full autonomy. README diagram and Router section updated.
+- **Context-aware nudges in router.** Tracks tool usage, code edits, and skill-load events. Nudges when code is edited without review, or when many tools run without loading any skill. Session-start audit shows all available skills with descriptions.
+- **Skill triggers enriched.** `develop` (rewrite, refactor, coordinator), `debugging` (slow startup, timeout, crash loop, None), `verification` (test de fix, cleanup, validate), `code-review` (check de wijziging, review changes, second look). Corresponding cascade phrase lists updated.
+- **hasPhraseSignal uses word-boundary regex.** Prevents false positives (e.g. "prove" matching inside "improve") for the completion-state check.
+
 ## Unreleased
 
 ### Changed

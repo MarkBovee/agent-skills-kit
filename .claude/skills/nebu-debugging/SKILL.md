@@ -1,7 +1,7 @@
 ---
 name: "debugging"
 description: "Use when a bug, failing test, or broken build is not already explained by a clear local mistake, or when a first fix did not work."
-when_to_use: "Common triggers: bug, failing test, broken build, debug, debuggen, error, crash, stack trace, not working, does not work, broke, start debugging, start investigating, fout opsporen."
+when_to_use: "Common triggers: bug, failing test, broken build, debug, debuggen, error, crash, stack trace, not working, does not work, broke, start debugging, start investigating, fout opsporen, slow startup, timeout, hangt, hanging, crash loop, None, target_temp, niet werkend, doet het niet, malfunction, storing."
 ---
 # Nebu Debugging
 

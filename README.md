@@ -215,57 +215,32 @@ The pack favors fast trustworthy checks, then proportional review and verificati
 
 ## Router
 
-`plugins/nebu-skills-router.js` uses a deterministic cascade: signal phrases are checked in priority order and the first match wins. No scoring, no ambiguity.
+`plugins/nebu-skills-router.js` presents a **beslisboom** (decision tree) every prompt. The agent — not the router — evaluates the task against the beslisboom and loads the matching skill via `skill(name: '...')`. No automated phrase matching, no scoring, no hidden routing.
 
-Cascade order (grouped by stage):
-
-| # | Stage | Check | Routes to |
-| --- | --- | --- | --- |
-| 1 | **Start** | Ambiguous / planning | `intake` |
-| 2 | **Execute** | Bug / error | `debugging` |
-| 3 | **Validate** | Review request | `code-review` |
-| 4 | **Validate** | Code edited + done/ready | `code-review` (+ `verification`) |
-| 5 | **Validate** | Done / handoff | `verification` |
-| 6 | **Improve** | Audit / refactor | `improve` |
-| 7 | **Improve** | Session review / GitHub issue | `session-review` |
-| 8 | **Coordinate** | Multi-agent / release | `agent-workflows` |
-| 9 | **Coordinate** | Write skill | `write-skill` |
-| 10 | **Product** | UI / UX | `ui-ux` |
-| 11 | **Execute** | *(default)* | `develop` |
+The beslisboom injected every prompt:
 
 ```mermaid
 flowchart TD
-    P[User prompt] --> C1{"Ambiguous /<br>planning?"}
-    C1 -->|Yes| I[intake]
-    C1 -->|No| C2{"Bug /<br>error?"}
-    C2 -->|Yes| D[debugging]
-    C2 -->|No| C3{"Review<br>request?"}
-    C3 -->|Yes| CR[code-review]
-    C3 -->|No| C4{"Code edited<br>+ done?"}
-    C4 -->|Yes| CRV["code-review +<br>verification"]
-    C4 -->|No| C5{"Done /<br>handoff?"}
-    C5 -->|Yes| V[verification]
-    C5 -->|No| C6{"Audit /<br>refactor?"}
-    C6 -->|Yes| R[improve]
-    C6 -->|No| C7{"GitHub<br>issue?"}
-    C7 -->|Yes| G["session-review"]
-    C7 -->|No| C8{"Multi-agent /<br>release?"}
-    C8 -->|Yes| A[agent-workflows]
-    C8 -->|No| C9{"Write<br>skill?"}
-    C9 -->|Yes| W[write-skill]
-    C9 -->|No| C10{"UI / UX?"}
-    C10 -->|Yes| U[ui-ux]
-    C10 -->|No| DE[develop]
+    A[Agent evaluates task] --> B{Task matches?}
+    B -->|Clarify scope, plan ambiguous work| I[intake]
+    B -->|Debug bug, crash, error| D[debugging]
+    B -->|Review code changes| CR[code-review]
+    B -->|Verify claim, prove it works| V[verification]
+    B -->|Audit, refactor, tech debt| R[improve]
+    B -->|Reflect on session, file issue| G[session-review]
+    B -->|Multi-agent, parallel tasks| A2[agent-workflows]
+    B -->|Create or revise a skill| W[write-skill]
+    B -->|Design or polish UI/UX| U[ui-ux]
+    B -->|Normal software work| DE[develop]
 
     style I fill:#2d1b69,stroke:#7C5CFF,color:#fff
     style D fill:#1a1a2e,stroke:#e94560,color:#fff
     style DE fill:#1a1a2e,stroke:#e94560,color:#fff
     style CR fill:#1a1a2e,stroke:#2ecc71,color:#fff
-    style CRV fill:#1a1a2e,stroke:#2ecc71,color:#fff
     style V fill:#1a1a2e,stroke:#2ecc71,color:#fff
     style R fill:#1a1a2e,stroke:#f39c12,color:#fff
     style G fill:#1a1a2e,stroke:#f39c12,color:#fff
-    style A fill:#1a1a2e,stroke:#1abc9c,color:#fff
+    style A2 fill:#1a1a2e,stroke:#1abc9c,color:#fff
     style W fill:#1a1a2e,stroke:#1abc9c,color:#fff
     style U fill:#1a1a2e,stroke:#e91e8c,color:#fff
 ```
@@ -279,7 +254,7 @@ flowchart TD
 | **Coordinate** | `agent-workflows`, `write-skill` | `#1abc9c` teal |
 | **Product** | `ui-ux` | `#e91e8c` pink |
 
-Session state tracks code edits so code-review activates when completion signals follow code changes.
+Session state tracks code edits, tool usage, and skill-load events. The router nudges when code was edited without review, or when many tools ran without loading any skill — always hint, never force.
 
 ### Cost-aware execution profile
 

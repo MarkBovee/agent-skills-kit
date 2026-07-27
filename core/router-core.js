@@ -26,6 +26,10 @@ const SKILL_WRITE_SKILL = "write-skill"
 const VALID_EXECUTION_TIERS = new Set(["light", "standard", "heavy", "deep"])
 const VALID_DELEGATION_MODES = new Set(["auto", "prefer-subagent", "owner-only"])
 
+const CONTEXT_MATCH_THRESHOLD = 8
+const CODE_WORK_TOOL_IDS = new Set(["edit", "write", "apply_patch"])
+const RECENT_TOOL_MAX = 20
+
 const IMPROVE_PHRASES = [
   "improve", "audit", "tech debt", "tech debt audit", "audit codebase",
   "improve codebase", "direction", "audit and plan", "refactor this",
@@ -41,6 +45,8 @@ const BUG_PHRASES = [
   "start debugging", "start investigating", "fout opsporen", "crash",
   "stack trace", "race condition", "memory leak", "not working",
   "doesn't work", "broke", "regression",
+  "slow startup", "timeout", "hanging", "hangt", "crash loop",
+  "None", "target_temp", "malfunction", "storing",
 ]
 const UI_PHRASES = [
   "design a ui", "redesign this page", "improve ux", "polish the frontend",
@@ -68,7 +74,9 @@ const REVIEW_PHRASES = [
   "review", "nakijken", "diff", "pull request", "code review",
   "fresh eyes", "start reviewing", "review deze wijziging",
   "after code changes", "after coding", "before claiming done",
-  "code reviewen",
+  "code reviewen", "check de wijziging", "review changes",
+  "second look", "bekijk de diff", "controleer de code",
+  "code check", "diff review", "PR review",
 ]
 const COMPLETION_PHRASES = [
   "done", "finished", "ready", "handoff", "hand off", "wrap up",
@@ -77,6 +85,8 @@ const COMPLETION_PHRASES = [
   "all done", "good to go",
   "verify", "verifiëren", "prove", "controleren of het werkt",
   "bewijzen dat het werkt",
+  "test de fix", "check of het werkt", "validate", "valideren",
+  "cleanup", "clean up",
 ]
 const AMBIGUITY_PHRASES = [
   "brainstorm", "brainstormen", "fuzzy idea", "design tradeoff",
@@ -94,7 +104,13 @@ const AMBIGUITY_PHRASES = [
 ]
 
 function createEmptySessionState() {
-  return { matchedSkills: [], needsCodeReview: false, shouldCaptureImprovement: false, executionProfile: null }
+  return {
+    matchedSkills: [], needsCodeReview: false, shouldCaptureImprovement: false,
+    executionProfile: null,
+    toolCallCount: 0, toolCallsSinceSkillLoad: 0,
+    recentToolIds: [], recentEditedPaths: [],
+    hasDoneSessionAudit: false, skillsLoadedCount: 0,
+  }
 }
 
 function unique(values) {
@@ -104,7 +120,14 @@ function unique(values) {
 function hasPhraseSignal(query, phrases) {
   const normalized = query.trim().toLowerCase()
   if (!normalized) return false
-  return phrases.some((phrase) => normalized.includes(phrase))
+  return phrases.some((phrase) => {
+    const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    try {
+      return new RegExp(`(?:^|[^a-z0-9])${escaped}(?:$|[^a-z0-9])`, "i").test(normalized)
+    } catch {
+      return normalized.includes(phrase)
+    }
+  })
 }
 
 function stripQuotes(value) {
@@ -228,7 +251,77 @@ function buildExecutionProfile(matchedSkill, query) {
   return { executionTier, agentTier: agentTierForExecutionTier(executionTier), delegationMode, matchedSkill: matchedSkill.name }
 }
 
-function cascadeRoute(query, skills, sessionState) {
+const OVERVIEW_ROWS = [
+  { label: "Clarify scope, plan ambiguous work",       skill: SKILL_INTAKE },
+  { label: "Debug bug, crash, failing test, error",    skill: SKILL_DEBUGGING },
+  { label: "Review code changes before handoff",       skill: SKILL_CODE_REVIEW },
+  { label: "Verify claim, prove it works",             skill: SKILL_VERIFICATION },
+  { label: "Audit, refactor, reduce tech debt",        skill: SKILL_IMPROVE },
+  { label: "Reflect on session, file improvement",     skill: SKILL_SESSION_REVIEW },
+  { label: "Coordinate multi-agent, parallel tasks",   skill: SKILL_AGENT_WORKFLOWS },
+  { label: "Create or revise a skill",                 skill: SKILL_WRITE_SKILL },
+  { label: "Design or polish UI/UX",                   skill: SKILL_UI_UX },
+  { label: "Normal software work (default)",           skill: SKILL_DEVELOP },
+]
+
+function buildSkillOverview(sessionState) {
+  const lines = [
+    "╌ Nebu Skills ╌",
+    "When task matches → load via `skill(name: '...')`:",
+    "",
+  ]
+  for (const row of OVERVIEW_ROWS) {
+    lines.push(`  ${row.label} → ${row.skill}`)
+  }
+  const matched = sessionState.matchedSkills || []
+  if (matched.length > 0) {
+    lines.push("")
+    lines.push(`Active: ${matched.map(s => s.name).join("+")}${sessionState.executionProfile ? ` (${sessionState.executionProfile.executionTier}/${sessionState.executionProfile.delegationMode})` : ""}`)
+  }
+  const toolsSinceLoad = sessionState.toolCallsSinceSkillLoad || 0
+  if (sessionState.needsCodeReview) {
+    lines.push("→ Code edited — `skill(name: 'code-review')` before claiming done")
+  }
+  if (toolsSinceLoad > 8 && (sessionState.skillsLoadedCount || 0) === 0) {
+    const isCodeEditing = (sessionState.recentToolIds || []).some(t => CODE_WORK_TOOL_IDS.has(t))
+    if (isCodeEditing) {
+      lines.push("→ Working without loaded skill — `skill(name: 'develop')` sets workflow guardrails")
+    }
+  }
+  if (sessionState.shouldCaptureImprovement) {
+    lines.push("→ Improvement found? `skill(name: 'session-review')` to file issue")
+  }
+  return lines.join("\n")
+}
+
+function matchSkillsByContext(context, skills) {
+  if (!context || !skills || skills.length === 0) return []
+  const { toolCallCount, toolCallsSinceSkillLoad, recentToolIds, recentEditedPaths } = context
+  const candidates = []
+  const isCodeEditing = (recentToolIds || []).some(t => CODE_WORK_TOOL_IDS.has(t))
+  const toolsSinceLoad = toolCallsSinceSkillLoad || 0
+  for (const skill of skills) {
+    const desc = (skill.description || "").toLowerCase()
+    const triggers = (skill.triggers || []).map(t => t.toLowerCase())
+    const allText = [desc, ...triggers].join(" ")
+    let score = 0
+    let reason = ""
+    if (isCodeEditing) {
+      if (skill.name === "develop") { score = 0.5; reason = "code edits in progress" }
+      else if (allText.includes("implement") || allText.includes("code change")) { score = 0.3 }
+    }
+    if (isCodeEditing && (allText.includes("bug") || allText.includes("debug") || allText.includes("error") || allText.includes("crash"))) {
+      if (score < 0.4) { score = 0.35; reason = "debugging pattern detected" }
+    }
+    if (toolsSinceLoad > CONTEXT_MATCH_THRESHOLD && (allText.includes("verif") || allText.includes("review") || allText.includes("cleanup"))) {
+      if (score < 0.3) { score = 0.25; reason = "long work period, consider verification" }
+    }
+    if (score > 0.1) candidates.push({ skill, score, reason })
+  }
+  return candidates.sort((a, b) => b.score - a.score).slice(0, 3)
+}
+
+function cascadeRoute(query, skills, sessionState, context = {}) {
   const q = query.trim().toLowerCase()
   if (!q) {
     const fallback = findSkill(skills, SKILL_DEVELOP)
@@ -239,7 +332,7 @@ function cascadeRoute(query, skills, sessionState) {
     const skill = findSkill(skills, name)
     return skill ? { matchedSkills: [skill], executionProfile: buildExecutionProfile(skill, q) } : null
   }
-  return (
+  const primary = (
     tryRoute(AMBIGUITY_PHRASES, SKILL_INTAKE) ||           // 1. Start
     tryRoute(BUG_PHRASES, SKILL_DEBUGGING) ||               // 2. Execute
     tryRoute(REVIEW_PHRASES, SKILL_CODE_REVIEW) ||          // 3. Validate
@@ -261,6 +354,15 @@ function cascadeRoute(query, skills, sessionState) {
       return { matchedSkills: fallback ? [fallback] : [], executionProfile: buildExecutionProfile(fallback, q) }
     })()                                                     // 10. Execute (default)
   )
+  const primaryName = primary.matchedSkills[0]?.name
+  if (primaryName === SKILL_DEVELOP && context && Object.keys(context).length > 0) {
+    const contextMatches = matchSkillsByContext(context, skills)
+    if (contextMatches.length > 0 && contextMatches[0].skill.name !== SKILL_DEVELOP) {
+      const top = contextMatches[0]
+      return { matchedSkills: [top.skill], executionProfile: buildExecutionProfile(top.skill, q), contextHint: top.reason }
+    }
+  }
+  return primary
 }
 
 function trimSessionCache(cache, maxEntries) {
@@ -287,13 +389,14 @@ function getSessionState(cache, sessionID) {
 }
 
 module.exports = {
-  CODE_EDIT_TOOL_IDS, DEFAULT_MAX_HINTS, DEFAULT_MAX_LISTED_SKILLS,
+  CODE_EDIT_TOOL_IDS, CODE_WORK_TOOL_IDS, DEFAULT_MAX_HINTS, DEFAULT_MAX_LISTED_SKILLS, RECENT_TOOL_MAX,
   VALID_DELEGATION_MODES, VALID_EXECUTION_TIERS,
   SKILL_AGENT_WORKFLOWS, SKILL_CODE_REVIEW, SKILL_DEBUGGING,
   SKILL_SESSION_REVIEW, SKILL_IMPROVE, SKILL_DEVELOP, SKILL_INTAKE, SKILL_UI_UX,
-  SKILL_VERIFICATION, SKILL_WRITE_SKILL,
-  cascadeRoute, buildExecutionProfile, loadSkills,
+  SKILL_VERIFICATION, SKILL_WRITE_SKILL, COMPLETION_PHRASES,
+  buildSkillOverview, cascadeRoute, buildExecutionProfile, loadSkills,
   createEmptySessionState, getSessionState, setSessionState,
-  findSkill, stripFrontmatter, toSingleLine, normalizeStringList,
+  findSkill, hasPhraseSignal, matchSkillsByContext,
+  stripFrontmatter, toSingleLine, normalizeStringList,
   parseBooleanField, parseFrontmatter, unique,
 }

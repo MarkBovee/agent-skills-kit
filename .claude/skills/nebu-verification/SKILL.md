@@ -1,7 +1,7 @@
 ---
 name: "verification"
 description: "Use when about to claim something works, is fixed, or ready to hand off — and when a task changed one or more repos and needs intentional cleanup before stopping."
-when_to_use: "Common triggers: verify, verifiëren, prove, controleren of het werkt, bewijzen dat het werkt, claim success, done, finished, ready, handoff, klaar, gereed, wrap up, hand off, task complete, finishing work, workspace done, afronden, afgerond, inleveren."
+when_to_use: "Common triggers: verify, verifiëren, prove, controleren of het werkt, bewijzen dat het werkt, claim success, done, finished, ready, handoff, klaar, gereed, wrap up, hand off, task complete, finishing work, workspace done, afronden, afgerond, inleveren, cleanup, test de fix, check result, prove it works, check of het klopt, validate, valideren, werkt het, is het klaar."
 ---
 # Nebu Verification
 

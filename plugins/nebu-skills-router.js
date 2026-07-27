@@ -10,9 +10,10 @@ const require = createRequire(import.meta.url)
 const here = dirname(fileURLToPath(import.meta.url))
 
 const {
-  CODE_EDIT_TOOL_IDS, DEFAULT_MAX_LISTED_SKILLS,
+  CODE_EDIT_TOOL_IDS, CODE_WORK_TOOL_IDS, RECENT_TOOL_MAX, COMPLETION_PHRASES,
   SKILL_CODE_REVIEW, SKILL_VERIFICATION, SKILL_WRITE_SKILL,
-  cascadeRoute, getSessionState, loadSkills, setSessionState, toSingleLine,
+  buildSkillOverview, getSessionState, loadSkills,
+  setSessionState, hasPhraseSignal, toSingleLine,
 } = require(resolve(here, "../core/router-core"))
 
 function resolveSkillPath() {
@@ -35,22 +36,6 @@ function resolveSkillName(input, output) {
 
 const SESSION_KEY = "default"
 
-function buildRoutingLines(discoveredSkills, sessionState) {
-  const lines = [
-    "Cascade routing (first match wins): intake → debugging → code-review → verification → improve → session-review → agent-workflows → write-skill → ui-ux → develop (default). Cost-aware: mechanical chores → mini subagent.",
-  ]
-  const matched = sessionState.matchedSkills || []
-  if (matched.length > 0) {
-    lines.push(`Match: ${matched.map(s => s.name).join("+")}${sessionState.executionProfile ? ` (${sessionState.executionProfile.executionTier}/${sessionState.executionProfile.delegationMode})` : ""}`)
-  }
-  if (discoveredSkills.length > 0) {
-    lines.push(`Skills: ${discoveredSkills.slice(0, DEFAULT_MAX_LISTED_SKILLS).map(s => `${s.name}: ${toSingleLine(s.description, 60)}`).join("; ")}`)
-  }
-  if (sessionState.needsCodeReview) lines.push("Code edited. Run code-review before done.")
-  if (sessionState.shouldCaptureImprovement) lines.push("Improvement opportunity? session-review to reflect on skill usage, then write-skill to implement.")
-  return lines.join("\n")
-}
-
 let skillsCache = null
 async function getSkills() {
   if (skillsCache) return skillsCache
@@ -68,11 +53,24 @@ export const NebuSkillsRouter = async () => {
     "tui.prompt.append": async (input) => {
       const promptText = (input?.prompt || input?.text || "").trim()
       if (!promptText) return
-      const skills = await getSkills()
       const state = getSessionState(sessionState, SESSION_KEY)
-      const { matchedSkills, executionProfile } = cascadeRoute(promptText, skills, state)
-      setSessionState(sessionState, SESSION_KEY, { matchedSkills, executionProfile })
-      const lines = buildRoutingLines(skills, { ...state, matchedSkills, executionProfile })
+
+      if (!state.hasDoneSessionAudit) {
+        const skills = await getSkills()
+        const auditLines = ["Session start — load via `skill(name: '...')`:"]
+        for (const s of skills) {
+          auditLines.push(`  • ${s.name}: ${toSingleLine(s.description, 70)}`)
+        }
+        setSessionState(sessionState, SESSION_KEY, { hasDoneSessionAudit: true })
+        const overview = buildSkillOverview(state)
+        return { append: `\n--- Nebu Skills ---\n${auditLines.join("\n")}\n\n${overview}` }
+      }
+
+      if (state.needsCodeReview && hasPhraseSignal(promptText, COMPLETION_PHRASES)) {
+        setSessionState(sessionState, SESSION_KEY, { needsCodeReview: false, shouldCaptureImprovement: true })
+      }
+
+      const lines = buildSkillOverview(state)
       return { append: `\n--- Nebu Skills ---\n${lines}` }
     },
     "tool.execute.before": async (input) => {
@@ -83,13 +81,21 @@ export const NebuSkillsRouter = async () => {
     "tool.execute.after": async (input, output) => {
       const toolID = (typeof input?.tool === "string" ? input.tool : "").trim()
       if (!toolID) return
-      if (CODE_EDIT_TOOL_IDS.has(toolID)) { setSessionState(sessionState, SESSION_KEY, { needsCodeReview: true }); return }
-      if (toolID !== "skill") return
+      const state = getSessionState(sessionState, SESSION_KEY)
+      const recentToolIds = [...(state.recentToolIds || []), toolID].slice(-RECENT_TOOL_MAX)
+      const toolCallCount = (state.toolCallCount || 0) + 1
+      const toolsSinceLoad = toolID === "skill" ? 0 : (state.toolCallsSinceSkillLoad || 0) + 1
+      const skillsLoadedCount = toolID === "skill" ? (state.skillsLoadedCount || 0) + 1 : (state.skillsLoadedCount || 0)
+      const base = { recentToolIds, toolCallCount, toolCallsSinceSkillLoad: toolsSinceLoad, skillsLoadedCount }
+
+      if (CODE_EDIT_TOOL_IDS.has(toolID)) { setSessionState(sessionState, SESSION_KEY, { ...base, needsCodeReview: true }); return }
+      if (toolID !== "skill") { setSessionState(sessionState, SESSION_KEY, base); return }
       const skillName = resolveSkillName(input, output)
-      if (!skillName) return
-      if (skillName === SKILL_CODE_REVIEW) { setSessionState(sessionState, SESSION_KEY, { needsCodeReview: false, shouldCaptureImprovement: true }); return }
-      if (skillName === SKILL_VERIFICATION) { setSessionState(sessionState, SESSION_KEY, { shouldCaptureImprovement: true }); return }
-      if (skillName === SKILL_WRITE_SKILL) { setSessionState(sessionState, SESSION_KEY, { shouldCaptureImprovement: false }) }
+      if (!skillName) { setSessionState(sessionState, SESSION_KEY, base); return }
+      if (skillName === SKILL_CODE_REVIEW) { setSessionState(sessionState, SESSION_KEY, { ...base, needsCodeReview: false, shouldCaptureImprovement: true }); return }
+      if (skillName === SKILL_VERIFICATION) { setSessionState(sessionState, SESSION_KEY, { ...base, shouldCaptureImprovement: true }); return }
+      if (skillName === SKILL_WRITE_SKILL) { setSessionState(sessionState, SESSION_KEY, { ...base, shouldCaptureImprovement: false }); return }
+      setSessionState(sessionState, SESSION_KEY, base)
     },
   }
 }

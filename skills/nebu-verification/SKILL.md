@@ -23,6 +23,15 @@ triggers:
   - afronden
   - afgerond
   - inleveren
+  - cleanup
+  - test de fix
+  - check result
+  - prove it works
+  - check of het klopt
+  - validate
+  - valideren
+  - werkt het
+  - is het klaar
 ---
 
 # Nebu Verification

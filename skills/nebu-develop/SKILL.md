@@ -40,6 +40,17 @@ triggers:
   - delegate work
   - subagent
   - maak dit werkend
+  - rewrite
+  - herbouw
+  - coordinator
+  - coördinator
+  - omwerken
+  - entity rewrite
+  - refactor
+  - code aanpassen
+  - werk dit bij
+  - build this
+  - development
 ---
 
 # Nebu Kaizen

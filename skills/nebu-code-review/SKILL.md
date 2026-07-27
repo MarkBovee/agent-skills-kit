@@ -11,6 +11,14 @@ triggers:
   - fresh eyes
   - start reviewing
   - review deze wijziging
+  - check de wijziging
+  - review changes
+  - second look
+  - bekijk de diff
+  - controleer de code
+  - code check
+  - diff review
+  - PR review
 ---
 
 # Nebu Code Review

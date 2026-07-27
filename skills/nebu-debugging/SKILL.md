@@ -18,6 +18,17 @@ triggers:
   - start debugging
   - start investigating
   - fout opsporen
+  - slow startup
+  - timeout
+  - hangt
+  - hanging
+  - crash loop
+  - None
+  - target_temp
+  - niet werkend
+  - doet het niet
+  - malfunction
+  - storing
 ---
 
 # Nebu Debugging
