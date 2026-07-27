@@ -16,6 +16,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 - **rules/nebu-skills.md ships with installer.** Beslisboom usage instructions registered in `opencode.json` instructions array so every new session has the decision tree context. Both `install.sh` and `install.ps1` updated.
 - **AGENTS.md updated.** New-session validation steps (beslisboom check, plugin registration check, export check).
 
+## [0.5.1] - 2026-07-27
+
+### Fixed
+
+- **install.sh copies rules instead of symlinks.** Bootstrap/update uses a temp checkout (`/tmp/nebu-skills-release-*/`) — symlinks broke after cleanup. Rules (`coding-standards.md`, `nebu-skills.md`) now copied to target for stable persistence across reboots and upgrades.
+
 ## Unreleased
 
 ## [0.4.1] - 2026-07-24
