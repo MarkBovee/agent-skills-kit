@@ -37,6 +37,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 - **rules/nebu-skills.md terug naar pure referentie.** Geen "first action" instructie meer — plugin hook injecteert de directive copy.
 - **Dubbele const fix** in `buildSkillOverview` (router-core.js).
 
+## [0.5.4] - 2026-07-27
+
+### Fixed
+
+- **Router-core require path in plugin.** `require(resolve(here, "core/router-core"))` resolveerde naar `plugins/core/` i.p.v. project root — plugin faalde met `MODULE_NOT_FOUND`. Path gecorrigeerd naar `../core/router-core`.
+
 ## Unreleased
 
 ## [0.4.1] - 2026-07-24

@@ -14,7 +14,7 @@ const {
   SKILL_CODE_REVIEW, SKILL_VERIFICATION, SKILL_WRITE_SKILL,
   buildSkillOverview, getSessionState, loadSkills,
   setSessionState, hasPhraseSignal, toSingleLine,
-} = require(resolve(here, "core/router-core"))
+} = require(resolve(here, "../core/router-core"))
 
 function resolveSkillPath() {
   const candidates = [resolve(homedir(), ".agents", "skills"), resolve(here, "../skills")]
