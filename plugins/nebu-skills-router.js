@@ -35,6 +35,7 @@ function resolveSkillName(input, output) {
 }
 
 const SESSION_KEY = "default"
+const BLOCKED_BEFORE_SKILL = new Set(["edit", "write", "apply_patch", "bash"])
 
 let skillsCache = null
 async function getSkills() {
@@ -78,8 +79,28 @@ export const NebuSkillsRouter = async () => {
     },
     "tool.execute.before": async (input) => {
       const toolID = (typeof input?.tool === "string" ? input.tool : "").trim()
-      if (!toolID || !CODE_EDIT_TOOL_IDS.has(toolID)) return
-      setSessionState(sessionState, SESSION_KEY, { needsCodeReview: true })
+      if (!toolID) return
+      if (CODE_EDIT_TOOL_IDS.has(toolID)) {
+        setSessionState(sessionState, SESSION_KEY, { needsCodeReview: true })
+      }
+      if (BLOCKED_BEFORE_SKILL.has(toolID)) {
+        const state = getSessionState(sessionState, SESSION_KEY)
+        if ((state.skillsLoadedCount || 0) === 0) {
+          return {
+            tool_error: "Load a skill first via `skill(name: '...')`.\n"
+              + "  Clarify scope plan ambiguous work    → intake\n"
+              + "  Debug bug crash failing test error    → debugging\n"
+              + "  Review code changes before handoff    → code-review\n"
+              + "  Verify claim prove it works           → verification\n"
+              + "  Audit refactor reduce tech debt        → improve\n"
+              + "  Reflect on session file improvement   → session-review\n"
+              + "  Coordinate multi-agent parallel tasks → agent-workflows\n"
+              + "  Create or revise a skill              → write-skill\n"
+              + "  Design or polish UI/UX                → ui-ux\n"
+              + "  Normal software work (default)        → develop",
+          }
+        }
+      }
     },
     "tool.execute.after": async (input, output) => {
       const toolID = (typeof input?.tool === "string" ? input.tool : "").trim()
