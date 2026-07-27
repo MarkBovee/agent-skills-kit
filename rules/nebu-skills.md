@@ -1,15 +1,8 @@
 # Nebu Skills — Router
 
-The `nebu-skills-router` plugin injects a beslisboom (decision tree) into every prompt under the `╌ Nebu Skills ╌` header. Evaluate it against the current task and load the matching skill via `skill(name: '...')`.
+The `nebu-skills-router` plugin injects a beslisboom (decision tree) into every prompt under the `╌ Nebu Skills ╌` header.
 
-## Usage
-
-- At session start: scan the beslisboom, identify which skill matches the task, load it via `skill(name: '...')`
-- The router does NOT match skills automatically — it only presents the beslisboom
-- After code edits: expect a "Code edited — `skill(name: 'code-review')`" nudge
-- After many tools without loading a skill: expect a "Working without loaded skill" nudge
-
-## Beslisboom (shown every prompt)
+## Beslisboom
 
 ```
 Clarify scope, plan ambiguous work       → intake
@@ -24,6 +17,14 @@ Design or polish UI/UX                   → ui-ux
 Normal software work (default)           → develop
 ```
 
-## Transfer to other agents
+## Nudges from the router
 
-When handing off to a subagent or another agent, include the same beslisboom in the handoff prompt so the receiving agent also knows which skill to load.
+| Nudge | Meaning |
+|-------|---------|
+| `→ Code edited — skill(name: 'code-review')` | A code edit tool ran. Load code-review before claiming done. |
+| `→ Working without loaded skill` | 8+ tool calls without loading any skill. Load one now. |
+| `→ Improvement found? skill(name: 'session-review')` | Session uncovered a reusable workflow gap worth filing. |
+
+## Handoff to subagents
+
+Include the same beslisboom in the handoff prompt so subagents also know which skill to load.

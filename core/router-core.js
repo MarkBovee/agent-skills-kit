@@ -265,9 +265,13 @@ const OVERVIEW_ROWS = [
 ]
 
 function buildSkillOverview(sessionState) {
+  const toolsSinceLoad = sessionState.toolCallsSinceSkillLoad || 0
+  const skillsLoaded = (sessionState.skillsLoadedCount || 0) > 0
   const lines = [
     "╌ Nebu Skills ╌",
-    "When task matches → load via `skill(name: '...')`:",
+    skillsLoaded
+      ? "Beslisboom — load different skill via `skill(name: '...')`:"
+      : "Load matching skill *now* via `skill(name: '...')` before tools:",
     "",
   ]
   for (const row of OVERVIEW_ROWS) {
@@ -278,7 +282,6 @@ function buildSkillOverview(sessionState) {
     lines.push("")
     lines.push(`Active: ${matched.map(s => s.name).join("+")}${sessionState.executionProfile ? ` (${sessionState.executionProfile.executionTier}/${sessionState.executionProfile.delegationMode})` : ""}`)
   }
-  const toolsSinceLoad = sessionState.toolCallsSinceSkillLoad || 0
   if (sessionState.needsCodeReview) {
     lines.push("→ Code edited — `skill(name: 'code-review')` before claiming done")
   }

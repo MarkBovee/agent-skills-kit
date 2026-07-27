@@ -58,10 +58,11 @@ export const NebuSkillsRouter = async () => {
 
         if (!state.hasDoneSessionAudit) {
           const skills = await getSkills()
-          const auditLines = ["Session start — load via `skill(name: '...')`:"]
+          const auditLines = ["FIRST ACTION: scan beslisboom, load matching skill before any code or tools:"]
           for (const s of skills) {
             auditLines.push(`  • ${s.name}: ${toSingleLine(s.description, 70)}`)
           }
+          auditLines.push("Call `skill(name: '...')` now to load the right workflow.")
           setSessionState(sessionState, SESSION_KEY, { hasDoneSessionAudit: true })
           const overview = buildSkillOverview(state)
           return { append: `\n--- Nebu Skills ---\n${auditLines.join("\n")}\n\n${overview}` }
