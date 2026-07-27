@@ -1,13 +1,6 @@
 const fs = require("node:fs/promises")
 const path = require("node:path")
 
-const STOP_WORDS = new Set([
-  "a", "an", "and", "are", "as", "at", "be", "by", "can", "do", "for", "from",
-  "help", "how", "i", "if", "in", "into", "is", "it", "me", "my", "of", "on",
-  "or", "should", "that", "the", "this", "to", "use", "user", "using", "when",
-  "with", "you", "your",
-])
-
 const DEFAULT_MAX_HINTS = 4
 const DEFAULT_MAX_LISTED_SKILLS = 8
 const MAX_SESSION_CACHE = 100
@@ -26,7 +19,6 @@ const SKILL_WRITE_SKILL = "write-skill"
 const VALID_EXECUTION_TIERS = new Set(["light", "standard", "heavy", "deep"])
 const VALID_DELEGATION_MODES = new Set(["auto", "prefer-subagent", "owner-only"])
 
-const CONTEXT_MATCH_THRESHOLD = 8
 const CODE_WORK_TOOL_IDS = new Set(["edit", "write", "apply_patch"])
 const RECENT_TOOL_MAX = 20
 
@@ -297,34 +289,7 @@ function buildSkillOverview(sessionState) {
   return lines.join("\n")
 }
 
-function matchSkillsByContext(context, skills) {
-  if (!context || !skills || skills.length === 0) return []
-  const { toolCallCount, toolCallsSinceSkillLoad, recentToolIds, recentEditedPaths } = context
-  const candidates = []
-  const isCodeEditing = (recentToolIds || []).some(t => CODE_WORK_TOOL_IDS.has(t))
-  const toolsSinceLoad = toolCallsSinceSkillLoad || 0
-  for (const skill of skills) {
-    const desc = (skill.description || "").toLowerCase()
-    const triggers = (skill.triggers || []).map(t => t.toLowerCase())
-    const allText = [desc, ...triggers].join(" ")
-    let score = 0
-    let reason = ""
-    if (isCodeEditing) {
-      if (skill.name === "develop") { score = 0.5; reason = "code edits in progress" }
-      else if (allText.includes("implement") || allText.includes("code change")) { score = 0.3 }
-    }
-    if (isCodeEditing && (allText.includes("bug") || allText.includes("debug") || allText.includes("error") || allText.includes("crash"))) {
-      if (score < 0.4) { score = 0.35; reason = "debugging pattern detected" }
-    }
-    if (toolsSinceLoad > CONTEXT_MATCH_THRESHOLD && (allText.includes("verif") || allText.includes("review") || allText.includes("cleanup"))) {
-      if (score < 0.3) { score = 0.25; reason = "long work period, consider verification" }
-    }
-    if (score > 0.1) candidates.push({ skill, score, reason })
-  }
-  return candidates.sort((a, b) => b.score - a.score).slice(0, 3)
-}
-
-function cascadeRoute(query, skills, sessionState, context = {}) {
+function cascadeRoute(query, skills, sessionState) {
   const q = query.trim().toLowerCase()
   if (!q) {
     const fallback = findSkill(skills, SKILL_DEVELOP)
@@ -335,7 +300,7 @@ function cascadeRoute(query, skills, sessionState, context = {}) {
     const skill = findSkill(skills, name)
     return skill ? { matchedSkills: [skill], executionProfile: buildExecutionProfile(skill, q) } : null
   }
-  const primary = (
+  return (
     tryRoute(AMBIGUITY_PHRASES, SKILL_INTAKE) ||           // 1. Start
     tryRoute(BUG_PHRASES, SKILL_DEBUGGING) ||               // 2. Execute
     tryRoute(REVIEW_PHRASES, SKILL_CODE_REVIEW) ||          // 3. Validate
@@ -357,15 +322,6 @@ function cascadeRoute(query, skills, sessionState, context = {}) {
       return { matchedSkills: fallback ? [fallback] : [], executionProfile: buildExecutionProfile(fallback, q) }
     })()                                                     // 10. Execute (default)
   )
-  const primaryName = primary.matchedSkills[0]?.name
-  if (primaryName === SKILL_DEVELOP && context && Object.keys(context).length > 0) {
-    const contextMatches = matchSkillsByContext(context, skills)
-    if (contextMatches.length > 0 && contextMatches[0].skill.name !== SKILL_DEVELOP) {
-      const top = contextMatches[0]
-      return { matchedSkills: [top.skill], executionProfile: buildExecutionProfile(top.skill, q), contextHint: top.reason }
-    }
-  }
-  return primary
 }
 
 function trimSessionCache(cache, maxEntries) {
@@ -399,7 +355,7 @@ module.exports = {
   SKILL_VERIFICATION, SKILL_WRITE_SKILL, COMPLETION_PHRASES,
   buildSkillOverview, cascadeRoute, buildExecutionProfile, loadSkills,
   createEmptySessionState, getSessionState, setSessionState,
-  findSkill, hasPhraseSignal, matchSkillsByContext,
+  findSkill, hasPhraseSignal,
   stripFrontmatter, toSingleLine, normalizeStringList,
   parseBooleanField, parseFrontmatter, unique,
 }

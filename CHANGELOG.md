@@ -22,6 +22,13 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 - **install.sh copies rules instead of symlinks.** Bootstrap/update uses a temp checkout (`/tmp/nebu-skills-release-*/`) — symlinks broke after cleanup. Rules (`coding-standards.md`, `nebu-skills.md`) now copied to target for stable persistence across reboots and upgrades.
 
+## [0.5.3] - 2026-07-27
+
+### Fixed
+
+- **Plugin .mjs i.p.v. .js.** OpenCode `package.json` mist `"type": "module"`, dus `.js` werd als CommonJS geladen — plugin met `import/export` faalde stilletjes, geen enkele hook vuurde. `.mjs` forceert ESM ongeacht `package.json`.
+- **Destructive tools geblokkeerd tot skill geladen.** `tool.execute.before` blokkeert `edit`/`write`/`apply_patch`/`bash` als `skillsLoadedCount === 0`. Error toont complete beslisboom.
+
 ## [0.5.2] - 2026-07-27
 
 ### Changed
