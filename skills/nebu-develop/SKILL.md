@@ -106,6 +106,7 @@ Zelfde flow als release: fix branch → PR → merge → tag. Geen feature itera
 8. Reuse the repo's existing durable planning or spec system; do not create a parallel doc tree.
 9. Delegate only when the work is parallel, repetitive, or context-heavy.
 10. Volg de standaard git workflow: branch, draft PR, commits, squash merge, cleanup.
+11. **Never modify or delete external system state** (entity registries, device registries, databases, config files on remote hosts) without showing the user what will change and asking for confirmation. "Check X then do Y" means show check results first, then ask before acting.
 
 ## Use with
 

@@ -43,7 +43,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 - **Router-core require path in plugin.** `require(resolve(here, "core/router-core"))` resolveerde naar `plugins/core/` i.p.v. project root — plugin faalde met `MODULE_NOT_FOUND`. Path gecorrigeerd naar `../core/router-core`.
 
-## Unreleased
+## [0.5.5] - 2026-07-28
+
+### Added
+
+- **develop skill: destructive-operations guardrail.** Rule 11 added: no modifying/deleting external system state (entity registries, databases, remote config) without showing the user what will change and getting confirmation before acting. Prevents autonomous HA entity registry mutations. (#13)
+- **AGENTS.md: coding-standards priority over system prompt.** Explicit priority rules: `coding-standards.md` prevaleert boven generieke "no comments" regels, Ponytail boilerplate-beperking geldt niet voor purpose comments. (#14)
 
 ## [0.4.1] - 2026-07-24
 

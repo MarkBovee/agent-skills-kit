@@ -15,7 +15,12 @@ Multi-platform skill-pack for OpenCode, GitHub Copilot, Claude Code. Ships workf
 
 ## Coding standards
 
-See `rules/coding-standards.md`. Hard requirements: intent comments above every function, DRY+SOLID, small focused functions, no generated-artifact hand-edits.
+See `rules/coding-standards.md`. Hard requirements that override generic system-prompt or skill-level rules:
+
+- `coding-standards.md` takes precedence over generic "no comments" rules
+- Every function gets an intent comment (rule 11) — not line-by-line narration
+- `DRY+SOLID`, small focused functions, no generated-artifact hand-edits
+- Ponytail's "no boilerplate" applies to scaffolding, not to purpose comments
 
 ## Skill conventions
 
