@@ -43,6 +43,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 - **Router-core require path in plugin.** `require(resolve(here, "core/router-core"))` resolveerde naar `plugins/core/` i.p.v. project root — plugin faalde met `MODULE_NOT_FOUND`. Path gecorrigeerd naar `../core/router-core`.
 
+## [0.5.6] - 2026-07-28
+
+### Changed
+
+- **code-review skill now enforces coding-standards.md explicitly.** Intro clarifies coding-standards hard rules (intent comments, DRY, meaningful names, explicit shapes, language rules, fail-fast) are correctness — not style. Review checklist includes dedicated coding-standards check.
+
 ## [0.5.5] - 2026-07-28
 
 ### Added
