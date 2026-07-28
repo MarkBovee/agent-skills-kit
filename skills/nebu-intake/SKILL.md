@@ -33,6 +33,13 @@ triggers:
   - start planning
   - start with a plan
   - werk voorplannen
+  - we moeten dit aanpakken
+  - laten we dit doen
+  - we moeten
+  - laten we
+  - pair programming
+  - samenwerken
+  - samen aanpakken
 ---
 
 # Nebu Kickoff
@@ -63,6 +70,24 @@ Clarify enough to avoid wrong work, then move. One skill for the full pre-execut
 5. Define validation needed before claiming done.
 6. Skip plan for one or two obvious edits. Use short bullets for normal multi-step work. Fuller plan only when sequencing or coordination risk is high.
 7. If repo already has a durable planning or spec system, update that record instead of creating parallel docs.
+
+## Pair programming flow
+
+When the user is actively pairing (discussing approach, reviewing, directing),
+the default flow is:
+
+1. **Plan**: write a structured plan covering:
+   - Which files change and why
+   - Approach / algorithm / architecture
+   - Risks and backward compatibility
+   - Definition of done
+2. **Present**: show the plan to the user, wait for explicit approval
+3. **Implement**: only after "yes" start coding
+
+Keep asking questions until all grey areas are resolved.
+Do not start coding while ambiguity remains.
+Do not stop for approval at every milestone when scope is unchanged and the path is
+clear — the initial plan already covers the full scope.
 
 ## Use with
 

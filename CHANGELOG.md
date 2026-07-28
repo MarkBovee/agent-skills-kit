@@ -4,8 +4,6 @@ All notable changes to `nebu-skills` live here.
 
 Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` form.
 
-## Unreleased
-
 ## [0.5.9] - 2026-07-28
 
 ### Fixed
@@ -14,6 +12,11 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 - **PowerShell installer no longer requires admin for OpenCode skill links.** Per-skill link creation now uses the existing symlink-or-junction fallback path, matching the non-admin-safe behavior used elsewhere in the installer.
 - **Release automation added.** GitHub Actions now validates changes on pushes and pull requests, then tags and publishes a GitHub Release when a versioned change reaches `main`.
 - **Release metadata and routing checks synchronized.** The Claude plugin manifest now matches `VERSION`, and routing assertions use the current `improve` skill name.
+
+### Changed
+
+- **Intake skill: pair programming flow toegevoegd.** Nieuwe sectie met plan→present→validate→implement flow voor pair programming sessies. Triggers uitgebreid met "we moeten dit aanpakken", "laten we dit doen", "pair programming", "samenwerken". (#17)
+- **Develop skill: "Plan if missing" aangescherpt.** Bij nieuwe of onduidelijke scope wordt intake geladen in plaats van inline plannen. (#17)
 
 ## [0.5.8] - 2026-07-28
 

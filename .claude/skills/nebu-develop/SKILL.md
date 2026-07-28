@@ -22,7 +22,7 @@ Default to steady progress: inspect, create, test, review, continue. If the next
 
 ## Core loop
 
-0. **Plan if missing.** Non-trivial task (3+ changes, multi-file, risky) without a plan? Generate inline plan with `todowrite` or short bullets. Trivial 1-2 edits: skip.
+0. **Plan if missing.** Non-trivial task (3+ changes, multi-file, risky) without a plan? If scope is new or unclear, load `intake` first. Otherwise generate inline plan with `todowrite` or short bullets. Trivial 1-2 edits: skip.
 1. Inspect the next boundary that matters.
 2. Create the smallest coherent improvement.
 3. Test it with the fastest trustworthy proof.
