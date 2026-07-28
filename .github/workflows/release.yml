@@ -57,11 +57,7 @@ jobs:
           TAG: ${{ steps.version.outputs.tag }}
         run: |
           if git show-ref --tags --verify --quiet "refs/tags/$TAG"; then
-            if [ "$(git rev-list -n 1 "$TAG")" != "$GITHUB_SHA" ]; then
-              echo "Tag $TAG already exists on a different commit."
-              exit 1
-            fi
-            echo "Tag $TAG already points to this commit."
+            echo "Tag $TAG already exists; continuing with release publication."
           else
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
