@@ -36,11 +36,11 @@ const ROUTING_CASES = [
   ["ready to handoff", "verification"],
   ["wrap up", "verification"],
   // Improve — refactor
-  ["refactor this", "refactor"],
-  ["audit codebase", "refactor"],
-  ["refactoren", "refactor"],
-  ["opschonen", "refactor"],
-  ["tech debt cleanup", "refactor"],
+  ["refactor this", "improve"],
+  ["audit codebase", "improve"],
+  ["refactoren", "improve"],
+  ["opschonen", "improve"],
+  ["tech debt audit", "improve"],
   // Improve — session-review
   ["retrospective", "session-review"],
   ["create issue", "session-review"],
