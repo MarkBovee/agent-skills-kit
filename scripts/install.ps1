@@ -171,14 +171,7 @@ try {
     foreach ($skillDir in Get-ChildItem -LiteralPath $sharedSkillsTarget -Directory) {
         $linkPath = Join-Path $opencodeSkillsTarget $skillDir.Name
         $targetPath = $skillDir.FullName
-        if (Test-Path -LiteralPath $linkPath) {
-            $existingItem = Get-Item -LiteralPath $linkPath -Force
-            if ($existingItem.LinkType -and ($existingItem.Target -contains $targetPath)) {
-                continue
-            }
-            Remove-Item -LiteralPath $linkPath -Recurse -Force
-        }
-        New-Item -ItemType SymbolicLink -Path $linkPath -Target $targetPath -Force | Out-Null
+        Set-DirectoryLink -LinkPath $linkPath -TargetPath $targetPath
     }
 
     New-Item -ItemType Directory -Force -Path $copilotInstructionsTarget | Out-Null
@@ -210,18 +203,34 @@ try {
     if (Test-Path -LiteralPath $opencodeJsonPath) {
         $cfg = Get-Content -LiteralPath $opencodeJsonPath -Raw | ConvertFrom-Json
         $changed = $false
-        if (-not $cfg.instructions) { $cfg.instructions = @() }
+        if ($cfg.PSObject.Properties.Match("instructions").Count -eq 0 -or $null -eq $cfg.instructions -or $cfg.instructions -isnot [System.Array]) {
+            $cfg | Add-Member -NotePropertyName instructions -NotePropertyValue @() -Force
+            $changed = $true
+        }
         foreach ($ins in @("./rules/coding-standards.md", "./rules/nebu-skills.md")) {
             if ($ins -notin $cfg.instructions) { $cfg.instructions += $ins; $changed = $true }
         }
-        if (-not $cfg.plugin) { $cfg.plugin = @() }
+        if ($cfg.PSObject.Properties.Match("plugin").Count -eq 0 -or $null -eq $cfg.plugin -or $cfg.plugin -isnot [System.Array]) {
+            $cfg | Add-Member -NotePropertyName plugin -NotePropertyValue @() -Force
+            $changed = $true
+        }
         $pl = "./plugins/nebu-skills-router.mjs"
         if ($pl -notin $cfg.plugin) { $cfg.plugin += $pl; $changed = $true }
         # Grant OpenCode access to its own config directory (needed for plugin/core/rules)
-        if (-not $cfg.permission) { $cfg.permission = @{}; $changed = $true }
-        if (-not $cfg.permission.external_directory) { $cfg.permission.external_directory = @{}; $changed = $true }
+        if ($cfg.PSObject.Properties.Match("permission").Count -eq 0 -or $null -eq $cfg.permission -or $cfg.permission -isnot [System.Management.Automation.PSCustomObject]) {
+            $cfg | Add-Member -NotePropertyName permission -NotePropertyValue ([pscustomobject]@{}) -Force
+            $changed = $true
+        }
+        if ($cfg.permission.PSObject.Properties.Match("external_directory").Count -eq 0 -or $null -eq $cfg.permission.external_directory -or $cfg.permission.external_directory -isnot [System.Management.Automation.PSCustomObject]) {
+            $cfg.permission | Add-Member -NotePropertyName external_directory -NotePropertyValue ([pscustomobject]@{}) -Force
+            $changed = $true
+        }
         $ocPath = Join-Path $HOME ".config" "opencode" "*"
-        if ($cfg.permission.external_directory.$ocPath -ne "allow") { $cfg.permission.external_directory | Add-Member -NotePropertyName $ocPath -NotePropertyValue "allow"; $changed = $true }
+        $currentPermission = $cfg.permission.external_directory.PSObject.Properties[$ocPath]
+        if (-not $currentPermission -or $currentPermission.Value -ne "allow") {
+            $cfg.permission.external_directory | Add-Member -NotePropertyName $ocPath -NotePropertyValue "allow" -Force
+            $changed = $true
+        }
         if ($changed) { $cfg | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $opencodeJsonPath }
     }
 
