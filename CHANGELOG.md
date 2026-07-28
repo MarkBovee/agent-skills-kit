@@ -4,9 +4,11 @@ All notable changes to `nebu-skills` live here.
 
 Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` form.
 
-## Unreleased
+## [0.5.8] - 2026-07-28
 
-No unreleased changes.
+### Changed
+
+- **nebu-ui-ux geüpdatet naar ui-ux-pro-max v2.x.** SKILL.md herschreven met v2 features: 161 reasoning rules, priority tabel, Design Dials (variance/motion/density), Persist pattern (MASTER.md + page overrides), uitgebreide werkstroom. Scripts (core.py, search.py, design_system.py) geüpdatet met BM25-engine, 12 domeinen, 22 stacks. Toegevoegd: validate_data.py, unit tests, references/pro-rules.md en quick-reference.md. Nieuwe data: app-interface.csv, google-fonts.csv (1924 fonts), motion.csv, 9 extra stack CSVs (angular, laravel, threejs, javafx, wpf, winui, avalonia, uno, uwp).
 
 ## [0.5.7] - 2026-07-28
 
