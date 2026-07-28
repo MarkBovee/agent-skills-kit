@@ -4,6 +4,13 @@ All notable changes to `nebu-skills` live here.
 
 Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` form.
 
+## [0.5.9] - 2026-07-28
+
+### Fixed
+
+- **PowerShell installer tolerates minimal or malformed `opencode.json`.** `instructions`, `plugin`, `permission`, and `permission.external_directory` are now initialized safely under `Set-StrictMode -Version Latest`, preventing missing-property failures during bootstrap/install.
+- **PowerShell installer no longer requires admin for OpenCode skill links.** Per-skill link creation now uses the existing symlink-or-junction fallback path, matching the non-admin-safe behavior used elsewhere in the installer.
+
 ## [0.5.8] - 2026-07-28
 
 ### Changed
