@@ -234,8 +234,15 @@ function Invoke-ManagedCheckoutPull {
     param([string]$RepoRoot)
 
     $git = Get-GitCommand
-    $pullOutput = & $git.Source -C $RepoRoot pull --ff-only 2>&1
-    $pullExitCode = $LASTEXITCODE
+    $pullErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = "Continue"
+        $pullOutput = & $git.Source -C $RepoRoot pull --ff-only 2>&1
+        $pullExitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $pullErrorActionPreference
+    }
     if ($pullOutput) {
         $pullOutput | Write-Output
     }
@@ -250,12 +257,20 @@ function Invoke-ManagedCheckoutPull {
         throw "git pull failed for managed checkout $RepoRoot (exit code $pullExitCode). Resolve the git error above. If this checkout is incomplete, delete $RepoRoot and rerun bootstrap."
     }
 
-    $retryOutput = & $git.Source -C $RepoRoot pull --ff-only 2>&1
+    $retryErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = "Continue"
+        $retryOutput = & $git.Source -C $RepoRoot pull --ff-only 2>&1
+        $retryExitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $retryErrorActionPreference
+    }
     if ($retryOutput) {
         $retryOutput | Write-Output
     }
-    if ($LASTEXITCODE -ne 0) {
-        throw "git pull failed for managed checkout $RepoRoot even after restoring generated platform artifacts (exit code $LASTEXITCODE). Resolve the git error above."
+    if ($retryExitCode -ne 0) {
+        throw "git pull failed for managed checkout $RepoRoot even after restoring generated platform artifacts (exit code $retryExitCode). Resolve the git error above."
     }
 }
 

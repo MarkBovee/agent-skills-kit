@@ -4,6 +4,16 @@ All notable changes to `nebu-skills` live here.
 
 Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` form.
 
+## Unreleased
+
+No unreleased changes.
+
+## [0.5.7] - 2026-07-28
+
+### Fixed
+
+- **PowerShell bootstrap/update pull.** Git's normal stderr output no longer terminates the installer before its exit code can be handled on Windows PowerShell.
+
 ## [0.5.0] - 2026-07-27
 
 ### Changed

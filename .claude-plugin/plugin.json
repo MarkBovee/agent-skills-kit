@@ -1,7 +1,7 @@
 {
   "name": "nebu-skills",
   "description": "Workflow skills and lightweight routing guidance for GitHub Copilot, VS Code, and Claude-compatible agents.",
-  "version": "0.4.1",
+  "version": "0.5.7",
   "author": {
     "name": "Mark Bovee",
     "url": "https://github.com/MarkBovee/nebu-skills"
