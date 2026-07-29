@@ -30,6 +30,14 @@ triggers:
   - multi-phase work
   - migration
   - sequencing risk
+  - staged refactor
+  - stages
+  - service by service
+  - per service
+  - dependency chain
+  - sequential steps
+  - per laag
+  - stap voor stap
   - start planning
   - start with a plan
   - werk voorplannen
@@ -67,9 +75,15 @@ Clarify enough to avoid wrong work, then move. One skill for the full pre-execut
 2. List files or areas likely to change.
 3. Order work chunks by meaningful progress, not micro-steps.
 4. Note key risks or open questions.
-5. Define validation needed before claiming done.
-6. Skip plan for one or two obvious edits. Use short bullets for normal multi-step work. Fuller plan only when sequencing or coordination risk is high.
-7. If repo already has a durable planning or spec system, update that record instead of creating parallel docs.
+5. **Detect if work splits into dependent stages:**
+   - Zitten er natuurlijke service/module-grenzen in?
+   - Zijn er dependency chains (stap B heeft output A nodig)?
+   - Lopen complexiteit en benodigd redeneervermogen uiteen tussen stappen?
+     (sommige mechanisch/boilerplate, andere cross-cutting/reasoning)
+   - Zo ja: plan stages met volgorde, tier per stage (light/standard/heavy), en validatie-gates.
+6. Define validation needed before claiming done.
+7. Skip plan for one or two obvious edits. Use short bullets for normal multi-step work. Fuller plan only when sequencing or coordination risk is high.
+8. If repo already has a durable planning or spec system, update that record instead of creating parallel docs.
 
 ## Pair programming flow
 

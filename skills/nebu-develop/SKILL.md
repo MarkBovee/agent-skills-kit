@@ -61,6 +61,7 @@ Default to steady progress: inspect, create, test, review, continue. If the next
 
 - **Direct:** known files, tight coupling, fast iteration, nuanced judgment
 - **Delegate:** independent research, parallelizable subtasks, noisy command runs, or specialized review
+- **Delegate (staged):** sequential dependency chain, elke stap eigen complexiteit. Stap B bouwt op output van stap A. Main agent orkestreert, valideert per stap, gaat pas door na groen licht.
 - **Batch:** related reads, searches, and edits that can be done safely together
 
 ## Cheap-first escalation
@@ -69,6 +70,31 @@ Default to steady progress: inspect, create, test, review, continue. If the next
 2. Validate the result before widening context.
 3. Escalate to default agent only if scope grows beyond the original bounded task.
 4. Escalate to high or xhigh only for cross-cutting, analysis-heavy, or repeatedly failing work.
+
+### Model tiering by task reasoning
+
+| Complexity | Tier → model | Past bij |
+|---|---|---|
+| Mechanical, boilerplate, bounded parsing | light / mini → **flash** | EbusService, RegisterService, EntityFactoryService |
+| Nuanced but contained | standard / default → **flash** | — |
+| Cross-cutting, implicit reasoning, foutafhandeling | heavy / high → **pro** | DiscoveryService, CoordinatorService |
+
+## Staged delegation
+
+Use when refactoring splits into dependent steps with mixed complexity (bv. service-by-service refactor). Niet voor parallel werk — daarvoor is gewone `Delegate`.
+
+1. **Break work into ordered stages.** Elke stage bouwt op de vorige. Geen parallellisme.
+2. **Tag elke stage met complexity tier** (light/standard/heavy). Zie model tiering hierboven.
+3. **Peak-pricing check** vóór dispatch: zit je in DeepSeek-piekvenster (01:00–04:00 of 06:00–10:00 UTC, 2x prijs)? Meld het kort maar blokkeer niet — laat de keuze aan de gebruiker.
+4. **Dispatch stage N** met juiste agent tier. Output moet dependency voor stage N+1 bevatten.
+5. **Validate.** Output matched scope? Tests groen? Zo niet: re-dispatch met smallere scope, niet zelf overnemen.
+6. **Commit per stage** op de werkbranch. Pas door naar stage N+1.
+7. **Re-dispatch bij falen.** Herformuleer de deelopdracht specifieker en dispatch opnieuw. Alleen zelf doen bij triviale correcties.
+
+Output contract per stage (zie `agent-workflows` voor volledig contract):
+- Gestructureerde output, geen narrative
+- Dependency voor volgende stage
+- Testresultaten
 
 ## Core loop
 
@@ -110,12 +136,13 @@ Zelfde flow als release: fix branch → PR → merge → tag. Geen feature itera
 
 ## Use with
 
-- `intake` for ambiguity that could change the implementation
+- `intake` for ambiguity that could change the implementation — intake kan ook stages identificeren tijdens planning
 - `ui-ux` for interface work that needs visual direction and screenshot-based review
 - `code-review` after meaningful code edits and before handoff
 - `debugging` for bugs, failing tests, and broken builds
 - `verification` before claiming success
 - `improve` when the codebase needs a structured audit or refactoring pass
+- `agent-workflows` voor parallelle delegatie en het output contract voor subagent taken
 
 ## Avoid
 

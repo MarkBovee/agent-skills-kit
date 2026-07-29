@@ -1,6 +1,6 @@
 ---
 name: "intake"
-description: "Use when the goal, constraints, or success criteria are not yet crisp — from fuzzy design ideas through ambiguous scope to multi-file planning. Covers brainstorming, scoping, and execution planning in one skill. Common triggers: brainstorm, brainstormen, fuzzy idea, design tradeoff, unsure what to build, product direction, idee uitwerken, ambiguous request, unclear scope, behavior-changing work, fuzzy requirements, what should we build, wat moeten we bouwen, wat moeten we maken, best approach, how should we approach this, not sure where to start, start by clarifying, start with questions, ik weet niet waar te beginnen, hoe pakken we dit aan, plan, plannen, multi-file work, multi-phase work, migration, sequencing risk, start planning, start with a plan, werk voorplannen, we moeten dit aanpakken, laten we dit doen, we moeten, laten we, pair programming, samenwerken, samen aanpakken."
+description: "Use when the goal, constraints, or success criteria are not yet crisp — from fuzzy design ideas through ambiguous scope to multi-file planning. Covers brainstorming, scoping, and execution planning in one skill. Common triggers: brainstorm, brainstormen, fuzzy idea, design tradeoff, unsure what to build, product direction, idee uitwerken, ambiguous request, unclear scope, behavior-changing work, fuzzy requirements, what should we build, wat moeten we bouwen, wat moeten we maken, best approach, how should we approach this, not sure where to start, start by clarifying, start with questions, ik weet niet waar te beginnen, hoe pakken we dit aan, plan, plannen, multi-file work, multi-phase work, migration, sequencing risk, staged refactor, stages, service by service, per service, dependency chain, sequential steps, per laag, stap voor stap, start planning, start with a plan, werk voorplannen, we moeten dit aanpakken, laten we dit doen, we moeten, laten we, pair programming, samenwerken,..."
 ---
 # Nebu Kickoff
 
@@ -27,9 +27,15 @@ Clarify enough to avoid wrong work, then move. One skill for the full pre-execut
 2. List files or areas likely to change.
 3. Order work chunks by meaningful progress, not micro-steps.
 4. Note key risks or open questions.
-5. Define validation needed before claiming done.
-6. Skip plan for one or two obvious edits. Use short bullets for normal multi-step work. Fuller plan only when sequencing or coordination risk is high.
-7. If repo already has a durable planning or spec system, update that record instead of creating parallel docs.
+5. **Detect if work splits into dependent stages:**
+   - Zitten er natuurlijke service/module-grenzen in?
+   - Zijn er dependency chains (stap B heeft output A nodig)?
+   - Lopen complexiteit en benodigd redeneervermogen uiteen tussen stappen?
+     (sommige mechanisch/boilerplate, andere cross-cutting/reasoning)
+   - Zo ja: plan stages met volgorde, tier per stage (light/standard/heavy), en validatie-gates.
+6. Define validation needed before claiming done.
+7. Skip plan for one or two obvious edits. Use short bullets for normal multi-step work. Fuller plan only when sequencing or coordination risk is high.
+8. If repo already has a durable planning or spec system, update that record instead of creating parallel docs.
 
 ## Pair programming flow
 

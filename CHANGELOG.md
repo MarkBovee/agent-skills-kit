@@ -6,6 +6,14 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [0.6.0] - 2026-07-29
+
+### Added
+
+- **Develop skill: staged delegation pattern.** New `Delegate (staged)` mode voor sequentiële dependency chains — elke stage heeft eigen complexity tier, main agent orkestreert met per-stage validatie en commit. Model tiering tabel koppelt taakcomplexiteit (light/standard/heavy) aan agent type (mini→flash, default→flash, high→pro). Peak-pricing check (DeepSeek piekuren) vóór elke dispatch. (#18)
+- **Intake skill: staging detectie in execution planning.** Nieuwe check in planning flow: detecteert of werk in afhankelijke stages splitst met gemengde complexiteit. 10 nieuwe trigger phrases voor staging-signalen. Uitgebreide `AMBIGUITY_PHRASES` in router-core. (#18)
+- **Agent-workflows skill: cross-referentie naar staged delegation.** "Not a good fit" sectie verwijst nu naar `develop` staged delegation voor sequentiële dependency chains. (#18)
+
 ## [0.5.9] - 2026-07-28
 
 ### Fixed

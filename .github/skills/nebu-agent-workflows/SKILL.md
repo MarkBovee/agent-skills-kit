@@ -17,6 +17,8 @@ Default to delegating auxiliary work. Spawn subagents freely; keep only what nee
 ## Not a good fit
 
 - the steps are tightly coupled and need one shared thread of judgment
+  → Gebruik in plaats daarvan `develop` staged delegation, die sequentiële
+    dependency chains met per-stage validatie ondersteunt.
 - the next step depends directly on the exact output of the previous step
 - the reasoning or intermediate state is needed for the next step — losing it means re-deriving
 
