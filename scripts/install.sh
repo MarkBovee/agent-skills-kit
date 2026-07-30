@@ -213,6 +213,7 @@ fi
 if [ -d "$CLAUDE_DIR" ]; then
   mkdir -p "$CLAUDE_RULES_TARGET"
   write_claude_rules_file
+  cp "$OPENCODE_RULES_SOURCE/coding-standards.md" "$CLAUDE_RULES_TARGET/coding-standards.md"
   ensure_directory_symlink "$CLAUDE_SKILLS_TARGET" "$SHARED_SKILLS_TARGET"
 fi
 

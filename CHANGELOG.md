@@ -6,6 +6,14 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [0.6.1] - 2026-07-30
+
+### Fixed
+
+- **`coding-standards.md` nu geïnstalleerd op alle platformen.** OpenCode kreeg het al, Claude Code kreeg het niet — nu wordt `rules/coding-standards.md` ook naar `~/.claude/rules/` gekopieerd. Copilot instructies bevatten nu een samenvatting en verwijzing. (#18)
+- **SKILL.md referentie platform-onafhankelijk.** `rules/coding-standards.md` → `coding-standards.md` in `nebu-code-review/SKILL.md`, zodat het pad werkt ongeacht waar de rules zijn geïnstalleerd. (#18)
+- **Release guard: validate externe skill-referenties.** `validate-plugin.js` controleert nu of elk `rules/<file>` dat in backtick-quotes in SKILL.md staat, ook echt in `rules/` bestaat. Blokkeert toekomstige releases met dangling referenties. (#18)
+
 ## [0.6.0] - 2026-07-29
 
 ### Added

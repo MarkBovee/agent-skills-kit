@@ -9,7 +9,9 @@ const REPO_ROOT = path.resolve(__dirname, "..")
 const PLUGIN_PATH = path.join(REPO_ROOT, ".claude-plugin", "plugin.json")
 const HOOKS_PATH = path.join(REPO_ROOT, "hooks", "hooks.json")
 const SKILLS_PATH = path.join(REPO_ROOT, "skills")
+const RULES_PATH = path.join(REPO_ROOT, "rules")
 const VERSION_PATH = path.join(REPO_ROOT, "VERSION")
+const REFERENCE_PATTERN = /`([^`]+)`/g
 const NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 // Read JSON and turn parse errors into a validation finding.
@@ -95,12 +97,36 @@ async function validateSkills(errors) {
   }
 }
 
-// Run all plugin, hook, and skill checks and report every finding together.
+// Scan every SKILL.md for backtick-quoted references to rules/ files and verify they exist.
+async function validateSkillReferences(errors) {
+  const rulesFiles = new Set(await fs.readdir(RULES_PATH))
+
+  const entries = await fs.readdir(SKILLS_PATH, { withFileTypes: true })
+  for (const entry of entries.filter((item) => item.isDirectory())) {
+    const skillPath = path.join(SKILLS_PATH, entry.name, "SKILL.md")
+    const content = await fs.readFile(skillPath, "utf8")
+    let match
+
+    REFERENCE_PATTERN.lastIndex = 0
+    while ((match = REFERENCE_PATTERN.exec(content)) !== null) {
+      const ref = match[1]
+      const rulesMatch = ref.match(/^rules\/(.+)$/)
+      if (rulesMatch && !rulesFiles.has(rulesMatch[1])) {
+        errors.push(
+          `${path.relative(REPO_ROOT, skillPath)} references rules/${rulesMatch[1]} but that file does not exist in rules/`,
+        )
+      }
+    }
+  }
+}
+
+// Run all plugin, hook, skill, and reference checks and report every finding together.
 async function main() {
   const errors = []
   await validatePluginManifest(errors)
   await validateHooks(errors)
   await validateSkills(errors)
+  await validateSkillReferences(errors)
 
   if (errors.length > 0) {
     for (const error of errors) console.error(`- ${error}`)

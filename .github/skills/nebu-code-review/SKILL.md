@@ -4,14 +4,14 @@ description: "Use when code changed and a meaningful diff is ready; fresh eyes s
 ---
 # Nebu Code Review
 
-Review for correctness, requirements, and risk first. Enforce `rules/coding-standards.md` hard rules (intent comments, meaningful names, DRY, explicit shapes, language rules) as correctness — not style.
+Review for correctness, requirements, and risk first. Enforce `coding-standards.md` hard rules (intent comments, meaningful names, DRY, explicit shapes, language rules) as correctness — not style.
 
 This is a mandatory second pass after **every** code edit. Review depth scales with risk — but no edit skips review entirely.
 
 ## Review checklist
 
 - Does the diff solve the asked problem?
-- Follows `rules/coding-standards.md`? — intent comments on every function, DRY, meaningful names, explicit data shapes, language-specific rules, fail-fast error handling
+- Follows `coding-standards.md`? — intent comments on every function, DRY, meaningful names, explicit data shapes, language-specific rules, fail-fast error handling
 - Did it change anything outside scope?
 - Is the proof proportional to the risk?
 - Are docs or follow-on changes needed?

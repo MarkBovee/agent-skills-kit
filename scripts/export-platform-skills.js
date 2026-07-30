@@ -158,6 +158,18 @@ This repository ships portable workflow skills under [.github/skills](./skills).
 - When editing code, add concise intent comments by default; place one short comment above each function unless the repo's local convention says otherwise.
 - Keep always-on instructions compact; put reusable procedures in skills so Copilot can load them on demand.
 
+## Coding standards
+
+The \`nebu-code-review\` skill enforces hard coding standards. Key rules enforced during review:
+
+- Intent comments on every function, method, handler, and utility — non-negotiable.
+- DRY: refactor 3+ duplications into shared components.
+- Meaningful names: avoid generic \`data\`, \`result\`, \`code\`, \`updated\`.
+- Explicit data shapes: prefer named types over loose payloads.
+- Language-specific rules (const over let, ===, type hints for Python, pipefail for shell).
+
+Full standard at [rules/coding-standards.md](../../rules/coding-standards.md) in the repo.
+
 ## Installed skills
 
 ${preview}
