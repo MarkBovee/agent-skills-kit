@@ -65,7 +65,7 @@ The bootstrap script is the recommended path. It clones if needed, moves the man
 
 ### Unified Installer
 
-The managed installer now does one thing: install all shared skills into `~/.agents/skills`, install Copilot instructions, install the OpenCode router/plugin, and, when `~/.claude/` already exists, write Claude rules and link `~/.claude/skills` back to `~/.agents/skills`.
+The managed installer now does one thing: install all shared skills into `~/.agents/skills`, install Copilot instructions, install the OpenCode router/plugin, when `~/.claude/` already exists write Claude rules and link `~/.claude/skills` back to `~/.agents/skills`, and when dsh is present install the dsh-optimized skill variant into `~/.dsh/skills` plus routing guidance into `~/.dsh/AGENTS.md`.
 
 If you want non-default locations, set environment variables before running the installer:
 
@@ -73,6 +73,7 @@ If you want non-default locations, set environment variables before running the 
 - `COPILOT_DIR`
 - `OPENCODE_DIR`
 - `CLAUDE_DIR`
+- `DSH_HOME`
 
 ### Bootstrap
 
@@ -154,6 +155,35 @@ If `~/.claude/` exists, the installer writes Claude rules under `~/.claude/rules
 
 If `~/.claude/` does not exist, Claude-specific setup is skipped on purpose. Create the directory first if you want the installer to wire Claude into the shared `~/.agents/skills` root.
 
+### DeepSeek Harness (dsh) Details
+
+dsh (DeepSeek Harness) is a Cordis-based "everything is a plugin" agent harness. The kit needs **no dsh plugin or wrapper**: dsh loads `SKILL.md` bundles natively from ranked skill roots, and its `skill` tool + catalog (`<available_skills>` in the session system prompt) already implements the kit's self-selection routing model — the OpenCode router plugin has no dsh equivalent and does not need one.
+
+Installed paths (when dsh is present — a reachable `dsh` binary or an existing dsh home):
+
+- `~/.dsh/skills/` — dsh-optimized skill variant (frontmatter `name` + trigger-augmented `description` capped at the dsh catalog limit, plus `whenToUse`)
+- `~/.dsh/AGENTS.md` — always-on routing guidance, appended once behind a `<!-- agent-skills-kit:dsh -->` marker (never rewrites existing content)
+- `~/.dsh/.agent-skills-kit-dsh-install.txt` — install metadata
+
+dsh also loads the canonical shared skills from `~/.agents/skills/` (rank 500); the generated variant installed to `~/.dsh/skills/` (rank 400) shadows them for dsh sessions, so the trigger-augmented descriptions win. dsh discovers the generated `.dsh/skills/` in this repository as project-scoped skills (rank 100) when a session runs inside the kit checkout.
+
+dsh skill roots and ranks (preview, see API exposure below): `<project>/.dsh/skills` (100) → `<project>/.agents/skills` (200) → configured `customSkillDirs` (300) → `~/.dsh/skills` (400) → `~/.agents/skills` (500).
+
+#### dsh preview API exposure
+
+Everything dsh-related is `0.1.0-rc.x` developer preview and can change without notice. The kit's dsh support depends on:
+
+| Surface | What the kit relies on | Break risk |
+| --- | --- | --- |
+| Skill discovery roots & ranks | `~/.dsh/skills` (400) and `~/.agents/skills` (500) discovery, project `.dsh/skills` (100) | Path or rank changes silently change which variant loads |
+| Skill frontmatter contract | `name` (kebab-case) + `description`; optional `whenToUse`; unknown fields (e.g. `triggers`) tolerated | A stricter validator could reject unknown fields |
+| Catalog rendering | `name` + `description` only, `catalogDescriptionMaxLength` default 500 | Description truncation; if `whenToUse` starts rendering, descriptions may read duplicated |
+| `agent-instructions` | `~/.dsh/AGENTS.md` user-global candidate, project `AGENTS.md`/`CLAUDE.md` candidates, per-directory content dedup, `maxBytes` budget | Candidate-name changes or dedup changes alter which guidance loads |
+| Skill registry (`ctx.skills`) | `registerProvider`/`snapshot`/`list`/`get`, duplicate-name shadowing across layers | API churn in the registry contract |
+| MCP bridge (`dsh-mcp-client`) | Not used by the kit (tools only; skills are not MCP) | n/a |
+
+After a dsh update, the cheap check is a fresh session: the `<available_skills>` catalog should list all ten skills and `skill(name: '...')` should load a body.
+
 ### Shared Root Policy
 
 Skills are now centralized in `~/.agents/skills/`. The remaining editor-specific surfaces are:
@@ -161,6 +191,7 @@ Skills are now centralized in `~/.agents/skills/`. The remaining editor-specific
 - VS Code / Copilot still uses `~/.copilot/instructions/` for user instructions
 - Claude Code still uses `~/.claude/CLAUDE.md` and `~/.claude/rules/` for instructions and rules
 - OpenCode still uses its own config/plugin surfaces under `~/.config/opencode/`
+- dsh uses `~/.dsh/skills/` for its optimized skill variant and `~/.dsh/AGENTS.md` for routing guidance
 
 The unified installer removes old managed skill copies from editor-specific skill directories so `~/.agents/skills/` becomes the single managed source of truth.
 
@@ -291,6 +322,7 @@ Hard boundaries:
 | OpenCode | router plugin, routing support, bootstrap/install/update tooling | installs managed skills plus `core/router-core.js` and `plugins/agent-skills-router.mjs` |
 | GitHub Copilot | VS Code Agent Plugin, native skills, lifecycle hooks, generated skills, reusable instructions | `.claude-plugin/plugin.json`, `skills/`, `hooks/hooks.json`, `.github/skills/`, `.github/copilot-instructions.md`, `~/.agents/skills/`, `~/.copilot/instructions/` |
 | Claude Code | generated skills, reusable rules, bootstrap/install/update tooling | `.claude/skills/`, `CLAUDE.md`, `~/.claude/skills/`, `~/.claude/rules/` |
+| DeepSeek Harness (dsh) | generated skills, routing guidance, preview API exposure docs | `.dsh/skills/`, `~/.dsh/skills/`, `~/.dsh/AGENTS.md` |
 
 OpenCode remains the reference implementation for routing behavior. GitHub Copilot and Claude Code exports are generated from the same canonical workflow source.
 

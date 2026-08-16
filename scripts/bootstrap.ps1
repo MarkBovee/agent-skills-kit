@@ -62,7 +62,7 @@ function Invoke-BootstrapManagedCheckoutPull {
             $path = ($path -split ' -> ')[-1].Trim()
         }
 
-        if ($path -ne "CLAUDE.md" -and -not $path.StartsWith(".claude/") -and -not $path.StartsWith(".github/")) {
+        if ($path -ne "CLAUDE.md" -and -not $path.StartsWith(".claude/") -and -not $path.StartsWith(".github/") -and -not $path.StartsWith(".dsh/")) {
             $onlyGeneratedArtifacts = $false
             break
         }
@@ -72,12 +72,12 @@ function Invoke-BootstrapManagedCheckoutPull {
         throw "git pull failed for managed checkout $RepoRoot (exit code $pullExitCode). Resolve the git error above. If this checkout is incomplete, delete $RepoRoot and rerun bootstrap."
     }
 
-    & $git.Source -C $RepoRoot restore --source=HEAD --staged --worktree -- .claude .github CLAUDE.md
+    & $git.Source -C $RepoRoot restore --source=HEAD --staged --worktree -- .claude .github .dsh CLAUDE.md
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to restore generated platform artifacts in managed checkout $RepoRoot."
     }
 
-    & $git.Source -C $RepoRoot clean -fd -- .claude .github CLAUDE.md 1>$null 2>$null
+    & $git.Source -C $RepoRoot clean -fd -- .claude .github .dsh CLAUDE.md 1>$null 2>$null
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to clean generated platform artifacts in managed checkout $RepoRoot."
     }

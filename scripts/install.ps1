@@ -3,7 +3,8 @@ param(
     [string]$AgentsDir = (Join-Path $HOME ".agents"),
     [string]$CopilotDir = (Join-Path $HOME ".copilot"),
     [string]$OpencodeDir = $(if ($env:XDG_CONFIG_HOME) { Join-Path $env:XDG_CONFIG_HOME "opencode" } else { Join-Path $HOME ".config\opencode" }),
-    [string]$ClaudeDir = (Join-Path $HOME ".claude")
+    [string]$ClaudeDir = (Join-Path $HOME ".claude"),
+    [string]$DshHome = $(if ($env:DSH_HOME) { $env:DSH_HOME } else { Join-Path $HOME ".dsh" })
 )
 
 Set-StrictMode -Version Latest
@@ -16,6 +17,7 @@ $copilotInstructionsSource = Join-Path $repoRoot ".github\copilot-instructions.m
 $opencodeCoreSource = Join-Path $repoRoot "core"
 $opencodePluginsSource = Join-Path $repoRoot "plugins"
 $opencodeRulesSource = Join-Path $repoRoot "rules"
+$dshSkillsSource = Join-Path $repoRoot ".dsh\skills"
 
 $sharedSkillsTarget = Join-Path $AgentsDir "skills"
 $copilotSkillsTarget = Join-Path $CopilotDir "skills"
@@ -28,8 +30,12 @@ $opencodeRulesTarget = Join-Path $OpencodeDir "rules"
 $claudeSkillsTarget = Join-Path $ClaudeDir "skills"
 $claudeRulesTarget = Join-Path $ClaudeDir "rules"
 $claudeRulesFile = Join-Path $claudeRulesTarget "agent-skills-kit.md"
+$dshSkillsTarget = Join-Path $DshHome "skills"
+$dshAgentsFile = Join-Path $DshHome "AGENTS.md"
+$dshMetadataFile = Join-Path $DshHome ".agent-skills-kit-dsh-install.txt"
 $installMetadataFile = Join-Path $AgentsDir ".agent-skills-kit-install.txt"
 $managedSkillsManifest = ".ask-managed-skills.txt"
+$dshSectionMarker = "<!-- agent-skills-kit:dsh -->"
 
 # Write the Claude rule file when a Claude home already exists.
 function Write-ClaudeRulesFile {
@@ -42,6 +48,59 @@ function Write-ClaudeRulesFile {
 - If review, verification, or wrap-up exposes a reusable workflow gap, capture it with `write-skill` before ending cold.
 - When editing code, add concise intent comments by default; place one short comment above each function unless the repo's local convention says otherwise.
 "@ | Set-Content -LiteralPath $claudeRulesFile -NoNewline
+}
+
+# Append the always-on dsh routing guidance to $DSH_HOME/AGENTS.md exactly once.
+# The section is marker-delimited and only written when the marker is absent,
+# so existing user instruction content is never rewritten or clobbered.
+function Write-DshAgentsSection {
+    $section = @"
+
+$dshSectionMarker
+## Agent Skills Kit (dsh)
+
+- Prefer the workflow skills in this kit when the user's request clearly matches one of them: load the skill via the `skill` tool using the exact name from the available-skills catalog before doing the work, then follow its instructions.
+- Treat `develop` as the default execution baseline for normal software work and combine it with a more specific skill when needed.
+- After meaningful, subtle, or risky code changes, load `code-review` before moving on. Skip review for trivial edits where the change is obvious and low-risk.
+- If review or verification exposes a reusable workflow gap, capture it with `write-skill` before ending cold.
+- When editing code, add concise intent comments by default; place one short comment above each function unless the repo's local convention says otherwise.
+<!-- /agent-skills-kit:dsh -->
+"@
+
+    if (Test-Path -LiteralPath $dshAgentsFile) {
+        $existing = Get-Content -LiteralPath $dshAgentsFile -Raw -ErrorAction SilentlyContinue
+        if ($existing -and $existing.Contains($dshSectionMarker)) {
+            return
+        }
+    }
+
+    New-Item -ItemType Directory -Force -Path $DshHome | Out-Null
+    Add-Content -LiteralPath $dshAgentsFile -Value $section -NoNewline
+    Add-Content -LiteralPath $dshAgentsFile -Value "`n"
+}
+
+# Sync the generated dsh skill variant into the user-global dsh skill root.
+function Sync-DshSkills {
+    param([string[]]$CurrentSkillNames)
+
+    New-Item -ItemType Directory -Force -Path $dshSkillsTarget | Out-Null
+    Remove-LegacySkillInstalls -BasePath $dshSkillsTarget
+    Remove-StaleSkillInstalls -BasePath $dshSkillsTarget
+    Remove-MissingManagedSkills -TargetPath $dshSkillsTarget -PreviousManifestPath (Join-Path $dshSkillsTarget $managedSkillsManifest) -CurrentSkillNames $CurrentSkillNames
+
+    $installedSkills = @()
+    foreach ($skillDir in Get-ChildItem -LiteralPath $dshSkillsSource -Directory) {
+        $destination = Join-Path $dshSkillsTarget $skillDir.Name
+        if (Test-Path -LiteralPath $destination) {
+            Remove-Item -LiteralPath $destination -Recurse -Force
+        }
+
+        Copy-Item -LiteralPath $skillDir.FullName -Destination $destination -Recurse
+        $installedSkills += $skillDir.Name
+    }
+
+    $installedSkills | Set-Content -LiteralPath (Join-Path $dshSkillsTarget $managedSkillsManifest)
+    return $installedSkills
 }
 
 # Remove managed skills from one former install root without touching unrelated user content.
@@ -241,6 +300,27 @@ try {
         Set-DirectoryLink -LinkPath $claudeSkillsTarget -TargetPath $sharedSkillsTarget
     }
 
+    # Install the dsh-optimized skill variant and routing guidance when dsh is
+    # present (a reachable `dsh` binary or an existing dsh home). The generated
+    # variant shadows the canonical shared copy for dsh because the user root
+    # (~/.dsh/skills) outranks the shared agents root (~/.agents/skills).
+    $dshInstalledCount = $null
+    $dshCommand = Get-Command dsh -ErrorAction SilentlyContinue
+    if ($dshCommand -or (Test-Path -LiteralPath $DshHome)) {
+        if (-not (Test-Path -LiteralPath $dshSkillsSource)) {
+            throw "DSH skills source directory not found: $dshSkillsSource"
+        }
+
+        $currentDshSkillNames = Get-ManagedSkillNames -SourcePath $dshSkillsSource
+        $dshInstalledSkills = Sync-DshSkills -CurrentSkillNames $currentDshSkillNames
+        $dshInstalledCount = $dshInstalledSkills.Count
+        Write-DshAgentsSection
+        Write-InstallMetadata -RepoRoot $repoRoot -Platform "dsh" -InstallRoot $DshHome -OutputPath $dshMetadataFile
+    }
+    else {
+        "Skipped dsh install because dsh is not on PATH and $DshHome does not exist."
+    }
+
     New-Item -ItemType Directory -Force -Path $AgentsDir | Out-Null
     Write-InstallMetadata -RepoRoot $repoRoot -Platform "shared-agents" -InstallRoot $AgentsDir -OutputPath $installMetadataFile
 
@@ -257,9 +337,14 @@ try {
     else {
         "Skipped Claude linking because $ClaudeDir does not exist."
     }
+    if ($null -ne $dshInstalledCount) {
+        "Installed $dshInstalledCount dsh skills to $dshSkillsTarget"
+        "Added dsh routing guidance to $dshAgentsFile"
+        "Wrote dsh install metadata to $dshMetadataFile"
+    }
     "Wrote install metadata to $installMetadataFile"
     "Removed previous managed skill copies from editor-specific skill roots when present."
-    "Restart VS Code / OpenCode / Claude Code if the new files are not picked up immediately."
+    "Restart VS Code / OpenCode / Claude Code / dsh if the new files are not picked up immediately."
 }
 finally {
     if ($generatedAssetsLockHeld) {

@@ -6,6 +6,18 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [1.0.1] - 2026-08-16
+
+### Added
+
+- **DeepSeek Harness (dsh) support.** New `dsh` export target in `scripts/export-platform-skills.js` generates `.dsh/skills/` with dsh-optimized frontmatter (`name` + trigger-augmented `description` capped at dsh's 500-char catalog limit, plus `whenToUse`). The unified installer now installs that variant into `~/.dsh/skills/` (rank 400, shadows the canonical shared copy) and appends marker-delimited routing guidance to `~/.dsh/AGENTS.md` exactly once when dsh is present. dsh needs no plugin wrapper: its native `skill` tool + catalog is the kit's routing model. PowerShell parity included. Preview-API exposure documented in README.
+
+### Fixed
+
+- **Stale `nebu-*` skill installs removed.** `remove_legacy_skill_installs` now also cleans pre-rebrand `nebu-*` skill directories, preventing duplicate frontmatter names (e.g. `improve`) from shadowing fresh `ask-*` installs in shared skill roots.
+- **Bootstrap pull conflicts on generated dsh assets.** `bootstrap.sh`/`bootstrap.ps1` now treat `.dsh/*` as generated platform artifacts when restoring the managed checkout before a pull.
+- **CI export checks cover the dsh target.** The `Ensure generated exports are committed` check in `ci.yml`/`release.yml` now also covers `.dsh/skills/*/SKILL.md`.
+
 ## [1.0.0] - 2026-08-16
 
 ### Changed

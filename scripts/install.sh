@@ -9,12 +9,14 @@ AGENTS_DIR="${AGENTS_DIR:-$HOME/.agents}"
 COPILOT_DIR="${COPILOT_DIR:-$HOME/.copilot}"
 OPENCODE_DIR="${OPENCODE_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/opencode}"
 CLAUDE_DIR="${CLAUDE_DIR:-$HOME/.claude}"
+DSH_HOME="${DSH_HOME:-$HOME/.dsh}"
 
 SHARED_SKILLS_SOURCE="$REPO_ROOT/skills"
 COPILOT_INSTRUCTIONS_SOURCE="$REPO_ROOT/.github/copilot-instructions.md"
 OPENCODE_CORE_SOURCE="$REPO_ROOT/core"
 OPENCODE_PLUGINS_SOURCE="$REPO_ROOT/plugins"
 OPENCODE_RULES_SOURCE="$REPO_ROOT/rules"
+DSH_SKILLS_SOURCE="$REPO_ROOT/.dsh/skills"
 
 SHARED_SKILLS_TARGET="$AGENTS_DIR/skills"
 COPILOT_SKILLS_TARGET="$COPILOT_DIR/skills"
@@ -27,8 +29,12 @@ OPENCODE_RULES_TARGET="$OPENCODE_DIR/rules"
 CLAUDE_SKILLS_TARGET="$CLAUDE_DIR/skills"
 CLAUDE_RULES_TARGET="$CLAUDE_DIR/rules"
 CLAUDE_RULES_FILE="$CLAUDE_RULES_TARGET/agent-skills-kit.md"
+DSH_SKILLS_TARGET="$DSH_HOME/skills"
+DSH_AGENTS_FILE="$DSH_HOME/AGENTS.md"
+DSH_METADATA_FILE="$DSH_HOME/.agent-skills-kit-dsh-install.txt"
 INSTALL_METADATA_FILE="$AGENTS_DIR/.agent-skills-kit-install.txt"
 MANAGED_SKILLS_MANIFEST=".ask-managed-skills.txt"
+DSH_SECTION_MARKER="<!-- agent-skills-kit:dsh -->"
 CURRENT_MANAGED_SKILLS=""
 GENERATED_ASSETS_LOCK_HELD=0
 
@@ -56,6 +62,61 @@ write_claude_rules_file() {
 - If review, verification, or wrap-up exposes a reusable workflow gap, capture it with `write-skill` before ending cold.
 - When editing code, add concise intent comments by default; place one short comment above each function unless the repo's local convention says otherwise.
 EOF
+}
+
+# Append the always-on dsh routing guidance to $DSH_HOME/AGENTS.md exactly once.
+# The section is marker-delimited and only written when the marker is absent,
+# so existing user instruction content is never rewritten or clobbered.
+write_dsh_agents_section() {
+  local section=""
+  section="$(cat <<'EOF'
+
+<!-- agent-skills-kit:dsh -->
+## Agent Skills Kit (dsh)
+
+- Prefer the workflow skills in this kit when the user's request clearly matches one of them: load the skill via the `skill` tool using the exact name from the available-skills catalog before doing the work, then follow its instructions.
+- Treat `develop` as the default execution baseline for normal software work and combine it with a more specific skill when needed.
+- After meaningful, subtle, or risky code changes, load `code-review` before moving on. Skip review for trivial edits where the change is obvious and low-risk.
+- If review or verification exposes a reusable workflow gap, capture it with `write-skill` before ending cold.
+- When editing code, add concise intent comments by default; place one short comment above each function unless the repo's local convention says otherwise.
+<!-- /agent-skills-kit:dsh -->
+EOF
+)"
+
+  if [ -f "$DSH_AGENTS_FILE" ] && grep -qF "$DSH_SECTION_MARKER" "$DSH_AGENTS_FILE"; then
+    return 0
+  fi
+
+  mkdir -p "$DSH_HOME"
+
+  if [ -f "$DSH_AGENTS_FILE" ] && [ -s "$DSH_AGENTS_FILE" ] && [ -n "$(tail -c 1 "$DSH_AGENTS_FILE")" ]; then
+    printf '\n' >> "$DSH_AGENTS_FILE"
+  fi
+
+  printf '%s\n' "$section" >> "$DSH_AGENTS_FILE"
+}
+
+# Sync the generated dsh skill variant into the user-global dsh skill root.
+sync_dsh_skills() {
+  local installed_count=0
+  local skill_dir=""
+  local skill_name=""
+
+  mkdir -p "$DSH_SKILLS_TARGET"
+  remove_legacy_skill_installs "$DSH_SKILLS_TARGET"
+  remove_stale_skill_installs "$DSH_SKILLS_TARGET"
+  remove_missing_managed_skills "$DSH_SKILLS_TARGET" "$DSH_SKILLS_TARGET/$MANAGED_SKILLS_MANIFEST" "$CURRENT_MANAGED_SKILLS"
+
+  for skill_dir in "$DSH_SKILLS_SOURCE"/*; do
+    [ -d "$skill_dir" ] || continue
+    skill_name="$(basename "$skill_dir")"
+    rm -rf "$DSH_SKILLS_TARGET/$skill_name"
+    cp -R "$skill_dir" "$DSH_SKILLS_TARGET/$skill_name"
+    installed_count=$((installed_count + 1))
+  done
+
+  cp "$CURRENT_MANAGED_SKILLS" "$DSH_SKILLS_TARGET/$MANAGED_SKILLS_MANIFEST"
+  printf '%s\n' "$installed_count"
 }
 
 # Remove managed skills from one former install root without touching unrelated user content.
@@ -217,6 +278,24 @@ if [ -d "$CLAUDE_DIR" ]; then
   ensure_directory_symlink "$CLAUDE_SKILLS_TARGET" "$SHARED_SKILLS_TARGET"
 fi
 
+# Install the dsh-optimized skill variant and routing guidance when dsh is
+# present (a reachable `dsh` binary or an existing dsh home). The generated
+# variant shadows the canonical shared copy for dsh because the user root
+# (~/.dsh/skills) outranks the shared agents root (~/.agents/skills).
+if command -v dsh >/dev/null 2>&1 || [ -d "$DSH_HOME" ]; then
+  [ -d "$DSH_SKILLS_SOURCE" ] || {
+    echo "DSH skills source directory not found: $DSH_SKILLS_SOURCE" >&2
+    exit 1
+  }
+
+  dsh_installed_count="$(sync_dsh_skills)"
+  write_dsh_agents_section
+  write_install_metadata "$REPO_ROOT" "dsh" "$DSH_HOME" "$DSH_METADATA_FILE"
+else
+  echo "Skipped dsh install because dsh is not on PATH and $DSH_HOME does not exist."
+  dsh_installed_count=""
+fi
+
 mkdir -p "$AGENTS_DIR"
 write_install_metadata "$REPO_ROOT" "shared-agents" "$AGENTS_DIR" "$INSTALL_METADATA_FILE"
 
@@ -232,6 +311,11 @@ if [ -d "$CLAUDE_DIR" ]; then
 else
   echo "Skipped Claude linking because $CLAUDE_DIR does not exist."
 fi
+if [ -n "$dsh_installed_count" ]; then
+  echo "Installed ${dsh_installed_count} dsh skills to $DSH_SKILLS_TARGET"
+  echo "Added dsh routing guidance to $DSH_AGENTS_FILE"
+  echo "Wrote dsh install metadata to $DSH_METADATA_FILE"
+fi
 echo "Wrote install metadata to $INSTALL_METADATA_FILE"
 echo "Removed previous managed skill copies from editor-specific skill roots when present."
-echo "Restart VS Code / OpenCode / Claude Code if the new files are not picked up immediately."
+echo "Restart VS Code / OpenCode / Claude Code / dsh if the new files are not picked up immediately."

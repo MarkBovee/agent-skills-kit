@@ -96,7 +96,9 @@ function Update-RepoTags {
     & $git.Source -C $RepoRoot fetch --tags --force origin | Out-Null
 }
 
-# Remove older skill-pack installs that used the legacy lean naming.
+# Remove older skill-pack installs that used legacy naming (lean-* and the
+# pre-rebrand nebu-* skill directories). Both predate the current ask-* set and
+# would otherwise collide on their frontmatter names with fresh installs.
 function Remove-LegacySkillInstalls {
     param([string]$BasePath)
 
@@ -105,13 +107,13 @@ function Remove-LegacySkillInstalls {
     }
 
     foreach ($entry in Get-ChildItem -LiteralPath $BasePath -Directory -ErrorAction SilentlyContinue) {
-        if ($entry.Name -like "lean-*" -or $entry.Name -like "*leanctx*") {
+        if ($entry.Name -like "lean-*" -or $entry.Name -like "*leanctx*" -or $entry.Name -like "nebu-*") {
             Remove-Item -LiteralPath $entry.FullName -Recurse -Force
         }
     }
 
     foreach ($entry in Get-ChildItem -LiteralPath $BasePath -File -ErrorAction SilentlyContinue) {
-        if ($entry.Name -like "lean-*" -or $entry.Name -like "*leanctx*") {
+        if ($entry.Name -like "lean-*" -or $entry.Name -like "*leanctx*" -or $entry.Name -like "nebu-*") {
             Remove-Item -LiteralPath $entry.FullName -Force
         }
     }
