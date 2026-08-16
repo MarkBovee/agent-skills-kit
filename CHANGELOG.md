@@ -6,6 +6,13 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [1.0.0] - 2026-08-16
+
+### Changed
+
+- **Major rebrand to ASK — repository renamed `nebu-skills` → `agent-skills-kit`.** All skills renamed to the `ask-*` prefix (`ask-develop`, `ask-intake`, ...). README updated with the **ASK (Agent Skills Kit)** branding. Installers and docs now reference the new repo and shared `~/.agents/` root. Bootstrap scripts keep a legacy migration path from the old `nebu-skills` managed checkout.
+- **First 1.x release.** Marks the stable, platform-portable skill-pack baseline for OpenCode, GitHub Copilot, and Claude Code.
+
 ## [0.6.1] - 2026-07-30
 
 ### Fixed

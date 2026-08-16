@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="assets/social-preview.png" alt="agent-skills-kit banner" width="100%" />
+  <img src="assets/social-preview.png" alt="ASK — Agent Skills Kit banner" width="100%" />
 </p>
 
 <p align="center">
-  <strong>Workflow skills and routing support for coding agents.</strong><br />
-  A curated skill pack for OpenCode, GitHub Copilot, and Claude Code — purpose-built workflow guidance without the boilerplate.
+  <strong>ASK — Agent Skills Kit.</strong><br />
+  Workflow skills and routing support for coding agents. A curated skill pack for OpenCode, GitHub Copilot, and Claude Code — purpose-built workflow guidance without the boilerplate.
 </p>
 
 <p align="center">
@@ -15,6 +15,7 @@
 </p>
 
 <p align="center">
+  <code>ASK</code>
   <code>10 skills</code>
   <code>1 router plugin</code>
   <code>3 platforms</code>
@@ -34,6 +35,8 @@
 ---
 
 ## Overview
+
+**ASK** (Agent Skills Kit) keeps workflow skills and routing support in one canonical, platform-portable repository.
 
 | Signal | What it means |
 | --- | --- |
