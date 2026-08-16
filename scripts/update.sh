@@ -28,13 +28,13 @@ if SELECTED_REF="$(get_latest_stable_tag "$REPO_ROOT")"; then
   INSTALL_SOURCE_ROOT="$RELEASE_WORKTREE"
   trap 'remove_release_worktree "$REPO_ROOT" "$RELEASE_WORKTREE"' EXIT
   if [ ! -f "$INSTALL_SOURCE_ROOT/scripts/install.sh" ]; then
-    echo "Stable nebu-skills $(read_repo_version "$INSTALL_SOURCE_ROOT") ($SELECTED_REF) predates the unified installer. Falling back to current checkout $(read_repo_version "$REPO_ROOT") ($(read_repo_ref "$REPO_ROOT"))." >&2
+    echo "Stable agent-skills-kit $(read_repo_version "$INSTALL_SOURCE_ROOT") ($SELECTED_REF) predates the unified installer. Falling back to current checkout $(read_repo_version "$REPO_ROOT") ($(read_repo_ref "$REPO_ROOT"))." >&2
     remove_release_worktree "$REPO_ROOT" "$RELEASE_WORKTREE"
     RELEASE_WORKTREE=""
     INSTALL_SOURCE_ROOT="$REPO_ROOT"
     trap - EXIT
   else
-    echo "Using stable nebu-skills $(read_repo_version "$INSTALL_SOURCE_ROOT") ($SELECTED_REF)"
+    echo "Using stable agent-skills-kit $(read_repo_version "$INSTALL_SOURCE_ROOT") ($SELECTED_REF)"
   fi
 else
   SELECTED_REF="$(read_repo_ref "$REPO_ROOT")"

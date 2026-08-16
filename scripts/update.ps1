@@ -26,7 +26,7 @@ try {
         $releaseWorktree = New-ReleaseWorktree -RepoRoot $repoRoot -ReleaseRef $selectedRef
         $installSourceRoot = $releaseWorktree
         if (-not (Test-Path -LiteralPath (Join-Path $installSourceRoot "scripts\install.ps1"))) {
-            Write-Warning "Stable nebu-skills $(Get-RepoVersion -RepoRoot $installSourceRoot) ($selectedRef) predates the unified installer. Falling back to current checkout $(Get-RepoVersion -RepoRoot $repoRoot) ($(Get-CurrentGitRef -RepoRoot $repoRoot))."
+            Write-Warning "Stable agent-skills-kit $(Get-RepoVersion -RepoRoot $installSourceRoot) ($selectedRef) predates the unified installer. Falling back to current checkout $(Get-RepoVersion -RepoRoot $repoRoot) ($(Get-CurrentGitRef -RepoRoot $repoRoot))."
             Remove-ReleaseWorktree -RepoRoot $repoRoot -WorktreePath $releaseWorktree
             $releaseWorktree = $null
             $installSourceRoot = $repoRoot
@@ -34,7 +34,7 @@ try {
         }
         else {
             $currentVersion = Get-RepoVersion -RepoRoot $installSourceRoot
-            "Using stable nebu-skills $currentVersion ($selectedRef)"
+            "Using stable agent-skills-kit $currentVersion ($selectedRef)"
         }
     }
     else {

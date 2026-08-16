@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/social-preview.png" alt="nebu-skills banner" width="100%" />
+  <img src="assets/social-preview.png" alt="agent-skills-kit banner" width="100%" />
 </p>
 
 <p align="center">
@@ -75,12 +75,12 @@ If you want non-default locations, set environment variables before running the 
 
 **Linux / macOS — Bash:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/MarkBovee/agent-skills-kit/main/scripts/bootstrap.sh | bash
 ```
 
 **Windows — PowerShell:**
 ```powershell
-irm https://raw.githubusercontent.com/MarkBovee/nebu-skills/main/scripts/bootstrap.ps1 | iex
+irm https://raw.githubusercontent.com/MarkBovee/agent-skills-kit/main/scripts/bootstrap.ps1 | iex
 ```
 
 <details>
@@ -90,8 +90,8 @@ Local clone install:
 
 **Linux / macOS — Bash:**
 ```bash
-gh repo clone MarkBovee/nebu-skills
-cd nebu-skills
+gh repo clone MarkBovee/agent-skills-kit
+cd agent-skills-kit
 bash ./scripts/install.sh
 ```
 
@@ -106,7 +106,7 @@ Manual install copies:
 
 - all folders under `~/.agents/skills/`
 - `core/router-core.js`
-- `plugins/nebu-skills-router.mjs`
+- `plugins/agent-skills-router.mjs`
 
 
 
@@ -133,7 +133,7 @@ The repository also ships a VS Code Agent Plugin under `.claude-plugin/`, with n
 ```json
 {
   "chat.pluginLocations": {
-    "/path/to/nebu-skills": true
+    "/path/to/agent-skills-kit": true
   }
 }
 ```
@@ -167,7 +167,7 @@ The unified installer removes old managed skill copies from editor-specific skil
 
 ## Skills
 
-Skills use short display names (e.g. `debugging`, `develop`) for easy reference. The `nebu-` prefix remains in directory names for namespace isolation.
+Skills use short display names (e.g. `debugging`, `develop`) for easy reference. The `ask-` prefix remains in directory names for namespace isolation.
 
 ### By Stage
 
@@ -215,7 +215,7 @@ The pack favors fast trustworthy checks, then proportional review and verificati
 
 ## Router
 
-`plugins/nebu-skills-router.mjs` presents a **beslisboom** (decision tree) every prompt. The agent — not the router — evaluates the task against the beslisboom and loads the matching skill via `skill(name: '...')`. No automated phrase matching, no scoring, no hidden routing.
+`plugins/agent-skills-router.mjs` presents a **beslisboom** (decision tree) every prompt. The agent — not the router — evaluates the task against the beslisboom and loads the matching skill via `skill(name: '...')`. No automated phrase matching, no scoring, no hidden routing.
 
 The beslisboom injected every prompt:
 
@@ -285,7 +285,7 @@ Hard boundaries:
 
 | Platform | Ships | Generated assets or install target |
 | --- | --- | --- |
-| OpenCode | router plugin, routing support, bootstrap/install/update tooling | installs managed skills plus `core/router-core.js` and `plugins/nebu-skills-router.mjs` |
+| OpenCode | router plugin, routing support, bootstrap/install/update tooling | installs managed skills plus `core/router-core.js` and `plugins/agent-skills-router.mjs` |
 | GitHub Copilot | VS Code Agent Plugin, native skills, lifecycle hooks, generated skills, reusable instructions | `.claude-plugin/plugin.json`, `skills/`, `hooks/hooks.json`, `.github/skills/`, `.github/copilot-instructions.md`, `~/.agents/skills/`, `~/.copilot/instructions/` |
 | Claude Code | generated skills, reusable rules, bootstrap/install/update tooling | `.claude/skills/`, `CLAUDE.md`, `~/.claude/skills/`, `~/.claude/rules/` |
 
@@ -316,7 +316,7 @@ node ./scripts/validate-plugin.js
 Load the router plugin directly:
 
 ```bash
-node -e "import('./plugins/nebu-skills-router.mjs')"
+node -e "import('./plugins/agent-skills-router.mjs')"
 ```
 
 Check release metadata before tagging:
@@ -337,7 +337,7 @@ The release-readiness check also fails when shipped install surfaces changed sin
 Issue helper for duplicate checks before filing follow-up work:
 
 ```bash
-skills/nebu-session-review/check-existing-issue.sh "<query>" [owner/repo]
+skills/ask-session-review/check-existing-issue.sh "<query>" [owner/repo]
 ```
 
 <details>
@@ -367,7 +367,7 @@ pwsh -NoLogo -NoProfile -File .\scripts\update.ps1 -SkipPull
 
 The unified installer writes one local metadata file after each run:
 
-- Shared managed root: `~/.agents/.nebu-skills-install.txt`
+- Shared managed root: `~/.agents/.agent-skills-kit-install.txt`
 
 </details>
 
@@ -404,7 +404,7 @@ skills/                     Canonical workflow skills
 .claude/skills/             Generated Claude Code export
 
 core/router-core.js         Shared scoring, frontmatter, and session helpers
-plugins/nebu-skills-router.mjs
+plugins/agent-skills-router.mjs
 
 scripts/bootstrap-opencode.*
 scripts/bootstrap.*
@@ -425,12 +425,12 @@ scripts/check-release-readiness.js
 - Visual assets live in `assets/social-preview.png`.
 - For GitHub repo cards, use `assets/social-preview.png` as the social preview image.
 - Restart OpenCode after install or update.
-- Bootstrap scripts store a managed checkout in `REPO_DIR` when set. Default path is `XDG_DATA_HOME/nebu-skills` when available, otherwise `LOCALAPPDATA\nebu-skills` on PowerShell, then `~/.local/share/nebu-skills`.
+- Bootstrap scripts store a managed checkout in `REPO_DIR` when set. Default path is `XDG_DATA_HOME/agent-skills-kit` when available, otherwise `LOCALAPPDATA\agent-skills-kit` on PowerShell, then `~/.local/share/agent-skills-kit`.
 - Stable updates use the newest SemVer tag available in the managed checkout.
 - `ui-ux` includes Python scripts and CSV data for design guidance and requires Python `3.8+`.
-- Installers overwrite only `nebu-skills` managed assets and preserve unrelated user customizations.
+- Installers overwrite only `agent-skills-kit` managed assets and preserve unrelated user customizations.
 - Installers also remove stale managed skills during reinstall or update, including skills retired from the pack.
-- The unified installer writes `.nebu-skills-install.txt` metadata in the shared `~/.agents/` root.
+- The unified installer writes `.agent-skills-kit-install.txt` metadata in the shared `~/.agents/` root.
 - Generated platform artifacts are derived output. Edit `skills/*/SKILL.md`, then re-export.
 
 ---

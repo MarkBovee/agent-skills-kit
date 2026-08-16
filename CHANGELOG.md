@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to `nebu-skills` live here.
+All notable changes to `agent-skills-kit` live here.
 
 Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` form.
 
@@ -11,7 +11,7 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 ### Fixed
 
 - **`coding-standards.md` nu geïnstalleerd op alle platformen.** OpenCode kreeg het al, Claude Code kreeg het niet — nu wordt `rules/coding-standards.md` ook naar `~/.claude/rules/` gekopieerd. Copilot instructies bevatten nu een samenvatting en verwijzing. (#18)
-- **SKILL.md referentie platform-onafhankelijk.** `rules/coding-standards.md` → `coding-standards.md` in `nebu-code-review/SKILL.md`, zodat het pad werkt ongeacht waar de rules zijn geïnstalleerd. (#18)
+- **SKILL.md referentie platform-onafhankelijk.** `rules/coding-standards.md` → `coding-standards.md` in `ask-code-review/SKILL.md`, zodat het pad werkt ongeacht waar de rules zijn geïnstalleerd. (#18)
 - **Release guard: validate externe skill-referenties.** `validate-plugin.js` controleert nu of elk `rules/<file>` dat in backtick-quotes in SKILL.md staat, ook echt in `rules/` bestaat. Blokkeert toekomstige releases met dangling referenties. (#18)
 
 ## [0.6.0] - 2026-07-29
@@ -40,7 +40,7 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ### Changed
 
-- **nebu-ui-ux geüpdatet naar ui-ux-pro-max v2.x.** SKILL.md herschreven met v2 features: 161 reasoning rules, priority tabel, Design Dials (variance/motion/density), Persist pattern (MASTER.md + page overrides), uitgebreide werkstroom. Scripts (core.py, search.py, design_system.py) geüpdatet met BM25-engine, 12 domeinen, 22 stacks. Toegevoegd: validate_data.py, unit tests, references/pro-rules.md en quick-reference.md. Nieuwe data: app-interface.csv, google-fonts.csv (1924 fonts), motion.csv, 9 extra stack CSVs (angular, laravel, threejs, javafx, wpf, winui, avalonia, uno, uwp).
+- **ask-ui-ux geüpdatet naar ui-ux-pro-max v2.x.** SKILL.md herschreven met v2 features: 161 reasoning rules, priority tabel, Design Dials (variance/motion/density), Persist pattern (MASTER.md + page overrides), uitgebreide werkstroom. Scripts (core.py, search.py, design_system.py) geüpdatet met BM25-engine, 12 domeinen, 22 stacks. Toegevoegd: validate_data.py, unit tests, references/pro-rules.md en quick-reference.md. Nieuwe data: app-interface.csv, google-fonts.csv (1924 fonts), motion.csv, 9 extra stack CSVs (angular, laravel, threejs, javafx, wpf, winui, avalonia, uno, uwp).
 
 ## [0.5.7] - 2026-07-28
 
@@ -57,14 +57,14 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 - **Skill triggers enriched.** `develop` (rewrite, refactor, coordinator), `debugging` (slow startup, timeout, crash loop, None), `verification` (test de fix, cleanup, validate), `code-review` (check de wijziging, review changes, second look). Corresponding cascade phrase lists updated.
 - **hasPhraseSignal uses word-boundary regex.** Prevents false positives (e.g. "prove" matching inside "improve") for the completion-state check.
 - **Plugin error handling.** `tui.prompt.append` wrapped in try/catch — plugin errors don't break the session.
-- **rules/nebu-skills.md ships with installer.** Beslisboom usage instructions registered in `opencode.json` instructions array so every new session has the decision tree context. Both `install.sh` and `install.ps1` updated.
+- **rules/agent-skills-kit.md ships with installer.** Beslisboom usage instructions registered in `opencode.json` instructions array so every new session has the decision tree context. Both `install.sh` and `install.ps1` updated.
 - **AGENTS.md updated.** New-session validation steps (beslisboom check, plugin registration check, export check).
 
 ## [0.5.1] - 2026-07-27
 
 ### Fixed
 
-- **install.sh copies rules instead of symlinks.** Bootstrap/update uses a temp checkout (`/tmp/nebu-skills-release-*/`) — symlinks broke after cleanup. Rules (`coding-standards.md`, `nebu-skills.md`) now copied to target for stable persistence across reboots and upgrades.
+- **install.sh copies rules instead of symlinks.** Bootstrap/update uses a temp checkout (`/tmp/agent-skills-kit-release-*/`) — symlinks broke after cleanup. Rules (`coding-standards.md`, `agent-skills-kit.md`) now copied to target for stable persistence across reboots and upgrades.
 
 ## [0.5.3] - 2026-07-27
 
@@ -77,8 +77,8 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ### Changed
 
-- **First-action instructie in plugin hook.** `buildSkillOverview` toont "Load matching skill *now*" tot een skill geladen is, daarna "Beslisboom — load different skill". Niet langer afhankelijk van passief `rules/nebu-skills.md` document.
-- **rules/nebu-skills.md terug naar pure referentie.** Geen "first action" instructie meer — plugin hook injecteert de directive copy.
+- **First-action instructie in plugin hook.** `buildSkillOverview` toont "Load matching skill *now*" tot een skill geladen is, daarna "Beslisboom — load different skill". Niet langer afhankelijk van passief `rules/agent-skills-kit.md` document.
+- **rules/agent-skills-kit.md terug naar pure referentie.** Geen "first action" instructie meer — plugin hook injecteert de directive copy.
 - **Dubbele const fix** in `buildSkillOverview` (router-core.js).
 
 ## [0.5.4] - 2026-07-27
@@ -104,7 +104,7 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ### Changed
 
-- **Renamed `github-issues` → `session-review`.** Skill refocused on agent self-review of skill usage and filing improvements in `MarkBovee/nebu-skills`. General issue filing kept as secondary mode. Router cascade updated to new skill name and phrases.
+- **Renamed `github-issues` → `session-review`.** Skill refocused on agent self-review of skill usage and filing improvements in `MarkBovee/agent-skills-kit`. General issue filing kept as secondary mode. Router cascade updated to new skill name and phrases.
 - **Router cascade reordered by lifecycle stage:** Start → Execute → Validate → Improve → Coordinate → Product. README diagram and legend updated accordingly.
 
 ## [0.4.0] - 2026-07-24
@@ -115,7 +115,7 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ### Changed
 
-- **Skills hernoemd (breaking):** `kaizen`→`develop`, `kickoff`→`intake`, `writing-nebu-skills`→`write-skill`. Router constants, plugin, cross-refs, exports, README, AGENTS.md, install scripts allemaal mee.
+- **Skills hernoemd (breaking):** `kaizen`→`develop`, `kickoff`→`intake`, `writing-agent-skills-kit`→`write-skill`. Router constants, plugin, cross-refs, exports, README, AGENTS.md, install scripts allemaal mee.
 - **Router cascade:** `DEV_FLOW_PHRASES` verwijderd, `WRITING_PHRASES`→`WRITE_SKILL_PHRASES`.
 - **Export script:** hardcoded skill references geüpdatet (CLAUDE.md, copilot-instructions.md).
 
@@ -127,7 +127,7 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 ### Removed
 
 - **`dev-release-flow` skill verwijderd.** Git workflow zit nu in `develop` als standaard.
-- **Install scripts:** stale skill lijst uitgebreid met `kaizen`, `nebu-kaizen`, `kickoff`, `nebu-kickoff`, `refactor`, `nebu-refactor`.
+- **Install scripts:** stale skill lijst uitgebreid met `kaizen`, `ask-kaizen`, `kickoff`, `ask-kickoff`, `refactor`, `ask-refactor`.
 
 ## [0.3.8] - 2026-07-23
 
@@ -140,20 +140,20 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ### Changed
 
-- **skills/nebu-agent-workflows/SKILL.md** aangescherpt: default-delegate reflex, partial/blocked/timeout contract, stuck recovery. Overlap verwijderd, 124→106 lines strakker. (`## Good fit`, `## Context retention`, `### Output contract`, `### Concrete flows`)
+- **skills/ask-agent-workflows/SKILL.md** aangescherpt: default-delegate reflex, partial/blocked/timeout contract, stuck recovery. Overlap verwijderd, 124→106 lines strakker. (`## Good fit`, `## Context retention`, `### Output contract`, `### Concrete flows`)
 
 ## [0.3.5] - 2026-07-21
 
 ### Changed
 
-- **skills/nebu-agent-workflows/SKILL.md** uitgebreid met context-retentie denkkader, output contract, concrete flow voorbeelden, en keep/delegeer tabel. Beter subagent gebruik bespaart hoofdcontext. (`## Not a good fit`, `## Context retention`, `### Output contract`, `### Concrete flows`)
+- **skills/ask-agent-workflows/SKILL.md** uitgebreid met context-retentie denkkader, output contract, concrete flow voorbeelden, en keep/delegeer tabel. Beter subagent gebruik bespaart hoofdcontext. (`## Not a good fit`, `## Context retention`, `### Output contract`, `### Concrete flows`)
 - **Cavecrew skill verwijderd** uit opencode — vervangen door context-retentie patronen in agent-workflows skill.
 
 ## [0.3.4] - 2026-07-21
 
 ### Removed
 
-- **nebu-skill-finder** verwijderd. `core/community-skills.js`, `core/community-skills-index.json` (257KB), `scripts/fetch-community-skills-index.js` en alle runtime bundling verwijdert. AI agent context niet langer belast met ~290KB aan community index data.
+- **ask-skill-finder** verwijderd. `core/community-skills.js`, `core/community-skills-index.json` (257KB), `scripts/fetch-community-skills-index.js` en alle runtime bundling verwijdert. AI agent context niet langer belast met ~290KB aan community index data.
 
 ### Changed
 
@@ -178,27 +178,27 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 ### Fixed
 
 - **plugin.json version drift synced with VERSION.** plugin.json was stuck at 0.1.19 while VERSION read 0.3.1. Bumped to match canonical VERSION source.
-- **validate-plugin.js now accepts `nebu-{name}` directory pattern.** Skills use `nebu-` prefix for directory names (`nebu-debugging/`) but frontmatter `name` strips it (`debugging`). Validator now accepts both exact match and `nebu-{name}` convention, fixing 10 false-positive errors.
+- **validate-plugin.js now accepts `ask-{name}` directory pattern.** Skills use `ask-` prefix for directory names (`ask-debugging/`) but frontmatter `name` strips it (`debugging`). Validator now accepts both exact match and `ask-{name}` convention, fixing 10 false-positive errors.
 
 ## [0.3.1] - 2026-07-21
 
 ### Fixed
 
-- **nebu-skills-router plugin rewritten for OpenCode's actual plugin API.** The old plugin used `chat.message`, `experimental.chat.system.transform`, and `tool.definition` hooks that do not exist in OpenCode. Replaced with `tui.prompt.append` (routing hints injected per-prompt), `session.created`, and the existing `tool.execute.before`/`after` that already worked. Plugin format changed from CommonJS to ESM for OpenCode compatibility.
+- **agent-skills-router plugin rewritten for OpenCode's actual plugin API.** The old plugin used `chat.message`, `experimental.chat.system.transform`, and `tool.definition` hooks that do not exist in OpenCode. Replaced with `tui.prompt.append` (routing hints injected per-prompt), `session.created`, and the existing `tool.execute.before`/`after` that already worked. Plugin format changed from CommonJS to ESM for OpenCode compatibility.
 - **Plugin now finds nebu skills in installed location.** Previously hardcoded to `../skills` relative to plugin dir (which resolves to `~/.config/opencode/skills/` — only caveman skills). Now prefers `~/.agents/skills/` where the installer deploys them, with fallback to project-relative path in development.
-- **Installer now symlinks managed skills into `~/.config/opencode/skills/`** so OpenCode's native Agent Skills system discovers nebu skills globally, not just inside the nebu-skills project directory.
+- **Installer now symlinks managed skills into `~/.config/opencode/skills/`** so OpenCode's native Agent Skills system discovers nebu skills globally, not just inside the agent-skills-kit project directory.
 
 ## [0.3.0] - 2026-07-21
 
 ### Changed
 
-- **Skill display names stripped of `nebu-` prefix.** Frontmatter `name`, router constants, cascade text, docs, cross-refs, and generated exports all use short names (`debugging`, `kaizen`, `code-review`, etc.). Directory names and file paths keep the `nebu-` prefix for namespace isolation.
+- **Skill display names stripped of `ask-` prefix.** Frontmatter `name`, router constants, cascade text, docs, cross-refs, and generated exports all use short names (`debugging`, `kaizen`, `code-review`, etc.). Directory names and file paths keep the `ask-` prefix for namespace isolation.
 
 ## [0.2.2] - 2026-07-21
 
 ### Fixed
 
-- **nebu-skills-router plugin now actually activates.** Installer patched `opencode.json` `plugin` array to include `./plugins/nebu-skills-router.js`. Previously the file was copied but never registered — plugin never ran, so no routing hints were injected and no skills were auto-suggested.
+- **agent-skills-router plugin now actually activates.** Installer patched `opencode.json` `plugin` array to include `./plugins/agent-skills-router.js`. Previously the file was copied but never registered — plugin never ran, so no routing hints were injected and no skills were auto-suggested.
 - **First-turn routing blind spot fixed.** `system.transform` hook now runs `cascadeRoute` directly on the user's message when session state has no prior matches, so routing hints are available from turn 1 instead of turn 2+.
 - **Hardened skill-loading enforcement.** System prompt now includes a CRITICAL instruction: the model MUST call `skill` at task start before any code or tools. Same mandate injected into the `skill` tool's definition description.
 
@@ -213,23 +213,23 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 ### Changed
 
 - **Skills reduced from 17 to 10.** Merged overlapping skills to eliminate redundancy and make routing predictable:
-  - `nebu-brainstorming` + `nebu-planning` + `nebu-kickoff` → `nebu-kickoff` (pre-execution: design, scoping, planning)
-  - `nebu-implementation` → `nebu-kaizen` (mode selection + cheap-first escalation absorbed into default baseline)
-  - `nebu-workspace-wrapup` → `nebu-verification` (wrap-up pattern merged into verification)
-  - `nebu-refactoring` → `nebu-improve` (refactoring as a category in the audit skill)
-  - `nebu-skill-improvement` → `nebu-writing-nebu-skills` (one meta-skill for writing + improvement)
-  - `nebu-using-nebu-skills` removed (router always active; fallback skill served no purpose)
+  - `ask-brainstorming` + `ask-planning` + `ask-kickoff` → `ask-kickoff` (pre-execution: design, scoping, planning)
+  - `ask-implementation` → `ask-kaizen` (mode selection + cheap-first escalation absorbed into default baseline)
+  - `ask-workspace-wrapup` → `ask-verification` (wrap-up pattern merged into verification)
+  - `ask-refactoring` → `ask-improve` (refactoring as a category in the audit skill)
+  - `ask-skill-improvement` → `ask-writing-agent-skills-kit` (one meta-skill for writing + improvement)
+  - `ask-using-agent-skills-kit` removed (router always active; fallback skill served no purpose)
 - **Router rewired from score-based to deterministic cascade.** Signal phrases checked in priority order; first match wins. No more ad-hoc scoring + 5 correction layers.
 - **`execution_tier` added to all 10 skills.** Every skill declares its cost tier (`light`/`standard`/`heavy`):
-  - `light`: `nebu-agent-workflows`, `nebu-github-issues` → Flash model, mini subagent
-  - `standard`: `nebu-kaizen`, `nebu-kickoff`, `nebu-code-review`, `nebu-debugging`, `nebu-verification`, `nebu-writing-nebu-skills` → Flash model, default agent
-  - `heavy`: `nebu-improve`, `nebu-ui-ux` → Pro model, high agent
+  - `light`: `ask-agent-workflows`, `ask-github-issues` → Flash model, mini subagent
+  - `standard`: `ask-kaizen`, `ask-kickoff`, `ask-code-review`, `ask-debugging`, `ask-verification`, `ask-writing-agent-skills-kit` → Flash model, default agent
+  - `heavy`: `ask-improve`, `ask-ui-ux` → Pro model, high agent
 - System prompt injection now shows the cascade order for transparency.
-- Export script references updated: `nebu-skill-improvement` → `nebu-writing-nebu-skills`.
+- Export script references updated: `ask-skill-improvement` → `ask-writing-agent-skills-kit`.
 
 ### Removed
 
-- 7 skills: `nebu-brainstorming`, `nebu-planning`, `nebu-implementation`, `nebu-workspace-wrapup`, `nebu-refactoring`, `nebu-skill-improvement`, `nebu-using-nebu-skills`.
+- 7 skills: `ask-brainstorming`, `ask-planning`, `ask-implementation`, `ask-workspace-wrapup`, `ask-refactoring`, `ask-skill-improvement`, `ask-using-agent-skills-kit`.
 - Scoring functions (`scoreSkill`, `findMatches`) and 5 ad-hoc routing correction functions from `router-core.js`.
 
 ### Added
@@ -242,14 +242,14 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 ### Added
 
 - README now documents the cost-aware execution-profile mechanism (`execution_tier`/`delegation_default` frontmatter, tier table, and how hosts should read the injected "Suggested execution profile" hint).
-- `nebu-improve` and `nebu-github-issues` now declare `execution_tier`/`delegation_default` (`heavy`/`prefer-subagent` and `light`/`prefer-subagent` respectively) so cheap-first routing reflects their actual default scope.
-- `nebu-agent-workflows`, `nebu-planning`, `nebu-refactoring`, and `nebu-verification` gained `## Use with` cross-references for better skill-to-skill collaboration.
+- `ask-improve` and `ask-github-issues` now declare `execution_tier`/`delegation_default` (`heavy`/`prefer-subagent` and `light`/`prefer-subagent` respectively) so cheap-first routing reflects their actual default scope.
+- `ask-agent-workflows`, `ask-planning`, `ask-refactoring`, and `ask-verification` gained `## Use with` cross-references for better skill-to-skill collaboration.
 - The Copilot `SessionStart` hook now surfaces the same cost-aware default hint as the OpenCode router plugin.
 - `scripts/validate-plugin.js` now validates `execution_tier`/`delegation_default` frontmatter values against the enums exported from `core/router-core.js`.
 
 ### Changed
 
-- `nebu-agent-workflows` cheap-first guidance now also calls out picking the smallest/cheapest model class when a delegation surface exposes a model parameter.
+- `ask-agent-workflows` cheap-first guidance now also calls out picking the smallest/cheapest model class when a delegation surface exposes a model parameter.
 
 ## [0.1.18] - 2026-07-13
 
@@ -274,11 +274,11 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ### Added
 
-- `nebu-improve` skill for structured codebase audits and audit-driven implementation plans
+- `ask-improve` skill for structured codebase audits and audit-driven implementation plans
 
 ### Changed
 
-- Router trigger hygiene: removed duplicate triggers (`version bump`, `bump version`, `release notes`, `changelog`) from `nebu-implementation` (owned by `nebu-agent-workflows`); removed `code review` from `nebu-improve` (owned by `nebu-code-review`)
+- Router trigger hygiene: removed duplicate triggers (`version bump`, `bump version`, `release notes`, `changelog`) from `ask-implementation` (owned by `ask-agent-workflows`); removed `code review` from `ask-improve` (owned by `ask-code-review`)
 
 ### Fixed
 
@@ -320,7 +320,7 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ### Fixed
 
-- close the lingering issue loop around `nebu-skill-finder` host-capability gating by shipping the execute-versus-proposal rubric already present on `main` and validating that unsupported hosts fall back cleanly to proposal mode
+- close the lingering issue loop around `ask-skill-finder` host-capability gating by shipping the execute-versus-proposal rubric already present on `main` and validating that unsupported hosts fall back cleanly to proposal mode
 - close the lingering PowerShell bootstrap helper-path issue by validating the managed-checkout bootstrap flow end-to-end and shipping the clearer incomplete-checkout handling already present in the bootstrap scripts
 
 ## [0.1.10] - 2026-06-09
@@ -328,13 +328,13 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 ### Changed
 
 - router scoring now emits a cost-aware execution profile so bounded chores such as version bumps, changelog edits, and release notes default to a cheap `mini`/small-agent path with subagent preference when the host supports it
-- `nebu-agent-workflows`, `nebu-implementation`, and `nebu-kaizen` now encode an explicit cheap-first escalation path so simple mechanical work stays off high-cost agents until scope or validation demands escalation
+- `ask-agent-workflows`, `ask-implementation`, and `ask-kaizen` now encode an explicit cheap-first escalation path so simple mechanical work stays off high-cost agents until scope or validation demands escalation
 
 ## [0.1.9] - 2026-06-05
 
 ### Changed
 
-- `nebu-code-review`: mandatory after every code edit; review depth scales with risk but no edit skips review — tiny changes get a quick checklist pass instead of self-review bypass
+- `ask-code-review`: mandatory after every code edit; review depth scales with risk but no edit skips review — tiny changes get a quick checklist pass instead of self-review bypass
 - `export-platform-skills.js`: generated Copilot and Claude instructions now enforce always-invoke review rule instead of the softer handoff-only trigger
 
 ## [0.1.8] - 2026-06-03
@@ -348,7 +348,7 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ### Changed
 
-- `nebu-skill-finder` now defines an explicit execute-mode capability rubric for OpenCode, GitHub Copilot, Claude Code, and unknown hosts, and now falls back to proposal mode immediately when any required local runtime capability is missing or uncertain
+- `ask-skill-finder` now defines an explicit execute-mode capability rubric for OpenCode, GitHub Copilot, Claude Code, and unknown hosts, and now falls back to proposal mode immediately when any required local runtime capability is missing or uncertain
 
 ### Fixed
 
@@ -359,21 +359,21 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ### Changed
 
-- `nebu-skill-finder` now ships a self-contained runtime bundle under `skills/nebu-skill-finder/runtime/`, including the helper module, cached community index, and standalone refresh script
+- `ask-skill-finder` now ships a self-contained runtime bundle under `skills/ask-skill-finder/runtime/`, including the helper module, cached community index, and standalone refresh script
 - `scripts/export-platform-skills.js` now resyncs the bundled skill-finder runtime from the canonical helper and fetch-script sources before regenerating Copilot and Claude exports
 - documented the bundled skill-finder runtime and platform packaging behavior in `README.md`
 
 ### Fixed
 
-- fixed `nebu-skill-finder` references so OpenCode, Copilot, and Claude exports no longer depend on missing repo-root helper or script paths at runtime
+- fixed `ask-skill-finder` references so OpenCode, Copilot, and Claude exports no longer depend on missing repo-root helper or script paths at runtime
 - fixed concurrent Copilot and Claude installer runs so shared export generation now serializes instead of racing on `.github/skills/` and `.claude/skills/`
 
 ## [0.1.4] - 2026-06-03
 
 ### Changed
 
-- router scoring now loads `nebu-kickoff` more aggressively for ambiguous or close-call starts and pulls `nebu-kaizen` in earlier for concrete executable requests
-- `nebu-kaizen` and `nebu-kickoff` frontmatter triggers now cover more real user phrasing so both skills surface earlier from the router
+- router scoring now loads `ask-kickoff` more aggressively for ambiguous or close-call starts and pulls `ask-kaizen` in earlier for concrete executable requests
+- `ask-kaizen` and `ask-kickoff` frontmatter triggers now cover more real user phrasing so both skills surface earlier from the router
 
 ## [0.1.3] - 2026-06-03
 
@@ -390,8 +390,8 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ### Changed
 
-- `nebu-ui-ux` now defaults Playwright screenshot capture examples to `--wait-for-timeout 6000` and explicitly prefers a small `networkidle` script for lazy-loaded or highly animated pages
-- `nebu-ui-ux` now tells screenshot-based vision review loops to locate each issue and apply the fix immediately unless the overall visual direction itself is in doubt
+- `ask-ui-ux` now defaults Playwright screenshot capture examples to `--wait-for-timeout 6000` and explicitly prefers a small `networkidle` script for lazy-loaded or highly animated pages
+- `ask-ui-ux` now tells screenshot-based vision review loops to locate each issue and apply the fix immediately unless the overall visual direction itself is in doubt
 
 ## [0.1.1] - 2026-06-03
 
@@ -409,7 +409,7 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 ### Added
 
 - added root `VERSION` file as the canonical release version source
-- added per-platform `.nebu-skills-install.txt` manifests so users can inspect installed version, ref, and commit locally
+- added per-platform `.agent-skills-kit-install.txt` manifests so users can inspect installed version, ref, and commit locally
 - added `scripts/check-release-readiness.js` to validate `VERSION` and changelog structure before a release tag is cut
 - added this root `CHANGELOG.md` and linked it from `README.md`
 
@@ -418,9 +418,9 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 - bootstrap and update scripts now resolve the latest stable SemVer tag before reinstalling managed assets
 - stable update scripts now report the current and target managed version instead of always pulling the active branch blindly
 - documented the stable release flow, release metadata, and bootstrap fallback behavior in `README.md`
-- removed the `nebu-test-driven-development` skill and folded proof-oriented guidance back into `nebu-kaizen`, `nebu-debugging`, and `nebu-verification`
+- removed the `ask-test-driven-development` skill and folded proof-oriented guidance back into `ask-kaizen`, `ask-debugging`, and `ask-verification`
 
 ### Fixed
 
-- aligned `nebu-using-nebu-skills` with the full 17-skill roster so fallback routing now explicitly covers `nebu-github-issues` and `nebu-skill-finder`
-- installers and updates now remove stale managed skills during reinstall, including retired skills such as `nebu-test-driven-development`
+- aligned `ask-using-agent-skills-kit` with the full 17-skill roster so fallback routing now explicitly covers `ask-github-issues` and `ask-skill-finder`
+- installers and updates now remove stale managed skills during reinstall, including retired skills such as `ask-test-driven-development`

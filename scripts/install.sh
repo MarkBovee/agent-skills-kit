@@ -19,16 +19,16 @@ OPENCODE_RULES_SOURCE="$REPO_ROOT/rules"
 SHARED_SKILLS_TARGET="$AGENTS_DIR/skills"
 COPILOT_SKILLS_TARGET="$COPILOT_DIR/skills"
 COPILOT_INSTRUCTIONS_TARGET="$COPILOT_DIR/instructions"
-COPILOT_INSTRUCTIONS_FILE="$COPILOT_INSTRUCTIONS_TARGET/nebu-skills.instructions.md"
+COPILOT_INSTRUCTIONS_FILE="$COPILOT_INSTRUCTIONS_TARGET/agent-skills-kit.instructions.md"
 OPENCODE_CORE_TARGET="$OPENCODE_DIR/core"
 OPENCODE_SKILLS_TARGET="$OPENCODE_DIR/skills"
 OPENCODE_PLUGINS_TARGET="$OPENCODE_DIR/plugins"
 OPENCODE_RULES_TARGET="$OPENCODE_DIR/rules"
 CLAUDE_SKILLS_TARGET="$CLAUDE_DIR/skills"
 CLAUDE_RULES_TARGET="$CLAUDE_DIR/rules"
-CLAUDE_RULES_FILE="$CLAUDE_RULES_TARGET/nebu-skills.md"
-INSTALL_METADATA_FILE="$AGENTS_DIR/.nebu-skills-install.txt"
-MANAGED_SKILLS_MANIFEST=".nebu-managed-skills.txt"
+CLAUDE_RULES_FILE="$CLAUDE_RULES_TARGET/agent-skills-kit.md"
+INSTALL_METADATA_FILE="$AGENTS_DIR/.agent-skills-kit-install.txt"
+MANAGED_SKILLS_MANIFEST=".ask-managed-skills.txt"
 CURRENT_MANAGED_SKILLS=""
 GENERATED_ASSETS_LOCK_HELD=0
 
@@ -48,11 +48,11 @@ trap cleanup_install EXIT
 # Write the Claude rule file when a Claude home already exists.
 write_claude_rules_file() {
   cat > "$CLAUDE_RULES_FILE" <<'EOF'
-# Nebu Skills
+# ASK Skills
 
 - Prefer workflow skills under `~/.claude/skills/` when the user's request clearly matches one of them instead of rewriting the workflow inline.
 - Treat `develop` as the default execution baseline for normal software work and combine it with a more specific skill when needed.
-- After code edits, bias toward `nebu-code-review` before `nebu-verification` when the user is moving toward done, ready, finished, handoff, or klaar wording.
+- After code edits, bias toward `ask-code-review` before `ask-verification` when the user is moving toward done, ready, finished, handoff, or klaar wording.
 - If review, verification, or wrap-up exposes a reusable workflow gap, capture it with `write-skill` before ending cold.
 - When editing code, add concise intent comments by default; place one short comment above each function unless the repo's local convention says otherwise.
 EOF
@@ -159,8 +159,8 @@ clean_old_skill_root "$COPILOT_SKILLS_TARGET"
 clean_old_skill_root "$OPENCODE_SKILLS_TARGET"
 clean_old_skill_root "$CLAUDE_SKILLS_TARGET"
 
-# Symlink managed nebu skills into opencode skills dir so native Agent Skills
-# discovers them globally without clobbering existing non-nebu skills.
+# Symlink managed ask skills into opencode skills dir so native Agent Skills
+# discovers them globally without clobbering existing non-ask skills.
 mkdir -p "$OPENCODE_SKILLS_TARGET"
 for skill_dir in "$SHARED_SKILLS_TARGET"/*/; do
   [ -d "$skill_dir" ] || continue
@@ -181,11 +181,11 @@ mkdir -p "$OPENCODE_PLUGINS_TARGET"
 rm -rf "$OPENCODE_CORE_TARGET"
 rm -rf "$OPENCODE_PLUGINS_TARGET/core"
 cp -R "$OPENCODE_CORE_SOURCE" "$OPENCODE_PLUGINS_TARGET/core"
-cp "$OPENCODE_PLUGINS_SOURCE/nebu-skills-router.mjs" "$OPENCODE_PLUGINS_TARGET/nebu-skills-router.mjs"
+cp "$OPENCODE_PLUGINS_SOURCE/agent-skills-router.mjs" "$OPENCODE_PLUGINS_TARGET/agent-skills-router.mjs"
 
 # Install rules for OpenCode.
 mkdir -p "$OPENCODE_RULES_TARGET"
-for rule in coding-standards.md nebu-skills.md; do
+for rule in coding-standards.md agent-skills-kit.md; do
   rm -f "$OPENCODE_RULES_TARGET/$rule"
   if [ -f "$OPENCODE_RULES_SOURCE/$rule" ]; then
     cp "$OPENCODE_RULES_SOURCE/$rule" "$OPENCODE_RULES_TARGET/$rule"
@@ -197,10 +197,10 @@ if [ -f "$OPENCODE_JSON" ]; then
     var fs=require('fs'), f='$OPENCODE_JSON';
     var c=JSON.parse(fs.readFileSync(f,'utf-8'));
     c.instructions=c.instructions||[];
-    var rules=['./rules/coding-standards.md','./rules/nebu-skills.md'];
+    var rules=['./rules/coding-standards.md','./rules/agent-skills-kit.md'];
     for(var i=0;i<rules.length;i++){if(!c.instructions.includes(rules[i])){c.instructions.push(rules[i]);}}
     c.plugin=c.plugin||[];
-    var p='./plugins/nebu-skills-router.mjs';
+    var p='./plugins/agent-skills-router.mjs';
     if(!c.plugin.includes(p)){c.plugin.push(p);}
     c.permission=c.permission||{};
     c.permission.external_directory=c.permission.external_directory||{};
@@ -220,12 +220,12 @@ fi
 mkdir -p "$AGENTS_DIR"
 write_install_metadata "$REPO_ROOT" "shared-agents" "$AGENTS_DIR" "$INSTALL_METADATA_FILE"
 
-echo "Installed ${installed_count} nebu-skills to $SHARED_SKILLS_TARGET"
+echo "Installed ${installed_count} agent-skills-kit to $SHARED_SKILLS_TARGET"
 echo "Installed Copilot instructions to $COPILOT_INSTRUCTIONS_FILE"
 echo "Installed OpenCode router core to $OPENCODE_PLUGINS_TARGET/core"
-echo "Installed OpenCode router plugin to $OPENCODE_PLUGINS_TARGET/nebu-skills-router.mjs"
+echo "Installed OpenCode router plugin to $OPENCODE_PLUGINS_TARGET/agent-skills-router.mjs"
 echo "Installed OpenCode rules to $OPENCODE_RULES_TARGET/coding-standards.md"
-echo "Installed OpenCode nebu-skills usage guide to $OPENCODE_RULES_TARGET/nebu-skills.md"
+echo "Installed OpenCode agent-skills-kit usage guide to $OPENCODE_RULES_TARGET/agent-skills-kit.md"
 if [ -d "$CLAUDE_DIR" ]; then
   echo "Installed Claude Code rules to $CLAUDE_RULES_FILE"
   echo "Linked Claude skills at $CLAUDE_SKILLS_TARGET -> $SHARED_SKILLS_TARGET"

@@ -87,19 +87,19 @@ function transformBody(body, platform, skillName) {
   let transformed = stripFrontmatter(body)
 
   // Keep runtime references valid after the source skills are copied into platform-specific directories.
-  if (skillName === "nebu-session-review") {
+  if (skillName === "ask-session-review") {
     transformed = transformed.replace(
       /\[check-existing-issue\.sh\]\(\.\/check-existing-issue\.sh\)/g,
       platform === "claude"
         ? "`${CLAUDE_SKILL_DIR}/check-existing-issue.sh`"
-        : "`.github/skills/nebu-session-review/check-existing-issue.sh`",
+        : "`.github/skills/ask-session-review/check-existing-issue.sh`",
     )
   }
 
-  if (skillName === "nebu-ui-ux") {
+  if (skillName === "ask-ui-ux") {
     const replacement = platform === "claude"
       ? "${CLAUDE_SKILL_DIR}"
-      : ".github/skills/nebu-ui-ux"
+      : ".github/skills/ask-ui-ux"
     transformed = transformed.replace(/<path-to-this-skill>/g, replacement)
   }
 
@@ -146,7 +146,7 @@ function buildCopilotInstructions(skills) {
     .map((skill) => `- ${skill.name}: ${toSingleLine(skill.description, 100)}`)
     .join("\n")
 
-  return `# Nebu Skills for GitHub Copilot
+  return `# Agent Skills Kit for GitHub Copilot
 
 This repository ships portable workflow skills under [.github/skills](./skills).
 
@@ -160,7 +160,7 @@ This repository ships portable workflow skills under [.github/skills](./skills).
 
 ## Coding standards
 
-The \`nebu-code-review\` skill enforces hard coding standards. Key rules enforced during review:
+The \`ask-code-review\` skill enforces hard coding standards. Key rules enforced during review:
 
 - Intent comments on every function, method, handler, and utility — non-negotiable.
 - DRY: refactor 3+ duplications into shared components.

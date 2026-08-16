@@ -264,7 +264,7 @@ function buildSkillOverview(sessionState) {
   const toolsSinceLoad = sessionState.toolCallsSinceSkillLoad || 0
   const skillsLoaded = (sessionState.skillsLoadedCount || 0) > 0
   const lines = [
-    "╌ Nebu Skills ╌",
+    "╌ Agent Skills Kit ╌",
     skillsLoaded
       ? "Beslisboom — load different skill via `skill(name: '...')`:"
       : "Load matching skill *now* via `skill(name: '...')` before tools:",

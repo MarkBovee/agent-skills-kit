@@ -5,13 +5,13 @@ param()
 function Get-GitCommand {
     $git = Get-Command git -ErrorAction SilentlyContinue
     if (-not $git) {
-        throw "git is required to resolve nebu-skills releases."
+        throw "git is required to resolve agent-skills-kit releases."
     }
 
     return $git
 }
 
-# Read the declared nebu-skills version from the checked out repository.
+# Read the declared agent-skills-kit version from the checked out repository.
 function Get-RepoVersion {
     param([string]$RepoRoot)
 
@@ -27,16 +27,16 @@ function Get-RepoVersion {
 function Get-StaleSkillNames {
     return @(
         "refactor",
-        "nebu-refactor",
+        "ask-refactor",
         "ui-ux-pro-max",
-        "using-nebu-skills",
-        "writing-nebu-skills",
+        "using-agent-skills-kit",
+        "writing-agent-skills-kit",
         "workspace-wrapup",
-        "nebu-test-driven-development",
+        "ask-test-driven-development",
         "kaizen",
-        "nebu-kaizen",
+        "ask-kaizen",
         "kickoff",
-        "nebu-kickoff"
+        "ask-kickoff"
     )
 }
 
@@ -299,7 +299,7 @@ function New-ReleaseWorktree {
     )
 
     $git = Get-GitCommand
-    $worktreePath = Join-Path ([System.IO.Path]::GetTempPath()) ("nebu-skills-release-" + [System.Guid]::NewGuid().ToString("N"))
+    $worktreePath = Join-Path ([System.IO.Path]::GetTempPath()) ("agent-skills-kit-release-" + [System.Guid]::NewGuid().ToString("N"))
     New-Item -ItemType Directory -Force -Path $worktreePath | Out-Null
     & $git.Source -C $RepoRoot worktree add --detach $worktreePath $ReleaseRef | Out-Null
     return $worktreePath
@@ -389,7 +389,7 @@ function Write-InstallMetadata {
     )
 
     $lines = @(
-        'name: nebu-skills',
+        'name: agent-skills-kit',
         "platform: $Platform",
         "version: $(Get-RepoVersion -RepoRoot $RepoRoot)",
         "ref: $(Get-CurrentGitRef -RepoRoot $RepoRoot)",

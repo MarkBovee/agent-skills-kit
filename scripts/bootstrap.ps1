@@ -1,16 +1,30 @@
 [CmdletBinding()]
 param(
-    [string]$RepoDir = $(if ($env:XDG_DATA_HOME) { Join-Path $env:XDG_DATA_HOME "nebu-skills" } elseif ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA "nebu-skills" } else { Join-Path $HOME ".local\share\nebu-skills" }),
+    [string]$RepoDir = $(if ($env:XDG_DATA_HOME) { Join-Path $env:XDG_DATA_HOME "agent-skills-kit" } elseif ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA "agent-skills-kit" } else { Join-Path $HOME ".local\share\agent-skills-kit" }),
     [switch]$SkipPull
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-$repoUrl = "https://github.com/MarkBovee/nebu-skills.git"
+$repoUrl = "https://github.com/MarkBovee/agent-skills-kit.git"
 $repoParent = Split-Path -Parent $RepoDir
 $git = Get-Command git -ErrorAction SilentlyContinue
 $helpersPath = Join-Path $RepoDir "scripts\release-helpers.ps1"
+
+# Migrate a managed checkout from the old nebu-skills path to the new
+# agent-skills-kit path, but only when no new-path checkout exists yet and
+# the old one still points at this repo.
+$legacyRepoDir = if ($env:XDG_DATA_HOME) { Join-Path $env:XDG_DATA_HOME "nebu-skills" } elseif ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA "nebu-skills" } else { Join-Path $HOME ".local\share\nebu-skills" }
+if (-not (Test-Path $RepoDir) -and (Test-Path (Join-Path $legacyRepoDir ".git"))) {
+    $legacyRemote = & git -C $legacyRepoDir remote get-url origin 2>$null
+    if ($legacyRemote -match "nebu-skills|agent-skills-kit") {
+        Write-Warning "Migrating managed checkout from $legacyRepoDir to $RepoDir ..."
+        New-Item -ItemType Directory -Path $repoParent -Force | Out-Null
+        Move-Item -Path $legacyRepoDir -Destination $RepoDir
+        & git -C $RepoDir remote set-url origin $repoUrl
+    }
+}
 
 # Pull one managed checkout, retrying after restoring generated artifacts when that is the only local drift.
 function Invoke-BootstrapManagedCheckoutPull {
@@ -88,7 +102,7 @@ function Invoke-BootstrapManagedCheckoutPull {
 
 # Ensure the bootstrap flow fails early when git is unavailable.
 if (-not $git) {
-    throw "git is required to install or update nebu-skills."
+    throw "git is required to install or update agent-skills-kit."
 }
 
 # Create the parent directory for the managed checkout before clone or update.
@@ -129,14 +143,14 @@ try {
         $releaseWorktree = New-ReleaseWorktree -RepoRoot $RepoDir -ReleaseRef $selectedRef
         $installSourceRoot = $releaseWorktree
         if (-not (Test-Path -LiteralPath (Join-Path $installSourceRoot "scripts\install.ps1"))) {
-            Write-Warning "Stable nebu-skills $(Get-RepoVersion -RepoRoot $installSourceRoot) ($selectedRef) predates the unified installer. Falling back to current checkout $(Get-RepoVersion -RepoRoot $RepoDir) ($(Get-CurrentGitRef -RepoRoot $RepoDir))."
+            Write-Warning "Stable agent-skills-kit $(Get-RepoVersion -RepoRoot $installSourceRoot) ($selectedRef) predates the unified installer. Falling back to current checkout $(Get-RepoVersion -RepoRoot $RepoDir) ($(Get-CurrentGitRef -RepoRoot $RepoDir))."
             Remove-ReleaseWorktree -RepoRoot $RepoDir -WorktreePath $releaseWorktree
             $releaseWorktree = $null
             $installSourceRoot = $RepoDir
         }
         else {
             $selectedVersion = Get-RepoVersion -RepoRoot $installSourceRoot
-            "Using stable nebu-skills $selectedVersion ($selectedRef)"
+            "Using stable agent-skills-kit $selectedVersion ($selectedRef)"
         }
     }
     else {

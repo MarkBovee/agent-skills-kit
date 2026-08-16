@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Read the declared nebu-skills version from the checked out repository.
+# Read the declared agent-skills-kit version from the checked out repository.
 read_repo_version() {
   local repo_root="$1"
   local version_file="$repo_root/VERSION"
@@ -18,16 +18,16 @@ read_repo_version() {
 stale_skill_names() {
   cat <<'EOF'
 refactor
-nebu-refactor
+ask-refactor
 ui-ux-pro-max
-using-nebu-skills
-writing-nebu-skills
+using-agent-skills-kit
+writing-agent-skills-kit
 workspace-wrapup
-nebu-test-driven-development
+ask-test-driven-development
 kaizen
-nebu-kaizen
+ask-kaizen
 kickoff
-nebu-kickoff
+ask-kickoff
 EOF
 }
 
@@ -264,7 +264,7 @@ create_release_worktree() {
   local release_ref="$2"
   local worktree_path=""
 
-  worktree_path="$(mktemp -d "${TMPDIR:-/tmp}/nebu-skills-release-XXXXXX")"
+  worktree_path="$(mktemp -d "${TMPDIR:-/tmp}/agent-skills-kit-release-XXXXXX")"
   git -C "$repo_root" worktree add --detach "$worktree_path" "$release_ref" >/dev/null
   printf '%s\n' "$worktree_path"
 }
@@ -344,7 +344,7 @@ write_install_metadata() {
   installed_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
   cat > "$output_path" <<EOF
-name: nebu-skills
+name: agent-skills-kit
 platform: $platform
 version: $version
 ref: $ref

@@ -20,25 +20,25 @@ $opencodeRulesSource = Join-Path $repoRoot "rules"
 $sharedSkillsTarget = Join-Path $AgentsDir "skills"
 $copilotSkillsTarget = Join-Path $CopilotDir "skills"
 $copilotInstructionsTarget = Join-Path $CopilotDir "instructions"
-$copilotInstructionsFile = Join-Path $copilotInstructionsTarget "nebu-skills.instructions.md"
+$copilotInstructionsFile = Join-Path $copilotInstructionsTarget "agent-skills-kit.instructions.md"
 $opencodeCoreTarget = Join-Path $OpencodeDir "core"
 $opencodeSkillsTarget = Join-Path $OpencodeDir "skills"
 $opencodePluginsTarget = Join-Path $OpencodeDir "plugins"
 $opencodeRulesTarget = Join-Path $OpencodeDir "rules"
 $claudeSkillsTarget = Join-Path $ClaudeDir "skills"
 $claudeRulesTarget = Join-Path $ClaudeDir "rules"
-$claudeRulesFile = Join-Path $claudeRulesTarget "nebu-skills.md"
-$installMetadataFile = Join-Path $AgentsDir ".nebu-skills-install.txt"
-$managedSkillsManifest = ".nebu-managed-skills.txt"
+$claudeRulesFile = Join-Path $claudeRulesTarget "agent-skills-kit.md"
+$installMetadataFile = Join-Path $AgentsDir ".agent-skills-kit-install.txt"
+$managedSkillsManifest = ".ask-managed-skills.txt"
 
 # Write the Claude rule file when a Claude home already exists.
 function Write-ClaudeRulesFile {
     @"
-# Nebu Skills
+# ASK Skills
 
 - Prefer workflow skills under `~/.claude/skills/` when the user's request clearly matches one of them instead of rewriting the workflow inline.
 - Treat `develop` as the default execution baseline for normal software work and combine it with a more specific skill when needed.
-- After code edits, bias toward `nebu-code-review` before `nebu-verification` when the user is moving toward done, ready, finished, handoff, or klaar wording.
+- After code edits, bias toward `ask-code-review` before `ask-verification` when the user is moving toward done, ready, finished, handoff, or klaar wording.
 - If review, verification, or wrap-up exposes a reusable workflow gap, capture it with `write-skill` before ending cold.
 - When editing code, add concise intent comments by default; place one short comment above each function unless the repo's local convention says otherwise.
 "@ | Set-Content -LiteralPath $claudeRulesFile -NoNewline
@@ -166,7 +166,7 @@ try {
     Clear-OldSkillRoot -TargetPath $opencodeSkillsTarget -CurrentSkillNames $currentSkillNames
     Clear-OldSkillRoot -TargetPath $claudeSkillsTarget -CurrentSkillNames $currentSkillNames
 
-    # Symlink managed nebu skills into OpenCode skills dir for native discovery.
+    # Symlink managed ask skills into OpenCode skills dir for native discovery.
     New-Item -ItemType Directory -Force -Path $opencodeSkillsTarget | Out-Null
     foreach ($skillDir in Get-ChildItem -LiteralPath $sharedSkillsTarget -Directory) {
         $linkPath = Join-Path $opencodeSkillsTarget $skillDir.Name
@@ -187,11 +187,11 @@ try {
     }
 
     Copy-Item -LiteralPath $opencodeCoreSource -Destination $opencodePluginCoreTarget -Recurse
-    Copy-Item -LiteralPath (Join-Path $opencodePluginsSource "nebu-skills-router.mjs") -Destination (Join-Path $opencodePluginsTarget "nebu-skills-router.mjs") -Force
+    Copy-Item -LiteralPath (Join-Path $opencodePluginsSource "agent-skills-router.mjs") -Destination (Join-Path $opencodePluginsTarget "agent-skills-router.mjs") -Force
 
     # Install rules for OpenCode.
     New-Item -ItemType Directory -Force -Path $opencodeRulesTarget | Out-Null
-    foreach ($rule in @("coding-standards.md", "nebu-skills.md")) {
+    foreach ($rule in @("coding-standards.md", "agent-skills-kit.md")) {
         $src = Join-Path $opencodeRulesSource $rule
         if (Test-Path -LiteralPath $src) {
             Copy-Item -LiteralPath $src -Destination (Join-Path $opencodeRulesTarget $rule) -Force
@@ -207,14 +207,14 @@ try {
             $cfg | Add-Member -NotePropertyName instructions -NotePropertyValue @() -Force
             $changed = $true
         }
-        foreach ($ins in @("./rules/coding-standards.md", "./rules/nebu-skills.md")) {
+        foreach ($ins in @("./rules/coding-standards.md", "./rules/agent-skills-kit.md")) {
             if ($ins -notin $cfg.instructions) { $cfg.instructions += $ins; $changed = $true }
         }
         if ($cfg.PSObject.Properties.Match("plugin").Count -eq 0 -or $null -eq $cfg.plugin -or $cfg.plugin -isnot [System.Array]) {
             $cfg | Add-Member -NotePropertyName plugin -NotePropertyValue @() -Force
             $changed = $true
         }
-        $pl = "./plugins/nebu-skills-router.mjs"
+        $pl = "./plugins/agent-skills-router.mjs"
         if ($pl -notin $cfg.plugin) { $cfg.plugin += $pl; $changed = $true }
         # Grant OpenCode access to its own config directory (needed for plugin/core/rules)
         if ($cfg.PSObject.Properties.Match("permission").Count -eq 0 -or $null -eq $cfg.permission -or $cfg.permission -isnot [System.Management.Automation.PSCustomObject]) {
@@ -244,12 +244,12 @@ try {
     New-Item -ItemType Directory -Force -Path $AgentsDir | Out-Null
     Write-InstallMetadata -RepoRoot $repoRoot -Platform "shared-agents" -InstallRoot $AgentsDir -OutputPath $installMetadataFile
 
-    "Installed $($installedSkills.Count) nebu-skills to $sharedSkillsTarget"
+    "Installed $($installedSkills.Count) agent-skills-kit to $sharedSkillsTarget"
     "Installed Copilot instructions to $copilotInstructionsFile"
     "Installed OpenCode router core to $(Join-Path $opencodePluginsTarget 'core')"
-    "Installed OpenCode router plugin to $(Join-Path $opencodePluginsTarget 'nebu-skills-router.mjs')"
+    "Installed OpenCode router plugin to $(Join-Path $opencodePluginsTarget 'agent-skills-router.mjs')"
     "Installed OpenCode rules to $(Join-Path $opencodeRulesTarget 'coding-standards.md')"
-    "Installed OpenCode nebu-skills usage guide to $(Join-Path $opencodeRulesTarget 'nebu-skills.md')"
+    "Installed OpenCode agent-skills-kit usage guide to $(Join-Path $opencodeRulesTarget 'agent-skills-kit.md')"
     if (Test-Path -LiteralPath $ClaudeDir) {
         "Installed Claude Code rules to $claudeRulesFile"
         "Linked Claude skills at $claudeSkillsTarget -> $sharedSkillsTarget"

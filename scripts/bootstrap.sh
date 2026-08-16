@@ -1,10 +1,26 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_URL="https://github.com/MarkBovee/nebu-skills.git"
-REPO_DIR="${REPO_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/nebu-skills}"
+REPO_URL="https://github.com/MarkBovee/agent-skills-kit.git"
+REPO_DIR="${REPO_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/agent-skills-kit}"
+LEGACY_REPO_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/nebu-skills"
 SKIP_PULL="${SKIP_PULL:-0}"
 HELPERS_PATH="$REPO_DIR/scripts/release-helpers.sh"
+
+# Migrate a managed checkout from the old nebu-skills path to the new
+# agent-skills-kit path, but only when no new-path checkout exists yet and
+# the old one still points at this repo (avoids clobbering unrelated dirs).
+if [ ! -e "$REPO_DIR" ] && [ -d "$LEGACY_REPO_DIR/.git" ]; then
+  legacy_remote="$(git -C "$LEGACY_REPO_DIR" remote get-url origin 2>/dev/null || true)"
+  case "$legacy_remote" in
+    *nebu-skills*|*agent-skills-kit*)
+      echo "Migrating managed checkout from $LEGACY_REPO_DIR to $REPO_DIR ..." >&2
+      mkdir -p "$(dirname "$REPO_DIR")"
+      mv "$LEGACY_REPO_DIR" "$REPO_DIR"
+      git -C "$REPO_DIR" remote set-url origin "$REPO_URL"
+      ;;
+  esac
+fi
 
 # Pull one managed checkout, retrying after restoring generated artifacts when that is the only local drift.
 bootstrap_pull_managed_checkout() {
@@ -89,7 +105,7 @@ EOF
 
 # Ensure the bootstrap flow fails early when git is unavailable.
 if ! command -v git >/dev/null 2>&1; then
-  echo "git is required to install or update nebu-skills." >&2
+  echo "git is required to install or update agent-skills-kit." >&2
   exit 1
 fi
 
@@ -125,13 +141,13 @@ if SELECTED_REF="$(get_latest_stable_tag "$REPO_DIR")"; then
   INSTALL_SOURCE_ROOT="$RELEASE_WORKTREE"
   trap 'remove_release_worktree "$REPO_DIR" "$RELEASE_WORKTREE"' EXIT
   if [ ! -f "$INSTALL_SOURCE_ROOT/scripts/install.sh" ]; then
-    echo "Stable nebu-skills $(read_repo_version "$INSTALL_SOURCE_ROOT") ($SELECTED_REF) predates the unified installer. Falling back to current checkout $(read_repo_version "$REPO_DIR") ($(read_repo_ref "$REPO_DIR"))." >&2
+    echo "Stable agent-skills-kit $(read_repo_version "$INSTALL_SOURCE_ROOT") ($SELECTED_REF) predates the unified installer. Falling back to current checkout $(read_repo_version "$REPO_DIR") ($(read_repo_ref "$REPO_DIR"))." >&2
     remove_release_worktree "$REPO_DIR" "$RELEASE_WORKTREE"
     RELEASE_WORKTREE=""
     INSTALL_SOURCE_ROOT="$REPO_DIR"
     trap - EXIT
   else
-    echo "Using stable nebu-skills $(read_repo_version "$INSTALL_SOURCE_ROOT") ($SELECTED_REF)"
+    echo "Using stable agent-skills-kit $(read_repo_version "$INSTALL_SOURCE_ROOT") ($SELECTED_REF)"
   fi
 else
   SELECTED_REF="$(read_repo_ref "$REPO_DIR")"

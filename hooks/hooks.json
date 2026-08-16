@@ -3,14 +3,14 @@
     "SessionStart": [
       {
         "type": "command",
-        "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/nebu-skills-hook.js\" session-start",
+        "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/agent-skills-hook.js\" session-start",
         "timeout": 10
       }
     ],
     "UserPromptSubmit": [
       {
         "type": "command",
-        "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/nebu-skills-hook.js\" prompt",
+        "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/agent-skills-hook.js\" prompt",
         "timeout": 10
       }
     ]
