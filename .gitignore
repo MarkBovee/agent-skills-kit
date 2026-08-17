@@ -1,4 +1,23 @@
+# OS cruft
 .DS_Store
 Thumbs.db
+*.swp
+
+# Python
 __pycache__/
 *.pyc
+
+# Node / tooling
+node_modules/
+coverage/
+dist/
+build/
+*.log
+
+# Environment / secrets
+.env
+.env.*
+
+# Editors
+.idea/
+.vscode/

@@ -15,6 +15,12 @@
 </p>
 
 <p align="center">
+  <img alt="CI status" src="https://img.shields.io/github/actions/workflow/status/MarkBovee/agent-skills-kit/ci.yml?style=for-the-badge&label=CI&labelColor=10131A" />
+  <img alt="License" src="https://img.shields.io/github/license/MarkBovee/agent-skills-kit?style=for-the-badge&labelColor=10131A&color=2EA44F" />
+  <img alt="Latest release" src="https://img.shields.io/github/v/release/MarkBovee/agent-skills-kit?style=for-the-badge&labelColor=10131A&color=7C5CFF" />
+</p>
+
+<p align="center">
   <code>ASK</code>
   <code>10 skills</code>
   <code>1 router plugin</code>
@@ -441,7 +447,6 @@ skills/                     Canonical workflow skills
 core/router-core.js         Shared scoring, frontmatter, and session helpers
 plugins/agent-skills-router.mjs
 
-scripts/bootstrap-opencode.*
 scripts/bootstrap.*
 scripts/install.*
 scripts/update.*
@@ -473,3 +478,9 @@ scripts/check-release-readiness.js
 ## Changelog
 
 For project history, removals, and workflow shifts, see [CHANGELOG.md](./CHANGELOG.md).
+
+---
+
+## License
+
+MIT — see [LICENSE](./LICENSE). Copyright (c) 2026 Mark Bovee.
