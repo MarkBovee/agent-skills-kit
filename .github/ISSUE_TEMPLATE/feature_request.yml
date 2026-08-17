@@ -1,0 +1,27 @@
+name: Feature / skill request
+description: Propose a new feature or a new workflow skill
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is missing?
+      description: Describe the gap or workflow that the kit does not cover today.
+    validations:
+      required: true
+  - type: textarea
+    id: skill
+    attributes:
+      label: If this is a new skill, describe it
+      description: When should it be used (trigger-focused, "say when, not how")? How does it relate to the existing skills under `skills/`?
+  - type: input
+    id: platform
+    attributes:
+      label: Target platform(s)
+      description: OpenCode, GitHub Copilot, Claude Code, dsh — or all of them.
+      placeholder: e.g. All
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Existing skills, prompts, or workarounds you tried.
