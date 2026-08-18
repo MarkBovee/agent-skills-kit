@@ -78,6 +78,8 @@ Export targets (via `export-platform-skills.js`): OpenCode → `.opencode/comman
 
 `plugins/agent-skills-router.mjs` injects a beslisboom (decision tree) every prompt — agent self-selects skills via `skill(name: '...')`. No automatic phrase matching. When changing:
 
+- The beslisboom has 11 routing rows. `design-review` is a companion skill, not a routing row: it fires when the `ui-ux` skill is loaded (plugin sets `needsDesignReview` and nudges `skill(name: 'design-review')` until it is loaded), mirroring `needsCodeReview`.
+
 - `node --input-type=module -e "import('./plugins/agent-skills-router.mjs')"` — verify it loads
 - `node -e "const {buildSkillOverview,createEmptySessionState}=require('./core/router-core'); const s=createEmptySessionState(); s.matchedSkills=[{name:'develop'}]; console.log(buildSkillOverview(s))"` — test beslisboom output
 - `node -e "import('./plugins/agent-skills-router.mjs').then(async m=>{const p=await m.AgentSkillsRouter(); await p['session.created'](); const r=await p['tui.prompt.append']({prompt:'test'}); console.log(r?.append?.slice(0,200))})"` — test plugin hooks

@@ -22,7 +22,7 @@
 
 <p align="center">
   <code>ASK</code>
-  <code>11 skills</code>
+  <code>12 skills</code>
   <code>1 router plugin</code>
   <code>3 platforms</code>
   <code>review + verification</code>
@@ -218,7 +218,7 @@ Skills use short display names (e.g. `debugging`, `develop`) for easy reference.
 | Validate | `code-review`, `verification` | review the diff and prove the claim (includes workspace wrap-up) |
 | Improve | `improve`, `session-review` | audit, refactor, session review, skill improvement |
 | Coordinate | `agent-workflows`, `write-skill` | route work, finish cleanly, keep the skill system healthy |
-| Product | `ui-ux` | push interface work beyond bland default SaaS output |
+| Product | `ui-ux`, `design-review` | push interface work beyond bland default SaaS output, then filter it for AI-default slop before shipping |
 
 ### Full Roster
 
@@ -233,6 +233,7 @@ Skills use short display names (e.g. `debugging`, `develop`) for easy reference.
 | `improve` | heavy | Audit-driven improvement + focused refactoring |
 | `session-review` | light | Session self-review + GitHub issue filing |
 | `ui-ux` | heavy | UI and UX implementation support |
+| `design-review` | standard | Anti-default filter: reviews design, UI, or copy for AI-generated slop before shipping |
 | `agent-workflows` | light | Multi-agent coordination + release chores |
 | `write-skill` | standard | Skill authoring + workflow improvement tracking |
 
@@ -309,7 +310,7 @@ flowchart TD
 | **Coordinate** | `agent-workflows`, `write-skill` | `#1abc9c` teal |
 | **Product** | `ui-ux` | `#e91e8c` pink |
 
-Session state tracks code edits, tool usage, and skill-load events. The router nudges when code was edited without review, or when many tools ran without loading any skill — always hint, never force.
+Session state tracks code edits, tool usage, and skill-load events. The router nudges when code was edited without review, when a UI was produced (load `design-review`), or when many tools ran without loading any skill — always hint, never force.
 
 ### Cost-aware execution profile
 
