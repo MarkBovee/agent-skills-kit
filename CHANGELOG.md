@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [1.2.1] - 2026-08-18
+
+### Fixed
+
+- **PowerShell installer command and prompt sync.** Windows installation no longer fails because wildcard paths were passed through `-LiteralPath`; generated OpenCode commands and Copilot prompts are now copied item by item.
+
 ## [1.2.0] - 2026-08-18
 
 ### Added
