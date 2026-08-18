@@ -8,7 +8,9 @@ Language-agnostic. Applies to every file in every project unless an explicit rep
 - **Small focused functions.** One clear level of abstraction per function. Use guard clauses and early returns to keep control flow flat. Orchestrator functions may be larger when coordinating phases, but delegate real work to named helpers.
 - **Pure helpers.** Prefer side-effect-free helpers when practical. Keep orchestration separate from object construction, formatting, parsing, and normalization.
 - **Meaningful names.** Use intention-revealing names for identifiers, variables, parameters, and return values. Avoid generic `data`, `result`, `code`, `updated`.
-- **Intent comments above every function (hard rule).** Every function, method, helper, closure handler, route handler, protocol dispatcher, and static utility gets a short comment above it stating its purpose. This is non-negotiable for reviewability. For non-obvious behavior, add a brief docstring covering parameters, return value, side effects, and any preconditions or invariants. Inline `why` comments stay focused on intent, not line-by-line narration.
+- **Intent comments above every function (hard rule).** Every function, method, helper, closure handler, route handler, protocol dispatcher, and static utility gets a short comment above it stating its purpose. This is non-negotiable for reviewability. For non-obvious behavior, add a brief docstring covering parameters, return value, side effects, and any preconditions or invariants.
+- **Inline `why` comments are encouraged, not optional.** Comment on *why* a decision, workaround, non-obvious tradeoff, or non-trivial branch exists — but stay focused on intent, never line-by-line narration of what the code already says. When in doubt whether a future reader would ask "why", add the comment.
+- **File-level purpose comment (when applicable).** When a file has a non-obvious general purpose beyond its name (shared module, core router, platform export target, etc.), add a short comment near the top stating the file's intent. Skip when the filename and content already make it self-evident.
 - **Self-documenting body.** Use small named helpers, switch/pattern dispatch, and extracted builders instead of long `if/else` chains, deeply nested blocks, or growing parameter lists.
 - **Explicit data shapes.** Prefer named types, records, or DTOs over loose catch-all payloads, `object`, or `dynamic`. Three or more positional parameters belong in a request/options object.
 
@@ -74,5 +76,5 @@ Language-agnostic. Applies to every file in every project unless an explicit rep
 - Error handling covers edge cases, not just happy path.
 - All existing tests passing.
 - If external integration changed: dry-run and idempotency coverage included.
-- Code is self-documenting or has "why" comments where needed.
+- Code is self-documenting and has "why" comments at non-obvious decisions; file-level purpose comments present where applicable.
 - Relevant checks (lint, typecheck, tests) are warning-free and error-free.

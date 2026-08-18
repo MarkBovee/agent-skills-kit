@@ -6,6 +6,10 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+### Changed
+
+- **Comments guidance tightened in `rules/coding-standards.md`.** Inline `why` comments are now encouraged, not optional — a comment when in doubt, never line-by-line narration. New file-level purpose comment rule: short intent comment near the top of files whose purpose goes beyond their name (shared modules, core router, platform export targets). Quality checklist updated to match.
+
 ## [1.1.0] - 2026-08-18
 
 ### Added
