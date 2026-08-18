@@ -14,6 +14,7 @@ const SKILL_VERIFICATION = "verification"
 const SKILL_DEBUGGING = "debugging"
 const SKILL_IMPROVE = "improve"
 const SKILL_UI_UX = "ui-ux"
+const SKILL_DESIGN_REVIEW = "design-review"
 const SKILL_SESSION_REVIEW = "session-review"
 const SKILL_AGENT_WORKFLOWS = "agent-workflows"
 const SKILL_WRITE_SKILL = "write-skill"
@@ -111,6 +112,7 @@ const AMBIGUITY_PHRASES = [
 function createEmptySessionState() {
   return {
     matchedSkills: [], needsCodeReview: false, shouldCaptureImprovement: false,
+    needsDesignReview: false,
     executionProfile: null,
     toolCallCount: 0, toolCallsSinceSkillLoad: 0,
     recentToolIds: [], recentEditedPaths: [],
@@ -291,6 +293,9 @@ function buildSkillOverview(sessionState) {
   if (sessionState.needsCodeReview) {
     lines.push("→ Code edited — `skill(name: 'code-review')` before claiming done")
   }
+  if (sessionState.needsDesignReview) {
+    lines.push("→ Design produced — `skill(name: 'design-review')` filters AI defaults before showing")
+  }
   if (toolsSinceLoad > 8 && (sessionState.skillsLoadedCount || 0) === 0) {
     const isCodeEditing = (sessionState.recentToolIds || []).some(t => CODE_WORK_TOOL_IDS.has(t))
     if (isCodeEditing) {
@@ -367,7 +372,7 @@ module.exports = {
   VALID_DELEGATION_MODES, VALID_EXECUTION_TIERS,
   SKILL_AGENT_WORKFLOWS, SKILL_CODE_REVIEW, SKILL_DEBUGGING,
   SKILL_SESSION_REVIEW, SKILL_IMPROVE, SKILL_DEVELOP, SKILL_INTAKE, SKILL_UI_UX,
-  SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SPEC, COMPLETION_PHRASES,
+  SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SPEC, COMPLETION_PHRASES, SKILL_DESIGN_REVIEW,
   buildSkillOverview, cascadeRoute, buildExecutionProfile, loadSkills,
   createEmptySessionState, getSessionState, setSessionState,
   findSkill, hasPhraseSignal,

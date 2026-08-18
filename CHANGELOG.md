@@ -6,8 +6,16 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [1.2.0] - 2026-08-18
+
+### Added
+
+- **New `design-review` skill.** `skills/ask-design-review/SKILL.md` reviews an existing design, UI, or copy against an anti-default (anti-slop) checklist before shipping: quick-scan signal table, per-section checks (visual, color/typography, copy, UX/IA/a11y, visible code tells, strategic/business tells), a self-check of six questions, and a pushback protocol. Companion to `ui-ux`, not a routing row in the beslisboom. Ships as slash command `design-review`.
+- **Router nudge after `ui-ux`.** When the `ui-ux` skill is loaded, the plugin sets `needsDesignReview` and appends "→ Design produced — `skill(name: 'design-review')`" until `design-review` is loaded. Mirrors the existing `needsCodeReview` mechanism.
+
 ### Changed
 
+- **`ask-ui-ux` gate.** UI workflow now runs output through the `design-review` filter before showing it, and cross-references the skill under `## Use with`.
 - **Comments guidance tightened in `rules/coding-standards.md`.** Inline `why` comments are now encouraged, not optional — a comment when in doubt, never line-by-line narration. New file-level purpose comment rule: short intent comment near the top of files whose purpose goes beyond their name (shared modules, core router, platform export targets). Quality checklist updated to match.
 
 ## [1.1.0] - 2026-08-18

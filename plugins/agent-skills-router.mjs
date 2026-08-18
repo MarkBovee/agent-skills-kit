@@ -11,7 +11,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 
 const {
   CODE_EDIT_TOOL_IDS, CODE_WORK_TOOL_IDS, RECENT_TOOL_MAX, COMPLETION_PHRASES,
-  SKILL_CODE_REVIEW, SKILL_VERIFICATION, SKILL_WRITE_SKILL,
+  SKILL_CODE_REVIEW, SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_DESIGN_REVIEW, SKILL_UI_UX,
   buildSkillOverview, getSessionState, loadSkills,
   setSessionState, hasPhraseSignal, toSingleLine,
 } = require(resolve(here, "../core/router-core"))
@@ -120,6 +120,8 @@ export const AgentSkillsRouter = async () => {
       if (skillName === SKILL_CODE_REVIEW) { setSessionState(sessionState, SESSION_KEY, { ...base, needsCodeReview: false, shouldCaptureImprovement: true }); return }
       if (skillName === SKILL_VERIFICATION) { setSessionState(sessionState, SESSION_KEY, { ...base, shouldCaptureImprovement: true }); return }
       if (skillName === SKILL_WRITE_SKILL) { setSessionState(sessionState, SESSION_KEY, { ...base, shouldCaptureImprovement: false }); return }
+      if (skillName === SKILL_UI_UX) { setSessionState(sessionState, SESSION_KEY, { ...base, needsDesignReview: true }); return }
+      if (skillName === SKILL_DESIGN_REVIEW) { setSessionState(sessionState, SESSION_KEY, { ...base, needsDesignReview: false }); return }
       setSessionState(sessionState, SESSION_KEY, base)
     },
   }

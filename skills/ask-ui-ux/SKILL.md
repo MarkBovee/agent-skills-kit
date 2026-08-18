@@ -113,7 +113,11 @@ python3 skills/ask-ui-ux/scripts/search.py "<keyword>" --domain <domain> [-n <ma
 | React/Next.js performance | `react` | `--domain react "rerender memo list"` |
 | App/native interface | `web` | `--domain web "accessibilityLabel touch safe-areas"` |
 
-### Step 4: Stack guidelines
+### Step 4: Filter before showing
+
+Before presenting the design, run it through the `design-review` skill's anti-default filter. It is the standing anti-slop gate for any UI output — catch defaulted patterns (2+ matches in one section) and rebuild the replacement decision before delivery.
+
+### Step 5: Stack guidelines
 
 ```bash
 python3 skills/ask-ui-ux/scripts/search.py "<keyword>" --stack <stack>
@@ -190,5 +194,6 @@ Fix the highest-signal issue first and repeat the loop instead of stacking specu
 ## Use with
 
 - `develop` for steady inspect-change-review loops during UI work
+- `design-review` to filter the finished UI for AI-default patterns before showing it
 - `code-review` after meaningful frontend diffs
 - `verification` before claiming the UI is done
