@@ -13,6 +13,8 @@ DSH_HOME="${DSH_HOME:-$HOME/.dsh}"
 
 SHARED_SKILLS_SOURCE="$REPO_ROOT/skills"
 COPILOT_INSTRUCTIONS_SOURCE="$REPO_ROOT/.github/copilot-instructions.md"
+OPENCODE_COMMANDS_SOURCE="$REPO_ROOT/.opencode/commands"
+COPILOT_PROMPTS_SOURCE="$REPO_ROOT/.github/prompts"
 OPENCODE_CORE_SOURCE="$REPO_ROOT/core"
 OPENCODE_PLUGINS_SOURCE="$REPO_ROOT/plugins"
 OPENCODE_RULES_SOURCE="$REPO_ROOT/rules"
@@ -22,6 +24,8 @@ SHARED_SKILLS_TARGET="$AGENTS_DIR/skills"
 COPILOT_SKILLS_TARGET="$COPILOT_DIR/skills"
 COPILOT_INSTRUCTIONS_TARGET="$COPILOT_DIR/instructions"
 COPILOT_INSTRUCTIONS_FILE="$COPILOT_INSTRUCTIONS_TARGET/agent-skills-kit.instructions.md"
+COPILOT_PROMPTS_TARGET="$COPILOT_DIR/prompts"
+OPENCODE_COMMANDS_TARGET="$OPENCODE_DIR/commands"
 OPENCODE_CORE_TARGET="$OPENCODE_DIR/core"
 OPENCODE_SKILLS_TARGET="$OPENCODE_DIR/skills"
 OPENCODE_PLUGINS_TARGET="$OPENCODE_DIR/plugins"
@@ -238,6 +242,16 @@ done
 mkdir -p "$COPILOT_INSTRUCTIONS_TARGET"
 cp "$COPILOT_INSTRUCTIONS_SOURCE" "$COPILOT_INSTRUCTIONS_FILE"
 
+# Install OpenCode commands (global) and Copilot/VS Code prompt files (user profile).
+if [ -d "$OPENCODE_COMMANDS_SOURCE" ]; then
+  mkdir -p "$OPENCODE_COMMANDS_TARGET"
+  cp -R "$OPENCODE_COMMANDS_SOURCE"/. "$OPENCODE_COMMANDS_TARGET/"
+fi
+if [ -d "$COPILOT_PROMPTS_SOURCE" ]; then
+  mkdir -p "$COPILOT_PROMPTS_TARGET"
+  cp -R "$COPILOT_PROMPTS_SOURCE"/. "$COPILOT_PROMPTS_TARGET/"
+fi
+
 mkdir -p "$OPENCODE_PLUGINS_TARGET"
 rm -rf "$OPENCODE_CORE_TARGET"
 rm -rf "$OPENCODE_PLUGINS_TARGET/core"
@@ -301,6 +315,8 @@ write_install_metadata "$REPO_ROOT" "shared-agents" "$AGENTS_DIR" "$INSTALL_META
 
 echo "Installed ${installed_count} agent-skills-kit to $SHARED_SKILLS_TARGET"
 echo "Installed Copilot instructions to $COPILOT_INSTRUCTIONS_FILE"
+echo "Installed OpenCode commands to $OPENCODE_COMMANDS_TARGET"
+echo "Installed Copilot/VS Code prompt files to $COPILOT_PROMPTS_TARGET"
 echo "Installed OpenCode router core to $OPENCODE_PLUGINS_TARGET/core"
 echo "Installed OpenCode router plugin to $OPENCODE_PLUGINS_TARGET/agent-skills-router.mjs"
 echo "Installed OpenCode rules to $OPENCODE_RULES_TARGET/coding-standards.md"

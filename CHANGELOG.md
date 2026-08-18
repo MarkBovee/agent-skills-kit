@@ -6,6 +6,13 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [1.1.0] - 2026-08-18
+
+### Added
+
+- **New `spec` skill — B4Code-style requirements specification.** `skills/ask-spec/SKILL.md` formalizes intent into a validated, traceable spec before development: Capture → Structure → Validate → Transfer, with the four gates (Completeness, Stakeholder, Readiness, Handover) and the truth spine (`Need → Context → Decision → Requirement → Validation → Handover → Build`). Human-owned decisions; AI accelerates, never owns. Routed ahead of `intake` in the cascade, with triggers for spec/requirements/design-brief/decision-register language.
+- **Slash commands for every skill.** New canonical `commands/<name>.md` source, one per skill, each loading its skill and applying it to `$ARGUMENTS` (DRY — no duplicated workflows). `export-platform-skills.js` now generates `.opencode/commands/` (OpenCode) and `.github/prompts/*.prompt.md` (Copilot/VS Code). Claude Code and dsh get commands for free because their skills already act as slash commands. Installers sync commands into `~/.config/opencode/commands/` and `~/.copilot/prompts/`. CI/release export checks now also cover the generated command files.
+
 ## [1.0.1] - 2026-08-16
 
 ### Added

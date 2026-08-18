@@ -5,6 +5,7 @@ The `agent-skills-router` plugin injects a beslisboom (decision tree) into every
 ## Beslisboom
 
 ```
+Specify requirements, build design brief → spec
 Clarify scope, plan ambiguous work       → intake
 Debug bug, crash, failing test, error    → debugging
 Review code changes before handoff       → code-review
@@ -28,3 +29,7 @@ Normal software work (default)           → develop
 ## Handoff to subagents
 
 Include the same beslisboom in the handoff prompt so subagents also know which skill to load.
+
+## Slash commands
+
+Every skill also ships as a slash command that loads its skill. `commands/<name>.md` is the canonical source; `export-platform-skills.js` generates `.opencode/commands/` (OpenCode) and `.github/prompts/*.prompt.md` (Copilot/VS Code). Claude Code and dsh get their command surface for free from their skills. Never hand-edit the generated copies.

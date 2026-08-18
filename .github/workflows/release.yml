@@ -42,7 +42,7 @@ jobs:
           node ./scripts/validate-plugin.js
           node ./scripts/check-release-readiness.js --require-version-entry
           node ./scripts/export-platform-skills.js
-          git diff --exit-code -- .github/skills/*/SKILL.md .claude/skills/*/SKILL.md .dsh/skills/*/SKILL.md CLAUDE.md .github/copilot-instructions.md
+          git diff --exit-code -- .github/skills/*/SKILL.md .claude/skills/*/SKILL.md .dsh/skills/*/SKILL.md .opencode/commands/*.md .github/prompts/*.prompt.md CLAUDE.md .github/copilot-instructions.md
 
       - name: Read release version
         id: version

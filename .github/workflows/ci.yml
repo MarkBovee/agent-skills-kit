@@ -34,4 +34,4 @@ jobs:
         run: node ./scripts/export-platform-skills.js
 
       - name: Ensure generated exports are committed
-        run: git diff --exit-code -- .github/skills/*/SKILL.md .claude/skills/*/SKILL.md .dsh/skills/*/SKILL.md CLAUDE.md .github/copilot-instructions.md
+        run: git diff --exit-code -- .github/skills/*/SKILL.md .claude/skills/*/SKILL.md .dsh/skills/*/SKILL.md .opencode/commands/*.md .github/prompts/*.prompt.md CLAUDE.md .github/copilot-instructions.md

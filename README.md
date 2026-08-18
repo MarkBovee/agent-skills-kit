@@ -22,7 +22,7 @@
 
 <p align="center">
   <code>ASK</code>
-  <code>10 skills</code>
+  <code>11 skills</code>
   <code>1 router plugin</code>
   <code>3 platforms</code>
   <code>review + verification</code>
@@ -71,7 +71,7 @@ The bootstrap script is the recommended path. It clones if needed, moves the man
 
 ### Unified Installer
 
-The managed installer now does one thing: install all shared skills into `~/.agents/skills`, install Copilot instructions, install the OpenCode router/plugin, when `~/.claude/` already exists write Claude rules and link `~/.claude/skills` back to `~/.agents/skills`, and when dsh is present install the dsh-optimized skill variant into `~/.dsh/skills` plus routing guidance into `~/.dsh/AGENTS.md`.
+The managed installer now does one thing: install all shared skills into `~/.agents/skills`, install Copilot instructions and prompt files, install the OpenCode router/plugin and slash commands, when `~/.claude/` already exists write Claude rules and link `~/.claude/skills` back to `~/.agents/skills`, and when dsh is present install the dsh-optimized skill variant into `~/.dsh/skills` plus routing guidance into `~/.dsh/AGENTS.md`.
 
 If you want non-default locations, set environment variables before running the installer:
 
@@ -213,7 +213,7 @@ Skills use short display names (e.g. `debugging`, `develop`) for easy reference.
 
 | Stage | Skills | Purpose |
 | --- | --- | --- |
-| Start | `intake` | clarify fuzzy work before it gets expensive (brainstorming + scoping + planning) |
+| Start | `spec`, `intake` | formalize requirements into a validated traceable spec; clarify fuzzy work before it gets expensive |
 | Execute | `develop`, `debugging` | move code forward with small coherent loops |
 | Validate | `code-review`, `verification` | review the diff and prove the claim (includes workspace wrap-up) |
 | Improve | `improve`, `session-review` | audit, refactor, session review, skill improvement |
@@ -224,6 +224,7 @@ Skills use short display names (e.g. `debugging`, `develop`) for easy reference.
 
 | Skill | Tier | Purpose |
 | --- | --- | --- |
+| `spec` | standard | Requirements specification + validation gates (Capture → Structure → Validate → Transfer) |
 | `develop` | standard | Default baseline: small, safe iterative software work (includes implementation mode selection) |
 | `intake` | standard | Pre-execution: design exploration, scope clarification, and multi-phase planning |
 | `debugging` | standard | Root-cause investigation |
@@ -234,6 +235,18 @@ Skills use short display names (e.g. `debugging`, `develop`) for easy reference.
 | `ui-ux` | heavy | UI and UX implementation support |
 | `agent-workflows` | light | Multi-agent coordination + release chores |
 | `write-skill` | standard | Skill authoring + workflow improvement tracking |
+
+## Commands
+
+Each skill also ships as a slash command. A command loads its skill and applies the workflow — no duplicated instructions, always the current skill body.
+
+| Platform | Mechanism | Location |
+| --- | --- | --- |
+| OpenCode | `.md` command files | `~/.config/opencode/commands/` (global) |
+| GitHub Copilot / VS Code | prompt files | `.github/prompts/*.prompt.md` + `~/.copilot/prompts/` |
+| Claude Code | skills are commands (2026) | no separate file — `skill` → `/name` |
+
+Commands are authored once under `commands/` and exported by `export-platform-skills.js` into `.opencode/commands/` (OpenCode) and `.github/prompts/*.prompt.md` (Copilot/VS Code). Claude Code and dsh get their command surface for free because their skills already act as slash commands.
 
 ---
 
@@ -262,6 +275,7 @@ The beslisboom injected every prompt:
 ```mermaid
 flowchart TD
     A[Agent evaluates task] --> B{Task matches?}
+    B -->|Specify requirements, build design brief| S[spec]
     B -->|Clarify scope, plan ambiguous work| I[intake]
     B -->|Debug bug, crash, error| D[debugging]
     B -->|Review code changes| CR[code-review]
@@ -273,6 +287,7 @@ flowchart TD
     B -->|Design or polish UI/UX| U[ui-ux]
     B -->|Normal software work| DE[develop]
 
+    style S fill:#2d1b69,stroke:#7C5CFF,color:#fff
     style I fill:#2d1b69,stroke:#7C5CFF,color:#fff
     style D fill:#1a1a2e,stroke:#e94560,color:#fff
     style DE fill:#1a1a2e,stroke:#e94560,color:#fff
@@ -287,7 +302,7 @@ flowchart TD
 
 | Stage | Skills | Color |
 | --- | --- | --- |
-| **Start** | `intake` | `#7C5CFF` purple |
+| **Start** | `spec`, `intake` | `#7C5CFF` purple |
 | **Execute** | `debugging`, `develop` | `#e94560` red |
 | **Validate** | `code-review`, `verification` | `#2ecc71` green |
 | **Improve** | `improve`, `session-review` | `#f39c12` orange |
@@ -303,7 +318,7 @@ Two optional frontmatter fields let a skill declare how expensive its default fl
 | `execution_tier` | Suggested `agentTier` | When to use | Example |
 | --- | --- | --- | --- |
 | `light` | `mini` | bounded, mechanical, single-pass work | `session-review` |
-| `standard` (default) | `default` | normal judgment-heavy work | `develop`, `intake`, `code-review`, `debugging`, `verification`, `write-skill` |
+| `standard` (default) | `default` | normal judgment-heavy work | `develop`, `spec`, `intake`, `code-review`, `debugging`, `verification`, `write-skill` |
 | `heavy` | `high` | broad or multi-part work, e.g. a full codebase audit or complex UI design | `improve`, `ui-ux` |
 | `deep` | `xhigh` | analysis-heavy or architectural work | — |
 

@@ -8,6 +8,7 @@ const CODE_EDIT_TOOL_IDS = new Set(["edit", "write", "apply_patch"])
 
 const SKILL_DEVELOP = "develop"
 const SKILL_INTAKE = "intake"
+const SKILL_SPEC = "spec"
 const SKILL_CODE_REVIEW = "code-review"
 const SKILL_VERIFICATION = "verification"
 const SKILL_DEBUGGING = "debugging"
@@ -80,6 +81,14 @@ const COMPLETION_PHRASES = [
   "test de fix", "check of het werkt", "validate", "valideren",
   "cleanup", "clean up",
 ]
+const SPEC_PHRASES = [
+  "specify requirements", "requirements spec", "requirements specification",
+  "requirements capture", "requirements engineering", "design brief",
+  "decision register", "requirements traceability", "traceable requirements",
+  "validation gate", "readiness gate", "handover package", "spec before build",
+  "truth spine", "requirements-driven", "formalize requirements",
+]
+
 const AMBIGUITY_PHRASES = [
   "brainstorm", "brainstormen", "fuzzy idea", "design tradeoff",
   "unsure what to build", "product direction", "idee uitwerken",
@@ -248,6 +257,7 @@ function buildExecutionProfile(matchedSkill, query) {
 }
 
 const OVERVIEW_ROWS = [
+  { label: "Specify requirements, build design brief",   skill: SKILL_SPEC },
   { label: "Clarify scope, plan ambiguous work",       skill: SKILL_INTAKE },
   { label: "Debug bug, crash, failing test, error",    skill: SKILL_DEBUGGING },
   { label: "Review code changes before handoff",       skill: SKILL_CODE_REVIEW },
@@ -304,8 +314,9 @@ function cascadeRoute(query, skills, sessionState) {
     const skill = findSkill(skills, name)
     return skill ? { matchedSkills: [skill], executionProfile: buildExecutionProfile(skill, q) } : null
   }
-  return (
-    tryRoute(AMBIGUITY_PHRASES, SKILL_INTAKE) ||           // 1. Start
+return (
+    tryRoute(SPEC_PHRASES, SKILL_SPEC) ||                   // 1. Start (explicit spec)
+    tryRoute(AMBIGUITY_PHRASES, SKILL_INTAKE) ||            // 2. Start
     tryRoute(BUG_PHRASES, SKILL_DEBUGGING) ||               // 2. Execute
     tryRoute(REVIEW_PHRASES, SKILL_CODE_REVIEW) ||          // 3. Validate
     (sessionState.needsCodeReview && (() => {
@@ -356,7 +367,7 @@ module.exports = {
   VALID_DELEGATION_MODES, VALID_EXECUTION_TIERS,
   SKILL_AGENT_WORKFLOWS, SKILL_CODE_REVIEW, SKILL_DEBUGGING,
   SKILL_SESSION_REVIEW, SKILL_IMPROVE, SKILL_DEVELOP, SKILL_INTAKE, SKILL_UI_UX,
-  SKILL_VERIFICATION, SKILL_WRITE_SKILL, COMPLETION_PHRASES,
+  SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SPEC, COMPLETION_PHRASES,
   buildSkillOverview, cascadeRoute, buildExecutionProfile, loadSkills,
   createEmptySessionState, getSessionState, setSessionState,
   findSkill, hasPhraseSignal,

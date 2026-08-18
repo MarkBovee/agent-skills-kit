@@ -7,6 +7,9 @@ const { parseBooleanField, parseFrontmatter, stripFrontmatter, toSingleLine } = 
 
 const REPO_ROOT = path.resolve(__dirname, "..")
 const SOURCE_SKILLS_DIR = path.join(REPO_ROOT, "skills")
+const SOURCE_COMMANDS_DIR = path.join(REPO_ROOT, "commands")
+const OPENCODE_COMMANDS_DIR = path.join(REPO_ROOT, ".opencode", "commands")
+const COPILOT_PROMPTS_DIR = path.join(REPO_ROOT, ".github", "prompts")
 const COPILOT_SKILLS_DIR = path.join(REPO_ROOT, ".github", "skills")
 const CLAUDE_SKILLS_DIR = path.join(REPO_ROOT, ".claude", "skills")
 const DSH_SKILLS_DIR = path.join(REPO_ROOT, ".dsh", "skills")
@@ -98,6 +101,73 @@ function buildDshSkill(skillName, description, triggers, disableModelInvocation,
 function getSkillTriggers(frontmatter) {
   if (!Array.isArray(frontmatter.triggers)) return []
   return frontmatter.triggers.map((entry) => String(entry).trim()).filter(Boolean)
+}
+
+// Read the description from a command file's YAML frontmatter.
+function readCommandDescription(content) {
+  const frontmatter = parseFrontmatter(content)
+  return (frontmatter.description || "").trim()
+}
+
+// Strip `$ARGUMENTS` and positional placeholders so Copilot prompt files get
+// a plain body (VS Code/Copilot appends arguments instead of substituting).
+function stripCommandPlaceholders(body) {
+  return body
+    .replace(/\$ARGUMENTS/g, "")
+    .replace(/\$\d+/g, "")
+    .replace(/Apply it to:.*$/m, "")
+    .trim()
+}
+
+// Build the OpenCode command document (native markdown command format).
+function buildOpenCodeCommand(description, body) {
+  return buildSkillDocument([["description", description]], stripFrontmatter(body))
+}
+
+// Build the Copilot/VS Code prompt-file document with Copilot-specific metadata.
+function buildCopilotPrompt(skillName, description, body) {
+  return buildSkillDocument([
+    ["name", skillName],
+    ["description", description],
+  ], stripCommandPlaceholders(stripFrontmatter(body)))
+}
+
+// List canonical source command files in stable name order.
+async function listCommandFiles() {
+  const entries = await fs.readdir(SOURCE_COMMANDS_DIR)
+  return entries.filter((name) => name.endsWith(".md")).sort((a, b) => a.localeCompare(b))
+}
+
+// Export the canonical commands into OpenCode (.opencode/commands) and
+// Copilot/VS Code (.github/prompts) platform directories.
+async function exportCommands() {
+  await fs.mkdir(OPENCODE_COMMANDS_DIR, { recursive: true })
+  await fs.mkdir(COPILOT_PROMPTS_DIR, { recursive: true })
+
+  await resetDirectory(OPENCODE_COMMANDS_DIR)
+  await resetDirectory(COPILOT_PROMPTS_DIR)
+
+  const commandFiles = await listCommandFiles()
+
+  for (const fileName of commandFiles) {
+    const sourcePath = path.join(SOURCE_COMMANDS_DIR, fileName)
+    const content = await fs.readFile(sourcePath, "utf8")
+    const description = readCommandDescription(content)
+    const commandName = fileName.replace(/\.md$/, "")
+
+    await fs.writeFile(
+      path.join(OPENCODE_COMMANDS_DIR, fileName),
+      buildOpenCodeCommand(description, content),
+      "utf8",
+    )
+    await fs.writeFile(
+      path.join(COPILOT_PROMPTS_DIR, `${commandName}.prompt.md`),
+      buildCopilotPrompt(commandName, description, content),
+      "utf8",
+    )
+  }
+
+  return commandFiles.length
 }
 
 // Rewrite source skill body references so copied skills still point at valid local assets.
@@ -214,7 +284,7 @@ function buildClaudeMd() {
   ].join("\n")
 }
 
-// Export the canonical skills into GitHub Copilot, Claude Code, and dsh project directories.
+// Export the canonical skills and commands into the platform directories.
 async function exportSkills() {
   await fs.mkdir(path.dirname(COPILOT_INSTRUCTIONS_PATH), { recursive: true })
   await fs.mkdir(path.dirname(CLAUDE_MD_PATH), { recursive: true })
@@ -271,8 +341,9 @@ async function exportSkills() {
 }
 
 exportSkills()
-  .then((count) => {
-    console.log(`Exported ${count} skills for GitHub Copilot, Claude Code, and DeepSeek Harness (dsh).`)
+  .then(async (count) => {
+    const commandCount = await exportCommands()
+    console.log(`Exported ${count} skills and ${commandCount} commands for GitHub Copilot, Claude Code, and DeepSeek Harness (dsh).`)
   })
   .catch((error) => {
     console.error(error)

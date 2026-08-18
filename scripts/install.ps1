@@ -14,6 +14,8 @@ $ErrorActionPreference = "Stop"
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot ".." )).Path
 $sharedSkillsSource = Join-Path $repoRoot "skills"
 $copilotInstructionsSource = Join-Path $repoRoot ".github\copilot-instructions.md"
+$opencodeCommandsSource = Join-Path $repoRoot ".opencode\commands"
+$copilotPromptsSource = Join-Path $repoRoot ".github\prompts"
 $opencodeCoreSource = Join-Path $repoRoot "core"
 $opencodePluginsSource = Join-Path $repoRoot "plugins"
 $opencodeRulesSource = Join-Path $repoRoot "rules"
@@ -23,6 +25,8 @@ $sharedSkillsTarget = Join-Path $AgentsDir "skills"
 $copilotSkillsTarget = Join-Path $CopilotDir "skills"
 $copilotInstructionsTarget = Join-Path $CopilotDir "instructions"
 $copilotInstructionsFile = Join-Path $copilotInstructionsTarget "agent-skills-kit.instructions.md"
+$copilotPromptsTarget = Join-Path $CopilotDir "prompts"
+$opencodeCommandsTarget = Join-Path $OpencodeDir "commands"
 $opencodeCoreTarget = Join-Path $OpencodeDir "core"
 $opencodeSkillsTarget = Join-Path $OpencodeDir "skills"
 $opencodePluginsTarget = Join-Path $OpencodeDir "plugins"
@@ -236,6 +240,16 @@ try {
     New-Item -ItemType Directory -Force -Path $copilotInstructionsTarget | Out-Null
     Copy-Item -LiteralPath $copilotInstructionsSource -Destination $copilotInstructionsFile -Force
 
+    # Install OpenCode commands (global) and Copilot/VS Code prompt files (user profile).
+    if (Test-Path -LiteralPath $opencodeCommandsSource) {
+        New-Item -ItemType Directory -Force -Path $opencodeCommandsTarget | Out-Null
+        Copy-Item -LiteralPath (Join-Path $opencodeCommandsSource "*") -Destination $opencodeCommandsTarget -Recurse -Force
+    }
+    if (Test-Path -LiteralPath $copilotPromptsSource) {
+        New-Item -ItemType Directory -Force -Path $copilotPromptsTarget | Out-Null
+        Copy-Item -LiteralPath (Join-Path $copilotPromptsSource "*") -Destination $copilotPromptsTarget -Recurse -Force
+    }
+
     New-Item -ItemType Directory -Force -Path $opencodePluginsTarget | Out-Null
     $opencodePluginCoreTarget = Join-Path $opencodePluginsTarget "core"
     if (Test-Path -LiteralPath $opencodeCoreTarget) {
@@ -326,6 +340,8 @@ try {
 
     "Installed $($installedSkills.Count) agent-skills-kit to $sharedSkillsTarget"
     "Installed Copilot instructions to $copilotInstructionsFile"
+    "Installed OpenCode commands to $opencodeCommandsTarget"
+    "Installed Copilot/VS Code prompt files to $copilotPromptsTarget"
     "Installed OpenCode router core to $(Join-Path $opencodePluginsTarget 'core')"
     "Installed OpenCode router plugin to $(Join-Path $opencodePluginsTarget 'agent-skills-router.mjs')"
     "Installed OpenCode rules to $(Join-Path $opencodeRulesTarget 'coding-standards.md')"

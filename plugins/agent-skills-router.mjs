@@ -88,6 +88,7 @@ export const AgentSkillsRouter = async () => {
         if ((state.skillsLoadedCount || 0) === 0) {
           return {
             tool_error: "Load a skill first via `skill(name: '...')`.\n"
+              + "  Specify requirements build design brief → spec\n"
               + "  Clarify scope plan ambiguous work    → intake\n"
               + "  Debug bug crash failing test error    → debugging\n"
               + "  Review code changes before handoff    → code-review\n"

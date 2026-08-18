@@ -7,6 +7,7 @@ Multi-platform skill-pack for OpenCode, GitHub Copilot, Claude Code. Ships workf
 ## Structure
 
 - `skills/<name>/SKILL.md` — one skill per directory
+- `commands/<name>.md` — one slash command per skill, referencing its skill
 - `plugins/agent-skills-router.mjs` — OpenCode plugin: deterministic cascade routing, injects routing hints into system prompt
 - `core/router-core.js` — shared router helpers (cascade routing, session state, frontmatter parsing)
 - `scripts/` — install/update/bootstrap scripts (bash + PowerShell parity)
@@ -63,6 +64,16 @@ When one skill leads into another, add `## Use with` with one-line descriptions.
 - No external deps unless documented
 - Support files live in skill's own directory
 
+## Command conventions
+
+One command file per skill under `commands/`, named after the skill (`spec.md`, `code-review.md`). Each command:
+
+- Has frontmatter `description` (one line, shown in the slash-command picker)
+- Body loads the skill via `skill(name: '...')` and applies it to `$ARGUMENTS`
+- Never duplicates skill content — reference the skill, keep it DRY
+
+Export targets (via `export-platform-skills.js`): OpenCode → `.opencode/commands/`, Copilot/VS Code → `.github/prompts/*.prompt.md`. Claude Code and dsh need no command files — their skills already act as slash commands. Commands are generated artifacts; never hand-edit the exported copies.
+
 ## Router plugin
 
 `plugins/agent-skills-router.mjs` injects a beslisboom (decision tree) every prompt — agent self-selects skills via `skill(name: '...')`. No automatic phrase matching. When changing:
@@ -78,7 +89,7 @@ Before claiming a fix ships:
 
 1. `node -e "import('./plugins/agent-skills-router.mjs')"` — plugin loads without error
 2. `node ./scripts/export-platform-skills.js` — exports regenerate
-3. Beslisboom check: `node -e "const {buildSkillOverview,createEmptySessionState}=require('./core/router-core'); console.log(buildSkillOverview(createEmptySessionState()))"` — output contains `╌ Agent Skills Kit ╌` and all 10 skills
+3. Beslisboom check: `node -e "const {buildSkillOverview,createEmptySessionState}=require('./core/router-core'); console.log(buildSkillOverview(createEmptySessionState()))"` — output contains `╌ Agent Skills Kit ╌` and all 11 skills
 4. OpenCode plugin check: in a test session, verify `╌ Agent Skills Kit ╌` appears in the system prompt with the beslisboom. If missing, check `opencode.json` `plugins` array includes `./plugins/agent-skills-router.mjs` and the file exists at that path.
 
 ## Install scripts

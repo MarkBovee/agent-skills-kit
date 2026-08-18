@@ -13,6 +13,12 @@ const SKILLS_PATH = path.resolve(__dirname, "..", "skills")
 
 // Each entry asserts the cascade top match for the query is the expected skill.
 const ROUTING_CASES = [
+  // Start — spec
+  ["specify requirements", "spec"],
+  ["design brief", "spec"],
+  ["requirements traceability", "spec"],
+  ["handover package", "spec"],
+  ["spec before build", "spec"],
   // Start — intake
   ["brainstorm", "intake"],
   ["plan dit werk", "intake"],
