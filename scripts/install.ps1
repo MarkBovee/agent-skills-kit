@@ -243,11 +243,15 @@ try {
     # Install OpenCode commands (global) and Copilot/VS Code prompt files (user profile).
     if (Test-Path -LiteralPath $opencodeCommandsSource) {
         New-Item -ItemType Directory -Force -Path $opencodeCommandsTarget | Out-Null
-        Copy-Item -LiteralPath (Join-Path $opencodeCommandsSource "*") -Destination $opencodeCommandsTarget -Recurse -Force
+        foreach ($commandFile in Get-ChildItem -LiteralPath $opencodeCommandsSource -Force) {
+            Copy-Item -LiteralPath $commandFile.FullName -Destination $opencodeCommandsTarget -Recurse -Force
+        }
     }
     if (Test-Path -LiteralPath $copilotPromptsSource) {
         New-Item -ItemType Directory -Force -Path $copilotPromptsTarget | Out-Null
-        Copy-Item -LiteralPath (Join-Path $copilotPromptsSource "*") -Destination $copilotPromptsTarget -Recurse -Force
+        foreach ($promptFile in Get-ChildItem -LiteralPath $copilotPromptsSource -Force) {
+            Copy-Item -LiteralPath $promptFile.FullName -Destination $copilotPromptsTarget -Recurse -Force
+        }
     }
 
     New-Item -ItemType Directory -Force -Path $opencodePluginsTarget | Out-Null
