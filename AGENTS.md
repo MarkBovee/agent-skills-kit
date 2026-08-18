@@ -108,6 +108,7 @@ Change both `.sh` and `.ps1` together.
 - User-visible fix to shipped assets (`skills/`, `core/`, `plugins/`, `scripts/`) → patch bump in `VERSION`
 - `VERSION` bump + matching `CHANGELOG.md` entry in same change
 - Fix ships to stable users only after `vX.Y.Z` tag exists
+- When `main` is protected, create and push a fix branch, open a PR, and tag the release only after that PR is merged; never push directly to `main`
 - Doc-only/internal changes can stay unreleased
 
 ## Validation
