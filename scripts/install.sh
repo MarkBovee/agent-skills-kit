@@ -42,6 +42,31 @@ DSH_SECTION_MARKER="<!-- agent-skills-kit:dsh -->"
 CURRENT_MANAGED_SKILLS=""
 GENERATED_ASSETS_LOCK_HELD=0
 
+# Remove files from the pre-ASK installer without touching user-owned content.
+remove_legacy_install_artifacts() {
+  rm -f \
+    "$AGENTS_DIR/.nebu-skills-install.txt" \
+    "$SHARED_SKILLS_TARGET/.nebu-managed-skills.txt" \
+    "$COPILOT_DIR/.nebu-skills-install.txt" \
+    "$COPILOT_DIR/instructions/nebu-skills.instructions.md" \
+    "$COPILOT_DIR/mcp-config.json.nebu-ctx.bak" \
+    "$OPENCODE_DIR/opencode.json.nebu-ctx.bak" \
+    "$OPENCODE_DIR/plugins/nebu-ctx.ts" \
+    "$OPENCODE_DIR/plugins/nebu-ctx.ts.nebu-ctx.bak" \
+    "$OPENCODE_DIR/plugins/nebu-skills-router.js" \
+    "$OPENCODE_DIR/rules/nebu-ctx.md" \
+    "$CLAUDE_DIR/hooks/nebu-ctx-redirect-native" \
+    "$CLAUDE_DIR/hooks/nebu-ctx-redirect-native.nebu-ctx.bak" \
+    "$CLAUDE_DIR/hooks/nebu-ctx-redirect.sh" \
+    "$CLAUDE_DIR/hooks/nebu-ctx-redirect.sh.nebu-ctx.bak" \
+    "$CLAUDE_DIR/hooks/nebu-ctx-rewrite-native" \
+    "$CLAUDE_DIR/hooks/nebu-ctx-rewrite-native.nebu-ctx.bak" \
+    "$CLAUDE_DIR/hooks/nebu-ctx-rewrite.sh" \
+    "$CLAUDE_DIR/hooks/nebu-ctx-rewrite.sh.nebu-ctx.bak" \
+    "$CLAUDE_DIR/rules/nebu-ctx.md" \
+    "$CLAUDE_DIR/rules/nebu-skills.md"
+}
+
 # Clean up installer temp state and shared locks on every exit path.
 cleanup_install() {
   if [ -n "$CURRENT_MANAGED_SKILLS" ] && [ -f "$CURRENT_MANAGED_SKILLS" ]; then
@@ -218,6 +243,7 @@ node "$SCRIPT_DIR/export-platform-skills.js"
 CURRENT_MANAGED_SKILLS="$(mktemp)"
 write_current_skill_manifest "$SHARED_SKILLS_SOURCE" "$CURRENT_MANAGED_SKILLS"
 
+remove_legacy_install_artifacts
 installed_count="$(sync_shared_skills)"
 
 clean_old_skill_root "$COPILOT_SKILLS_TARGET"

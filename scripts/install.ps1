@@ -41,6 +41,38 @@ $installMetadataFile = Join-Path $AgentsDir ".agent-skills-kit-install.txt"
 $managedSkillsManifest = ".ask-managed-skills.txt"
 $dshSectionMarker = "<!-- agent-skills-kit:dsh -->"
 
+# Remove files from the pre-ASK installer without touching user-owned content.
+function Remove-LegacyInstallArtifacts {
+    $legacyPaths = @(
+        (Join-Path $AgentsDir ".nebu-skills-install.txt"),
+        (Join-Path $sharedSkillsTarget ".nebu-managed-skills.txt"),
+        (Join-Path $CopilotDir ".nebu-skills-install.txt"),
+        (Join-Path $copilotInstructionsTarget "nebu-skills.instructions.md"),
+        (Join-Path $CopilotDir "mcp-config.json.nebu-ctx.bak"),
+        (Join-Path $OpencodeDir "opencode.json.nebu-ctx.bak"),
+        (Join-Path $opencodePluginsTarget "nebu-ctx.ts"),
+        (Join-Path $opencodePluginsTarget "nebu-ctx.ts.nebu-ctx.bak"),
+        (Join-Path $opencodePluginsTarget "nebu-skills-router.js"),
+        (Join-Path $opencodeRulesTarget "nebu-ctx.md"),
+        (Join-Path $ClaudeDir "hooks\nebu-ctx-redirect-native"),
+        (Join-Path $ClaudeDir "hooks\nebu-ctx-redirect-native.nebu-ctx.bak"),
+        (Join-Path $ClaudeDir "hooks\nebu-ctx-redirect.sh"),
+        (Join-Path $ClaudeDir "hooks\nebu-ctx-redirect.sh.nebu-ctx.bak"),
+        (Join-Path $ClaudeDir "hooks\nebu-ctx-rewrite-native"),
+        (Join-Path $ClaudeDir "hooks\nebu-ctx-rewrite-native.nebu-ctx.bak"),
+        (Join-Path $ClaudeDir "hooks\nebu-ctx-rewrite.sh"),
+        (Join-Path $ClaudeDir "hooks\nebu-ctx-rewrite.sh.nebu-ctx.bak"),
+        (Join-Path $ClaudeDir "rules\nebu-ctx.md"),
+        (Join-Path $ClaudeDir "rules\nebu-skills.md")
+    )
+
+    foreach ($legacyPath in $legacyPaths) {
+        if (Test-Path -LiteralPath $legacyPath) {
+            Remove-Item -LiteralPath $legacyPath -Recurse -Force
+        }
+    }
+}
+
 # Write the Claude rule file when a Claude home already exists.
 function Write-ClaudeRulesFile {
     @"
@@ -223,6 +255,7 @@ try {
     & $node.Source (Join-Path $PSScriptRoot "export-platform-skills.js")
 
     $currentSkillNames = Get-ManagedSkillNames -SourcePath $sharedSkillsSource
+    Remove-LegacyInstallArtifacts
     $installedSkills = Sync-SharedSkills -CurrentSkillNames $currentSkillNames
 
     Clear-OldSkillRoot -TargetPath $copilotSkillsTarget -CurrentSkillNames $currentSkillNames
