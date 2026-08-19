@@ -57,7 +57,6 @@
 - Treat implementation, debugging, review, verification, and wrap-up as explicit, intentional stages.
 - Ship portable workflow guidance from a single repository to three agent platforms.
 - Require proof that matches the claim — not ritual for its own sake.
-- Stay compatible with existing tooling such as `nebu-ctx`.
 
 Project changes are tracked in [CHANGELOG.md](./CHANGELOG.md).
 
@@ -333,7 +332,6 @@ Hard boundaries:
 - no automatic tool execution
 - no session takeover
 - no hidden automation
-- clean coexistence with other plugins, including `nebu-ctx`
 
 ---
 

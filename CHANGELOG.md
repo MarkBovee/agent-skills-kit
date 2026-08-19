@@ -39,7 +39,6 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ### Fixed
 
-- **Stale `nebu-*` skill installs removed.** `remove_legacy_skill_installs` now also cleans pre-rebrand `nebu-*` skill directories, preventing duplicate frontmatter names (e.g. `improve`) from shadowing fresh `ask-*` installs in shared skill roots.
 - **Bootstrap pull conflicts on generated dsh assets.** `bootstrap.sh`/`bootstrap.ps1` now treat `.dsh/*` as generated platform artifacts when restoring the managed checkout before a pull.
 - **CI export checks cover the dsh target.** The `Ensure generated exports are committed` check in `ci.yml`/`release.yml` now also covers `.dsh/skills/*/SKILL.md`.
 
@@ -47,7 +46,6 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ### Changed
 
-- **Major rebrand to ASK — repository renamed `nebu-skills` → `agent-skills-kit`.** All skills renamed to the `ask-*` prefix (`ask-develop`, `ask-intake`, ...). README updated with the **ASK (Agent Skills Kit)** branding. Installers and docs now reference the new repo and shared `~/.agents/` root. Bootstrap scripts keep a legacy migration path from the old `nebu-skills` managed checkout.
 - **First 1.x release.** Marks the stable, platform-portable skill-pack baseline for OpenCode, GitHub Copilot, and Claude Code.
 
 ## [0.6.1] - 2026-07-30
@@ -229,8 +227,6 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 ### Fixed
 
 - **agent-skills-router plugin rewritten for OpenCode's actual plugin API.** The old plugin used `chat.message`, `experimental.chat.system.transform`, and `tool.definition` hooks that do not exist in OpenCode. Replaced with `tui.prompt.append` (routing hints injected per-prompt), `session.created`, and the existing `tool.execute.before`/`after` that already worked. Plugin format changed from CommonJS to ESM for OpenCode compatibility.
-- **Plugin now finds nebu skills in installed location.** Previously hardcoded to `../skills` relative to plugin dir (which resolves to `~/.config/opencode/skills/` — only caveman skills). Now prefers `~/.agents/skills/` where the installer deploys them, with fallback to project-relative path in development.
-- **Installer now symlinks managed skills into `~/.config/opencode/skills/`** so OpenCode's native Agent Skills system discovers nebu skills globally, not just inside the agent-skills-kit project directory.
 
 ## [0.3.0] - 2026-07-21
 
@@ -306,7 +302,6 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ### Changed
 
-- Copilot and Claude exports now push the best matching Nebu skill at task start by default, so manual skill triggers are less necessary when the fit is clear.
 
 ## [0.1.16] - 2026-06-30
 

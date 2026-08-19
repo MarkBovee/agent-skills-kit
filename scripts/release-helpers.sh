@@ -74,14 +74,14 @@ refresh_repo_tags() {
   fi
 }
 
-# Remove older skill-pack installs that used legacy naming (lean-* and the
-# pre-rebrand nebu-* skill directories). Both predate the current ask-* set and
+# Remove older skill-pack installs that used legacy naming (lean-* and
+# leanctx directories). Both predate the current ask-* set and
 # would otherwise collide on their frontmatter names with fresh installs.
 remove_legacy_skill_installs() {
   local base_dir="$1"
   [ -d "$base_dir" ] || return 0
 
-  find "$base_dir" -mindepth 1 -maxdepth 1 \( -name 'lean-*' -o -name '*leanctx*' -o -name 'nebu-*' \) -exec rm -rf {} +
+  find "$base_dir" -mindepth 1 -maxdepth 1 \( -name 'lean-*' -o -name '*leanctx*' \) -exec rm -rf {} +
 }
 
 # Remove stale managed skill directories that should no longer survive upgrades.

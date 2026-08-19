@@ -12,20 +12,6 @@ $repoParent = Split-Path -Parent $RepoDir
 $git = Get-Command git -ErrorAction SilentlyContinue
 $helpersPath = Join-Path $RepoDir "scripts\release-helpers.ps1"
 
-# Migrate a managed checkout from the old nebu-skills path to the new
-# agent-skills-kit path, but only when no new-path checkout exists yet and
-# the old one still points at this repo.
-$legacyRepoDir = if ($env:XDG_DATA_HOME) { Join-Path $env:XDG_DATA_HOME "nebu-skills" } elseif ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA "nebu-skills" } else { Join-Path $HOME ".local\share\nebu-skills" }
-if (-not (Test-Path $RepoDir) -and (Test-Path (Join-Path $legacyRepoDir ".git"))) {
-    $legacyRemote = & git -C $legacyRepoDir remote get-url origin 2>$null
-    if ($legacyRemote -match "nebu-skills|agent-skills-kit") {
-        Write-Warning "Migrating managed checkout from $legacyRepoDir to $RepoDir ..."
-        New-Item -ItemType Directory -Path $repoParent -Force | Out-Null
-        Move-Item -Path $legacyRepoDir -Destination $RepoDir
-        & git -C $RepoDir remote set-url origin $repoUrl
-    }
-}
-
 # Pull one managed checkout, retrying after restoring generated artifacts when that is the only local drift.
 function Invoke-BootstrapManagedCheckoutPull {
     param([string]$RepoRoot)
