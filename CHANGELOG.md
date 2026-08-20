@@ -6,6 +6,16 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [1.3.0] - 2026-08-20
+
+### Added
+
+- **New `text-writing` skill.** `skills/ask-text-writing/SKILL.md` produces human-sounding text that avoids detectable AI writing patterns — banned-vocabulary list (loads `references/banned-words.md`), structure/punctuation/accuracy/formatting constraints, voice calibration, and a ten-point self-check before output. For tweets, emails, articles, copy, cover letters, and any text that must not read as AI-generated. Routing row in the beslisboom (after `ui-ux`), ships as slash command `text-writing`. Adapted from [jalaalrd/anti-ai-slop-writing](https://github.com/jalaalrd/anti-ai-slop-writing) (MIT); the untracked nested clone in `skills/` is removed.
+
+### Changed
+
+- **`rules/coding-standards.md` markup structure comments.** New hard rule: concise start/end comments around major sections and meaningful components in HTML and other markup, labeling repeated groups without annotating every element; generated output may be minified only when comments and content-sensitive blocks are preserved as required.
+
 ## [1.2.1] - 2026-08-18
 
 ### Fixed

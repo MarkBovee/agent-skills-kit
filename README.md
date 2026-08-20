@@ -22,7 +22,7 @@
 
 <p align="center">
   <code>ASK</code>
-  <code>12 skills</code>
+  <code>13 skills</code>
   <code>1 router plugin</code>
   <code>3 platforms</code>
   <code>review + verification</code>
@@ -218,6 +218,7 @@ Skills use short display names (e.g. `debugging`, `develop`) for easy reference.
 | Improve | `improve`, `session-review` | audit, refactor, session review, skill improvement |
 | Coordinate | `agent-workflows`, `write-skill` | route work, finish cleanly, keep the skill system healthy |
 | Product | `ui-ux`, `design-review` | push interface work beyond bland default SaaS output, then filter it for AI-default slop before shipping |
+| Write | `text-writing` | produce human-sounding text without detectable AI writing patterns |
 
 ### Full Roster
 
@@ -233,6 +234,7 @@ Skills use short display names (e.g. `debugging`, `develop`) for easy reference.
 | `session-review` | light | Session self-review + GitHub issue filing |
 | `ui-ux` | heavy | UI and UX implementation support |
 | `design-review` | standard | Anti-default filter: reviews design, UI, or copy for AI-generated slop before shipping |
+| `text-writing` | standard | Human-first writing: avoids AI-detected vocabulary, structure, punctuation, and formatting patterns |
 | `agent-workflows` | light | Multi-agent coordination + release chores |
 | `write-skill` | standard | Skill authoring + workflow improvement tracking |
 
@@ -285,6 +287,7 @@ flowchart TD
     B -->|Multi-agent, parallel tasks| A2[agent-workflows]
     B -->|Create or revise a skill| W[write-skill]
     B -->|Design or polish UI/UX| U[ui-ux]
+    B -->|Write text that reads human, not AI| T[text-writing]
     B -->|Normal software work| DE[develop]
 
     style S fill:#2d1b69,stroke:#7C5CFF,color:#fff
@@ -298,6 +301,7 @@ flowchart TD
     style A2 fill:#1a1a2e,stroke:#1abc9c,color:#fff
     style W fill:#1a1a2e,stroke:#1abc9c,color:#fff
     style U fill:#1a1a2e,stroke:#e91e8c,color:#fff
+    style T fill:#1a1a2e,stroke:#8b5cf6,color:#fff
 ```
 
 | Stage | Skills | Color |
@@ -308,6 +312,7 @@ flowchart TD
 | **Improve** | `improve`, `session-review` | `#f39c12` orange |
 | **Coordinate** | `agent-workflows`, `write-skill` | `#1abc9c` teal |
 | **Product** | `ui-ux` | `#e91e8c` pink |
+| **Write** | `text-writing` | `#8b5cf6` violet |
 
 Session state tracks code edits, tool usage, and skill-load events. The router nudges when code was edited without review, when a UI was produced (load `design-review`), or when many tools ran without loading any skill — always hint, never force.
 
@@ -318,7 +323,7 @@ Two optional frontmatter fields let a skill declare how expensive its default fl
 | `execution_tier` | Suggested `agentTier` | When to use | Example |
 | --- | --- | --- | --- |
 | `light` | `mini` | bounded, mechanical, single-pass work | `session-review` |
-| `standard` (default) | `default` | normal judgment-heavy work | `develop`, `spec`, `intake`, `code-review`, `debugging`, `verification`, `write-skill` |
+| `standard` (default) | `default` | normal judgment-heavy work | `develop`, `spec`, `intake`, `code-review`, `debugging`, `verification`, `write-skill`, `text-writing` |
 | `heavy` | `high` | broad or multi-part work, e.g. a full codebase audit or complex UI design | `improve`, `ui-ux` |
 | `deep` | `xhigh` | analysis-heavy or architectural work | — |
 

@@ -98,6 +98,7 @@ export const AgentSkillsRouter = async () => {
               + "  Coordinate multi-agent parallel tasks → agent-workflows\n"
               + "  Create or revise a skill              → write-skill\n"
               + "  Design or polish UI/UX                → ui-ux\n"
+              + "  Write text that reads human, not AI   → text-writing\n"
               + "  Normal software work (default)        → develop",
           }
         }

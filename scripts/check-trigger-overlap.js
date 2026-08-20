@@ -63,6 +63,11 @@ const ROUTING_CASES = [
   ["design a ui", "ui-ux"],
   ["redesign this page", "ui-ux"],
   ["polish the frontend", "ui-ux"],
+  // Product — text-writing
+  ["make this sound human", "text-writing"],
+  ["write a tweet", "text-writing"],
+  ["draft email", "text-writing"],
+  ["anti-slop", "text-writing"],
   // Default
   ["hello world", "develop"],
   ["bump version", "develop"],

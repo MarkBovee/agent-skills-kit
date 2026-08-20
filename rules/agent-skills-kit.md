@@ -15,6 +15,7 @@ Reflect on session, file improvement     → session-review
 Coordinate multi-agent, parallel tasks   → agent-workflows
 Create or revise a skill                 → write-skill
 Design or polish UI/UX                   → ui-ux
+Write text that reads human, not AI      → text-writing
 Normal software work (default)           → develop
 ```
 

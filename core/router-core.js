@@ -18,6 +18,7 @@ const SKILL_DESIGN_REVIEW = "design-review"
 const SKILL_SESSION_REVIEW = "session-review"
 const SKILL_AGENT_WORKFLOWS = "agent-workflows"
 const SKILL_WRITE_SKILL = "write-skill"
+const SKILL_TEXT_WRITING = "text-writing"
 const VALID_EXECUTION_TIERS = new Set(["light", "standard", "heavy", "deep"])
 const VALID_DELEGATION_MODES = new Set(["auto", "prefer-subagent", "owner-only"])
 
@@ -88,6 +89,15 @@ const SPEC_PHRASES = [
   "decision register", "requirements traceability", "traceable requirements",
   "validation gate", "readiness gate", "handover package", "spec before build",
   "truth spine", "requirements-driven", "formalize requirements",
+]
+
+// Signal phrases for human-first writing. Chosen to avoid colliding with
+// develop triggers (write/rewrite) and write-skill phrases (create skill).
+const TEXT_WRITING_PHRASES = [
+  "anti-slop", "make this sound human", "sound human", "not read like ai",
+  "read like ai", "not ai", "write a tweet", "draft email", "draft an email",
+  "write an email", "cover letter", "linkedin post", "blog post", "newsletter",
+  "copywriting", "schrijf als mens", "niet ai", "menselijk laten klinken",
 ]
 
 const AMBIGUITY_PHRASES = [
@@ -269,6 +279,7 @@ const OVERVIEW_ROWS = [
   { label: "Coordinate multi-agent, parallel tasks",   skill: SKILL_AGENT_WORKFLOWS },
   { label: "Create or revise a skill",                 skill: SKILL_WRITE_SKILL },
   { label: "Design or polish UI/UX",                   skill: SKILL_UI_UX },
+  { label: "Write text that reads human, not AI",      skill: SKILL_TEXT_WRITING },
   { label: "Normal software work (default)",           skill: SKILL_DEVELOP },
 ]
 
@@ -337,10 +348,11 @@ return (
     tryRoute(AGENT_PHRASES, SKILL_AGENT_WORKFLOWS) ||       // 7. Coordinate
     tryRoute(WRITE_SKILL_PHRASES, SKILL_WRITE_SKILL) ||     // 8. Coordinate
     tryRoute(UI_PHRASES, SKILL_UI_UX) ||                    // 9. Product
+    tryRoute(TEXT_WRITING_PHRASES, SKILL_TEXT_WRITING) ||   // 10. Product
     (() => {
       const fallback = findSkill(skills, SKILL_DEVELOP)
       return { matchedSkills: fallback ? [fallback] : [], executionProfile: buildExecutionProfile(fallback, q) }
-    })()                                                     // 10. Execute (default)
+    })()                                                     // 11. Execute (default)
   )
 }
 
@@ -373,6 +385,7 @@ module.exports = {
   SKILL_AGENT_WORKFLOWS, SKILL_CODE_REVIEW, SKILL_DEBUGGING,
   SKILL_SESSION_REVIEW, SKILL_IMPROVE, SKILL_DEVELOP, SKILL_INTAKE, SKILL_UI_UX,
   SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SPEC, COMPLETION_PHRASES, SKILL_DESIGN_REVIEW,
+  SKILL_TEXT_WRITING,
   buildSkillOverview, cascadeRoute, buildExecutionProfile, loadSkills,
   createEmptySessionState, getSessionState, setSessionState,
   findSkill, hasPhraseSignal,
