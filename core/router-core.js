@@ -379,6 +379,39 @@ function getSessionState(cache, sessionID) {
   return cache.get(sessionID) || createEmptySessionState()
 }
 
+// Check whether a provider's usage currently falls inside its peak-pricing
+// or session-drain window. Anthropic drains Claude session limits faster on
+// weekdays 13:00-19:00 UTC; DeepSeek doubles its price during 01:00-04:00
+// or 06:00-10:00 UTC. Returns false for unknown providers or off-window times.
+function isInPeakWindow(date, providerID) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return false
+  const provider = String(providerID || "").toLowerCase()
+  const day = date.getUTCDay()
+  const hour = date.getUTCHours() + date.getUTCMinutes() / 60
+
+  if (provider.includes("anthropic") || provider.includes("claude")) {
+    return day >= 1 && day <= 5 && hour >= 13 && hour < 19
+  }
+
+  if (provider.includes("deepseek")) {
+    return (hour >= 1 && hour < 4) || (hour >= 6 && hour < 10)
+  }
+
+  return false
+}
+
+// Build a short human-readable description of a provider's active peak window.
+function describePeakWindow(providerID) {
+  const provider = String(providerID || "").toLowerCase()
+  if (provider.includes("anthropic") || provider.includes("claude")) {
+    return "Claude peak hours (Mon-Fri 13:00-19:00 UTC) - session limit drains faster than usual"
+  }
+  if (provider.includes("deepseek")) {
+    return "DeepSeek peak window (01:00-04:00 or 06:00-10:00 UTC) - usage costs 2x"
+  }
+  return ""
+}
+
 module.exports = {
   CODE_EDIT_TOOL_IDS, CODE_WORK_TOOL_IDS, DEFAULT_MAX_HINTS, DEFAULT_MAX_LISTED_SKILLS, RECENT_TOOL_MAX,
   VALID_DELEGATION_MODES, VALID_EXECUTION_TIERS,
@@ -391,4 +424,5 @@ module.exports = {
   findSkill, hasPhraseSignal,
   stripFrontmatter, toSingleLine, normalizeStringList,
   parseBooleanField, parseFrontmatter, unique,
+  isInPeakWindow, describePeakWindow,
 }

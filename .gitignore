@@ -18,6 +18,9 @@ build/
 .env
 .env.*
 
+# gh-inbox local state
+.gh-inbox-state.json
+
 # Editors
 .idea/
 .vscode/

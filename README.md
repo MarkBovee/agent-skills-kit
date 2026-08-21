@@ -22,7 +22,7 @@
 
 <p align="center">
   <code>ASK</code>
-  <code>13 skills</code>
+  <code>14 skills</code>
   <code>1 router plugin</code>
   <code>3 platforms</code>
   <code>review + verification</code>
@@ -219,6 +219,7 @@ Skills use short display names (e.g. `debugging`, `develop`) for easy reference.
 | Coordinate | `agent-workflows`, `write-skill` | route work, finish cleanly, keep the skill system healthy |
 | Product | `ui-ux`, `design-review` | push interface work beyond bland default SaaS output, then filter it for AI-default slop before shipping |
 | Write | `text-writing` | produce human-sounding text without detectable AI writing patterns |
+| Operate | `gh-inbox` | triage the current repository's GitHub issues and discussions, reply when clear, persist inbox state |
 
 ### Full Roster
 
@@ -237,6 +238,7 @@ Skills use short display names (e.g. `debugging`, `develop`) for easy reference.
 | `text-writing` | standard | Human-first writing: avoids AI-detected vocabulary, structure, punctuation, and formatting patterns |
 | `agent-workflows` | light | Multi-agent coordination + release chores |
 | `write-skill` | standard | Skill authoring + workflow improvement tracking |
+| `gh-inbox` | standard | GitHub issue/discussion triage: fetch, diff against stored state, reply when clear, persist |
 
 ## Commands
 
@@ -337,6 +339,16 @@ Hard boundaries:
 - no automatic tool execution
 - no session takeover
 - no hidden automation
+
+### Provider peak-window warnings
+
+The router detects the active model provider (via `chat.params`) and, once per session,
+surfaces a one-line warning when the provider's peak window is active:
+
+- **Anthropic / Claude** — weekdays 13:00–19:00 UTC, session limit drains faster.
+- **DeepSeek** — 01:00–04:00 or 06:00–10:00 UTC, usage costs 2x.
+
+These are informational hints only — they never block work or force delegation.
 
 ---
 
@@ -503,3 +515,4 @@ For project history, removals, and workflow shifts, see [CHANGELOG.md](./CHANGEL
 ## License
 
 MIT — see [LICENSE](./LICENSE). Copyright (c) 2026 Mark Bovee.
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       

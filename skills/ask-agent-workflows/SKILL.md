@@ -85,6 +85,19 @@ What a subagent returns to the main thread:
 - **Timeout every call** — 30s grep/locate, 60s review, 120s research. If the host supports timeout parameters, use them.
 - **Main never waits forever** — after timeout, use what came back or re-delegate with narrower scope. Never retry unchanged.
 
+### Progress updates for long-running background tasks
+
+When a background subagent runs for a long time, the main channel must not stay silent.
+Emit periodic, rate-limited progress updates while the task runs:
+
+- **Rate-limit by milestone or time**, never per tool call. One update per meaningful phase
+  (or roughly every few minutes) is enough.
+- **Include in each update:** current status (`running` / `blocked` / `failed` / `completed`),
+  the milestone or phase reached, approximate progress where available, blockers or required
+  user input, and the final output location on completion.
+- **Surface blocked/failed promptly** — do not keep the main channel waiting on a stuck task.
+- **Stop on completion** — the final result is the last update; no trailing status noise.
+
 ### Concrete flows
 
 **Review flow:** Main thread delegates a bounded review → subagent returns structured findings (1 line per issue, severity-tagged) → main thread applies or delegates fixes. Only the findings table stays in context, not the diff.
@@ -106,3 +119,4 @@ What a subagent returns to the main thread:
 - fuzzy handoffs with no owner, no scope, or no success criteria
 - parallel edits in the same files without an explicit merge plan
 - keeping subagent reasoning verbatim — defeats the purpose of delegation
+- long-running background tasks that leave the main channel silent for minutes

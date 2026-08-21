@@ -6,6 +6,19 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [1.3.1] - 2026-08-20
+
+### Added
+
+- **New `gh-inbox` skill.** `skills/ask-gh-inbox/SKILL.md` processes the current repository's GitHub inbox: resolve the repo, fetch open issues and discussions, diff against `.gh-inbox-state.json`, triage new items, reply where the action is factual and low-risk, report, and persist state. Ships as slash command `gh-inbox`. The standalone `commands/gh-inbox.md` workflow moved into the skill; the command now loads the skill (DRY).
+- **Automatic skill-match nudge in the OpenCode router.** `plugins/agent-skills-router.mjs` now runs the prompt through `cascadeRoute` and surfaces a one-line nudge (`→ Match: <skill> — call skill(name: '<skill>') now`) when a non-default skill matches and is not yet loaded, instead of leaving the agent to self-select from the beslisboom alone. (#24 follow-on)
+- **Provider peak-window warnings.** The router detects the active provider via the `chat.params` hook and warns once per session when a provider's peak window is active: Anthropic/Claude (weekdays 13:00–19:00 UTC, faster session-limit drain) and DeepSeek (01:00–04:00 or 06:00–10:00 UTC, 2x price). (#19)
+- **`agent-workflows` progress-update guidance.** New section for long-running background subagents: emit periodic, rate-limited (milestone- or time-based, never per tool call) progress updates to the main channel — status, milestone/phase, approximate progress, blockers, and final output location; surface blocked/failed promptly and stop on completion. (#24)
+
+### Changed
+
+- **`ask-develop` DeepSeek peak rule.** The peak-pricing check now points to the router's automatic DeepSeek warning instead of asking the agent to self-detect the window.
+
 ## [1.3.0] - 2026-08-20
 
 ### Added

@@ -12,8 +12,9 @@ const here = dirname(fileURLToPath(import.meta.url))
 const {
   CODE_EDIT_TOOL_IDS, CODE_WORK_TOOL_IDS, RECENT_TOOL_MAX, COMPLETION_PHRASES,
   SKILL_CODE_REVIEW, SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_DESIGN_REVIEW, SKILL_UI_UX,
-  buildSkillOverview, getSessionState, loadSkills,
-  setSessionState, hasPhraseSignal, toSingleLine,
+  SKILL_DEVELOP,
+  buildSkillOverview, cascadeRoute, getSessionState, loadSkills,
+  setSessionState, hasPhraseSignal, toSingleLine, isInPeakWindow, describePeakWindow, unique,
 } = require(resolve(here, "../core/router-core"))
 
 function resolveSkillPath() {
@@ -51,14 +52,35 @@ export const AgentSkillsRouter = async () => {
     "session.created": async () => {
       try { await getSkills() } catch { /* ok */ }
     },
+    "chat.params": async (input) => {
+      try {
+        const providerID = input?.provider?.info?.id || input?.model?.providerID || ""
+        if (!providerID) return
+        setSessionState(sessionState, SESSION_KEY, { providerID })
+      } catch { /* plugin error, skip provider tracking this call */ }
+    },
     "tui.prompt.append": async (input) => {
       try {
         const promptText = (input?.prompt || input?.text || "").trim()
         if (!promptText) return
         const state = getSessionState(sessionState, SESSION_KEY)
+        const skills = await getSkills()
+        const extraLines = []
+
+        const route = cascadeRoute(promptText, skills, state)
+        const matchSkill = route?.matchedSkills?.[0]
+        const loadedSkills = state.loadedSkills || []
+        if (matchSkill && matchSkill.name !== SKILL_DEVELOP && !loadedSkills.includes(matchSkill.name)) {
+          extraLines.push(`→ Match: ${matchSkill.name} — call \`skill(name: '${matchSkill.name}')\` now`)
+        }
+
+        const providerID = state.providerID || ""
+        if (providerID && isInPeakWindow(new Date(), providerID) && !state.peakWarningShown) {
+          extraLines.push(`→ ${describePeakWindow(providerID)}`)
+          setSessionState(sessionState, SESSION_KEY, { peakWarningShown: true })
+        }
 
         if (!state.hasDoneSessionAudit) {
-          const skills = await getSkills()
           const auditLines = ["FIRST ACTION: scan beslisboom, load matching skill before any code or tools:"]
           for (const s of skills) {
             auditLines.push(`  • ${s.name}: ${toSingleLine(s.description, 70)}`)
@@ -66,7 +88,8 @@ export const AgentSkillsRouter = async () => {
           auditLines.push("Call `skill(name: '...')` now to load the right workflow.")
           setSessionState(sessionState, SESSION_KEY, { hasDoneSessionAudit: true })
           const overview = buildSkillOverview(state)
-          return { append: `\n--- Agent Skills Kit ---\n${auditLines.join("\n")}\n\n${overview}` }
+          const section = [...extraLines, ...auditLines].join("\n")
+          return { append: `\n--- Agent Skills Kit ---\n${section}\n\n${overview}` }
         }
 
         if (state.needsCodeReview && hasPhraseSignal(promptText, COMPLETION_PHRASES)) {
@@ -74,7 +97,8 @@ export const AgentSkillsRouter = async () => {
         }
 
         const lines = buildSkillOverview(state)
-        return { append: `\n--- Agent Skills Kit ---\n${lines}` }
+        const section = [...extraLines, lines].join("\n")
+        return { append: `\n--- Agent Skills Kit ---\n${section}` }
       } catch { /* plugin error, skip ask hints this prompt */ }
     },
     "tool.execute.before": async (input) => {
@@ -112,7 +136,8 @@ export const AgentSkillsRouter = async () => {
       const toolCallCount = (state.toolCallCount || 0) + 1
       const toolsSinceLoad = toolID === "skill" ? 0 : (state.toolCallsSinceSkillLoad || 0) + 1
       const skillsLoadedCount = toolID === "skill" ? (state.skillsLoadedCount || 0) + 1 : (state.skillsLoadedCount || 0)
-      const base = { recentToolIds, toolCallCount, toolCallsSinceSkillLoad: toolsSinceLoad, skillsLoadedCount }
+      const loadedSkills = toolID === "skill" ? unique([...(state.loadedSkills || []), resolveSkillName(input, output)]) : (state.loadedSkills || [])
+      const base = { recentToolIds, toolCallCount, toolCallsSinceSkillLoad: toolsSinceLoad, skillsLoadedCount, loadedSkills }
 
       if (CODE_EDIT_TOOL_IDS.has(toolID)) { setSessionState(sessionState, SESSION_KEY, { ...base, needsCodeReview: true }); return }
       if (toolID !== "skill") { setSessionState(sessionState, SESSION_KEY, base); return }
