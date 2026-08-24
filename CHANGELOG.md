@@ -6,6 +6,8 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [1.3.2] - 2026-08-24
+
 ### Added
 
 - **Router nudge regression checks.** New `scripts/check-router-nudges.js` drives the plugin through scripted hook sequences (session audit, blocked-tool guard, auto-match, code-review/design-review set-and-clear, completion path) and asserts the exact nudge output; wired into CI as "Validate router nudges".
