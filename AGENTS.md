@@ -9,6 +9,7 @@ Multi-platform skill-pack for OpenCode, GitHub Copilot, Claude Code. Ships workf
 - `skills/<name>/SKILL.md` — one skill per directory
 - `commands/<name>.md` — one slash command per skill, referencing its skill
 - `plugins/agent-skills-router.mjs` — OpenCode plugin: deterministic cascade routing, injects routing hints into system prompt
+- `plugins/agent-skills-router.dsh.mjs` — dsh (DeepSeek Harness) Cordis plugin: same router behavior as a preset row; requires `core/router-core.js` via a vendored copy in the installed preset
 - `core/router-core.js` — shared router helpers (cascade routing, session state, frontmatter parsing)
 - `scripts/` — install/update/bootstrap scripts (bash + PowerShell parity)
 - `README.md` — public docs
@@ -85,6 +86,10 @@ Export targets (via `export-platform-skills.js`): OpenCode → `.opencode/comman
 - `node -e "import('./plugins/agent-skills-router.mjs').then(async m=>{const p=await m.AgentSkillsRouter(); await p['session.created'](); const r=await p['tui.prompt.append']({prompt:'test'}); console.log(r?.append?.slice(0,200))})"` — test plugin hooks
 - Keep plugin stateless except session-scoped state (tool tracking, skill-load events, audit flag)
 
+### dsh router variant
+
+`plugins/agent-skills-router.dsh.mjs` is the DeepSeek Harness counterpart, loaded as an `ask-kit` agent-preset row (`name: ./plugins/ask-kit-router.mjs`, installed by `install.*`). It appends the beslisboom section through the `system-prompt/assemble` waterfall, tracks skill/review state via `tools/pre-execute` / `tools/result` / `agent/inbox/inserted`, and gates tools only when row config `blockUntilSkillLoaded` is true (default false). The file must stay dependency-free — preset-local rows cannot resolve bare specifiers such as `@deepseek-ai/schemastery`, so row config is normalized manually in `apply()`. All beslisboom rows come from `routingHintLines()`; `node ./scripts/check-dsh-plugin.js` validates exports, dependency-freedom, event wiring, gating, cascade routing, and beslisboom drift against `core/router-core.js`.
+
 ### New-session validation
 
 Before claiming a fix ships:
@@ -93,7 +98,8 @@ Before claiming a fix ships:
 2. `node ./scripts/export-platform-skills.js` — exports regenerate
 3. Beslisboom check: `node -e "const {buildSkillOverview,createEmptySessionState}=require('./core/router-core'); console.log(buildSkillOverview(createEmptySessionState()))"` — output contains `╌ Agent Skills Kit ╌` and all 12 skills
 4. `node ./scripts/check-router-nudges.js` — nudge behavior (audit, blocked-tool guard, auto-match, review nudges) passes
-5. OpenCode plugin check: in a test session, verify `╌ Agent Skills Kit ╌` appears in the system prompt with the beslisboom. If missing, check `opencode.json` `plugins` array includes `./plugins/agent-skills-router.mjs` and the file exists at that path.
+5. `node ./scripts/check-dsh-plugin.js` — dsh router variant passes (exports, config defaults, event wiring, strict gate, beslisboom drift)
+6. OpenCode plugin check: in a test session, verify `╌ Agent Skills Kit ╌` appears in the system prompt with the beslisboom. If missing, check `opencode.json` `plugins` array includes `./plugins/agent-skills-router.mjs` and the file exists at that path.
 
 ## Install scripts
 

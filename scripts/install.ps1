@@ -37,6 +37,11 @@ $claudeRulesFile = Join-Path $claudeRulesTarget "agent-skills-kit.md"
 $dshSkillsTarget = Join-Path $DshHome "skills"
 $dshAgentsFile = Join-Path $DshHome "AGENTS.md"
 $dshMetadataFile = Join-Path $DshHome ".agent-skills-kit-dsh-install.txt"
+$dshPresetId = "ask-kit"
+$dshPresetTarget = Join-Path $DshHome ".agent-presets\$dshPresetId"
+$dshPresetRowId = "ask-kit-router"
+$dshRouterSource = Join-Path $repoRoot "plugins\agent-skills-router.dsh.mjs"
+$dshRouterCoreSource = Join-Path $repoRoot "core\router-core.js"
 $installMetadataFile = Join-Path $AgentsDir ".agent-skills-kit-install.txt"
 $managedSkillsManifest = ".ask-managed-skills.txt"
 $managedCommandsManifest = ".ask-managed-commands.txt"
@@ -115,6 +120,92 @@ $dshSectionMarker
     New-Item -ItemType Directory -Force -Path $DshHome | Out-Null
     Add-Content -LiteralPath $dshAgentsFile -Value $section -NoNewline
     Add-Content -LiteralPath $dshAgentsFile -Value "`n"
+}
+
+# Locate the deployed dsh package's shipped standard preset directory.
+function Find-DshStandardPreset {
+    $dshCommand = Get-Command dsh -ErrorAction SilentlyContinue
+    if ($dshCommand) {
+        $current = Split-Path -Parent $dshCommand.Source
+        while ($current -and -not (Test-Path -LiteralPath (Join-Path $current "package.json"))) {
+            $parent = Split-Path -Parent $current
+            if ($parent -eq $current) { break }
+            $current = $parent
+        }
+
+        if ($current) {
+            $candidate = Join-Path $current "config\agent-presets\standard"
+            if (Test-Path -LiteralPath (Join-Path $candidate "agent.cordis.yml")) {
+                return $candidate
+            }
+        }
+    }
+
+    $npmRoot = & npm root -g 2>$null
+    if ($LASTEXITCODE -eq 0 -and $npmRoot) {
+        $candidate = Join-Path $npmRoot "@deepseek-ai\dsh\config\agent-presets\standard"
+        if (Test-Path -LiteralPath (Join-Path $candidate "agent.cordis.yml")) {
+            return $candidate
+        }
+    }
+
+    return $null
+}
+
+# Install (or refresh the managed parts of) the ask-kit agent preset. The
+# composition is copied once from the deployed standard preset; the kit's own
+# preset metadata replaces the copied one on first install only, so user edits
+# survive. Only this kit's plugin file and vendored core are rewritten on every
+# install. Returns "new", "refresh", or $null when skipped.
+function Install-DshPreset {
+    $state = "new"
+    $composition = Join-Path $dshPresetTarget "agent.cordis.yml"
+    if (-not (Test-Path -LiteralPath $composition)) {
+        $standardDir = Find-DshStandardPreset
+        if (-not $standardDir) {
+            Write-Warning "Skipped dsh preset install: deployed standard preset not found."
+            return $null
+        }
+
+        # Create nothing until the source resolves, so a skip leaves no broken roster entry.
+        New-Item -ItemType Directory -Force -Path $dshPresetTarget | Out-Null
+        Copy-Item -Path (Join-Path $standardDir "*") -Destination $dshPresetTarget -Recurse -Force
+    }
+    else {
+        $state = "refresh"
+    }
+
+    New-Item -ItemType Directory -Force -Path (Join-Path $dshPresetTarget "plugins") | Out-Null
+    New-Item -ItemType Directory -Force -Path (Join-Path $dshPresetTarget "vendor") | Out-Null
+    Copy-Item -LiteralPath $dshRouterSource -Destination (Join-Path $dshPresetTarget "plugins\ask-kit-router.mjs") -Force
+    Copy-Item -LiteralPath $dshRouterCoreSource -Destination (Join-Path $dshPresetTarget "vendor\router-core.js") -Force
+
+    $presetMeta = Join-Path $dshPresetTarget "preset.yml"
+    if ($state -eq "new") {
+        @"
+name: Agent Skills Kit
+description: Standaard codeer-agent met de ASK-beslisboom in elke prompt, skill/review-state tracking en optionele tool-gating tot een skill is geladen.
+"@ | Set-Content -LiteralPath $presetMeta -NoNewline -Encoding UTF8
+    }
+
+    $compositionText = Get-Content -LiteralPath $composition -Raw
+    if (-not $compositionText.Contains("- id: $dshPresetRowId")) {
+        Add-Content -LiteralPath $composition -Encoding UTF8 -Value @"
+
+# ── agent-skills-kit ──────────────────────────────────────────────────────
+
+# Router row: injects the beslisboom section every model step, tracks
+# per-session skill/review state, and optionally gates tools until a skill
+# loads. Managed by agent-skills-kit install; set blockUntilSkillLoaded to
+# true for OpenCode-parity gating.
+- id: $dshPresetRowId
+  name: ./plugins/ask-kit-router.mjs
+  config:
+    blockUntilSkillLoaded: false
+"@
+    }
+
+    return $state
 }
 
 # Sync the generated dsh skill variant into the user-global dsh skill root.
@@ -376,6 +467,7 @@ try {
         $dshInstalledSkills = Sync-DshSkills -CurrentSkillNames $currentDshSkillNames
         $dshInstalledCount = $dshInstalledSkills.Count
         Write-DshAgentsSection
+        $dshPresetState = Install-DshPreset
         Write-InstallMetadata -RepoRoot $repoRoot -Platform "dsh" -InstallRoot $DshHome -OutputPath $dshMetadataFile
     }
     else {
@@ -403,6 +495,11 @@ try {
     if ($null -ne $dshInstalledCount) {
         "Installed $dshInstalledCount dsh skills to $dshSkillsTarget"
         "Added dsh routing guidance to $dshAgentsFile"
+        switch ($dshPresetState) {
+            "new" { "Installed ask-kit dsh agent preset (copy of standard + router row) to $dshPresetTarget" }
+            "refresh" { "Refreshed ask-kit dsh agent preset router files at $dshPresetTarget" }
+            default { "Skipped dsh preset install; see warning above." }
+        }
         "Wrote dsh install metadata to $dshMetadataFile"
     }
     "Wrote install metadata to $installMetadataFile"
