@@ -36,6 +36,11 @@ CLAUDE_RULES_FILE="$CLAUDE_RULES_TARGET/agent-skills-kit.md"
 DSH_SKILLS_TARGET="$DSH_HOME/skills"
 DSH_AGENTS_FILE="$DSH_HOME/AGENTS.md"
 DSH_METADATA_FILE="$DSH_HOME/.agent-skills-kit-dsh-install.txt"
+DSH_PRESET_ID="ask-kit"
+DSH_PRESET_TARGET="$DSH_HOME/.agent-presets/$DSH_PRESET_ID"
+DSH_PRESET_ROW_ID="ask-kit-router"
+DSH_ROUTER_SOURCE="$REPO_ROOT/plugins/agent-skills-router.dsh.mjs"
+DSH_ROUTER_CORE_SOURCE="$REPO_ROOT/core/router-core.js"
 INSTALL_METADATA_FILE="$AGENTS_DIR/.agent-skills-kit-install.txt"
 MANAGED_SKILLS_MANIFEST=".ask-managed-skills.txt"
 MANAGED_COMMANDS_MANIFEST=".ask-managed-commands.txt"
@@ -135,6 +140,88 @@ EOF
   fi
 
   printf '%s\n' "$section" >> "$DSH_AGENTS_FILE"
+}
+
+# Locate the deployed dsh package's shipped standard preset directory.
+find_dsh_standard_preset() {
+  local dsh_bin="" pkg_root="" candidate=""
+
+  if command -v dsh >/dev/null 2>&1; then
+    # BSD readlink has no -f; an empty result just skips the walk-up branch.
+    dsh_bin="$(readlink -f "$(command -v dsh)" 2>/dev/null || true)"
+    if [ -n "$dsh_bin" ]; then
+      pkg_root="$(dirname "$dsh_bin")"
+      while [ "$pkg_root" != "/" ]; do
+        if [ -f "$pkg_root/package.json" ]; then break; fi
+        pkg_root="$(dirname "$pkg_root")"
+      done
+      candidate="$pkg_root/config/agent-presets/standard"
+      if [ -f "$candidate/agent.cordis.yml" ]; then
+        printf '%s\n' "$candidate"
+        return 0
+      fi
+    fi
+  fi
+
+  if command -v npm >/dev/null 2>&1; then
+    candidate="$(npm root -g)/@deepseek-ai/dsh/config/agent-presets/standard"
+    if [ -f "$candidate/agent.cordis.yml" ]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  fi
+
+  return 1
+}
+
+# Install (or refresh the managed parts of) the ask-kit agent preset. The
+# composition is copied once from the deployed standard preset; the kit's own
+# preset metadata replaces the copied one on first install only, so user edits
+# survive. Only this kit's plugin file and vendored core are rewritten on every
+# install. Echoes "new", "refresh", or "skipped"; unexpected failures exit the
+# installer via set -e.
+install_dsh_preset() {
+  local standard_dir="" state="refresh"
+
+  if [ ! -f "$DSH_PRESET_TARGET/agent.cordis.yml" ]; then
+    state="new"
+    if ! standard_dir="$(find_dsh_standard_preset)"; then
+      echo "Skipped dsh preset install: deployed standard preset not found." >&2
+      printf 'skipped\n'
+      return 0
+    fi
+    mkdir -p "$DSH_PRESET_TARGET"
+    cp -R "$standard_dir/." "$DSH_PRESET_TARGET/"
+  fi
+
+  mkdir -p "$DSH_PRESET_TARGET/plugins" "$DSH_PRESET_TARGET/vendor"
+  cp "$DSH_ROUTER_SOURCE" "$DSH_PRESET_TARGET/plugins/ask-kit-router.mjs"
+  cp "$DSH_ROUTER_CORE_SOURCE" "$DSH_PRESET_TARGET/vendor/router-core.js"
+
+  if [ "$state" = "new" ]; then
+    cat > "$DSH_PRESET_TARGET/preset.yml" <<'EOF'
+name: Agent Skills Kit
+description: Standaard codeer-agent met de ASK-beslisboom in elke prompt, skill/review-state tracking en optionele tool-gating tot een skill is geladen.
+EOF
+  fi
+
+  if ! grep -qF -- "- id: $DSH_PRESET_ROW_ID" "$DSH_PRESET_TARGET/agent.cordis.yml"; then
+    cat >> "$DSH_PRESET_TARGET/agent.cordis.yml" <<EOF
+
+# ── agent-skills-kit ──────────────────────────────────────────────────────
+
+# Router row: injects the beslisboom section every model step, tracks
+# per-session skill/review state, and optionally gates tools until a skill
+# loads. Managed by agent-skills-kit install; set blockUntilSkillLoaded to
+# true for OpenCode-parity gating.
+- id: $DSH_PRESET_ROW_ID
+  name: ./plugins/ask-kit-router.mjs
+  config:
+    blockUntilSkillLoaded: false
+EOF
+  fi
+
+  printf '%s\n' "$state"
 }
 
 # Sync the generated dsh skill variant into the user-global dsh skill root.
@@ -352,6 +439,7 @@ if command -v dsh >/dev/null 2>&1 || [ -d "$DSH_HOME" ]; then
 
   dsh_installed_count="$(sync_dsh_skills)"
   write_dsh_agents_section
+  dsh_preset_state="$(install_dsh_preset)"
   write_install_metadata "$REPO_ROOT" "dsh" "$DSH_HOME" "$DSH_METADATA_FILE"
 else
   echo "Skipped dsh install because dsh is not on PATH and $DSH_HOME does not exist."
@@ -378,6 +466,11 @@ fi
 if [ -n "$dsh_installed_count" ]; then
   echo "Installed ${dsh_installed_count} dsh skills to $DSH_SKILLS_TARGET"
   echo "Added dsh routing guidance to $DSH_AGENTS_FILE"
+  case "$dsh_preset_state" in
+    new) echo "Installed ask-kit dsh agent preset (copy of standard + router row) to $DSH_PRESET_TARGET" ;;
+    refresh) echo "Refreshed ask-kit dsh agent preset router files at $DSH_PRESET_TARGET" ;;
+    *) echo "Skipped dsh preset install; see warning above." ;;
+  esac
   echo "Wrote dsh install metadata to $DSH_METADATA_FILE"
 fi
 echo "Wrote install metadata to $INSTALL_METADATA_FILE"

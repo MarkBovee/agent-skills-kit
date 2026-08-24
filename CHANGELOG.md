@@ -6,6 +6,13 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [1.4.0] - 2026-08-24
+
+### Added
+
+- **dsh router plugin (optional `ask-kit` agent preset).** `plugins/agent-skills-router.dsh.mjs` ports the OpenCode router to DeepSeek Harness as a Cordis preset row: it appends the beslisboom section to every model step via the `system-prompt/assemble` waterfall (all 12 rows derived verbatim from `routingHintLines()`), tracks per-session skill loads and review/design-review debt through `tools/pre-execute`, `tools/result`, and `agent/inbox/inserted`, clears nudges on completion phrases, and optionally gates bash/edit/write until a skill loads (`blockUntilSkillLoaded` row config, default false). The unified installer (`install.sh` / `install.ps1`) copies the deployed dsh `standard` preset once into `~/.dsh/.agent-presets/ask-kit/`, appends the managed router row, and vendors `core/router-core.js` beside it so no copy can drift; reinstalls refresh only the managed parts.
+- **dsh plugin validation.** New `scripts/check-dsh-plugin.js` asserts export shape, config defaults, event wiring, strict-gate behavior, cascade routing of Dutch bug phrases, and beslisboom drift against `core/router-core.js`; wired into the AGENTS.md validation list.
+
 ## [1.3.2] - 2026-08-24
 
 ### Added

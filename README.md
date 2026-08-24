@@ -162,13 +162,20 @@ If `~/.claude/` does not exist, Claude-specific setup is skipped on purpose. Cre
 
 ### DeepSeek Harness (dsh) Details
 
-dsh (DeepSeek Harness) is a Cordis-based "everything is a plugin" agent harness. The kit needs **no dsh plugin or wrapper**: dsh loads `SKILL.md` bundles natively from ranked skill roots, and its `skill` tool + catalog (`<available_skills>` in the session system prompt) already implements the kit's self-selection routing model — the OpenCode router plugin has no dsh equivalent and does not need one.
+dsh (DeepSeek Harness) is a Cordis-based "everything is a plugin" agent harness. The kit works **without any dsh plugin**: dsh loads `SKILL.md` bundles natively from ranked skill roots, and its `skill` tool + catalog (`<available_skills>` in the session system prompt) already implements the kit's self-selection routing model. On top of that baseline, an **optional** agent preset (`ask-kit`) adds the OpenCode router's beslisboom injection and per-session state tracking to sessions that select it.
 
 Installed paths (when dsh is present — a reachable `dsh` binary or an existing dsh home):
 
 - `~/.dsh/skills/` — dsh-optimized skill variant (frontmatter `name` + trigger-augmented `description` capped at the dsh catalog limit, plus `whenToUse`)
 - `~/.dsh/AGENTS.md` — always-on routing guidance, appended once behind a `<!-- agent-skills-kit:dsh -->` marker (never rewrites existing content)
+- `~/.dsh/.agent-presets/ask-kit/` — optional agent preset: a one-time copy of the deployed `standard` preset plus this kit's managed router row (`plugins/ask-kit-router.mjs`, `vendor/router-core.js`)
 - `~/.dsh/.agent-skills-kit-dsh-install.txt` — install metadata
+
+#### dsh router preset (optional)
+
+The `ask-kit` preset mounts `plugins/agent-skills-router.dsh.mjs` as a Cordis row. Per model step it appends an `--- Agent Skills Kit ---` section built from `routingHintLines()` in `core/router-core.js` (no beslisboom copy can drift), tracks which skills each session loaded, flags review debt after `edit`/`write`/`apply_patch`, and clears nudges on completion phrases — mirroring `plugins/agent-skills-router.mjs`. Row config: `blockUntilSkillLoaded: true` reproduces the OpenCode blocked-tool gate (bash/edit/write denied until a skill loads); it defaults to `false`.
+
+Reinstall refreshes only the managed files (`plugins/ask-kit-router.mjs`, `vendor/router-core.js`); the copied composition, the appended router row, and any edits you made are left alone — delete `~/.dsh/.agent-presets/ask-kit/` and reinstall to rebase on the current `standard` preset or re-add a removed row. Select the preset per session from dsh's picker; removing the directory removes it from the roster.
 
 dsh also loads the canonical shared skills from `~/.agents/skills/` (rank 500); the generated variant installed to `~/.dsh/skills/` (rank 400) shadows them for dsh sessions, so the trigger-augmented descriptions win. dsh discovers the generated `.dsh/skills/` in this repository as project-scoped skills (rank 100) when a session runs inside the kit checkout.
 
@@ -359,7 +366,7 @@ These are informational hints only — they never block work or force delegation
 | OpenCode | router plugin, routing support, bootstrap/install/update tooling | installs managed skills plus `core/router-core.js` and `plugins/agent-skills-router.mjs` |
 | GitHub Copilot | VS Code Agent Plugin, native skills, lifecycle hooks, generated skills, reusable instructions | `.claude-plugin/plugin.json`, `skills/`, `hooks/hooks.json`, `.github/skills/`, `.github/copilot-instructions.md`, `~/.agents/skills/`, `~/.copilot/instructions/` |
 | Claude Code | generated skills, reusable rules, bootstrap/install/update tooling | `.claude/skills/`, `CLAUDE.md`, `~/.claude/skills/`, `~/.claude/rules/` |
-| DeepSeek Harness (dsh) | generated skills, routing guidance, preview API exposure docs | `.dsh/skills/`, `~/.dsh/skills/`, `~/.dsh/AGENTS.md` |
+| DeepSeek Harness (dsh) | generated skills, routing guidance, optional router agent preset, preview API exposure docs | `.dsh/skills/`, `~/.dsh/skills/`, `~/.dsh/AGENTS.md`, `~/.dsh/.agent-presets/ask-kit/` |
 
 OpenCode remains the reference implementation for routing behavior. GitHub Copilot and Claude Code exports are generated from the same canonical workflow source.
 
