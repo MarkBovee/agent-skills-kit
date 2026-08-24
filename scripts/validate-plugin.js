@@ -3,7 +3,7 @@
 const fs = require("node:fs/promises")
 const path = require("node:path")
 
-const { parseFrontmatter, VALID_DELEGATION_MODES, VALID_EXECUTION_TIERS } = require("../core/router-core")
+const { parseFrontmatter, VALID_DELEGATION_MODES, VALID_EXECUTION_TIERS, routingHintLines } = require("../core/router-core")
 
 const REPO_ROOT = path.resolve(__dirname, "..")
 const PLUGIN_PATH = path.join(REPO_ROOT, ".claude-plugin", "plugin.json")
@@ -11,8 +11,17 @@ const HOOKS_PATH = path.join(REPO_ROOT, "hooks", "hooks.json")
 const SKILLS_PATH = path.join(REPO_ROOT, "skills")
 const RULES_PATH = path.join(REPO_ROOT, "rules")
 const VERSION_PATH = path.join(REPO_ROOT, "VERSION")
+const README_PATH = path.join(REPO_ROOT, "README.md")
+const ROUTER_RULES_PATH = path.join(REPO_ROOT, "rules", "agent-skills-kit.md")
+const COMMANDS_PATH = path.join(REPO_ROOT, "commands")
 const REFERENCE_PATTERN = /`([^`]+)`/g
 const NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+
+// Collapse whitespace so doc mirrors of the beslisboom can keep their own
+// alignment while still being held to the same rows, order, and skill names.
+function normalizeHintRow(line) {
+  return line.trim().replace(/\s+/g, " ")
+}
 
 // Read JSON and turn parse errors into a validation finding.
 async function readJson(filePath, errors) {
@@ -62,9 +71,11 @@ async function validateHooks(errors) {
 }
 
 // Validate every canonical skill's directory, required metadata, and name format.
+// Returns the resolved skill display names for downstream doc-consistency checks.
 async function validateSkills(errors) {
   const entries = await fs.readdir(SKILLS_PATH, { withFileTypes: true })
-  for (const entry of entries.filter((item) => item.isDirectory())) {
+  const skillNames = []
+  for (const entry of entries.filter((item => item.isDirectory()))) {
     const skillPath = path.join(SKILLS_PATH, entry.name, "SKILL.md")
     const content = await fs.readFile(skillPath, "utf8")
     const frontmatter = parseFrontmatter(content)
@@ -72,6 +83,8 @@ async function validateSkills(errors) {
     const nameMatches = frontmatter.name === entry.name || entry.name === `ask-${frontmatter.name}`
     if (!nameMatches || !NAME_PATTERN.test(entry.name)) {
       errors.push(`${path.relative(REPO_ROOT, skillPath)} name must match its kebab-case directory`)
+    } else {
+      skillNames.push(frontmatter.name)
     }
     if (typeof frontmatter.description !== "string" || frontmatter.description.trim().length === 0) {
       errors.push(`${path.relative(REPO_ROOT, skillPath)} requires a description`)
@@ -94,6 +107,47 @@ async function validateSkills(errors) {
     if (frontmatter.delegation_default !== undefined && !VALID_DELEGATION_MODES.has(String(frontmatter.delegation_default).trim().toLowerCase())) {
       errors.push(`${path.relative(REPO_ROOT, skillPath)} has an unsupported delegation_default value`)
     }
+  }
+  return skillNames.sort((left, right) => left.localeCompare(right))
+}
+
+// Assert the hand-maintained doc mirrors of pack facts still match generated truth:
+// README's skill-count badge, one command file per skill, and the beslisboom rows
+// mirrored in rules/agent-skills-kit.md.
+async function validateDocConsistency(errors, skillNames) {
+  const readme = await fs.readFile(README_PATH, "utf8")
+  const badgeMatch = readme.match(/<code>(\d+) skills<\/code>/)
+  if (!badgeMatch) {
+    errors.push('README.md must contain a "<code>N skills</code>" badge')
+  } else if (Number(badgeMatch[1]) !== skillNames.length) {
+    errors.push(`README.md badge says ${badgeMatch[1]} skills but ${skillNames.length} skills exist in skills/`)
+  }
+
+  for (const skillName of skillNames) {
+    try {
+      await fs.access(path.join(COMMANDS_PATH, `${skillName}.md`))
+    } catch {
+      errors.push(`commands/${skillName}.md is missing — every skill ships a slash command`)
+    }
+  }
+
+  const rulesContent = await fs.readFile(ROUTER_RULES_PATH, "utf8")
+  const sectionMatch = rulesContent.match(/## Beslisboom\n([\s\S]*?)\n## /)
+  if (!sectionMatch) {
+    errors.push("rules/agent-skills-kit.md must contain a ## Beslisboom section")
+    return
+  }
+
+  const actualRows = sectionMatch[1]
+    .split("\n")
+    .map(normalizeHintRow)
+    .filter((line) => line.includes("→"))
+  const expectedRows = routingHintLines().map(normalizeHintRow)
+  if (JSON.stringify(actualRows) !== JSON.stringify(expectedRows)) {
+    errors.push(
+      `rules/agent-skills-kit.md beslisboom rows drifted from core/router-core.js OVERVIEW_ROWS `
+      + `(found ${actualRows.length} rows, expected ${expectedRows.length}; regenerate from routingHintLines())`,
+    )
   }
 }
 
@@ -125,8 +179,9 @@ async function main() {
   const errors = []
   await validatePluginManifest(errors)
   await validateHooks(errors)
-  await validateSkills(errors)
+  const skillNames = await validateSkills(errors)
   await validateSkillReferences(errors)
+  await validateDocConsistency(errors, skillNames)
 
   if (errors.length > 0) {
     for (const error of errors) console.error(`- ${error}`)

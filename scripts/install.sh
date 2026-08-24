@@ -38,8 +38,12 @@ DSH_AGENTS_FILE="$DSH_HOME/AGENTS.md"
 DSH_METADATA_FILE="$DSH_HOME/.agent-skills-kit-dsh-install.txt"
 INSTALL_METADATA_FILE="$AGENTS_DIR/.agent-skills-kit-install.txt"
 MANAGED_SKILLS_MANIFEST=".ask-managed-skills.txt"
+MANAGED_COMMANDS_MANIFEST=".ask-managed-commands.txt"
+MANAGED_PROMPTS_MANIFEST=".ask-managed-prompts.txt"
 DSH_SECTION_MARKER="<!-- agent-skills-kit:dsh -->"
 CURRENT_MANAGED_SKILLS=""
+CURRENT_MANAGED_COMMANDS=""
+CURRENT_MANAGED_PROMPTS=""
 GENERATED_ASSETS_LOCK_HELD=0
 
 # Remove files from the pre-ASK installer without touching user-owned content.
@@ -71,6 +75,14 @@ remove_legacy_install_artifacts() {
 cleanup_install() {
   if [ -n "$CURRENT_MANAGED_SKILLS" ] && [ -f "$CURRENT_MANAGED_SKILLS" ]; then
     rm -f "$CURRENT_MANAGED_SKILLS"
+  fi
+
+  if [ -n "$CURRENT_MANAGED_COMMANDS" ] && [ -f "$CURRENT_MANAGED_COMMANDS" ]; then
+    rm -f "$CURRENT_MANAGED_COMMANDS"
+  fi
+
+  if [ -n "$CURRENT_MANAGED_PROMPTS" ] && [ -f "$CURRENT_MANAGED_PROMPTS" ]; then
+    rm -f "$CURRENT_MANAGED_PROMPTS"
   fi
 
   if [ "$GENERATED_ASSETS_LOCK_HELD" -eq 1 ]; then
@@ -269,13 +281,23 @@ mkdir -p "$COPILOT_INSTRUCTIONS_TARGET"
 cp "$COPILOT_INSTRUCTIONS_SOURCE" "$COPILOT_INSTRUCTIONS_FILE"
 
 # Install OpenCode commands (global) and Copilot/VS Code prompt files (user profile).
+# Both targets are managed-by-manifest so commands retired from the pack disappear
+# on reinstall instead of surviving forever as ghost slash-commands.
 if [ -d "$OPENCODE_COMMANDS_SOURCE" ]; then
   mkdir -p "$OPENCODE_COMMANDS_TARGET"
+  CURRENT_MANAGED_COMMANDS="$(mktemp)"
+  write_current_file_manifest "$OPENCODE_COMMANDS_SOURCE" "$CURRENT_MANAGED_COMMANDS"
+  remove_missing_managed_files "$OPENCODE_COMMANDS_TARGET" "$OPENCODE_COMMANDS_TARGET/$MANAGED_COMMANDS_MANIFEST" "$CURRENT_MANAGED_COMMANDS"
   cp -R "$OPENCODE_COMMANDS_SOURCE"/. "$OPENCODE_COMMANDS_TARGET/"
+  cp "$CURRENT_MANAGED_COMMANDS" "$OPENCODE_COMMANDS_TARGET/$MANAGED_COMMANDS_MANIFEST"
 fi
 if [ -d "$COPILOT_PROMPTS_SOURCE" ]; then
   mkdir -p "$COPILOT_PROMPTS_TARGET"
+  CURRENT_MANAGED_PROMPTS="$(mktemp)"
+  write_current_file_manifest "$COPILOT_PROMPTS_SOURCE" "$CURRENT_MANAGED_PROMPTS"
+  remove_missing_managed_files "$COPILOT_PROMPTS_TARGET" "$COPILOT_PROMPTS_TARGET/$MANAGED_PROMPTS_MANIFEST" "$CURRENT_MANAGED_PROMPTS"
   cp -R "$COPILOT_PROMPTS_SOURCE"/. "$COPILOT_PROMPTS_TARGET/"
+  cp "$CURRENT_MANAGED_PROMPTS" "$COPILOT_PROMPTS_TARGET/$MANAGED_PROMPTS_MANIFEST"
 fi
 
 mkdir -p "$OPENCODE_PLUGINS_TARGET"

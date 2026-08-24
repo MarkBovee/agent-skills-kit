@@ -31,6 +31,11 @@ if ($statusOutput) {
     throw "Working tree must be clean before tagging $releaseTag."
 }
 
+& $node.Source (Join-Path $repoRoot "scripts/validate-plugin.js")
+if ($LASTEXITCODE -ne 0) {
+    throw "Plugin validation failed."
+}
+
 & $node.Source (Join-Path $repoRoot "scripts/check-release-readiness.js") --require-version-entry
 if ($LASTEXITCODE -ne 0) {
     throw "Release readiness check failed."

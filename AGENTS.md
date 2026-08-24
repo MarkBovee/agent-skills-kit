@@ -78,7 +78,7 @@ Export targets (via `export-platform-skills.js`): OpenCode → `.opencode/comman
 
 `plugins/agent-skills-router.mjs` injects a beslisboom (decision tree) every prompt — agent self-selects skills via `skill(name: '...')`. No automatic phrase matching. When changing:
 
-- The beslisboom has 12 routing rows. `design-review` is a companion skill, not a routing row: it fires when the `ui-ux` skill is loaded (plugin sets `needsDesignReview` and nudges `skill(name: 'design-review')` until it is loaded), mirroring `needsCodeReview`. `text-writing` is a routing row, matching text that must read human rather than AI.
+- The beslisboom has 12 routing rows. `design-review` is a companion skill, not a routing row: it fires when the `ui-ux` skill is loaded (plugin sets `needsDesignReview` and nudges `skill(name: 'design-review')` until it is loaded), mirroring `needsCodeReview`. `text-writing` is a routing row, matching text that must read human rather than AI. The blocked-tool hint and the rules-file beslisboom are derived from `routingHintLines()` in `core/router-core.js` — never hand-edit either copy; `validate-plugin.js` fails on drift.
 
 - `node --input-type=module -e "import('./plugins/agent-skills-router.mjs')"` — verify it loads
 - `node -e "const {buildSkillOverview,createEmptySessionState}=require('./core/router-core'); const s=createEmptySessionState(); s.matchedSkills=[{name:'develop'}]; console.log(buildSkillOverview(s))"` — test beslisboom output
@@ -92,7 +92,8 @@ Before claiming a fix ships:
 1. `node -e "import('./plugins/agent-skills-router.mjs')"` — plugin loads without error
 2. `node ./scripts/export-platform-skills.js` — exports regenerate
 3. Beslisboom check: `node -e "const {buildSkillOverview,createEmptySessionState}=require('./core/router-core'); console.log(buildSkillOverview(createEmptySessionState()))"` — output contains `╌ Agent Skills Kit ╌` and all 12 skills
-4. OpenCode plugin check: in a test session, verify `╌ Agent Skills Kit ╌` appears in the system prompt with the beslisboom. If missing, check `opencode.json` `plugins` array includes `./plugins/agent-skills-router.mjs` and the file exists at that path.
+4. `node ./scripts/check-router-nudges.js` — nudge behavior (audit, blocked-tool guard, auto-match, review nudges) passes
+5. OpenCode plugin check: in a test session, verify `╌ Agent Skills Kit ╌` appears in the system prompt with the beslisboom. If missing, check `opencode.json` `plugins` array includes `./plugins/agent-skills-router.mjs` and the file exists at that path.
 
 ## Install scripts
 

@@ -15,6 +15,7 @@ const {
   SKILL_DEVELOP,
   buildSkillOverview, cascadeRoute, getSessionState, loadSkills,
   setSessionState, hasPhraseSignal, toSingleLine, isInPeakWindow, describePeakWindow, unique,
+  routingHintLines,
 } = require(resolve(here, "../core/router-core"))
 
 function resolveSkillPath() {
@@ -92,8 +93,8 @@ export const AgentSkillsRouter = async () => {
           return { append: `\n--- Agent Skills Kit ---\n${section}\n\n${overview}` }
         }
 
-        if (state.needsCodeReview && hasPhraseSignal(promptText, COMPLETION_PHRASES)) {
-          setSessionState(sessionState, SESSION_KEY, { needsCodeReview: false, shouldCaptureImprovement: true })
+        if ((state.needsCodeReview || state.needsDesignReview) && hasPhraseSignal(promptText, COMPLETION_PHRASES)) {
+          setSessionState(sessionState, SESSION_KEY, { needsCodeReview: false, needsDesignReview: false, shouldCaptureImprovement: true })
         }
 
         const lines = buildSkillOverview(state)
@@ -112,18 +113,7 @@ export const AgentSkillsRouter = async () => {
         if ((state.skillsLoadedCount || 0) === 0) {
           return {
             tool_error: "Load a skill first via `skill(name: '...')`.\n"
-              + "  Specify requirements build design brief → spec\n"
-              + "  Clarify scope plan ambiguous work    → intake\n"
-              + "  Debug bug crash failing test error    → debugging\n"
-              + "  Review code changes before handoff    → code-review\n"
-              + "  Verify claim prove it works           → verification\n"
-              + "  Audit refactor reduce tech debt        → improve\n"
-              + "  Reflect on session file improvement   → session-review\n"
-              + "  Coordinate multi-agent parallel tasks → agent-workflows\n"
-              + "  Create or revise a skill              → write-skill\n"
-              + "  Design or polish UI/UX                → ui-ux\n"
-              + "  Write text that reads human, not AI   → text-writing\n"
-              + "  Normal software work (default)        → develop",
+              + routingHintLines().join("\n"),
           }
         }
       }

@@ -6,6 +6,19 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+### Added
+
+- **Router nudge regression checks.** New `scripts/check-router-nudges.js` drives the plugin through scripted hook sequences (session audit, blocked-tool guard, auto-match, code-review/design-review set-and-clear, completion path) and asserts the exact nudge output; wired into CI as "Validate router nudges".
+
+### Fixed
+
+- **Release gate parity.** `tag-release.sh` and `tag-release.ps1` now run `validate-plugin.js` before tagging — a stale `plugin.json` version can no longer produce a locally green tag that fails the Release workflow (the v1.2.x failure mode).
+- **Ghost slash-commands removed on reinstall.** Installers now track managed command and prompt files via `.ask-managed-commands.txt` / `.ask-managed-prompts.txt` manifests in `~/.config/opencode/commands/` and `~/.copilot/prompts/`; files retired from the pack are deleted instead of surviving forever.
+- **Single source for the beslisboom hint.** The plugin's blocked-tool message is now derived from `routingHintLines()` in `core/router-core.js` (`OVERVIEW_ROWS`) instead of a hand-maintained string copy.
+- **`.dsh` pull-recovery gap closed.** `release-helpers.sh` and `release-helpers.ps1` (used by `update.*`) now restore generated `.dsh/` artifacts during pull recovery, matching `bootstrap.*` behavior.
+- **Completion clears design nudge.** A completion phrase now clears `needsDesignReview` alongside `needsCodeReview`, so skipping the design-review filter stops the nudge after wrap-up instead of nagging forever.
+- **Doc drift assertions.** `validate-plugin.js` now fails when README's `<code>N skills</code>` badge drifts from the actual skill count, when a skill lacks its `commands/<name>.md` file, or when the beslisboom rows in `rules/agent-skills-kit.md` drift from `OVERVIEW_ROWS`.
+
 ## [1.3.1] - 2026-08-20
 
 ### Added

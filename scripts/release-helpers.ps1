@@ -180,6 +180,40 @@ function Remove-MissingManagedSkills {
     }
 }
 
+# Remove previously managed files that no longer exist in the current source set.
+function Remove-MissingManagedFiles {
+    param(
+        [string]$TargetPath,
+        [string]$PreviousManifestPath,
+        [string[]]$CurrentFileNames
+    )
+
+    if (-not (Test-Path -LiteralPath $TargetPath) -or -not (Test-Path -LiteralPath $PreviousManifestPath)) {
+        return
+    }
+
+    $currentFiles = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+    foreach ($fileName in $CurrentFileNames) {
+        [void]$currentFiles.Add($fileName)
+    }
+
+    foreach ($fileName in Get-Content -LiteralPath $PreviousManifestPath -ErrorAction SilentlyContinue) {
+        if ([string]::IsNullOrWhiteSpace($fileName)) {
+            continue
+        }
+
+        $trimmedFileName = $fileName.Trim()
+        if ($currentFiles.Contains($trimmedFileName)) {
+            continue
+        }
+
+        $target = Join-Path $TargetPath $trimmedFileName
+        if (Test-Path -LiteralPath $target) {
+            Remove-Item -LiteralPath $target -Force
+        }
+    }
+}
+
 # Detect whether one git status line only touches generated platform artifacts.
 function Test-IsGeneratedPlatformStatusLine {
     param([string]$StatusLine)
@@ -193,7 +227,7 @@ function Test-IsGeneratedPlatformStatusLine {
         $path = ($path -split ' -> ')[-1].Trim()
     }
 
-    return $path -eq "CLAUDE.md" -or $path.StartsWith(".claude/") -or $path.StartsWith(".github/")
+    return $path -eq "CLAUDE.md" -or $path.StartsWith(".claude/") -or $path.StartsWith(".github/") -or $path.StartsWith(".dsh/")
 }
 
 # Restore generated platform artifacts when they are the only dirty files in a managed checkout.
@@ -217,12 +251,12 @@ function Restore-GeneratedPlatformArtifacts {
         }
     }
 
-    & $git.Source -C $RepoRoot restore --source=HEAD --staged --worktree -- .claude .github CLAUDE.md
+    & $git.Source -C $RepoRoot restore --source=HEAD --staged --worktree -- .claude .github .dsh CLAUDE.md
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to restore generated platform artifacts in managed checkout $RepoRoot."
     }
 
-    & $git.Source -C $RepoRoot clean -fd -- .claude .github CLAUDE.md 1>$null 2>$null
+    & $git.Source -C $RepoRoot clean -fd -- .claude .github .dsh CLAUDE.md 1>$null 2>$null
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to clean generated platform artifacts in managed checkout $RepoRoot."
     }

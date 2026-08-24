@@ -39,6 +39,8 @@ $dshAgentsFile = Join-Path $DshHome "AGENTS.md"
 $dshMetadataFile = Join-Path $DshHome ".agent-skills-kit-dsh-install.txt"
 $installMetadataFile = Join-Path $AgentsDir ".agent-skills-kit-install.txt"
 $managedSkillsManifest = ".ask-managed-skills.txt"
+$managedCommandsManifest = ".ask-managed-commands.txt"
+$managedPromptsManifest = ".ask-managed-prompts.txt"
 $dshSectionMarker = "<!-- agent-skills-kit:dsh -->"
 
 # Remove files from the pre-ASK installer without touching user-owned content.
@@ -274,17 +276,25 @@ try {
     Copy-Item -LiteralPath $copilotInstructionsSource -Destination $copilotInstructionsFile -Force
 
     # Install OpenCode commands (global) and Copilot/VS Code prompt files (user profile).
+    # Both targets are managed-by-manifest so commands retired from the pack disappear
+    # on reinstall instead of surviving forever as ghost slash-commands.
     if (Test-Path -LiteralPath $opencodeCommandsSource) {
         New-Item -ItemType Directory -Force -Path $opencodeCommandsTarget | Out-Null
+        $currentCommandNames = @(Get-ChildItem -LiteralPath $opencodeCommandsSource -Force | ForEach-Object { $_.Name })
+        Remove-MissingManagedFiles -TargetPath $opencodeCommandsTarget -PreviousManifestPath (Join-Path $opencodeCommandsTarget $managedCommandsManifest) -CurrentFileNames $currentCommandNames
         foreach ($commandFile in Get-ChildItem -LiteralPath $opencodeCommandsSource -Force) {
             Copy-Item -LiteralPath $commandFile.FullName -Destination $opencodeCommandsTarget -Recurse -Force
         }
+        $currentCommandNames | Set-Content -LiteralPath (Join-Path $opencodeCommandsTarget $managedCommandsManifest)
     }
     if (Test-Path -LiteralPath $copilotPromptsSource) {
         New-Item -ItemType Directory -Force -Path $copilotPromptsTarget | Out-Null
+        $currentPromptNames = @(Get-ChildItem -LiteralPath $copilotPromptsSource -Force | ForEach-Object { $_.Name })
+        Remove-MissingManagedFiles -TargetPath $copilotPromptsTarget -PreviousManifestPath (Join-Path $copilotPromptsTarget $managedPromptsManifest) -CurrentFileNames $currentPromptNames
         foreach ($promptFile in Get-ChildItem -LiteralPath $copilotPromptsSource -Force) {
             Copy-Item -LiteralPath $promptFile.FullName -Destination $copilotPromptsTarget -Recurse -Force
         }
+        $currentPromptNames | Set-Content -LiteralPath (Join-Path $copilotPromptsTarget $managedPromptsManifest)
     }
 
     New-Item -ItemType Directory -Force -Path $opencodePluginsTarget | Out-Null

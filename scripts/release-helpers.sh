@@ -131,6 +131,39 @@ remove_missing_managed_skills() {
   done < "$previous_manifest"
 }
 
+# Build the current managed filename manifest from a flat source directory.
+write_current_file_manifest() {
+  local source_dir="$1"
+  local output_path="$2"
+  local file_name=""
+
+  : > "$output_path"
+
+  for file_path in "$source_dir"/*; do
+    [ -f "$file_path" ] || continue
+    basename "$file_path" >> "$output_path"
+  done
+}
+
+# Remove previously managed files that no longer exist in the current source set.
+remove_missing_managed_files() {
+  local target_dir="$1"
+  local previous_manifest="$2"
+  local current_manifest="$3"
+  local file_name=""
+  [ -d "$target_dir" ] || return 0
+  [ -f "$previous_manifest" ] || return 0
+
+  while IFS= read -r file_name; do
+    [ -n "$file_name" ] || continue
+    [ -f "$target_dir/$file_name" ] || continue
+
+    if ! grep -Fxq "$file_name" "$current_manifest"; then
+      rm -f "$target_dir/$file_name"
+    fi
+  done < "$previous_manifest"
+}
+
 # Detect whether one git status line only touches generated platform artifacts.
 is_generated_platform_status_line() {
   local status_line="$1"
@@ -147,7 +180,7 @@ is_generated_platform_status_line() {
   fi
 
   case "$path" in
-    CLAUDE.md|.claude/*|.github/*)
+    CLAUDE.md|.claude/*|.github/*|.dsh/*)
       return 0
       ;;
     *)
@@ -183,12 +216,12 @@ EOF
 
   [ "$restored" -eq 1 ] || return 2
 
-  git -C "$repo_root" restore --source=HEAD --staged --worktree -- .claude .github CLAUDE.md || {
+  git -C "$repo_root" restore --source=HEAD --staged --worktree -- .claude .github .dsh CLAUDE.md || {
     echo "Failed to restore generated platform artifacts in managed checkout $repo_root." >&2
     return 1
   }
 
-  git -C "$repo_root" clean -fd -- .claude .github CLAUDE.md >/dev/null 2>&1 || {
+  git -C "$repo_root" clean -fd -- .claude .github .dsh CLAUDE.md >/dev/null 2>&1 || {
     echo "Failed to clean generated platform artifacts in managed checkout $repo_root." >&2
     return 1
   }

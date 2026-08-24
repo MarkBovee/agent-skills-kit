@@ -283,6 +283,13 @@ const OVERVIEW_ROWS = [
   { label: "Normal software work (default)",           skill: SKILL_DEVELOP },
 ]
 
+// Render the canonical beslisboom rows as plain hint lines so every surface
+// that mirrors the tree (plugin blocked-tool message, docs checks) derives
+// from OVERVIEW_ROWS instead of keeping its own copy in sync.
+function routingHintLines() {
+  return OVERVIEW_ROWS.map((row) => `  ${row.label} → ${row.skill}`)
+}
+
 function buildSkillOverview(sessionState) {
   const toolsSinceLoad = sessionState.toolCallsSinceSkillLoad || 0
   const skillsLoaded = (sessionState.skillsLoadedCount || 0) > 0
@@ -421,7 +428,7 @@ module.exports = {
   SKILL_TEXT_WRITING,
   buildSkillOverview, cascadeRoute, buildExecutionProfile, loadSkills,
   createEmptySessionState, getSessionState, setSessionState,
-  findSkill, hasPhraseSignal,
+  findSkill, hasPhraseSignal, routingHintLines,
   stripFrontmatter, toSingleLine, normalizeStringList,
   parseBooleanField, parseFrontmatter, unique,
   isInPeakWindow, describePeakWindow,

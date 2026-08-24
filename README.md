@@ -379,6 +379,12 @@ Check trigger ownership and routing hygiene:
 node ./scripts/check-trigger-overlap.js
 ```
 
+Validate router nudge behavior (audit, blocked-tool guard, auto-match, review nudges):
+
+```bash
+node ./scripts/check-router-nudges.js
+```
+
 Validate the VS Code plugin contract:
 
 ```bash

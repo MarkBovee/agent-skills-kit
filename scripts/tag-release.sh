@@ -55,6 +55,7 @@ if [ -n "$(git -C "$REPO_ROOT" status --porcelain)" ]; then
   exit 1
 fi
 
+node "$REPO_ROOT/scripts/validate-plugin.js"
 node "$REPO_ROOT/scripts/check-release-readiness.js" --require-version-entry
 
 if git -C "$REPO_ROOT" rev-parse -q --verify "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
