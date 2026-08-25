@@ -6,6 +6,16 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [1.5.0] - 2026-08-25
+
+### Added
+
+- **dsh slash commands for every kit skill.** The `ask-kit` router row now also registers one command per skill through dsh's plugin-owned command registry (`ctx.commands.register()` via a lazy `ctx.inject(["commands"])`, mirroring how shipped rows like `/plan` register): `/spec`, `/intake`, `/debugging`, … plus companions `/design-review` and `/gh-inbox`. Beslisboom rows double as picker descriptions; a command handler steers the session with a load-the-skill prompt following the platform command-file pattern (per-workflow specifics stay in the skill body), with the typed remainder as focus (`/debugging login crash`). Steered input is wrapped in a proper user message (`id`/`role`/`content`/`source`) because dsh's agent loop forwards inbox items verbatim into the next model request. dsh has no file-based command discovery, so this closes the gap behind OpenCode/Copilot's exported command files — no generated artifacts needed.
+
+### Fixed
+
+- **Docs: wrong dsh command claim.** README and AGENTS.md said dsh skills "already act as slash commands"; in reality dsh only exposes model-facing skill catalogs. The docs now describe the programmatic registration, and `check-dsh-plugin.js` validates the new surface (command count/names, grammar-clean names, companion-description drift against `commands/<name>.md`, steer-handler behavior). Stale "ten skills" wording updated to fourteen.
+
 ## [1.4.0] - 2026-08-24
 
 ### Added

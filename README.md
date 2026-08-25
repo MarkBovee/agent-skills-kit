@@ -173,7 +173,7 @@ Installed paths (when dsh is present — a reachable `dsh` binary or an existing
 
 #### dsh router preset (optional)
 
-The `ask-kit` preset mounts `plugins/agent-skills-router.dsh.mjs` as a Cordis row. Per model step it appends an `--- Agent Skills Kit ---` section built from `routingHintLines()` in `core/router-core.js` (no beslisboom copy can drift), tracks which skills each session loaded, flags review debt after `edit`/`write`/`apply_patch`, and clears nudges on completion phrases — mirroring `plugins/agent-skills-router.mjs`. Row config: `blockUntilSkillLoaded: true` reproduces the OpenCode blocked-tool gate (bash/edit/write denied until a skill loads); it defaults to `false`.
+The `ask-kit` preset mounts `plugins/agent-skills-router.dsh.mjs` as a Cordis row. Per model step it appends an `--- Agent Skills Kit ---` section built from `routingHintLines()` in `core/router-core.js` (no beslisboom copy can drift), tracks which skills each session loaded, flags review debt after `edit`/`write`/`apply_patch`, and clears nudges on completion phrases — mirroring `plugins/agent-skills-router.mjs`. It also registers one slash command per skill (`/spec`, `/debugging`, …) through dsh's command registry: picking one steers the session with a load-the-skill prompt following the platform command-file pattern (per-workflow specifics stay in the skill body), with the typed remainder as focus. Row config: `blockUntilSkillLoaded: true` reproduces the OpenCode blocked-tool gate (bash/edit/write denied until a skill loads); it defaults to `false`.
 
 Reinstall refreshes only the managed files (`plugins/ask-kit-router.mjs`, `vendor/router-core.js`); the copied composition, the appended router row, and any edits you made are left alone — delete `~/.dsh/.agent-presets/ask-kit/` and reinstall to rebase on the current `standard` preset or re-add a removed row. Select the preset per session from dsh's picker; removing the directory removes it from the roster.
 
@@ -194,7 +194,7 @@ Everything dsh-related is `0.1.0-rc.x` developer preview and can change without 
 | Skill registry (`ctx.skills`) | `registerProvider`/`snapshot`/`list`/`get`, duplicate-name shadowing across layers | API churn in the registry contract |
 | MCP bridge (`dsh-mcp-client`) | Not used by the kit (tools only; skills are not MCP) | n/a |
 
-After a dsh update, the cheap check is a fresh session: the `<available_skills>` catalog should list all ten skills and `skill(name: '...')` should load a body.
+After a dsh update, the cheap check is a fresh session: the `<available_skills>` catalog should list all fourteen skills and `skill(name: '...')` should load a body; typing `/` in the composer should offer the kit's slash commands when the ask-kit preset is selected.
 
 ### Shared Root Policy
 
@@ -256,8 +256,9 @@ Each skill also ships as a slash command. A command loads its skill and applies 
 | OpenCode | `.md` command files | `~/.config/opencode/commands/` (global) |
 | GitHub Copilot / VS Code | prompt files | `.github/prompts/*.prompt.md` + `~/.copilot/prompts/` |
 | Claude Code | skills are commands (2026) | no separate file — `skill` → `/name` |
+| DeepSeek Harness (dsh) | registered by the ask-kit preset row | no files — `ctx.commands.register()` at runtime |
 
-Commands are authored once under `commands/` and exported by `export-platform-skills.js` into `.opencode/commands/` (OpenCode) and `.github/prompts/*.prompt.md` (Copilot/VS Code). Claude Code and dsh get their command surface for free because their skills already act as slash commands.
+Commands are authored once under `commands/` and exported by `export-platform-skills.js` into `.opencode/commands/` (OpenCode) and `.github/prompts/*.prompt.md` (Copilot/VS Code). Claude Code gets its command surface for free because its skills already act as slash commands. dsh has no file-based command discovery; its picker entries are registered programmatically by the ask-kit router preset (one `ctx.commands.register()` per skill; the handler steers the load-the-skill prompt pattern), so no command files ship for it.
 
 ---
 

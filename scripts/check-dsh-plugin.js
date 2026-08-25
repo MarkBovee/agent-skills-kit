@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Validates plugins/agent-skills-router.dsh.mjs against core/router-core.js:
 // export shape, config defaults, event wiring, beslisboom drift (every row
-// must come verbatim from routingHintLines()), routing/state smoke behavior,
+// must come verbatim from routingHintLines()), the per-skill slash-command
+// surface (names, descriptions, steer handler), routing/state smoke behavior,
 // and strict-mode tool gating. Exits non-zero on any failure.
 
 "use strict"
@@ -14,6 +15,13 @@ const { pathToFileURL } = require("node:url")
 
 const repoRoot = path.resolve(__dirname, "..")
 const pluginSourcePath = path.join(repoRoot, "plugins", "agent-skills-router.dsh.mjs")
+
+// Companion skills whose command description must equal commands/<name>.md;
+// beslisboom-derived commands are drift-proof by construction.
+const COMMAND_DRIFT_SOURCES = [
+  ["design-review"],
+  ["gh-inbox"],
+]
 
 let failures = 0
 
@@ -51,10 +59,74 @@ async function main() {
     check("stays dependency-free (no Config schema export)", mod.Config === undefined)
 
     const listeners = new Map()
-    const ctx = { on: (name2, fn) => { if (!listeners.has(name2)) listeners.set(name2, []); listeners.get(name2).push(fn) } }
+    const commands = []
+    const ctx = {
+      on: (name2, fn) => { if (!listeners.has(name2)) listeners.set(name2, []); listeners.get(name2).push(fn) },
+      // Capture the lazy commands injection so the slash-command surface is
+      // testable without a live Cordis tree.
+      inject: (services, fn) => {
+        if (services.length === 1 && services[0] === "commands") {
+          fn({ commands: { register: (definition) => commands.push(definition) } })
+        }
+      },
+    }
     mod.apply(ctx, { blockUntilSkillLoaded: true })
     for (const expected of ["agent/inbox/inserted", "tools/pre-execute", "tools/result", "system-prompt/assemble"]) {
       check(`registers ${expected}`, listeners.has(expected))
+    }
+
+    // Slash-command surface: one command per kit skill, names unique and
+    // grammar-clean, descriptions derived from the beslisboom rows plus the
+    // companion table (which must not drift from commands/<name>.md).
+    const hintNames = routerCore.routingHintLines().map((line) => line.split("→").pop().trim())
+    const expectedNames = [...hintNames, "design-review", "gh-inbox"]
+    check("registers one command per kit skill", commands.length === expectedNames.length,
+      `got ${commands.length}, want ${expectedNames.length}`)
+    check("command names match kit skills", expectedNames.every((n) => commands.some((c) => c.name === n))
+      && new Set(commands.map((c) => c.name)).size === commands.length)
+    check("command names are lowercase grammar-clean",
+      commands.every((c) => /^[a-z0-9][a-z0-9_-]*$/.test(c.name)))
+    for (const [skill] of COMMAND_DRIFT_SOURCES) {
+      const def = commands.find((c) => c.name === skill)
+      const md = fs.readFileSync(path.join(repoRoot, "commands", `${skill}.md`), "utf8")
+      const match = md.match(/^description:\s*(.+)$/m)
+      check(`companion description matches commands/${skill}.md`, Boolean(def && match && def.description === match[1].trim()),
+        def ? `"${def.description}"` : "missing definition")
+    }
+    if (commands.length > 0) {
+      // Guarded lookups: a vanished command must FAIL cleanly, not crash main.
+      const debugging = commands.find((c) => c.name === "debugging")
+      const spec = commands.find((c) => c.name === "spec")
+      check("behavior-test commands exist", Boolean(debugging && spec))
+      if (debugging && spec) {
+        const steered = []
+        const result = debugging.handler({
+          agent: { steer: (msg) => steered.push(msg) },
+          rawInput: "login crash bij start",
+        })
+        const msg = steered[0]
+        const steeredText = msg?.content?.[0]?.text ?? ""
+        check("handler steers a load-the-skill prompt", steered.length === 1
+          && steeredText.includes("'debugging'") && steeredText.includes("Apply it to: login crash bij start"))
+        // The loop forwards inbox items verbatim into the model request, so the
+        // steered value must be a full user message, not a bare string.
+        check("steered payload is a proper user message", Boolean(msg) && typeof msg === "object"
+          && msg.role === "user" && typeof msg.id === "string" && msg.id.length > 0
+          && Array.isArray(msg.content) && msg.content[0]?.type === "text"
+          && typeof msg.source?.kind === "string")
+        check("handler reports success", result && result.kind === "success" && result.text.includes("debugging"))
+        const bare = spec.handler({
+          agent: { steer: (msg2) => steered.push(msg2) },
+          rawInput: "   ",
+        })
+        check("bare invocation omits focus clause", steered.length === 2
+          && !steered[1].content[0].text.includes("Apply it to:") && bare.kind === "success")
+        const failed = debugging.handler({
+          agent: { steer: () => { throw new Error("boom") } },
+          rawInput: "",
+        })
+        check("handler reports error when steer throws", failed.kind === "error" && failed.text.includes("boom"))
+      }
     }
 
     // Strict-mode gate denies bash before any skill load, allows after one.
