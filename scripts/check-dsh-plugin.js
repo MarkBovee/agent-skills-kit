@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Validates plugins/agent-skills-router.dsh.mjs against core/router-core.js:
-// export shape, config defaults, event wiring, beslisboom drift (every row
+// export shape, config defaults, event wiring, decision-tree drift (every row
 // must come verbatim from routingHintLines()), the per-skill slash-command
 // surface (names, descriptions, steer handler), routing/state smoke behavior,
 // and strict-mode tool gating. Exits non-zero on any failure.
@@ -17,7 +17,7 @@ const repoRoot = path.resolve(__dirname, "..")
 const pluginSourcePath = path.join(repoRoot, "plugins", "agent-skills-router.dsh.mjs")
 
 // Companion skills whose command description must equal commands/<name>.md;
-// beslisboom-derived commands are drift-proof by construction.
+// decision-tree-derived commands are drift-proof by construction.
 const COMMAND_DRIFT_SOURCES = [
   ["design-review"],
   ["gh-inbox"],
@@ -92,7 +92,7 @@ async function main() {
     }
 
     // Slash-command surface: one command per kit skill, names unique and
-    // grammar-clean, descriptions derived from the beslisboom rows plus the
+    // grammar-clean, descriptions derived from the decision-tree rows plus the
     // companion table (which must not drift from commands/<name>.md).
     const hintNames = routerCore.routingHintLines().map((line) => line.split("→").pop().trim())
     const expectedNames = [...hintNames, "design-review", "gh-inbox"]
@@ -159,12 +159,12 @@ async function main() {
     const assemble = listeners.get("system-prompt/assemble")[0]
     inbox({ agent, message: { text: "er is een bug, crash bij start" } })
     const assembly = await assemble({ sections: [] }, { agent }, async () => ({ sections: [] }))
-    const section = assembly.sections.find((entry) => entry.name === "ask-kit:beslisboom")
-    check("injects ask-kit:beslisboom section", Boolean(section))
+    const section = assembly.sections.find((entry) => entry.name === "ask-kit:router")
+    check("injects ask-kit:router section", Boolean(section))
     if (section) {
       const hintLines = routerCore.routingHintLines()
       for (const line of hintLines) {
-        check(`beslisboom row derives from router-core (${line.split("→").pop().trim()})`, section.text.includes(line))
+        check(`decision-tree row derives from router-core (${line.split("→").pop().trim()})`, section.text.includes(line))
       }
     }
 
@@ -172,21 +172,21 @@ async function main() {
     const agent2 = { id: "route-check" }
     inbox({ agent: agent2, message: { text: "fout opsporen: waarom werkt de login niet" } })
     const routed = await assemble({ sections: [] }, { agent: agent2 }, async () => ({ sections: [] }))
-    const routedSection = routed.sections.find((entry) => entry.name === "ask-kit:beslisboom")
+    const routedSection = routed.sections.find((entry) => entry.name === "ask-kit:router")
     check("cascade routes Dutch bug phrase to debugging", Boolean(routedSection) && routedSection.text.includes("Active: debugging"))
 
     // Tool-injected contexts (leading tool-result blocks) must not flip routing.
     const agentCtx = { id: "ctx-check" }
     inbox({ agent: agentCtx, message: { content: [{ type: "tool-result", toolCallId: "t1", content: [] }, { type: "text", text: "er is een bug" }] } })
     const ctxAssembly = await assemble({ sections: [] }, { agent: agentCtx }, async () => ({ sections: [] }))
-    const ctxSection = ctxAssembly.sections.find((entry) => entry.name === "ask-kit:beslisboom")
+    const ctxSection = ctxAssembly.sections.find((entry) => entry.name === "ask-kit:router")
     check("tool-injected context does not route", Boolean(ctxSection) && !ctxSection.text.includes("Active:"))
 
     // Review-debt machinery mirrors router-core's own nudge wording.
     const agent3 = { id: "flip-check" }
     await pre({ name: "edit", agent: agent3 }, async () => ({ kind: "allow" }))
     const flagged = await assemble({ sections: [] }, { agent: agent3 }, async () => ({ sections: [] }))
-    const flaggedText = flagged.sections.find((entry) => entry.name === "ask-kit:beslisboom").text
+    const flaggedText = flagged.sections.find((entry) => entry.name === "ask-kit:router").text
     const coreDebtOverview = routerCore.buildSkillOverview({
       matchedSkills: [], needsCodeReview: true, needsDesignReview: false,
       shouldCaptureImprovement: false, executionProfile: null, toolCallCount: 0,
@@ -198,12 +198,12 @@ async function main() {
     }
     listeners.get("tools/result")[0]({ name: "skill", agent: agent3, arguments: { name: "code-review" } }, { isError: false })
     const cleared = await assemble({ sections: [] }, { agent: agent3 }, async () => ({ sections: [] }))
-    const clearedText = cleared.sections.find((entry) => entry.name === "ask-kit:beslisboom").text
+    const clearedText = cleared.sections.find((entry) => entry.name === "ask-kit:router").text
     check("code-review load clears review nudge", !clearedText.includes("→ Code edited"))
     check("code-review load arms improvement capture", clearedText.includes("→ Improvement found?"))
     listeners.get("tools/result")[0]({ name: "skill", agent: agent3, arguments: { name: "session-review" } }, { isError: false })
     const improvementCleared = await assemble({ sections: [] }, { agent: agent3 }, async () => ({ sections: [] }))
-    const improvementClearedText = improvementCleared.sections.find((entry) => entry.name === "ask-kit:beslisboom").text
+    const improvementClearedText = improvementCleared.sections.find((entry) => entry.name === "ask-kit:router").text
     check("session-review load clears improvement nudge", !improvementClearedText.includes("→ Improvement found?"))
 
     // Wrap-up steering: a completion phrase with pending review debt steers
@@ -218,11 +218,11 @@ async function main() {
     inbox({ agent: steerAgent, message: { text: "nogmaals klaar" } })
     check("repeat completion does not re-steer", steered.length === 1)
     const steeredAssembly = await assemble({ sections: [] }, { agent: steerAgent }, async () => ({ sections: [] }))
-    const steeredText = steeredAssembly.sections.find((entry) => entry.name === "ask-kit:beslisboom").text
+    const steeredText = steeredAssembly.sections.find((entry) => entry.name === "ask-kit:router").text
     check("completion keeps review nudge armed", steeredText.includes("→ Code edited"))
     listeners.get("tools/result")[0]({ name: "skill", agent: steerAgent, arguments: { name: "code-review" } }, { isError: false })
     const afterSteerReview = await assemble({ sections: [] }, { agent: steerAgent }, async () => ({ sections: [] }))
-    const afterSteerReviewText = afterSteerReview.sections.find((entry) => entry.name === "ask-kit:beslisboom").text
+    const afterSteerReviewText = afterSteerReview.sections.find((entry) => entry.name === "ask-kit:router").text
     check("code-review load clears steer debt", !afterSteerReviewText.includes("→ Code edited"))
     check("code-review load arms improvement after steer", afterSteerReviewText.includes("→ Improvement found?"))
     inbox({ agent: steerAgent, message: { text: "klaar" } })

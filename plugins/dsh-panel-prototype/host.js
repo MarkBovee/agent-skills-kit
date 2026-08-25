@@ -1,5 +1,5 @@
 // ask-kit panel prototype — HOST half (cordis_define `code.host` body).
-// Companion of the ask-kit preset row: the row owns beslisboom injection and
+// Companion of the ask-kit preset row: the row owns decision-tree injection and
 // canonical tracking; this half only keeps a shadow of the same signals and
 // serves them to the client half over the package RPC. Deliberately NO
 // system-prompt injection here — running both would double the section.

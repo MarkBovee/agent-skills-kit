@@ -200,7 +200,8 @@ description: Standard coding agent with the ASK decision tree in every prompt, s
     if (-not $isNewOrMigrate -and (Test-Path -LiteralPath $presetMeta)) {
         # Exact whole-line match (case-sensitive), mirroring install.sh's
         # grep -qxF, so a user-edited description that merely contains the
-        # old default is never overwritten.
+        # old default is never overwritten. The Dutch string below is the
+        # historical stale default, kept verbatim as the migration trigger.
         $oldManagedDefault = "description: Standaard codeer-agent met de ASK-beslisboom in elke prompt, skill/review-state tracking en optionele tool-gating tot een skill is geladen."
         $isNewOrMigrate = @(Get-Content -LiteralPath $presetMeta) -ccontains $oldManagedDefault
     }
@@ -214,7 +215,7 @@ description: Standard coding agent with the ASK decision tree in every prompt, s
 
 # ── agent-skills-kit ──────────────────────────────────────────────────────
 
-# Router row: injects the beslisboom section every model step, tracks
+# Router row: injects the decision-tree section every model step, tracks
 # per-session skill/review state, and optionally gates tools until a skill
 # loads. Managed by agent-skills-kit install; set blockUntilSkillLoaded to
 # true for OpenCode-parity gating.

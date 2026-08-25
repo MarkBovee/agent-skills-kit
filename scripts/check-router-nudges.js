@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // Drive the OpenCode router plugin through scripted hook sequences and assert
-// the exact nudge behavior (beslisboom audit, auto-match, blocked-tool hint,
+// the exact nudge behavior (decision-tree audit, auto-match, blocked-tool hint,
 // needsCodeReview / needsDesignReview set-and-clear paths). Exits non-zero on
 // any failure so CI catches routing regressions without a manual session test.
 
@@ -30,7 +30,7 @@ async function main() {
   const plugin = await AgentSkillsRouter()
   await plugin["session.created"]()
 
-  // Fresh session: first prompt injects the skill catalog audit plus beslisboom.
+  // Fresh session: first prompt injects the skill catalog audit plus decision tree.
   const auditAppend = await plugin["tui.prompt.append"]({ prompt: "start hier" })
   const auditText = auditAppend?.append || ""
   check("first prompt contains session audit header", auditText.includes("FIRST ACTION: scan the decision tree"))

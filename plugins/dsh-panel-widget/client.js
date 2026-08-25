@@ -17,7 +17,7 @@ window.__ModuleLoader__.load({
 		let react = require("react");
 		//#region ask-kit-panel client — ambient status line under the composer.
 		// Prototype semantics only: badge, loaded-skill chips, review nudges.
-		// The beslisboom lives in the system prompt and is deliberately NOT
+		// The decision tree lives in the system prompt and is deliberately NOT
 		// mirrored here. State arrives reactively via the `askKit` session
 		// projection (host fold of `ask-kit/state` whole-value events written
 		// by the ask-kit router row); there is no polling RPC anymore.
