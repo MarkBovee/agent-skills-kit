@@ -208,7 +208,8 @@ install_dsh_preset() {
 
   # Write the preset metadata on first install, and migrate it on refresh only
   # when the description is still the pre-English managed default, so a
-  # user-edited description always survives.
+  # user-edited description always survives. The Dutch string below is the
+  # historical stale default, kept verbatim as the migration trigger.
   if [ "$state" = "new" ] || { [ -f "$DSH_PRESET_TARGET/preset.yml" ] \
       && grep -qxF "description: Standaard codeer-agent met de ASK-beslisboom in elke prompt, skill/review-state tracking en optionele tool-gating tot een skill is geladen." "$DSH_PRESET_TARGET/preset.yml"; }; then
     cat > "$DSH_PRESET_TARGET/preset.yml" <<'EOF'
@@ -222,7 +223,7 @@ EOF
 
 # ── agent-skills-kit ──────────────────────────────────────────────────────
 
-# Router row: injects the beslisboom section every model step, tracks
+# Router row: injects the decision-tree section every model step, tracks
 # per-session skill/review state, and optionally gates tools until a skill
 # loads. Managed by agent-skills-kit install; set blockUntilSkillLoaded to
 # true for OpenCode-parity gating.

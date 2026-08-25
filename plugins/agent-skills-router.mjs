@@ -1,4 +1,4 @@
-// agent-skills-router - opencode plugin. Injects beslisboom every prompt, tracks code-edit + skill-invocation state, nudges contextually.
+// agent-skills-router - opencode plugin. Injects the decision tree every prompt, tracks code-edit + skill-invocation state, nudges contextually.
 
 import { createRequire } from "node:module"
 import { fileURLToPath } from "node:url"

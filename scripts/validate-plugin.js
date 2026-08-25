@@ -17,7 +17,7 @@ const COMMANDS_PATH = path.join(REPO_ROOT, "commands")
 const REFERENCE_PATTERN = /`([^`]+)`/g
 const NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
-// Collapse whitespace so doc mirrors of the beslisboom can keep their own
+// Collapse whitespace so doc mirrors of the decision tree can keep their own
 // alignment while still being held to the same rows, order, and skill names.
 function normalizeHintRow(line) {
   return line.trim().replace(/\s+/g, " ")
@@ -77,7 +77,15 @@ async function validateSkills(errors) {
   const skillNames = []
   for (const entry of entries.filter((item => item.isDirectory()))) {
     const skillPath = path.join(SKILLS_PATH, entry.name, "SKILL.md")
-    const content = await fs.readFile(skillPath, "utf8")
+    const raw = await fs.readFile(skillPath)
+    // dsh's skill provider rejects files whose first 8192 bytes contain a NUL
+    // byte (binary guard) and silently drops them from its catalog, so the
+    // skill is advertised but unloadable (issue #32). Fail the release instead.
+    if (raw.subarray(0, 8192).includes(0)) {
+      errors.push(`${path.relative(REPO_ROOT, skillPath)} contains NUL bytes — dsh treats it as binary and will not load it`)
+      continue
+    }
+    const content = raw.toString("utf8")
     const frontmatter = parseFrontmatter(content)
 
     const nameMatches = frontmatter.name === entry.name || entry.name === `ask-${frontmatter.name}`
@@ -112,7 +120,7 @@ async function validateSkills(errors) {
 }
 
 // Assert the hand-maintained doc mirrors of pack facts still match generated truth:
-// README's skill-count badge, one command file per skill, and the beslisboom rows
+// README's skill-count badge, one command file per skill, and the decision-tree rows
 // mirrored in rules/agent-skills-kit.md.
 async function validateDocConsistency(errors, skillNames) {
   const readme = await fs.readFile(README_PATH, "utf8")

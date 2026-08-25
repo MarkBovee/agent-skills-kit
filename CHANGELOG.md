@@ -6,6 +6,17 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [1.6.3] - Unreleased
+
+### Fixed
+
+- **`develop` skill loads in dsh again (issue #32).** `skills/ask-develop/SKILL.md` shipped with 115 trailing NUL bytes, so dsh's skill provider treated it as a binary file (`FS_NOT_TEXT`) and silently dropped `develop` from the session catalog — the decision tree advertised it while `skill(name: 'develop')` failed with "unknown or no longer available". The NUL bytes are removed and the exports regenerated; `validate-plugin.js` and `export-platform-skills.js` now fail the release when any source `SKILL.md` contains a NUL byte in its first 8192 bytes, so a binary skill file can never ship again.
+- **`develop` skill body is now English.** The Dutch prose in `skills/ask-develop/SKILL.md` (staged-delegation and git-workflow sections, model-tiering table) is translated; routing trigger phrases stay multilingual on purpose.
+
+### Changed
+
+- **"beslisboom" terminology removed.** The Dutch term is replaced with English everywhere: the dsh router's injected section is now `ask-kit:router` (was `ask-kit:beslisboom`), and comments, docs, and check labels use "decision tree". The only remaining Dutch strings are the historical stale-preset description that the installers use as a migration trigger and the trigger keywords/phrases the router must catch.
+
 ## [1.6.2] - Unreleased
 
 ### Fixed
@@ -40,7 +51,7 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ### Added
 
-- **dsh slash commands for every kit skill.** The `ask-kit` router row now also registers one command per skill through dsh's plugin-owned command registry (`ctx.commands.register()` via a lazy `ctx.inject(["commands"])`, mirroring how shipped rows like `/plan` register): `/spec`, `/intake`, `/debugging`, … plus companions `/design-review` and `/gh-inbox`. Beslisboom rows double as picker descriptions; a command handler steers the session with a load-the-skill prompt following the platform command-file pattern (per-workflow specifics stay in the skill body), with the typed remainder as focus (`/debugging login crash`). Steered input is wrapped in a proper user message (`id`/`role`/`content`/`source`) because dsh's agent loop forwards inbox items verbatim into the next model request. dsh has no file-based command discovery, so this closes the gap behind OpenCode/Copilot's exported command files — no generated artifacts needed.
+- **dsh slash commands for every kit skill.** The `ask-kit` router row now also registers one command per skill through dsh's plugin-owned command registry (`ctx.commands.register()` via a lazy `ctx.inject(["commands"])`, mirroring how shipped rows like `/plan` register): `/spec`, `/intake`, `/debugging`, … plus companions `/design-review` and `/gh-inbox`. Decision-tree rows double as picker descriptions; a command handler steers the session with a load-the-skill prompt following the platform command-file pattern (per-workflow specifics stay in the skill body), with the typed remainder as focus (`/debugging login crash`). Steered input is wrapped in a proper user message (`id`/`role`/`content`/`source`) because dsh's agent loop forwards inbox items verbatim into the next model request. dsh has no file-based command discovery, so this closes the gap behind OpenCode/Copilot's exported command files — no generated artifacts needed.
 
 ### Fixed
 
@@ -50,8 +61,8 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ### Added
 
-- **dsh router plugin (optional `ask-kit` agent preset).** `plugins/agent-skills-router.dsh.mjs` ports the OpenCode router to DeepSeek Harness as a Cordis preset row: it appends the beslisboom section to every model step via the `system-prompt/assemble` waterfall (all 12 rows derived verbatim from `routingHintLines()`), tracks per-session skill loads and review/design-review debt through `tools/pre-execute`, `tools/result`, and `agent/inbox/inserted`, clears nudges on completion phrases, and optionally gates bash/edit/write until a skill loads (`blockUntilSkillLoaded` row config, default false). The unified installer (`install.sh` / `install.ps1`) copies the deployed dsh `standard` preset once into `~/.dsh/.agent-presets/ask-kit/`, appends the managed router row, and vendors `core/router-core.js` beside it so no copy can drift; reinstalls refresh only the managed parts.
-- **dsh plugin validation.** New `scripts/check-dsh-plugin.js` asserts export shape, config defaults, event wiring, strict-gate behavior, cascade routing of Dutch bug phrases, and beslisboom drift against `core/router-core.js`; wired into the AGENTS.md validation list.
+- **dsh router plugin (optional `ask-kit` agent preset).** `plugins/agent-skills-router.dsh.mjs` ports the OpenCode router to DeepSeek Harness as a Cordis preset row: it appends the decision-tree section to every model step via the `system-prompt/assemble` waterfall (all 12 rows derived verbatim from `routingHintLines()`), tracks per-session skill loads and review/design-review debt through `tools/pre-execute`, `tools/result`, and `agent/inbox/inserted`, clears nudges on completion phrases, and optionally gates bash/edit/write until a skill loads (`blockUntilSkillLoaded` row config, default false). The unified installer (`install.sh` / `install.ps1`) copies the deployed dsh `standard` preset once into `~/.dsh/.agent-presets/ask-kit/`, appends the managed router row, and vendors `core/router-core.js` beside it so no copy can drift; reinstalls refresh only the managed parts.
+- **dsh plugin validation.** New `scripts/check-dsh-plugin.js` asserts export shape, config defaults, event wiring, strict-gate behavior, cascade routing of Dutch bug phrases, and decision-tree drift against `core/router-core.js`; wired into the AGENTS.md validation list.
 
 ## [1.3.2] - 2026-08-24
 
@@ -63,17 +74,17 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 - **Release gate parity.** `tag-release.sh` and `tag-release.ps1` now run `validate-plugin.js` before tagging — a stale `plugin.json` version can no longer produce a locally green tag that fails the Release workflow (the v1.2.x failure mode).
 - **Ghost slash-commands removed on reinstall.** Installers now track managed command and prompt files via `.ask-managed-commands.txt` / `.ask-managed-prompts.txt` manifests in `~/.config/opencode/commands/` and `~/.copilot/prompts/`; files retired from the pack are deleted instead of surviving forever.
-- **Single source for the beslisboom hint.** The plugin's blocked-tool message is now derived from `routingHintLines()` in `core/router-core.js` (`OVERVIEW_ROWS`) instead of a hand-maintained string copy.
+- **Single source for the decision-tree hint.** The plugin's blocked-tool message is now derived from `routingHintLines()` in `core/router-core.js` (`OVERVIEW_ROWS`) instead of a hand-maintained string copy.
 - **`.dsh` pull-recovery gap closed.** `release-helpers.sh` and `release-helpers.ps1` (used by `update.*`) now restore generated `.dsh/` artifacts during pull recovery, matching `bootstrap.*` behavior.
 - **Completion clears design nudge.** A completion phrase now clears `needsDesignReview` alongside `needsCodeReview`, so skipping the design-review filter stops the nudge after wrap-up instead of nagging forever.
-- **Doc drift assertions.** `validate-plugin.js` now fails when README's `<code>N skills</code>` badge drifts from the actual skill count, when a skill lacks its `commands/<name>.md` file, or when the beslisboom rows in `rules/agent-skills-kit.md` drift from `OVERVIEW_ROWS`.
+- **Doc drift assertions.** `validate-plugin.js` now fails when README's `<code>N skills</code>` badge drifts from the actual skill count, when a skill lacks its `commands/<name>.md` file, or when the decision-tree rows in `rules/agent-skills-kit.md` drift from `OVERVIEW_ROWS`.
 
 ## [1.3.1] - 2026-08-20
 
 ### Added
 
 - **New `gh-inbox` skill.** `skills/ask-gh-inbox/SKILL.md` processes the current repository's GitHub inbox: resolve the repo, fetch open issues and discussions, diff against `.gh-inbox-state.json`, triage new items, reply where the action is factual and low-risk, report, and persist state. Ships as slash command `gh-inbox`. The standalone `commands/gh-inbox.md` workflow moved into the skill; the command now loads the skill (DRY).
-- **Automatic skill-match nudge in the OpenCode router.** `plugins/agent-skills-router.mjs` now runs the prompt through `cascadeRoute` and surfaces a one-line nudge (`→ Match: <skill> — call skill(name: '<skill>') now`) when a non-default skill matches and is not yet loaded, instead of leaving the agent to self-select from the beslisboom alone. (#24 follow-on)
+- **Automatic skill-match nudge in the OpenCode router.** `plugins/agent-skills-router.mjs` now runs the prompt through `cascadeRoute` and surfaces a one-line nudge (`→ Match: <skill> — call skill(name: '<skill>') now`) when a non-default skill matches and is not yet loaded, instead of leaving the agent to self-select from the decision tree alone. (#24 follow-on)
 - **Provider peak-window warnings.** The router detects the active provider via the `chat.params` hook and warns once per session when a provider's peak window is active: Anthropic/Claude (weekdays 13:00–19:00 UTC, faster session-limit drain) and DeepSeek (01:00–04:00 or 06:00–10:00 UTC, 2x price). (#19)
 - **`agent-workflows` progress-update guidance.** New section for long-running background subagents: emit periodic, rate-limited (milestone- or time-based, never per tool call) progress updates to the main channel — status, milestone/phase, approximate progress, blockers, and final output location; surface blocked/failed promptly and stop on completion. (#24)
 
@@ -85,7 +96,7 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ### Added
 
-- **New `text-writing` skill.** `skills/ask-text-writing/SKILL.md` produces human-sounding text that avoids detectable AI writing patterns — banned-vocabulary list (loads `references/banned-words.md`), structure/punctuation/accuracy/formatting constraints, voice calibration, and a ten-point self-check before output. For tweets, emails, articles, copy, cover letters, and any text that must not read as AI-generated. Routing row in the beslisboom (after `ui-ux`), ships as slash command `text-writing`. Adapted from [jalaalrd/anti-ai-slop-writing](https://github.com/jalaalrd/anti-ai-slop-writing) (MIT); the untracked nested clone in `skills/` is removed.
+- **New `text-writing` skill.** `skills/ask-text-writing/SKILL.md` produces human-sounding text that avoids detectable AI writing patterns — banned-vocabulary list (loads `references/banned-words.md`), structure/punctuation/accuracy/formatting constraints, voice calibration, and a ten-point self-check before output. For tweets, emails, articles, copy, cover letters, and any text that must not read as AI-generated. Routing row in the decision tree (after `ui-ux`), ships as slash command `text-writing`. Adapted from [jalaalrd/anti-ai-slop-writing](https://github.com/jalaalrd/anti-ai-slop-writing) (MIT); the untracked nested clone in `skills/` is removed.
 
 ### Changed
 
@@ -101,7 +112,7 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ### Added
 
-- **New `design-review` skill.** `skills/ask-design-review/SKILL.md` reviews an existing design, UI, or copy against an anti-default (anti-slop) checklist before shipping: quick-scan signal table, per-section checks (visual, color/typography, copy, UX/IA/a11y, visible code tells, strategic/business tells), a self-check of six questions, and a pushback protocol. Companion to `ui-ux`, not a routing row in the beslisboom. Ships as slash command `design-review`.
+- **New `design-review` skill.** `skills/ask-design-review/SKILL.md` reviews an existing design, UI, or copy against an anti-default (anti-slop) checklist before shipping: quick-scan signal table, per-section checks (visual, color/typography, copy, UX/IA/a11y, visible code tells, strategic/business tells), a self-check of six questions, and a pushback protocol. Companion to `ui-ux`, not a routing row in the decision tree. Ships as slash command `design-review`.
 - **Router nudge after `ui-ux`.** When the `ui-ux` skill is loaded, the plugin sets `needsDesignReview` and appends "→ Design produced — `skill(name: 'design-review')`" until `design-review` is loaded. Mirrors the existing `needsCodeReview` mechanism.
 
 ### Changed
@@ -137,17 +148,17 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ### Fixed
 
-- **`coding-standards.md` nu geïnstalleerd op alle platformen.** OpenCode kreeg het al, Claude Code kreeg het niet — nu wordt `rules/coding-standards.md` ook naar `~/.claude/rules/` gekopieerd. Copilot instructies bevatten nu een samenvatting en verwijzing. (#18)
-- **SKILL.md referentie platform-onafhankelijk.** `rules/coding-standards.md` → `coding-standards.md` in `ask-code-review/SKILL.md`, zodat het pad werkt ongeacht waar de rules zijn geïnstalleerd. (#18)
-- **Release guard: validate externe skill-referenties.** `validate-plugin.js` controleert nu of elk `rules/<file>` dat in backtick-quotes in SKILL.md staat, ook echt in `rules/` bestaat. Blokkeert toekomstige releases met dangling referenties. (#18)
+- **`coding-standards.md` now installed on all platforms.** OpenCode already had it, Claude Code did not — `rules/coding-standards.md` is now also copied to `~/.claude/rules/`. Copilot instructions now include a summary and reference. (#18)
+- **Platform-independent SKILL.md reference.** `rules/coding-standards.md` → `coding-standards.md` in `ask-code-review/SKILL.md`, so the path works regardless of where the rules are installed. (#18)
+- **Release guard: validate external skill references.** `validate-plugin.js` now checks that every `rules/<file>` referenced in backtick quotes in SKILL.md actually exists in `rules/`. Blocks future releases with dangling references. (#18)
 
 ## [0.6.0] - 2026-07-29
 
 ### Added
 
-- **Develop skill: staged delegation pattern.** New `Delegate (staged)` mode voor sequentiële dependency chains — elke stage heeft eigen complexity tier, main agent orkestreert met per-stage validatie en commit. Model tiering tabel koppelt taakcomplexiteit (light/standard/heavy) aan agent type (mini→flash, default→flash, high→pro). Peak-pricing check (DeepSeek piekuren) vóór elke dispatch. (#18)
-- **Intake skill: staging detectie in execution planning.** Nieuwe check in planning flow: detecteert of werk in afhankelijke stages splitst met gemengde complexiteit. 10 nieuwe trigger phrases voor staging-signalen. Uitgebreide `AMBIGUITY_PHRASES` in router-core. (#18)
-- **Agent-workflows skill: cross-referentie naar staged delegation.** "Not a good fit" sectie verwijst nu naar `develop` staged delegation voor sequentiële dependency chains. (#18)
+- **Develop skill: staged delegation pattern.** New `Delegate (staged)` mode for sequential dependency chains — each stage has its own complexity tier, the main agent orchestrates with per-stage validation and commit. The model tiering table maps task complexity (light/standard/heavy) to agent type (mini→flash, default→flash, high→pro). Peak-pricing check (DeepSeek peak hours) before every dispatch. (#18)
+- **Intake skill: stage detection in execution planning.** New check in the planning flow: detects whether work splits into dependent stages with mixed complexity. 10 new trigger phrases for stage signals. Expanded `AMBIGUITY_PHRASES` in router-core. (#18)
+- **Agent-workflows skill: cross-reference to staged delegation.** The "Not a good fit" section now points to `develop` staged delegation for sequential dependency chains. (#18)
 
 ## [0.5.9] - 2026-07-28
 
@@ -160,8 +171,8 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ### Changed
 
-- **Intake skill: pair programming flow toegevoegd.** Nieuwe sectie met plan→present→validate→implement flow voor pair programming sessies. Triggers uitgebreid met "we moeten dit aanpakken", "laten we dit doen", "pair programming", "samenwerken". (#17)
-- **Develop skill: "Plan if missing" aangescherpt.** Bij nieuwe of onduidelijke scope wordt intake geladen in plaats van inline plannen. (#17)
+- **Intake skill: pair programming flow added.** New section with a plan→present→validate→implement flow for pair programming sessions. Triggers extended with "we moeten dit aanpakken", "laten we dit doen", "pair programming", "samenwerken". (#17)
+- **Develop skill: "Plan if missing" tightened.** For new or unclear scope, intake is loaded instead of inline planning. (#17)
 
 ## [0.5.8] - 2026-07-28
 
@@ -179,13 +190,13 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ### Changed
 
-- **Agent self-selects skills via beslisboom.** Router no longer does automatic phrase-based skill matching. Instead, `buildSkillOverview()` injects a decision tree every prompt — agent evaluates the task and loads via `skill(name: '...')`. Eliminates false positives and gives the agent full autonomy. README diagram and Router section updated.
+- **Agent self-selects skills via the decision tree.** Router no longer does automatic phrase-based skill matching. Instead, `buildSkillOverview()` injects a decision tree every prompt — agent evaluates the task and loads via `skill(name: '...')`. Eliminates false positives and gives the agent full autonomy. README diagram and Router section updated.
 - **Context-aware nudges in router.** Tracks tool usage, code edits, and skill-load events. Nudges when code is edited without review, or when many tools run without loading any skill. Session-start audit shows all available skills with descriptions.
 - **Skill triggers enriched.** `develop` (rewrite, refactor, coordinator), `debugging` (slow startup, timeout, crash loop, None), `verification` (test de fix, cleanup, validate), `code-review` (check de wijziging, review changes, second look). Corresponding cascade phrase lists updated.
 - **hasPhraseSignal uses word-boundary regex.** Prevents false positives (e.g. "prove" matching inside "improve") for the completion-state check.
 - **Plugin error handling.** `tui.prompt.append` wrapped in try/catch — plugin errors don't break the session.
 - **rules/agent-skills-kit.md ships with installer.** Beslisboom usage instructions registered in `opencode.json` instructions array so every new session has the decision tree context. Both `install.sh` and `install.ps1` updated.
-- **AGENTS.md updated.** New-session validation steps (beslisboom check, plugin registration check, export check).
+- **AGENTS.md updated.** New-session validation steps (decision-tree check, plugin registration check, export check).
 
 ## [0.5.1] - 2026-07-27
 
@@ -197,22 +208,22 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ### Fixed
 
-- **Plugin .mjs i.p.v. .js.** OpenCode `package.json` mist `"type": "module"`, dus `.js` werd als CommonJS geladen — plugin met `import/export` faalde stilletjes, geen enkele hook vuurde. `.mjs` forceert ESM ongeacht `package.json`.
-- **Destructive tools geblokkeerd tot skill geladen.** `tool.execute.before` blokkeert `edit`/`write`/`apply_patch`/`bash` als `skillsLoadedCount === 0`. Error toont complete beslisboom.
+- **Plugin .mjs instead of .js.** OpenCode `package.json` lacks `"type": "module"`, so `.js` was loaded as CommonJS — a plugin using `import/export` failed silently, no hook fired. `.mjs` forces ESM regardless of `package.json`.
+- **Destructive tools blocked until a skill is loaded.** `tool.execute.before` blocks `edit`/`write`/`apply_patch`/`bash` while `skillsLoadedCount === 0`. The error shows the complete decision tree.
 
 ## [0.5.2] - 2026-07-27
 
 ### Changed
 
-- **First-action instructie in plugin hook.** `buildSkillOverview` toont "Load matching skill *now*" tot een skill geladen is, daarna "Beslisboom — load different skill". Niet langer afhankelijk van passief `rules/agent-skills-kit.md` document.
-- **rules/agent-skills-kit.md terug naar pure referentie.** Geen "first action" instructie meer — plugin hook injecteert de directive copy.
-- **Dubbele const fix** in `buildSkillOverview` (router-core.js).
+- **First-action instruction in plugin hook.** `buildSkillOverview` shows "Load matching skill *now*" until a skill is loaded, then "Decision tree — load different skill". No longer depends on the passive `rules/agent-skills-kit.md` document.
+- **`rules/agent-skills-kit.md` back to pure reference.** No more "first action" instruction — the plugin hook injects the directive copy.
+- **Duplicate const fix** in `buildSkillOverview` (router-core.js).
 
 ## [0.5.4] - 2026-07-27
 
 ### Fixed
 
-- **Router-core require path in plugin.** `require(resolve(here, "core/router-core"))` resolveerde naar `plugins/core/` i.p.v. project root — plugin faalde met `MODULE_NOT_FOUND`. Path gecorrigeerd naar `../core/router-core`.
+- **Router-core require path in plugin.** `require(resolve(here, "core/router-core"))` resolved to `plugins/core/` instead of the project root — the plugin failed with `MODULE_NOT_FOUND`. Path corrected to `../core/router-core`.
 
 ## [0.5.6] - 2026-07-28
 
@@ -225,7 +236,7 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 ### Added
 
 - **develop skill: destructive-operations guardrail.** Rule 11 added: no modifying/deleting external system state (entity registries, databases, remote config) without showing the user what will change and getting confirmation before acting. Prevents autonomous HA entity registry mutations. (#13)
-- **AGENTS.md: coding-standards priority over system prompt.** Explicit priority rules: `coding-standards.md` prevaleert boven generieke "no comments" regels, Ponytail boilerplate-beperking geldt niet voor purpose comments. (#14)
+- **AGENTS.md: coding-standards priority over system prompt.** Explicit priority rules: `coding-standards.md` takes precedence over generic "no comments" rules; Ponytail's boilerplate restriction does not apply to purpose comments. (#14)
 
 ## [0.4.1] - 2026-07-24
 
@@ -284,12 +295,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ### Changed
 
-- **AGENTS.md gecomprimeerd naar caveman format.** ~60% korter (8KB→3.3KB). Minder tokens per sessie.
-- **AGENTS.md coding-standards inline vervangen met verwijzing naar `rules/coding-standards.md`.** Geen dubbele content meer.
-- **Router hints gecomprimeerd.** `buildRoutingLines()` output ~70% korter (~1KB→~300B per prompt injectie).
-- **router-core.js + plugin gecomprimeerd.** router-core 16KB→13.5KB, plugin 6KB→4.9KB. Total ~8KB besparing in verplichte context per sessie.
-- **update.sh/update.ps1 opgeschoond.** Geen community-skills index refresh meer tijdens update.
-- **README opgeschoond.** Platform matrix, maintenance, repo map zonder skill-finder references.
+- **AGENTS.md compressed to caveman format.** ~60% shorter (8KB→3.3KB). Fewer tokens per session.
+- **AGENTS.md coding-standards inline replaced with a reference to `rules/coding-standards.md`.** No more duplicated content.
+- **Router hints compressed.** `buildRoutingLines()` output ~70% shorter (~1KB→~300B per prompt injection).
+- **router-core.js + plugin compressed.** router-core 16KB→13.5KB, plugin 6KB→4.9KB. Total ~8KB saved in mandatory context per session.
+- **update.sh/update.ps1 cleaned up.** No more community-skills index refresh during update.
+- **README cleaned up.** Platform matrix, maintenance, repo map without skill-finder references.
 
 ## [0.3.3] - 2026-07-21
 

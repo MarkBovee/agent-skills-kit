@@ -301,7 +301,14 @@ async function exportSkills() {
   for (const skillName of skillNames) {
     const sourceDir = path.join(SOURCE_SKILLS_DIR, skillName)
     const sourceSkillPath = path.join(sourceDir, "SKILL.md")
-    const sourceSkill = await fs.readFile(sourceSkillPath, "utf8")
+    const sourceSkillRaw = await fs.readFile(sourceSkillPath)
+    // dsh's skill provider treats a NUL byte in the first 8192 bytes as binary
+    // and silently drops the skill from its catalog (issue #32). Fail the
+    // export instead of shipping a skill that cannot be loaded.
+    if (sourceSkillRaw.subarray(0, 8192).includes(0)) {
+      throw new Error(`${sourceSkillPath} contains NUL bytes and would not load in dsh — fix the source first`)
+    }
+    const sourceSkill = sourceSkillRaw.toString("utf8")
     const frontmatter = parseFrontmatter(sourceSkill)
     const displayName = (frontmatter.name || skillName).trim()
     const description = (frontmatter.description || "").trim()

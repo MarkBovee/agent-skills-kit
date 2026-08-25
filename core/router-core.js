@@ -283,7 +283,7 @@ const OVERVIEW_ROWS = [
   { label: "Normal software work (default)",           skill: SKILL_DEVELOP },
 ]
 
-// Render the canonical beslisboom rows as plain hint lines so every surface
+// Render the canonical decision-tree rows as plain hint lines so every surface
 // that mirrors the tree (plugin blocked-tool message, docs checks) derives
 // from OVERVIEW_ROWS instead of keeping its own copy in sync.
 function routingHintLines() {

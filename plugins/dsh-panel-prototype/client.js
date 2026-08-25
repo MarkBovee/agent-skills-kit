@@ -1,5 +1,5 @@
 // ask-kit client half — slim ambient status line under the composer.
-// No beslisboom here on purpose: the tree lives in the system prompt;
+// No decision tree here on purpose: the tree lives in the system prompt;
 // this surface only mirrors live session state.
 
 const CSS = '\n.askk-bar{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dsw-alias-label-secondary);padding:2px 4px;flex-wrap:wrap}\n.askk-badge{color:var(--dsw-alias-brand-primary);font-weight:600;white-space:nowrap}\n.askk-chip{border:1px solid var(--dsw-alias-border-l1);border-radius:999px;padding:0 7px;line-height:16px;background:var(--dsw-alias-bg-layer-1);white-space:nowrap}\n.askk-warn{color:var(--dsw-alias-state-warn-primary)}\n.askk-ok{color:var(--dsw-alias-state-success-primary)}\n'

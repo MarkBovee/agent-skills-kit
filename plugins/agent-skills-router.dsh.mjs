@@ -1,9 +1,9 @@
 // agent-skills-router.dsh - Cordis host plugin for DeepSeek Harness. Injects the
-// beslisboom into every model step, registers one slash command per kit skill,
+// decision tree into every model step, registers one slash command per kit skill,
 // tracks per-session skill/review state, optionally gates code tools until
 // a skill is loaded, and publishes that state as whole-value session events
 // feeding the `askKit` projection unit read by the dsh-panel-widget client.
-// All shared logic comes from core/router-core.js so no beslisboom copy can
+// All shared logic comes from core/router-core.js so no decision-tree copy can
 // drift. The file must stay dependency-free: preset-local rows cannot resolve
 // bare npm specifiers.
 
@@ -49,7 +49,7 @@ const {
 
 const CODE_EDIT_TOOL_IDS = new Set(["edit", "write", "apply_patch"])
 const GATED_TOOLS = new Set(["bash", "edit", "write", "apply_patch"])
-const SECTION_NAME = "ask-kit:beslisboom"
+const SECTION_NAME = "ask-kit:router"
 const LOADED_SKILLS_MAX = 12
 
 // Panel state bridge (plugins/dsh-panel-widget): every mutation appends the
@@ -60,7 +60,7 @@ const PANEL_EVENT_TYPE = "ask-kit/state"
 const PANEL_PROJECTION_KEY = "askKit"
 const PANEL_STATE_VERSION = 1
 
-// Companion skills outside the beslisboom that still get a slash command.
+// Companion skills outside the routing tree that still get a slash command.
 // Descriptions are copied verbatim from commands/<name>.md; check-dsh-plugin.js
 // fails on drift between this table and those generated files.
 const COMPANION_COMMANDS = [
@@ -219,7 +219,7 @@ export function apply(ctx, config) {
     })
   })
 
-  // Render the canonical beslisboom plus live nudges for one state bucket;
+  // Render the canonical decision tree plus live nudges for one state bucket;
   // rows come verbatim from routingHintLines() so they cannot drift.
   function buildOverview(st) {
     const lines = ["╌ Agent Skills Kit ╌"]
@@ -378,7 +378,7 @@ export function apply(ctx, config) {
     }
   })
 
-  // Append the live beslisboom section to every model-step assembly.
+  // Append the live decision-tree section to every model-step assembly.
   ctx.on("system-prompt/assemble", async (assembly, context, next) => {
     const result = await next()
     try {

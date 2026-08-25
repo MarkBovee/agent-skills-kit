@@ -77,18 +77,18 @@ Export targets (via `export-platform-skills.js`): OpenCode → `.opencode/comman
 
 ## Router plugin
 
-`plugins/agent-skills-router.mjs` injects a beslisboom (decision tree) every prompt — agent self-selects skills via `skill(name: '...')`. No automatic phrase matching. When changing:
+`plugins/agent-skills-router.mjs` injects a decision tree every prompt — agent self-selects skills via `skill(name: '...')`. No automatic phrase matching. When changing:
 
-- The beslisboom has 12 routing rows. `design-review` is a companion skill, not a routing row: it fires when the `ui-ux` skill is loaded (plugin sets `needsDesignReview` and nudges `skill(name: 'design-review')` until it is loaded), mirroring `needsCodeReview`. `text-writing` is a routing row, matching text that must read human rather than AI. The blocked-tool hint and the rules-file beslisboom are derived from `routingHintLines()` in `core/router-core.js` — never hand-edit either copy; `validate-plugin.js` fails on drift.
+- The decision tree has 12 routing rows. `design-review` is a companion skill, not a routing row: it fires when the `ui-ux` skill is loaded (plugin sets `needsDesignReview` and nudges `skill(name: 'design-review')` until it is loaded), mirroring `needsCodeReview`. `text-writing` is a routing row, matching text that must read human rather than AI. The blocked-tool hint and the rules-file decision tree are derived from `routingHintLines()` in `core/router-core.js` — never hand-edit either copy; `validate-plugin.js` fails on drift.
 
 - `node --input-type=module -e "import('./plugins/agent-skills-router.mjs')"` — verify it loads
-- `node -e "const {buildSkillOverview,createEmptySessionState}=require('./core/router-core'); const s=createEmptySessionState(); s.matchedSkills=[{name:'develop'}]; console.log(buildSkillOverview(s))"` — test beslisboom output
+- `node -e "const {buildSkillOverview,createEmptySessionState}=require('./core/router-core'); const s=createEmptySessionState(); s.matchedSkills=[{name:'develop'}]; console.log(buildSkillOverview(s))"` — test decision-tree output
 - `node -e "import('./plugins/agent-skills-router.mjs').then(async m=>{const p=await m.AgentSkillsRouter(); await p['session.created'](); const r=await p['tui.prompt.append']({prompt:'test'}); console.log(r?.append?.slice(0,200))})"` — test plugin hooks
 - Keep plugin stateless except session-scoped state (tool tracking, skill-load events, audit flag)
 
 ### dsh router variant
 
-`plugins/agent-skills-router.dsh.mjs` is the DeepSeek Harness counterpart, loaded as an `ask-kit` agent-preset row (`name: ./plugins/ask-kit-router.mjs`, installed by `install.*`). It appends the beslisboom section through the `system-prompt/assemble` waterfall, registers one slash command per kit skill through a lazy `ctx.inject(["commands"])` (beslisboom rows double as picker descriptions; companion skills `design-review`/`gh-inbox` are explicit and must not drift from `commands/<name>.md`), tracks skill/review state via `tools/pre-execute` / `tools/result` / `agent/inbox/inserted`, and gates tools only when row config `blockUntilSkillLoaded` is true (default false). The file must stay dependency-free — preset-local rows cannot resolve bare specifiers such as `@deepseek-ai/schemastery`, so row config is normalized manually in `apply()`. All beslisboom rows come from `routingHintLines()`; `node ./scripts/check-dsh-plugin.js` validates exports, dependency-freedom, event wiring, gating, cascade routing, the slash-command surface, and beslisboom drift against `core/router-core.js`.
+`plugins/agent-skills-router.dsh.mjs` is the DeepSeek Harness counterpart, loaded as an `ask-kit` agent-preset row (`name: ./plugins/ask-kit-router.mjs`, installed by `install.*`). It appends the router section through the `system-prompt/assemble` waterfall, registers one slash command per kit skill through a lazy `ctx.inject(["commands"])` (decision-tree rows double as picker descriptions; companion skills `design-review`/`gh-inbox` are explicit and must not drift from `commands/<name>.md`), tracks skill/review state via `tools/pre-execute` / `tools/result` / `agent/inbox/inserted`, and gates tools only when row config `blockUntilSkillLoaded` is true (default false). The file must stay dependency-free — preset-local rows cannot resolve bare specifiers such as `@deepseek-ai/schemastery`, so row config is normalized manually in `apply()`. All decision-tree rows come from `routingHintLines()`; `node ./scripts/check-dsh-plugin.js` validates exports, dependency-freedom, event wiring, gating, cascade routing, the slash-command surface, and decision-tree drift against `core/router-core.js`.
 
 ### New-session validation
 
@@ -96,10 +96,10 @@ Before claiming a fix ships:
 
 1. `node -e "import('./plugins/agent-skills-router.mjs')"` — plugin loads without error
 2. `node ./scripts/export-platform-skills.js` — exports regenerate
-3. Beslisboom check: `node -e "const {buildSkillOverview,createEmptySessionState}=require('./core/router-core'); console.log(buildSkillOverview(createEmptySessionState()))"` — output contains `╌ Agent Skills Kit ╌` and all 12 skills
+3. Decision-tree check: `node -e "const {buildSkillOverview,createEmptySessionState}=require('./core/router-core'); console.log(buildSkillOverview(createEmptySessionState()))"` — output contains `╌ Agent Skills Kit ╌` and all 12 skills
 4. `node ./scripts/check-router-nudges.js` — nudge behavior (audit, blocked-tool guard, auto-match, review nudges) passes
-5. `node ./scripts/check-dsh-plugin.js` — dsh router variant passes (exports, config defaults, event wiring, strict gate, beslisboom drift)
-6. OpenCode plugin check: in a test session, verify `╌ Agent Skills Kit ╌` appears in the system prompt with the beslisboom. If missing, check `opencode.json` `plugins` array includes `./plugins/agent-skills-router.mjs` and the file exists at that path.
+5. `node ./scripts/check-dsh-plugin.js` — dsh router variant passes (exports, config defaults, event wiring, strict gate, decision-tree drift)
+6. OpenCode plugin check: in a test session, verify `╌ Agent Skills Kit ╌` appears in the system prompt with the decision tree. If missing, check `opencode.json` `plugins` array includes `./plugins/agent-skills-router.mjs` and the file exists at that path.
 7. `./scripts/check-installed-artifacts.sh` — installs into isolated homes (fake dsh shim on PATH) and asserts the deployed user-visible strings — preset.yml description, router prompt header, widget status bar — match the repo, including refresh migration of a stale pre-English preset
 
 ## Install scripts
