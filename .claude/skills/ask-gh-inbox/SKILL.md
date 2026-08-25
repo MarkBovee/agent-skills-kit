@@ -40,8 +40,13 @@ gh issue list --state open --json number,title,updatedAt,comments,labels --limit
 ```bash
 OWNER=$(gh repo view --json owner --jq '.owner.login')
 NAME=$(gh repo view --json name --jq '.name')
-gh api graphql -f owner="$OWNER" -f name="$NAME" -f query='query($owner: String!, $name: String!) { repository(owner: $owner, name: $name) { discussions(first: 50, orderBy: {field: UPDATED_AT, direction: DESC}) { nodes { number title updatedAt url comments(first: 20) { totalCount nodes { createdAt author { login } body } } } } } }'
+gh api graphql -f owner="$OWNER" -f name="$NAME" -f query='query($owner: String!, $name: String!) { repository(owner: $owner, name: $name) { discussions(first: 50, orderBy: {field: UPDATED_AT, direction: DESC}) { nodes { number title updatedAt url comments(first: 20) { totalCount nodes { id createdAt author { login } body replies(first: 20) { totalCount nodes { id createdAt author { login } body } } } } } } } }'
 ```
+
+`Discussion.comments` returns only top-level comments; threaded replies hide under each comment's
+`replies` connection and do not bump `comments.totalCount`. When scanning, treat reply nodes as
+comments (author + body) and count them too, so a threaded user reply is triaged like any other
+new comment.
 
 ### 2. Diff against stored state
 
@@ -57,10 +62,12 @@ Stored entries use key `issue-<n>` or `discussion-<n>`, value JSON:
 
 An item is **new** when:
 - `updatedAt > last_updated_at`, OR
-- comment count > `last_comment_count`
+- comment count (top-level + threaded replies) > `last_comment_count`
 
 Items with no stored entry are always new. Report items where `updatedAt` is older than
-the stored state (nothing changed) as silent.
+the stored state (nothing changed) as silent. Because `updatedAt` also changes on edits and
+reactions, never dismiss an "updated but count unchanged" discussion without checking its
+`replies` connections — a threaded user reply can arrive with the top-level count unchanged.
 
 ### 3. Triage and reply
 
@@ -81,7 +88,10 @@ Draft new issues from discussion feature requests only as suggestions. Create is
 after explicit approval with `gh issue create`.
 
 Post a direct reply with `gh issue comment <n> --body "<text>"` (for discussions, reply via
-`gh api` GraphQL `addDiscussionComment`). After posting, mark the item `replied_to: true`.
+`gh api` GraphQL `addDiscussionComment`; REST cannot create discussion comments — POST returns
+404). When replying inside a thread, `replyToId` must be the thread's **root** comment: pointing
+it at a reply already inside the thread is rejected ("Parent comment is already in a thread,
+cannot reply to it"). After posting, mark the item `replied_to: true`.
 
 ### 4. Report
 
