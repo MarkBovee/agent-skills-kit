@@ -1,10 +1,9 @@
 window.__ModuleLoader__.load({
 	id: (function () {
 		/** Derive this bundle's registration id from its own script URL. The
-		* boot-graph row id equals the roster entry's `name` (the absolute
-		* install path for out-of-tree packages), and the host serves the
-		* bundle at /plugins/<id>/client.js — so the id is recovered here
-		* instead of being baked into the repo copy. */
+		* boot-graph row id equals the roster entry's `name` — the bare package
+		* name (`ask-kit-panel`), which the host serves at /plugins/<id>/client.js
+		* — so the id is recovered here instead of being baked into the repo copy. */
 		try {
 			var src = (typeof document !== "undefined" && document.currentScript && document.currentScript.src) || "";
 			var m = src.match(/\/plugins\/(.+?)\/client\.js(?:\?.*)?$/);
@@ -138,12 +137,12 @@ window.__ModuleLoader__.load({
 			if (data.loadedSkills.length > 0) {
 				for (const s of data.loadedSkills) chips.push(react.createElement("span", { className: "askk-chip", key: s }, s));
 			} else {
-				chips.push(react.createElement("span", { className: "askk-chip", key: "none" }, "geen skill geladen"));
+				chips.push(react.createElement("span", { className: "askk-chip", key: "none" }, "no skill loaded"));
 			}
 			const notes = [];
-			if (data.needsCodeReview) notes.push(react.createElement("span", { className: "askk-warn", key: "cr" }, "⚠ code-review nodig"));
-			if (data.needsDesignReview) notes.push(react.createElement("span", { className: "askk-warn", key: "dr" }, "⚠ design-review"));
-			if (data.shouldCaptureImprovement) notes.push(react.createElement("span", { className: "askk-ok", key: "imp" }, "✓ verbetering vastleggen?"));
+			if (data.needsCodeReview) notes.push(react.createElement("span", { className: "askk-warn", key: "cr" }, "⚠ code-review needed"));
+			if (data.needsDesignReview) notes.push(react.createElement("span", { className: "askk-warn", key: "dr" }, "⚠ design-review needed"));
+			if (data.shouldCaptureImprovement) notes.push(react.createElement("span", { className: "askk-ok", key: "imp" }, "✓ capture improvement?"));
 			if (data.lastMatch && data.loadedSkills.length === 0) notes.push(react.createElement("span", { key: "match" }, "match: " + data.lastMatch));
 			return react.createElement("div", { className: "askk-bar" },
 				react.createElement("span", { className: "askk-badge" }, "╌ Agent Skills Kit ╌"),

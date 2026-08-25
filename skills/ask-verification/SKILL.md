@@ -45,6 +45,7 @@ Match the proof to the claim. Bigger claim, stronger evidence.
 - **One bug fixed:** reproduce the bug path and show the focused proof now passes
 - **Feature works:** run targeted tests and exercise the important path
 - **Ready to merge or hand off:** run the relevant suite, build, or lint checks that cover the touched surface
+- **Installer or deployer changed:** run the installer into an isolated home and verify the installed copies of user-visible surfaces match the repo, including a refresh over a stale existing install — a green repo-side suite says nothing about what actually got deployed
 
 ### Rules
 

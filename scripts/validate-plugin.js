@@ -132,9 +132,9 @@ async function validateDocConsistency(errors, skillNames) {
   }
 
   const rulesContent = await fs.readFile(ROUTER_RULES_PATH, "utf8")
-  const sectionMatch = rulesContent.match(/## Beslisboom\n([\s\S]*?)\n## /)
+  const sectionMatch = rulesContent.match(/## Decision tree\n([\s\S]*?)\n## /)
   if (!sectionMatch) {
-    errors.push("rules/agent-skills-kit.md must contain a ## Beslisboom section")
+    errors.push("rules/agent-skills-kit.md must contain a ## Decision tree section")
     return
   }
 
@@ -145,7 +145,7 @@ async function validateDocConsistency(errors, skillNames) {
   const expectedRows = routingHintLines().map(normalizeHintRow)
   if (JSON.stringify(actualRows) !== JSON.stringify(expectedRows)) {
     errors.push(
-      `rules/agent-skills-kit.md beslisboom rows drifted from core/router-core.js OVERVIEW_ROWS `
+      `rules/agent-skills-kit.md decision tree rows drifted from core/router-core.js OVERVIEW_ROWS `
       + `(found ${actualRows.length} rows, expected ${expectedRows.length}; regenerate from routingHintLines())`,
     )
   }

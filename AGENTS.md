@@ -100,6 +100,7 @@ Before claiming a fix ships:
 4. `node ./scripts/check-router-nudges.js` — nudge behavior (audit, blocked-tool guard, auto-match, review nudges) passes
 5. `node ./scripts/check-dsh-plugin.js` — dsh router variant passes (exports, config defaults, event wiring, strict gate, beslisboom drift)
 6. OpenCode plugin check: in a test session, verify `╌ Agent Skills Kit ╌` appears in the system prompt with the beslisboom. If missing, check `opencode.json` `plugins` array includes `./plugins/agent-skills-router.mjs` and the file exists at that path.
+7. `./scripts/check-installed-artifacts.sh` — installs into isolated homes (fake dsh shim on PATH) and asserts the deployed user-visible strings — preset.yml description, router prompt header, widget status bar — match the repo, including refresh migration of a stale pre-English preset
 
 ## Install scripts
 
@@ -127,3 +128,4 @@ After changes:
 3. Exports regenerate: `node ./scripts/export-platform-skills.js`
 4. Install/bootstrap scripts idempotent: run twice, same output
 5. No hardcoded workspace-specific paths in generic skills
+6. Installers deploy current user-visible strings: `./scripts/check-installed-artifacts.sh`

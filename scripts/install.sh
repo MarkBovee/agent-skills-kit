@@ -44,7 +44,9 @@ DSH_ROUTER_CORE_SOURCE="$REPO_ROOT/core/router-core.js"
 DSH_PANEL_SOURCE="$REPO_ROOT/plugins/dsh-panel-widget"
 DSH_CLIENT_PLUGINS_TARGET="$DSH_HOME/client-plugins"
 DSH_PANEL_TARGET="$DSH_CLIENT_PLUGINS_TARGET/ask-kit-panel"
-DSH_PATCH_ROW_ID="ask-kit-panel"
+DSH_PANEL_PACKAGE="ask-kit-panel"
+DSH_PATCH_ROW_ID="$DSH_PANEL_PACKAGE"
+DSH_PROFILES_NODE_MODULES="$DSH_HOME/profiles/node_modules"
 DSH_WEB_PATCH_FILE="$DSH_HOME/profiles/web/cordis.patch.yml"
 DSH_PATCH_MARKER="# ── agent-skills-kit: ask-kit panel widget (managed) ──"
 INSTALL_METADATA_FILE="$AGENTS_DIR/.agent-skills-kit-install.txt"
@@ -204,10 +206,14 @@ install_dsh_preset() {
   cp "$DSH_ROUTER_SOURCE" "$DSH_PRESET_TARGET/plugins/ask-kit-router.mjs"
   cp "$DSH_ROUTER_CORE_SOURCE" "$DSH_PRESET_TARGET/vendor/router-core.js"
 
-  if [ "$state" = "new" ]; then
+  # Write the preset metadata on first install, and migrate it on refresh only
+  # when the description is still the pre-English managed default, so a
+  # user-edited description always survives.
+  if [ "$state" = "new" ] || { [ -f "$DSH_PRESET_TARGET/preset.yml" ] \
+      && grep -qxF "description: Standaard codeer-agent met de ASK-beslisboom in elke prompt, skill/review-state tracking en optionele tool-gating tot een skill is geladen." "$DSH_PRESET_TARGET/preset.yml"; }; then
     cat > "$DSH_PRESET_TARGET/preset.yml" <<'EOF'
 name: Agent Skills Kit
-description: Standaard codeer-agent met de ASK-beslisboom in elke prompt, skill/review-state tracking en optionele tool-gating tot een skill is geladen.
+description: Standard coding agent with the ASK decision tree in every prompt, skill/review state tracking, and optional tool gating until a skill is loaded.
 EOF
   fi
 
@@ -247,7 +253,26 @@ install_dsh_panel_widget() {
     [ -f "$DSH_PANEL_SOURCE/$file_name" ] || continue
     cp "$DSH_PANEL_SOURCE/$file_name" "$DSH_PANEL_TARGET/$file_name"
   done
+  link_dsh_panel_bundle
   printf 'Installed dsh panel widget package to %s\n' "$DSH_PANEL_TARGET"
+}
+
+# Link the installed panel package into the dsh profile's hoisted module root so
+# its bare package name resolves for both the node loader (ESM import of the
+# package's index.mjs) and the client-module registry (require.resolve of its
+# package.json). A pre-existing unrelated file or directory is never removed.
+link_dsh_panel_bundle() {
+  mkdir -p "$DSH_PROFILES_NODE_MODULES"
+  local link_path="$DSH_PROFILES_NODE_MODULES/$DSH_PANEL_PACKAGE"
+  if [ -L "$link_path" ]; then
+    [ "$(readlink "$link_path")" = "$DSH_PANEL_TARGET" ] && return 0
+    rm -f "$link_path"
+  elif [ -e "$link_path" ]; then
+    echo "Skipped dsh panel bundle link: unrelated path exists at $link_path" >&2
+    return 0
+  fi
+  ln -s "$DSH_PANEL_TARGET" "$link_path"
+  printf 'Linked dsh panel bundle %s -> %s\n' "$DSH_PANEL_PACKAGE" "$DSH_PANEL_TARGET"
 }
 
 # Idempotently manage the ask-kit-panel roster entry in the web profile patch
@@ -266,7 +291,7 @@ manage_web_patch_row() {
     managed_block="$DSH_PATCH_MARKER
 - insert:
     - id: $DSH_PATCH_ROW_ID
-      name: '$DSH_PANEL_TARGET'"
+      name: '$DSH_PANEL_PACKAGE'"
 
     # Only a file whose sole entry is the empty `[]` placeholder is rewritten
     # in place (header comments kept); any other content gets the managed

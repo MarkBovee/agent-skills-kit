@@ -36,5 +36,8 @@ jobs:
       - name: Regenerate platform exports
         run: node ./scripts/export-platform-skills.js
 
+      - name: Check installed artifacts match repo strings
+        run: ./scripts/check-installed-artifacts.sh
+
       - name: Ensure generated exports are committed
         run: git diff --exit-code -- .github/skills/*/SKILL.md .claude/skills/*/SKILL.md .dsh/skills/*/SKILL.md .opencode/commands/*.md .github/prompts/*.prompt.md CLAUDE.md .github/copilot-instructions.md

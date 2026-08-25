@@ -201,6 +201,10 @@ async function main() {
     const clearedText = cleared.sections.find((entry) => entry.name === "ask-kit:beslisboom").text
     check("code-review load clears review nudge", !clearedText.includes("→ Code edited"))
     check("code-review load arms improvement capture", clearedText.includes("→ Improvement found?"))
+    listeners.get("tools/result")[0]({ name: "skill", agent: agent3, arguments: { name: "session-review" } }, { isError: false })
+    const improvementCleared = await assemble({ sections: [] }, { agent: agent3 }, async () => ({ sections: [] }))
+    const improvementClearedText = improvementCleared.sections.find((entry) => entry.name === "ask-kit:beslisboom").text
+    check("session-review load clears improvement nudge", !improvementClearedText.includes("→ Improvement found?"))
 
     // Panel state bridge (dsh-panel-widget): mutations append whole-value
     // ask-kit/state events and the askKit projection unit folds them.

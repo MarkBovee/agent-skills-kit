@@ -45,7 +45,9 @@ $dshRouterCoreSource = Join-Path $repoRoot "core\router-core.js"
 $dshPanelSource = Join-Path $repoRoot "plugins\dsh-panel-widget"
 $dshClientPluginsTarget = Join-Path $DshHome "client-plugins"
 $dshPanelTarget = Join-Path $dshClientPluginsTarget "ask-kit-panel"
-$dshPatchRowId = "ask-kit-panel"
+$dshPanelPackage = "ask-kit-panel"
+$dshPatchRowId = $dshPanelPackage
+$dshProfilesNodeModules = Join-Path $DshHome "profiles\node_modules"
 $dshWebPatchFile = Join-Path $DshHome "profiles\web\cordis.patch.yml"
 $dshPatchMarker = "# ── agent-skills-kit: ask-kit panel widget (managed) ──"
 $installMetadataFile = Join-Path $AgentsDir ".agent-skills-kit-install.txt"
@@ -187,11 +189,23 @@ function Install-DshPreset {
     Copy-Item -LiteralPath $dshRouterCoreSource -Destination (Join-Path $dshPresetTarget "vendor\router-core.js") -Force
 
     $presetMeta = Join-Path $dshPresetTarget "preset.yml"
-    if ($state -eq "new") {
-        @"
+    # Write the preset metadata on first install, and migrate it on refresh only
+    # when the description is still the pre-English managed default, so a
+    # user-edited description always survives.
+    $presetContent = @"
 name: Agent Skills Kit
-description: Standaard codeer-agent met de ASK-beslisboom in elke prompt, skill/review-state tracking en optionele tool-gating tot een skill is geladen.
-"@ | Set-Content -LiteralPath $presetMeta -NoNewline -Encoding UTF8
+description: Standard coding agent with the ASK decision tree in every prompt, skill/review state tracking, and optional tool gating until a skill is loaded.
+"@
+    $isNewOrMigrate = $state -eq "new"
+    if (-not $isNewOrMigrate -and (Test-Path -LiteralPath $presetMeta)) {
+        # Exact whole-line match (case-sensitive), mirroring install.sh's
+        # grep -qxF, so a user-edited description that merely contains the
+        # old default is never overwritten.
+        $oldManagedDefault = "description: Standaard codeer-agent met de ASK-beslisboom in elke prompt, skill/review-state tracking en optionele tool-gating tot een skill is geladen."
+        $isNewOrMigrate = @(Get-Content -LiteralPath $presetMeta) -ccontains $oldManagedDefault
+    }
+    if ($isNewOrMigrate) {
+        $presetContent | Set-Content -LiteralPath $presetMeta -NoNewline -Encoding UTF8
     }
 
     $compositionText = Get-Content -LiteralPath $composition -Raw
@@ -255,8 +269,32 @@ function Install-DshPanelWidget {
         Copy-Item -LiteralPath $sourceFile -Destination (Join-Path $dshPanelTarget $fileName) -Force
     }
 
+    Link-DshPanelBundle
+
     Write-Host "Installed dsh panel widget package to $dshPanelTarget"
     return $true
+}
+
+# Link the installed panel package into the dsh profile's hoisted module root so
+# its bare package name resolves for both the node loader (ESM import of the
+# package's index.mjs) and the client-module registry (require.resolve of its
+# package.json). A pre-existing unrelated file or directory is never removed.
+function Link-DshPanelBundle {
+    New-Item -ItemType Directory -Force -Path $dshProfilesNodeModules | Out-Null
+    $linkPath = Join-Path $dshProfilesNodeModules $dshPanelPackage
+    if (Test-Path -LiteralPath $linkPath) {
+        $item = Get-Item -LiteralPath $linkPath
+        if ($item.LinkType -eq "SymbolicLink") {
+            if ($item.Target -eq $dshPanelTarget) { return }
+            Remove-Item -LiteralPath $linkPath -Force
+        }
+        else {
+            Write-Warning "Skipped dsh panel bundle link: unrelated path exists at $linkPath"
+            return
+        }
+    }
+    New-Item -ItemType SymbolicLink -Path $linkPath -Target $dshPanelTarget -ErrorAction Stop | Out-Null
+    Write-Host "Linked dsh panel bundle $dshPanelPackage -> $dshPanelTarget"
 }
 
 # Idempotently manage the ask-kit-panel roster entry in the web profile patch
@@ -276,7 +314,7 @@ function Set-DshWebPatchRow {
             $dshPatchMarker,
             "- insert:",
             "    - id: $dshPatchRowId",
-            "      name: '$dshPanelTarget'"
+            "      name: '$dshPanelPackage'"
         )
         $lines = @(Get-Content -LiteralPath $dshWebPatchFile)
         $nonCommentLines = @($lines | Where-Object { $_ -notmatch '^\s*#' -and $_.Trim().Length -gt 0 })

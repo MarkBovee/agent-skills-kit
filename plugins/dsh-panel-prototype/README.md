@@ -13,5 +13,5 @@ This prototype rides the cordis runtime tools instead and dies with the process.
 2. Paste `client.js` as `code.client` in the same call.
 3. `cordis_run` with mode `"run"` and the returned plugin/package ids.
 
-The host half only tracks + serves state (`ask-kit/state` RPC); beslisboom
+The host half only tracks + serves state (`ask-kit/state` RPC); decision-tree
 injection stays owned by the ask-kit preset row, so both can run together.

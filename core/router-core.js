@@ -296,7 +296,7 @@ function buildSkillOverview(sessionState) {
   const lines = [
     "╌ Agent Skills Kit ╌",
     skillsLoaded
-      ? "Beslisboom — load different skill via `skill(name: '...')`:"
+      ? "Decision tree — load a different skill via `skill(name: '...')`:"
       : "Load matching skill *now* via `skill(name: '...')` before tools:",
     "",
   ]

@@ -2,7 +2,7 @@
 
 The slim Agent Skills Kit status line under the DSH web composer: badge
 `╌ Agent Skills Kit ╌`, loaded-skill chips, and review nudges (⚠ code-review /
-design-review, ✓ verbeterpunt). No beslisboom in the UI — the tree stays in the
+design-review, ✓ improvement). No decision tree in the UI — the tree stays in the
 system prompt; this surface only mirrors live session state.
 
 This is the persistent successor of the `askkit-1` runtime demo
@@ -15,8 +15,8 @@ This is the persistent successor of the `askkit-1` runtime demo
   `conversation.composer.dock` (`id: ask-kit-status`, order 50). Reads the
   `askKit` session projection reactively (`sessions.binding(id).session.
   projections.faceOf("askKit")`), no polling RPC. The bundle derives its own
-  registration id from its script URL, because the boot-graph id equals the
-  roster entry's absolute install path.
+  registration id from its script URL (`/plugins/<id>/client.js`, id = the bare
+  package name), which must match the node face's exported `name`.
 - **Node face** (`index.mjs`) — inert Cordis plugin so the package loads
   cleanly as a node-plugin row too (dual-face requirement).
 
@@ -37,8 +37,11 @@ without an askKit value (no router row mounted) render nothing.
 
 Managed by `scripts/install.sh` / `scripts/install.ps1`:
 
-- Package copied to `~/.dsh/client-plugins/ask-kit-panel/`.
+- Package copied to `~/.dsh/client-plugins/ask-kit-panel/` and symlinked into
+  `~/.dsh/profiles/node_modules/ask-kit-panel` so its bare package name resolves
+  for both the node loader and the client-module registry.
 - Roster row appended idempotently to `~/.dsh/profiles/web/cordis.patch.yml`
-  under marker comments; existing patch content is never touched.
+  under marker comments referencing the bare package name `ask-kit-panel`;
+  existing patch content is never touched.
 
 A dsh web restart is required after installing or updating the package.

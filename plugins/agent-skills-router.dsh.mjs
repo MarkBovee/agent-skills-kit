@@ -42,7 +42,7 @@ export const inject = ["systemPrompt"]
 // Row config has no schema export by design: normalize it manually in apply().
 
 const {
-  SKILL_CODE_REVIEW, SKILL_VERIFICATION, SKILL_WRITE_SKILL,
+  SKILL_CODE_REVIEW, SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SESSION_REVIEW,
   SKILL_UI_UX, SKILL_DESIGN_REVIEW,
   routingHintLines, cascadeRoute, hasPhraseSignal, COMPLETION_PHRASES,
 } = routerCore
@@ -209,7 +209,7 @@ export function apply(ctx, config) {
   function buildOverview(st) {
     const lines = ["╌ Agent Skills Kit ╌"]
     lines.push(st.skillsLoadedCount > 0
-      ? "Beslisboom — load different skill via `skill(name: '...')`:"
+      ? "Decision tree — load a different skill via `skill(name: '...')`:"
       : "Load matching skill *now* via `skill(name: '...')` before tools:")
     lines.push("")
     lines.push(...routingHintLines())
@@ -253,6 +253,7 @@ export function apply(ctx, config) {
     if (loaded === SKILL_CODE_REVIEW) { st.needsCodeReview = false; st.shouldCaptureImprovement = true; return }
     if (loaded === SKILL_VERIFICATION) { st.shouldCaptureImprovement = true; return }
     if (loaded === SKILL_WRITE_SKILL) { st.shouldCaptureImprovement = false; return }
+    if (loaded === SKILL_SESSION_REVIEW) { st.shouldCaptureImprovement = false; return }
     if (loaded === SKILL_UI_UX) { st.needsDesignReview = true; return }
     if (loaded === SKILL_DESIGN_REVIEW) st.needsDesignReview = false
   }
