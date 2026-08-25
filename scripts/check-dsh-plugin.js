@@ -35,6 +35,16 @@ function check(label, ok, detail) {
   }
 }
 
+// Record whether one function throws, for schema boundary assertions.
+function throws(fn) {
+  try {
+    fn()
+    return false
+  } catch {
+    return true
+  }
+}
+
 async function main() {
   const routerCore = createRequire(__filename)(path.join(repoRoot, "core", "router-core.js"))
 
@@ -60,6 +70,7 @@ async function main() {
 
     const listeners = new Map()
     const commands = []
+    const projections = []
     const ctx = {
       on: (name2, fn) => { if (!listeners.has(name2)) listeners.set(name2, []); listeners.get(name2).push(fn) },
       // Capture the lazy commands injection so the slash-command surface is
@@ -67,6 +78,11 @@ async function main() {
       inject: (services, fn) => {
         if (services.length === 1 && services[0] === "commands") {
           fn({ commands: { register: (definition) => commands.push(definition) } })
+        }
+        // Capture the lazy sessionProjections injection so the panel state
+        // bridge is testable without a live registry.
+        if (services.length === 1 && services[0] === "sessionProjections") {
+          fn({ sessionProjections: { register: (definition) => projections.push(definition) } })
         }
       },
     }
@@ -185,6 +201,39 @@ async function main() {
     const clearedText = cleared.sections.find((entry) => entry.name === "ask-kit:beslisboom").text
     check("code-review load clears review nudge", !clearedText.includes("→ Code edited"))
     check("code-review load arms improvement capture", clearedText.includes("→ Improvement found?"))
+    listeners.get("tools/result")[0]({ name: "skill", agent: agent3, arguments: { name: "session-review" } }, { isError: false })
+    const improvementCleared = await assemble({ sections: [] }, { agent: agent3 }, async () => ({ sections: [] }))
+    const improvementClearedText = improvementCleared.sections.find((entry) => entry.name === "ask-kit:beslisboom").text
+    check("session-review load clears improvement nudge", !improvementClearedText.includes("→ Improvement found?"))
+
+    // Panel state bridge (dsh-panel-widget): mutations append whole-value
+    // ask-kit/state events and the askKit projection unit folds them.
+    check("registers askKit projection unit", projections.length === 1
+      && projections[0].key === "askKit" && typeof projections[0].apply === "function")
+    if (projections.length === 1) {
+      const unit = projections[0]
+      const appended = []
+      const bridgeAgent = { id: "bridge-check", session: { append: (type, data) => appended.push({ type, data }) } }
+      await pre({ name: "edit", agent: bridgeAgent }, async () => ({ kind: "allow" }))
+      listeners.get("tools/result")[0]({ name: "skill", agent: bridgeAgent, arguments: { name: "ui-ux" } }, { isError: false })
+      check("mutations append whole-value panel events", appended.length >= 2
+        && appended.every((event) => event.type === "ask-kit/state"))
+      let state = unit.init()
+      for (const event of appended) state = unit.apply(state, event)
+      check("fold lands on the last whole value", state !== null && state.needsDesignReview === true
+        && Array.isArray(state.loadedSkills) && state.loadedSkills.includes("ui-ux"))
+      check("schema accepts the folded view", unit.schema.parse(state) === state)
+      check("schema accepts null (pre-first-event)", unit.schema.parse(null) === null)
+      check("schema rejects non-object views", throws(() => unit.schema.parse(42)))
+      check("non-panel events leave state untouched",
+        unit.apply(state, { type: "todo/write", data: {} }) === state)
+      check("malformed payload cannot poison the fold",
+        unit.apply(state, { type: "ask-kit/state", data: { loadedSkills: "nope" } }) === state)
+      // The edit flip publishes only on false→true so repeat edits stay quiet.
+      const before = appended.length
+      await pre({ name: "edit", agent: bridgeAgent }, async () => ({ kind: "allow" }))
+      check("repeat code edit does not re-publish", appended.length === before)
+    }
   } finally {
     fs.rmSync(workDir, { recursive: true, force: true })
   }

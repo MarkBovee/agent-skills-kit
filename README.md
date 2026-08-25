@@ -162,7 +162,7 @@ If `~/.claude/` does not exist, Claude-specific setup is skipped on purpose. Cre
 
 ### DeepSeek Harness (dsh) Details
 
-dsh (DeepSeek Harness) is a Cordis-based "everything is a plugin" agent harness. The kit works **without any dsh plugin**: dsh loads `SKILL.md` bundles natively from ranked skill roots, and its `skill` tool + catalog (`<available_skills>` in the session system prompt) already implements the kit's self-selection routing model. On top of that baseline, an **optional** agent preset (`ask-kit`) adds the OpenCode router's beslisboom injection and per-session state tracking to sessions that select it.
+dsh (DeepSeek Harness) is a Cordis-based "everything is a plugin" agent harness. The kit works **without any dsh plugin**: dsh loads `SKILL.md` bundles natively from ranked skill roots, and its `skill` tool + catalog (`<available_skills>` in the session system prompt) already implements the kit's self-selection routing model. On top of that baseline, an **optional** agent preset (`ask-kit`) adds the OpenCode router's decision-tree injection and per-session state tracking to sessions that select it.
 
 Installed paths (when dsh is present — a reachable `dsh` binary or an existing dsh home):
 
@@ -173,7 +173,7 @@ Installed paths (when dsh is present — a reachable `dsh` binary or an existing
 
 #### dsh router preset (optional)
 
-The `ask-kit` preset mounts `plugins/agent-skills-router.dsh.mjs` as a Cordis row. Per model step it appends an `--- Agent Skills Kit ---` section built from `routingHintLines()` in `core/router-core.js` (no beslisboom copy can drift), tracks which skills each session loaded, flags review debt after `edit`/`write`/`apply_patch`, and clears nudges on completion phrases — mirroring `plugins/agent-skills-router.mjs`. It also registers one slash command per skill (`/spec`, `/debugging`, …) through dsh's command registry: picking one steers the session with a load-the-skill prompt following the platform command-file pattern (per-workflow specifics stay in the skill body), with the typed remainder as focus. Row config: `blockUntilSkillLoaded: true` reproduces the OpenCode blocked-tool gate (bash/edit/write denied until a skill loads); it defaults to `false`.
+The `ask-kit` preset mounts `plugins/agent-skills-router.dsh.mjs` as a Cordis row. Per model step it appends an `--- Agent Skills Kit ---` section built from `routingHintLines()` in `core/router-core.js` (no decision-tree copy can drift), tracks which skills each session loaded, flags review debt after `edit`/`write`/`apply_patch`, and clears nudges on completion phrases — mirroring `plugins/agent-skills-router.mjs`. It also registers one slash command per skill (`/spec`, `/debugging`, …) through dsh's command registry: picking one steers the session with a load-the-skill prompt following the platform command-file pattern (per-workflow specifics stay in the skill body), with the typed remainder as focus. Row config: `blockUntilSkillLoaded: true` reproduces the OpenCode blocked-tool gate (bash/edit/write denied until a skill loads); it defaults to `false`.
 
 Reinstall refreshes only the managed files (`plugins/ask-kit-router.mjs`, `vendor/router-core.js`); the copied composition, the appended router row, and any edits you made are left alone — delete `~/.dsh/.agent-presets/ask-kit/` and reinstall to rebase on the current `standard` preset or re-add a removed row. Select the preset per session from dsh's picker; removing the directory removes it from the roster.
 
@@ -280,9 +280,9 @@ The pack favors fast trustworthy checks, then proportional review and verificati
 
 ## Router
 
-`plugins/agent-skills-router.mjs` presents a **beslisboom** (decision tree) every prompt. The agent — not the router — evaluates the task against the beslisboom and loads the matching skill via `skill(name: '...')`. No automated phrase matching, no scoring, no hidden routing.
+`plugins/agent-skills-router.mjs` presents a **decision tree** every prompt. The agent — not the router — evaluates the task against the tree and loads the matching skill via `skill(name: '...')`. No automated phrase matching, no scoring, no hidden routing.
 
-The beslisboom injected every prompt:
+The decision tree injected every prompt:
 
 ```mermaid
 flowchart TD

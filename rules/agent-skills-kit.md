@@ -1,8 +1,8 @@
 # Agent Skills Kit — Router
 
-The `agent-skills-router` plugin injects a beslisboom (decision tree) into every prompt under the `╌ Agent Skills Kit ╌` header.
+The `agent-skills-router` plugin injects a decision tree into every prompt under the `╌ Agent Skills Kit ╌` header.
 
-## Beslisboom
+## Decision tree
 
 ```
 Specify requirements, build design brief → spec
@@ -30,7 +30,7 @@ Normal software work (default)           → develop
 
 ## Handoff to subagents
 
-Include the same beslisboom in the handoff prompt so subagents also know which skill to load.
+Include the same decision tree in the handoff prompt so subagents also know which skill to load.
 
 ## Slash commands
 

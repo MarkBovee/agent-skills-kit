@@ -42,6 +42,14 @@ $dshPresetTarget = Join-Path $DshHome ".agent-presets\$dshPresetId"
 $dshPresetRowId = "ask-kit-router"
 $dshRouterSource = Join-Path $repoRoot "plugins\agent-skills-router.dsh.mjs"
 $dshRouterCoreSource = Join-Path $repoRoot "core\router-core.js"
+$dshPanelSource = Join-Path $repoRoot "plugins\dsh-panel-widget"
+$dshClientPluginsTarget = Join-Path $DshHome "client-plugins"
+$dshPanelTarget = Join-Path $dshClientPluginsTarget "ask-kit-panel"
+$dshPanelPackage = "ask-kit-panel"
+$dshPatchRowId = $dshPanelPackage
+$dshProfilesNodeModules = Join-Path $DshHome "profiles\node_modules"
+$dshWebPatchFile = Join-Path $DshHome "profiles\web\cordis.patch.yml"
+$dshPatchMarker = "# ── agent-skills-kit: ask-kit panel widget (managed) ──"
 $installMetadataFile = Join-Path $AgentsDir ".agent-skills-kit-install.txt"
 $managedSkillsManifest = ".ask-managed-skills.txt"
 $managedCommandsManifest = ".ask-managed-commands.txt"
@@ -181,11 +189,23 @@ function Install-DshPreset {
     Copy-Item -LiteralPath $dshRouterCoreSource -Destination (Join-Path $dshPresetTarget "vendor\router-core.js") -Force
 
     $presetMeta = Join-Path $dshPresetTarget "preset.yml"
-    if ($state -eq "new") {
-        @"
+    # Write the preset metadata on first install, and migrate it on refresh only
+    # when the description is still the pre-English managed default, so a
+    # user-edited description always survives.
+    $presetContent = @"
 name: Agent Skills Kit
-description: Standaard codeer-agent met de ASK-beslisboom in elke prompt, skill/review-state tracking en optionele tool-gating tot een skill is geladen.
-"@ | Set-Content -LiteralPath $presetMeta -NoNewline -Encoding UTF8
+description: Standard coding agent with the ASK decision tree in every prompt, skill/review state tracking, and optional tool gating until a skill is loaded.
+"@
+    $isNewOrMigrate = $state -eq "new"
+    if (-not $isNewOrMigrate -and (Test-Path -LiteralPath $presetMeta)) {
+        # Exact whole-line match (case-sensitive), mirroring install.sh's
+        # grep -qxF, so a user-edited description that merely contains the
+        # old default is never overwritten.
+        $oldManagedDefault = "description: Standaard codeer-agent met de ASK-beslisboom in elke prompt, skill/review-state tracking en optionele tool-gating tot een skill is geladen."
+        $isNewOrMigrate = @(Get-Content -LiteralPath $presetMeta) -ccontains $oldManagedDefault
+    }
+    if ($isNewOrMigrate) {
+        $presetContent | Set-Content -LiteralPath $presetMeta -NoNewline -Encoding UTF8
     }
 
     $compositionText = Get-Content -LiteralPath $composition -Raw
@@ -230,6 +250,88 @@ function Sync-DshSkills {
 
     $installedSkills | Set-Content -LiteralPath (Join-Path $dshSkillsTarget $managedSkillsManifest)
     return $installedSkills
+}
+
+# Install (or refresh) the dual-face panel widget package into the dsh client
+# plugin root. The copy is unconditional so reinstalls always refresh managed
+# files; output is identical on every run. Returns $false when the source
+# package is absent so roster-row management can be skipped.
+function Install-DshPanelWidget {
+    if (-not (Test-Path -LiteralPath (Join-Path $dshPanelSource "package.json"))) {
+        Write-Warning "Skipped dsh panel widget: source package not found at $dshPanelSource."
+        return $false
+    }
+
+    New-Item -ItemType Directory -Force -Path $dshPanelTarget | Out-Null
+    foreach ($fileName in @("package.json", "index.mjs", "client.js", "README.md")) {
+        $sourceFile = Join-Path $dshPanelSource $fileName
+        if (-not (Test-Path -LiteralPath $sourceFile)) { continue }
+        Copy-Item -LiteralPath $sourceFile -Destination (Join-Path $dshPanelTarget $fileName) -Force
+    }
+
+    Link-DshPanelBundle
+
+    Write-Host "Installed dsh panel widget package to $dshPanelTarget"
+    return $true
+}
+
+# Link the installed panel package into the dsh profile's hoisted module root so
+# its bare package name resolves for both the node loader (ESM import of the
+# package's index.mjs) and the client-module registry (require.resolve of its
+# package.json). A pre-existing unrelated file or directory is never removed.
+function Link-DshPanelBundle {
+    New-Item -ItemType Directory -Force -Path $dshProfilesNodeModules | Out-Null
+    $linkPath = Join-Path $dshProfilesNodeModules $dshPanelPackage
+    if (Test-Path -LiteralPath $linkPath) {
+        $item = Get-Item -LiteralPath $linkPath
+        if ($item.LinkType -eq "SymbolicLink") {
+            if ($item.Target -eq $dshPanelTarget) { return }
+            Remove-Item -LiteralPath $linkPath -Force
+        }
+        else {
+            Write-Warning "Skipped dsh panel bundle link: unrelated path exists at $linkPath"
+            return
+        }
+    }
+    New-Item -ItemType SymbolicLink -Path $linkPath -Target $dshPanelTarget -ErrorAction Stop | Out-Null
+    Write-Host "Linked dsh panel bundle $dshPanelPackage -> $dshPanelTarget"
+}
+
+# Idempotently manage the ask-kit-panel roster entry in the web profile patch
+# layer under marker comments. Existing user content is never rewritten: a row
+# that already carries our id is left alone; a file whose sole entry is the
+# empty `[]` placeholder is rewritten in place keeping header comments; any
+# other content gets the managed section appended after a blank separator.
+function Set-DshWebPatchRow {
+    if (-not (Test-Path -LiteralPath $dshWebPatchFile)) {
+        Write-Warning "Skipped panel roster row: web profile patch file not found at $dshWebPatchFile."
+        return
+    }
+
+    $patchText = [string](Get-Content -LiteralPath $dshWebPatchFile -Raw)
+    if (-not $patchText.Contains("- id: $dshPatchRowId")) {
+        $managedLines = @(
+            $dshPatchMarker,
+            "- insert:",
+            "    - id: $dshPatchRowId",
+            "      name: '$dshPanelPackage'"
+        )
+        $lines = @(Get-Content -LiteralPath $dshWebPatchFile)
+        $nonCommentLines = @($lines | Where-Object { $_ -notmatch '^\s*#' -and $_.Trim().Length -gt 0 })
+        $placeholderOnly = ($nonCommentLines.Count -eq 1 -and $nonCommentLines[0].Trim() -eq "[]")
+        if ($placeholderOnly) {
+            # Swap the placeholder for the managed section, header comments kept.
+            # Written BOM-free so strict YAML readers on Windows PowerShell stay happy.
+            $kept = @($lines | Where-Object { $_ -match '^\s*#' }) + $managedLines
+            [System.IO.File]::WriteAllText($dshWebPatchFile, (($kept -join "`n") + "`n"), (New-Object System.Text.UTF8Encoding($false)))
+        }
+        else {
+            Add-Content -LiteralPath $dshWebPatchFile -Encoding UTF8 -Value ""
+            Add-Content -LiteralPath $dshWebPatchFile -Encoding UTF8 -Value $managedLines
+        }
+    }
+
+    Write-Host "Managed ask-kit-panel roster row in $dshWebPatchFile"
 }
 
 # Remove managed skills from one former install root without touching unrelated user content.
@@ -468,6 +570,9 @@ try {
         $dshInstalledCount = $dshInstalledSkills.Count
         Write-DshAgentsSection
         $dshPresetState = Install-DshPreset
+        if (Install-DshPanelWidget) {
+            Set-DshWebPatchRow
+        }
         Write-InstallMetadata -RepoRoot $repoRoot -Platform "dsh" -InstallRoot $DshHome -OutputPath $dshMetadataFile
     }
     else {

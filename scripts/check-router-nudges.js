@@ -33,7 +33,7 @@ async function main() {
   // Fresh session: first prompt injects the skill catalog audit plus beslisboom.
   const auditAppend = await plugin["tui.prompt.append"]({ prompt: "start hier" })
   const auditText = auditAppend?.append || ""
-  check("first prompt contains session audit header", auditText.includes("FIRST ACTION: scan beslisboom"))
+  check("first prompt contains session audit header", auditText.includes("FIRST ACTION: scan the decision tree"))
   check("first prompt contains kit overview", auditText.includes("╌ Agent Skills Kit ╌"))
 
   // Blocked-tool guard: bash before any skill load returns the derived hint rows.
@@ -99,6 +99,14 @@ async function main() {
   check(
     "completion phrase arms session-review hint",
     completionText.includes("`skill(name: 'session-review')`"),
+  )
+
+  // Loading session-review files the improvement, so the capture hint clears.
+  await plugin["tool.execute.after"]({ tool: "skill" }, { args: { name: "session-review" } })
+  const afterSessionReview = await plugin["tui.prompt.append"]({ prompt: "en nu verder" })
+  check(
+    "session-review load clears improvement hint",
+    !(afterSessionReview?.append || "").includes("`skill(name: 'session-review')`"),
   )
 
   if (failedChecks > 0) {

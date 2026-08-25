@@ -41,6 +41,14 @@ DSH_PRESET_TARGET="$DSH_HOME/.agent-presets/$DSH_PRESET_ID"
 DSH_PRESET_ROW_ID="ask-kit-router"
 DSH_ROUTER_SOURCE="$REPO_ROOT/plugins/agent-skills-router.dsh.mjs"
 DSH_ROUTER_CORE_SOURCE="$REPO_ROOT/core/router-core.js"
+DSH_PANEL_SOURCE="$REPO_ROOT/plugins/dsh-panel-widget"
+DSH_CLIENT_PLUGINS_TARGET="$DSH_HOME/client-plugins"
+DSH_PANEL_TARGET="$DSH_CLIENT_PLUGINS_TARGET/ask-kit-panel"
+DSH_PANEL_PACKAGE="ask-kit-panel"
+DSH_PATCH_ROW_ID="$DSH_PANEL_PACKAGE"
+DSH_PROFILES_NODE_MODULES="$DSH_HOME/profiles/node_modules"
+DSH_WEB_PATCH_FILE="$DSH_HOME/profiles/web/cordis.patch.yml"
+DSH_PATCH_MARKER="# ── agent-skills-kit: ask-kit panel widget (managed) ──"
 INSTALL_METADATA_FILE="$AGENTS_DIR/.agent-skills-kit-install.txt"
 MANAGED_SKILLS_MANIFEST=".ask-managed-skills.txt"
 MANAGED_COMMANDS_MANIFEST=".ask-managed-commands.txt"
@@ -198,10 +206,14 @@ install_dsh_preset() {
   cp "$DSH_ROUTER_SOURCE" "$DSH_PRESET_TARGET/plugins/ask-kit-router.mjs"
   cp "$DSH_ROUTER_CORE_SOURCE" "$DSH_PRESET_TARGET/vendor/router-core.js"
 
-  if [ "$state" = "new" ]; then
+  # Write the preset metadata on first install, and migrate it on refresh only
+  # when the description is still the pre-English managed default, so a
+  # user-edited description always survives.
+  if [ "$state" = "new" ] || { [ -f "$DSH_PRESET_TARGET/preset.yml" ] \
+      && grep -qxF "description: Standaard codeer-agent met de ASK-beslisboom in elke prompt, skill/review-state tracking en optionele tool-gating tot een skill is geladen." "$DSH_PRESET_TARGET/preset.yml"; }; then
     cat > "$DSH_PRESET_TARGET/preset.yml" <<'EOF'
 name: Agent Skills Kit
-description: Standaard codeer-agent met de ASK-beslisboom in elke prompt, skill/review-state tracking en optionele tool-gating tot een skill is geladen.
+description: Standard coding agent with the ASK decision tree in every prompt, skill/review state tracking, and optional tool gating until a skill is loaded.
 EOF
   fi
 
@@ -222,6 +234,82 @@ EOF
   fi
 
   printf '%s\n' "$state"
+}
+
+# Install (or refresh) the dual-face panel widget package into the dsh client
+# plugin root. The copy is unconditional so reinstalls always refresh managed
+# files; output is identical on every run.
+# Install (or refresh) the dual-face panel widget package into the dsh client
+# plugin root. The copy is unconditional so reinstalls always refresh managed
+# files; output is identical on every run. Returns non-zero when the source
+# package is absent so roster-row management can be skipped.
+install_dsh_panel_widget() {
+  if [ ! -f "$DSH_PANEL_SOURCE/package.json" ]; then
+    echo "Skipped dsh panel widget: source package not found at $DSH_PANEL_SOURCE." >&2
+    return 1
+  fi
+  mkdir -p "$DSH_PANEL_TARGET"
+  for file_name in package.json index.mjs client.js README.md; do
+    [ -f "$DSH_PANEL_SOURCE/$file_name" ] || continue
+    cp "$DSH_PANEL_SOURCE/$file_name" "$DSH_PANEL_TARGET/$file_name"
+  done
+  link_dsh_panel_bundle
+  printf 'Installed dsh panel widget package to %s\n' "$DSH_PANEL_TARGET"
+}
+
+# Link the installed panel package into the dsh profile's hoisted module root so
+# its bare package name resolves for both the node loader (ESM import of the
+# package's index.mjs) and the client-module registry (require.resolve of its
+# package.json). A pre-existing unrelated file or directory is never removed.
+link_dsh_panel_bundle() {
+  mkdir -p "$DSH_PROFILES_NODE_MODULES"
+  local link_path="$DSH_PROFILES_NODE_MODULES/$DSH_PANEL_PACKAGE"
+  if [ -L "$link_path" ]; then
+    [ "$(readlink "$link_path")" = "$DSH_PANEL_TARGET" ] && return 0
+    rm -f "$link_path"
+  elif [ -e "$link_path" ]; then
+    echo "Skipped dsh panel bundle link: unrelated path exists at $link_path" >&2
+    return 0
+  fi
+  ln -s "$DSH_PANEL_TARGET" "$link_path"
+  printf 'Linked dsh panel bundle %s -> %s\n' "$DSH_PANEL_PACKAGE" "$DSH_PANEL_TARGET"
+}
+
+# Idempotently manage the ask-kit-panel roster entry in the web profile patch
+# layer under marker comments. Existing user content is never rewritten: a
+# row that already carries our id is left alone; an empty `[]` placeholder is
+# swapped for the managed section; anything else gets the section appended.
+manage_web_patch_row() {
+  [ -f "$DSH_WEB_PATCH_FILE" ] || {
+    echo "Skipped panel roster row: web profile patch file not found at $DSH_WEB_PATCH_FILE." >&2
+    return 0
+  }
+  # Already managed: report the same outcome a fresh insert would, so repeated
+  # installs produce identical output.
+  if ! grep -qF -- "- id: $DSH_PATCH_ROW_ID" "$DSH_WEB_PATCH_FILE"; then
+    local managed_block=""
+    managed_block="$DSH_PATCH_MARKER
+- insert:
+    - id: $DSH_PATCH_ROW_ID
+      name: '$DSH_PANEL_PACKAGE'"
+
+    # Only a file whose sole entry is the empty `[]` placeholder is rewritten
+    # in place (header comments kept); any other content gets the managed
+    # section appended after a blank separator, never spliced mid-file.
+    local entry_lines="" placeholder_lines="" tmp_file=""
+    entry_lines="$(grep -c '^[[:space:]]*[^[:space:]#]' "$DSH_WEB_PATCH_FILE" || true)"
+    placeholder_lines="$(grep -c '^[[:space:]]*\[\][[:space:]]*$' "$DSH_WEB_PATCH_FILE" || true)"
+    tmp_file="$(mktemp)"
+    if [ "$entry_lines" -eq 1 ] && [ "$placeholder_lines" -eq 1 ]; then
+      { grep '^[[:space:]]*#' "$DSH_WEB_PATCH_FILE" || true; printf '%s\n' "$managed_block"; } > "$tmp_file"
+      chmod --reference="$DSH_WEB_PATCH_FILE" "$tmp_file" 2>/dev/null || true
+      mv "$tmp_file" "$DSH_WEB_PATCH_FILE"
+    else
+      rm -f "$tmp_file"
+      { printf '\n'; printf '%s\n' "$managed_block"; } >> "$DSH_WEB_PATCH_FILE"
+    fi
+  fi
+  printf 'Managed ask-kit-panel roster row in %s\n' "$DSH_WEB_PATCH_FILE"
 }
 
 # Sync the generated dsh skill variant into the user-global dsh skill root.
@@ -440,6 +528,9 @@ if command -v dsh >/dev/null 2>&1 || [ -d "$DSH_HOME" ]; then
   dsh_installed_count="$(sync_dsh_skills)"
   write_dsh_agents_section
   dsh_preset_state="$(install_dsh_preset)"
+  if install_dsh_panel_widget; then
+    manage_web_patch_row
+  fi
   write_install_metadata "$REPO_ROOT" "dsh" "$DSH_HOME" "$DSH_METADATA_FILE"
 else
   echo "Skipped dsh install because dsh is not on PATH and $DSH_HOME does not exist."

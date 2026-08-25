@@ -9,7 +9,7 @@ Structured, evidence-first codebase audit that produces executable implementatio
 ## When to use
 
 Use when:
-- you want a structured audit (correctness, security, performance, tech debt, deps, DX, docs, direction)
+- you want a structured audit (correctness, security, performance, tech debt, deps, DX, docs, direction, user-facing text language/locale consistency)
 - you have audit output and need executable implementation plans
 - you need to execute, reconcile, or publish those plans as issues
 - the user asks for a refactor, cleanup, simplification, or deduplication
@@ -29,7 +29,7 @@ Skip when:
 
 - (bare): Full audit + plans (recon → audit → plan)
 - `quick` / `deep`: Audit depth modifier
-- `security` / `perf` / `tests` / `deps` / `dx` / `docs` / `direction` / `tech-debt`: Focus on one category
+- `security` / `perf` / `tests` / `deps` / `dx` / `docs` / `direction` / `tech-debt` / `text`: Focus on one category (`text` = user-facing language/locale consistency across UI copy, docs, and installer output)
 - `refactor`: Focused simplification pass — not full audit
 - `execute <plan>`: Dispatch executor, review, verdict (APPROVE/REVISE/BLOCK)
 - `reconcile`: Refresh plan backlog, verify DONE, investigate BLOCKED

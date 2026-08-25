@@ -27,12 +27,12 @@ function StatusPanel(props, timerCtx) {
   if (data.loadedSkills.length) {
     for (const s of data.loadedSkills) chips.push(React.createElement('span', { className: 'askk-chip', key: s }, s))
   } else {
-    chips.push(React.createElement('span', { className: 'askk-chip', key: 'none' }, 'geen skill geladen'))
+    chips.push(React.createElement('span', { className: 'askk-chip', key: 'none' }, 'no skill loaded'))
   }
   const notes = []
-  if (data.needsCodeReview) notes.push(React.createElement('span', { className: 'askk-warn', key: 'cr' }, '⚠ code-review nodig'))
-  if (data.needsDesignReview) notes.push(React.createElement('span', { className: 'askk-warn', key: 'dr' }, '⚠ design-review'))
-  if (data.shouldCaptureImprovement) notes.push(React.createElement('span', { className: 'askk-ok', key: 'imp' }, '✓ verbetering vastleggen?'))
+  if (data.needsCodeReview) notes.push(React.createElement('span', { className: 'askk-warn', key: 'cr' }, '⚠ code-review needed'))
+  if (data.needsDesignReview) notes.push(React.createElement('span', { className: 'askk-warn', key: 'dr' }, '⚠ design-review needed'))
+  if (data.shouldCaptureImprovement) notes.push(React.createElement('span', { className: 'askk-ok', key: 'imp' }, '✓ capture improvement?'))
   if (data.lastMatch && data.loadedSkills.length === 0) notes.push(React.createElement('span', { key: 'match' }, 'match: ' + data.lastMatch))
 
   return React.createElement('div', { className: 'askk-bar' },
