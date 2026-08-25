@@ -1,9 +1,11 @@
 // agent-skills-router.dsh - Cordis host plugin for DeepSeek Harness. Injects the
 // beslisboom into every model step, registers one slash command per kit skill,
-// tracks per-session skill/review state, and optionally gates code tools until
-// a skill is loaded. All shared logic comes from core/router-core.js so no
-// beslisboom copy can drift. The file must stay dependency-free: preset-local
-// rows cannot resolve bare npm specifiers.
+// tracks per-session skill/review state, optionally gates code tools until
+// a skill is loaded, and publishes that state as whole-value session events
+// feeding the `askKit` projection unit read by the dsh-panel-widget client.
+// All shared logic comes from core/router-core.js so no beslisboom copy can
+// drift. The file must stay dependency-free: preset-local rows cannot resolve
+// bare npm specifiers.
 
 import { createRequire } from "node:module"
 import { randomUUID } from "node:crypto"
@@ -50,6 +52,14 @@ const GATED_TOOLS = new Set(["bash", "edit", "write", "apply_patch"])
 const SECTION_NAME = "ask-kit:beslisboom"
 const LOADED_SKILLS_MAX = 12
 
+// Panel state bridge (plugins/dsh-panel-widget): every mutation appends the
+// complete post-change state as one session event (the projection layer's
+// whole-value rule), and the askKit projection unit folds those events into
+// the schema-validated view the widget client reads from its snapshot.
+const PANEL_EVENT_TYPE = "ask-kit/state"
+const PANEL_PROJECTION_KEY = "askKit"
+const PANEL_STATE_VERSION = 1
+
 // Companion skills outside the beslisboom that still get a slash command.
 // Descriptions are copied verbatim from commands/<name>.md; check-dsh-plugin.js
 // fails on drift between this table and those generated files.
@@ -80,6 +90,36 @@ function buildUserMessage(text) {
     content: Object.freeze([{ type: "text", text }]),
     source: Object.freeze({ kind: "user" }),
   })
+}
+
+// Project the wire view of one tracking bucket: the COMPLETE post-change state
+// per the projection layer's whole-value rule, so every fold is last-write-wins
+// and every served value is self-describing.
+function panelViewOf(st) {
+  return {
+    loadedSkills: [...st.loadedSkills],
+    lastMatch: st.lastMatch,
+    needsCodeReview: st.needsCodeReview === true,
+    needsDesignReview: st.needsDesignReview === true,
+    shouldCaptureImprovement: st.shouldCaptureImprovement === true,
+    skillsLoadedCount: st.skillsLoadedCount,
+  }
+}
+
+// Re-validate one logged panel payload into a fresh view; returns null when
+// the data is malformed so a corrupt or foreign log entry cannot poison the
+// fold on replay.
+function normalizePanelView(data) {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return null
+  if (!Array.isArray(data.loadedSkills)) return null
+  return {
+    loadedSkills: data.loadedSkills.filter((s) => typeof s === "string" && s.trim()),
+    lastMatch: typeof data.lastMatch === "string" ? data.lastMatch : "",
+    needsCodeReview: data.needsCodeReview === true,
+    needsDesignReview: data.needsDesignReview === true,
+    shouldCaptureImprovement: data.shouldCaptureImprovement === true,
+    skillsLoadedCount: Number.isFinite(data.skillsLoadedCount) ? data.skillsLoadedCount : 0,
+  }
 }
 
 // Minimal skill stubs so router-core's cascadeRoute can match names without
@@ -120,6 +160,48 @@ export function apply(ctx, config) {
       const id = payload?.agent ? String(payload.agent.id) : ""
       if (id) states.delete(id)
     } catch { /* cleanup is best-effort */ }
+  })
+
+  // Append the whole post-change state to the session log; best-effort and
+  // silent when no session is reachable (plain test doubles, headless runs).
+  // A byte-identical repeat of the last published view is skipped so prompt
+  // churn cannot flood the log with no-op events.
+  function publishPanelState(agent, st) {
+    try {
+      const session = agent?.session
+      if (typeof session?.append !== "function") return
+      const view = panelViewOf(st)
+      const serialized = JSON.stringify(view)
+      if (serialized === st._panelPublished) return
+      st._panelPublished = serialized
+      const appended = session.append.call(session, PANEL_EVENT_TYPE, view)
+      if (appended && typeof appended.catch === "function") appended.catch(() => {})
+    } catch { /* panel state is best-effort */ }
+  }
+
+  // Register the askKit projection unit when the seam exists: a pure last-
+  // write-wins fold over the whole-value events, with a dependency-free
+  // hand-rolled schema because preset rows cannot resolve bare npm specifiers.
+  ctx.inject(["sessionProjections"], (projectionCtx) => {
+    projectionCtx.sessionProjections.register({
+      key: PANEL_PROJECTION_KEY,
+      schema: {
+        // Boundary validation: only an object-or-null view may leave the unit.
+        parse(value) {
+          if (value === null) return null
+          if (!value || typeof value !== "object" || Array.isArray(value)) throw new TypeError("ask-kit panel projection: view must be an object or null")
+          return value
+        },
+      },
+      init: () => null,
+      apply: (state, event) => {
+        if (event?.type !== PANEL_EVENT_TYPE) return state
+        const next = normalizePanelView(event.data)
+        return next === null ? state : next
+      },
+      view: (state) => state,
+      stateVersion: PANEL_STATE_VERSION,
+    })
   })
 
   // Render the canonical beslisboom plus live nudges for one state bucket;
@@ -189,6 +271,7 @@ export function apply(ctx, config) {
         st.needsDesignReview = false
         st.shouldCaptureImprovement = true
       }
+      publishPanelState(payload?.agent, st)
     } catch (error) {
       console.error("[ask-kit] routing failed:", error)
     }
@@ -199,7 +282,15 @@ export function apply(ctx, config) {
     try {
       const toolID = typeof exec?.name === "string" ? exec.name : ""
       if (!toolID) return next()
-      if (CODE_EDIT_TOOL_IDS.has(toolID)) stateFor(exec.agent?.id).needsCodeReview = true
+      if (CODE_EDIT_TOOL_IDS.has(toolID)) {
+        // Publish only on the false→true flip so repeated code edits do not
+        // spam the session log with identical whole-value events.
+        const st = stateFor(exec.agent?.id)
+        if (!st.needsCodeReview) {
+          st.needsCodeReview = true
+          publishPanelState(exec.agent, st)
+        }
+      }
       if (blockUntilSkillLoaded && GATED_TOOLS.has(toolID) && stateFor(exec.agent?.id).skillsLoadedCount === 0) {
         return { kind: "deny", reason: "Load a skill first via `skill(name: '...')`.\n" + routingHintLines().join("\n") }
       }
@@ -213,7 +304,9 @@ export function apply(ctx, config) {
   ctx.on("tools/result", (exec, result) => {
     try {
       if (exec?.name !== "skill" || !result || result.isError) return
-      applySkillFlips(stateFor(exec.agent?.id), skillNameOf(exec.arguments))
+      const st = stateFor(exec.agent?.id)
+      applySkillFlips(st, skillNameOf(exec.arguments))
+      publishPanelState(exec.agent, st)
     } catch (error) {
       console.error("[ask-kit] skill tracking failed:", error)
     }

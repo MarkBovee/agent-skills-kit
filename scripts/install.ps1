@@ -42,6 +42,12 @@ $dshPresetTarget = Join-Path $DshHome ".agent-presets\$dshPresetId"
 $dshPresetRowId = "ask-kit-router"
 $dshRouterSource = Join-Path $repoRoot "plugins\agent-skills-router.dsh.mjs"
 $dshRouterCoreSource = Join-Path $repoRoot "core\router-core.js"
+$dshPanelSource = Join-Path $repoRoot "plugins\dsh-panel-widget"
+$dshClientPluginsTarget = Join-Path $DshHome "client-plugins"
+$dshPanelTarget = Join-Path $dshClientPluginsTarget "ask-kit-panel"
+$dshPatchRowId = "ask-kit-panel"
+$dshWebPatchFile = Join-Path $DshHome "profiles\web\cordis.patch.yml"
+$dshPatchMarker = "# ── agent-skills-kit: ask-kit panel widget (managed) ──"
 $installMetadataFile = Join-Path $AgentsDir ".agent-skills-kit-install.txt"
 $managedSkillsManifest = ".ask-managed-skills.txt"
 $managedCommandsManifest = ".ask-managed-commands.txt"
@@ -230,6 +236,64 @@ function Sync-DshSkills {
 
     $installedSkills | Set-Content -LiteralPath (Join-Path $dshSkillsTarget $managedSkillsManifest)
     return $installedSkills
+}
+
+# Install (or refresh) the dual-face panel widget package into the dsh client
+# plugin root. The copy is unconditional so reinstalls always refresh managed
+# files; output is identical on every run. Returns $false when the source
+# package is absent so roster-row management can be skipped.
+function Install-DshPanelWidget {
+    if (-not (Test-Path -LiteralPath (Join-Path $dshPanelSource "package.json"))) {
+        Write-Warning "Skipped dsh panel widget: source package not found at $dshPanelSource."
+        return $false
+    }
+
+    New-Item -ItemType Directory -Force -Path $dshPanelTarget | Out-Null
+    foreach ($fileName in @("package.json", "index.mjs", "client.js", "README.md")) {
+        $sourceFile = Join-Path $dshPanelSource $fileName
+        if (-not (Test-Path -LiteralPath $sourceFile)) { continue }
+        Copy-Item -LiteralPath $sourceFile -Destination (Join-Path $dshPanelTarget $fileName) -Force
+    }
+
+    Write-Host "Installed dsh panel widget package to $dshPanelTarget"
+    return $true
+}
+
+# Idempotently manage the ask-kit-panel roster entry in the web profile patch
+# layer under marker comments. Existing user content is never rewritten: a row
+# that already carries our id is left alone; a file whose sole entry is the
+# empty `[]` placeholder is rewritten in place keeping header comments; any
+# other content gets the managed section appended after a blank separator.
+function Set-DshWebPatchRow {
+    if (-not (Test-Path -LiteralPath $dshWebPatchFile)) {
+        Write-Warning "Skipped panel roster row: web profile patch file not found at $dshWebPatchFile."
+        return
+    }
+
+    $patchText = [string](Get-Content -LiteralPath $dshWebPatchFile -Raw)
+    if (-not $patchText.Contains("- id: $dshPatchRowId")) {
+        $managedLines = @(
+            $dshPatchMarker,
+            "- insert:",
+            "    - id: $dshPatchRowId",
+            "      name: '$dshPanelTarget'"
+        )
+        $lines = @(Get-Content -LiteralPath $dshWebPatchFile)
+        $nonCommentLines = @($lines | Where-Object { $_ -notmatch '^\s*#' -and $_.Trim().Length -gt 0 })
+        $placeholderOnly = ($nonCommentLines.Count -eq 1 -and $nonCommentLines[0].Trim() -eq "[]")
+        if ($placeholderOnly) {
+            # Swap the placeholder for the managed section, header comments kept.
+            # Written BOM-free so strict YAML readers on Windows PowerShell stay happy.
+            $kept = @($lines | Where-Object { $_ -match '^\s*#' }) + $managedLines
+            [System.IO.File]::WriteAllText($dshWebPatchFile, (($kept -join "`n") + "`n"), (New-Object System.Text.UTF8Encoding($false)))
+        }
+        else {
+            Add-Content -LiteralPath $dshWebPatchFile -Encoding UTF8 -Value ""
+            Add-Content -LiteralPath $dshWebPatchFile -Encoding UTF8 -Value $managedLines
+        }
+    }
+
+    Write-Host "Managed ask-kit-panel roster row in $dshWebPatchFile"
 }
 
 # Remove managed skills from one former install root without touching unrelated user content.
@@ -468,6 +532,9 @@ try {
         $dshInstalledCount = $dshInstalledSkills.Count
         Write-DshAgentsSection
         $dshPresetState = Install-DshPreset
+        if (Install-DshPanelWidget) {
+            Set-DshWebPatchRow
+        }
         Write-InstallMetadata -RepoRoot $repoRoot -Platform "dsh" -InstallRoot $DshHome -OutputPath $dshMetadataFile
     }
     else {

@@ -6,6 +6,18 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [1.6.0] - Unreleased
+
+### Added
+
+- **Persistent dsh status widget (dual-face package).** The `askkit-1` panel demo is now a real package, `plugins/dsh-panel-widget/`, managed by both installers into `~/.dsh/client-plugins/ask-kit-panel/`: a browser face (lazy-CJS factory bundle registering the `ask-kit-status` entry in `conversation.composer.dock`) and an inert node face so the package also loads as a plain plugin row. It renders prototype semantics only — badge `╌ Agent Skills Kit ╌`, loaded-skill chips, ⚠ code-review/design-review and ✓ verbeterpunt nudges — with no beslisboom in the UI. The bundle derives its own registration id from its script URL because the client-module boot graph keys bundles by roster-entry name (the absolute install path for out-of-tree packages), so no machine-specific artifact ships in the repo.
+- **Panel state bridge over session projections.** The ask-kit router row now appends the complete post-change tracking state as a whole-value `ask-kit/state` session event on every mutation (the edit flip publishes only on false→true to keep the log quiet) and registers an `askKit` projection unit through a lazy `ctx.inject(["sessionProjections"])`: a pure last-write-wins fold with a hand-rolled schema that keeps the row dependency-free. The widget reads the finished view reactively via `sessions.binding(id).session.projections.faceOf("askKit")` — no polling RPC — and sessions without an askKit value render nothing. Malformed log payloads cannot poison the fold.
+- **Installer parity for the widget.** `install.sh` / `install.ps1` copy the package unconditionally and manage the roster row idempotently in `~/.dsh/profiles/web/cordis.patch.yml` under marker comments: an existing row is left alone, a bare `[]` placeholder is swapped for the managed section preserving every other line, and any other content gets the section appended after a blank separator.
+
+### Changed
+
+- `check-dsh-plugin.js` covers the new bridge: projection-unit shape, whole-value event appends, fold behavior (including malformed-payload rejection), schema boundary, and the false→true-only edit flip.
+
 ## [1.5.0] - 2026-08-25
 
 ### Added

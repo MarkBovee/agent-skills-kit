@@ -1,0 +1,20 @@
+{
+  "name": "ask-kit-panel",
+  "description": "Agent Skills Kit ambient status panel for the DSH web composer: badge, loaded-skill chips, and review nudges, read from the askKit session projection",
+  "version": "1.6.0",
+  "private": true,
+  "main": "./index.mjs",
+  "exports": {
+    ".": "./index.mjs",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime"
+      ]
+    }
+  }
+}
