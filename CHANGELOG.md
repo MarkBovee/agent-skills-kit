@@ -6,7 +6,7 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
-## [1.5.0] - Unreleased
+## [1.5.0] - 2026-08-25
 
 ### Added
 
