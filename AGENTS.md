@@ -115,6 +115,7 @@ Change both `.sh` and `.ps1` together.
 - Bootstrap/update installs latest stable `vX.Y.Z` tag, not `main`
 - User-visible fix to shipped assets (`skills/`, `core/`, `plugins/`, `scripts/`) → patch bump in `VERSION`
 - `VERSION` bump + matching `CHANGELOG.md` entry in same change
+- Every `VERSION` bump must also update the `version` field in `.claude-plugin/plugin.json` — `validate-plugin.js` (CI `validate`) fails if they drift
 - Fix ships to stable users only after `vX.Y.Z` tag exists
 - When `main` is protected, create and push a fix branch, open a PR, and tag the release only after that PR is merged; never push directly to `main`
 - Doc-only/internal changes can stay unreleased

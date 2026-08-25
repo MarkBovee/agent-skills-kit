@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [1.6.2] - Unreleased
+
+### Fixed
+
+- **`gh-inbox` now surfaces threaded discussion replies.** The discussion fetch queries each comment's `replies` connection — `Discussion.comments` only returns top-level comments and its `totalCount` ignores replies — and the new-item diff counts top-level + threaded replies, so a user reply nested under a comment is triaged like any other new comment instead of being dismissed as a silent edit/reaction (the exact miss behind issue #30). The posting step now also documents that REST cannot create discussion comments (POST returns 404) and that `addDiscussionComment` requires `replyToId` to be the thread's root comment: pointing it at a reply already inside the thread is rejected with "Parent comment is already in a thread".
+
 ## [1.6.1] - Unreleased
 
 ### Changed
