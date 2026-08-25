@@ -73,7 +73,7 @@ One command file per skill under `commands/`, named after the skill (`spec.md`, 
 - Body loads the skill via `skill(name: '...')` and applies it to `$ARGUMENTS`
 - Never duplicates skill content — reference the skill, keep it DRY
 
-Export targets (via `export-platform-skills.js`): OpenCode → `.opencode/commands/`, Copilot/VS Code → `.github/prompts/*.prompt.md`. Claude Code and dsh need no command files — their skills already act as slash commands. Commands are generated artifacts; never hand-edit the exported copies.
+Export targets (via `export-platform-skills.js`): OpenCode → `.opencode/commands/`, Copilot/VS Code → `.github/prompts/*.prompt.md`. Claude Code needs no command files — its skills already act as slash commands. dsh has no file-based command discovery; its slash commands are registered programmatically by the ask-kit router row (`ctx.commands.register()`, one per skill), so there are no generated command files to maintain. Commands are generated artifacts; never hand-edit the exported copies.
 
 ## Router plugin
 
@@ -88,7 +88,7 @@ Export targets (via `export-platform-skills.js`): OpenCode → `.opencode/comman
 
 ### dsh router variant
 
-`plugins/agent-skills-router.dsh.mjs` is the DeepSeek Harness counterpart, loaded as an `ask-kit` agent-preset row (`name: ./plugins/ask-kit-router.mjs`, installed by `install.*`). It appends the beslisboom section through the `system-prompt/assemble` waterfall, tracks skill/review state via `tools/pre-execute` / `tools/result` / `agent/inbox/inserted`, and gates tools only when row config `blockUntilSkillLoaded` is true (default false). The file must stay dependency-free — preset-local rows cannot resolve bare specifiers such as `@deepseek-ai/schemastery`, so row config is normalized manually in `apply()`. All beslisboom rows come from `routingHintLines()`; `node ./scripts/check-dsh-plugin.js` validates exports, dependency-freedom, event wiring, gating, cascade routing, and beslisboom drift against `core/router-core.js`.
+`plugins/agent-skills-router.dsh.mjs` is the DeepSeek Harness counterpart, loaded as an `ask-kit` agent-preset row (`name: ./plugins/ask-kit-router.mjs`, installed by `install.*`). It appends the beslisboom section through the `system-prompt/assemble` waterfall, registers one slash command per kit skill through a lazy `ctx.inject(["commands"])` (beslisboom rows double as picker descriptions; companion skills `design-review`/`gh-inbox` are explicit and must not drift from `commands/<name>.md`), tracks skill/review state via `tools/pre-execute` / `tools/result` / `agent/inbox/inserted`, and gates tools only when row config `blockUntilSkillLoaded` is true (default false). The file must stay dependency-free — preset-local rows cannot resolve bare specifiers such as `@deepseek-ai/schemastery`, so row config is normalized manually in `apply()`. All beslisboom rows come from `routingHintLines()`; `node ./scripts/check-dsh-plugin.js` validates exports, dependency-freedom, event wiring, gating, cascade routing, the slash-command surface, and beslisboom drift against `core/router-core.js`.
 
 ### New-session validation
 

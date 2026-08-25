@@ -1,10 +1,12 @@
 // agent-skills-router.dsh - Cordis host plugin for DeepSeek Harness. Injects the
-// beslisboom into every model step, tracks per-session skill/review state, and
-// optionally gates code tools until a skill is loaded. All shared logic comes
-// from core/router-core.js so no beslisboom copy can drift. The file must stay
-// dependency-free: preset-local rows cannot resolve bare npm specifiers.
+// beslisboom into every model step, registers one slash command per kit skill,
+// tracks per-session skill/review state, and optionally gates code tools until
+// a skill is loaded. All shared logic comes from core/router-core.js so no
+// beslisboom copy can drift. The file must stay dependency-free: preset-local
+// rows cannot resolve bare npm specifiers.
 
 import { createRequire } from "node:module"
+import { randomUUID } from "node:crypto"
 import { fileURLToPath } from "node:url"
 import { dirname, resolve } from "node:path"
 
@@ -47,6 +49,38 @@ const CODE_EDIT_TOOL_IDS = new Set(["edit", "write", "apply_patch"])
 const GATED_TOOLS = new Set(["bash", "edit", "write", "apply_patch"])
 const SECTION_NAME = "ask-kit:beslisboom"
 const LOADED_SKILLS_MAX = 12
+
+// Companion skills outside the beslisboom that still get a slash command.
+// Descriptions are copied verbatim from commands/<name>.md; check-dsh-plugin.js
+// fails on drift between this table and those generated files.
+const COMPANION_COMMANDS = [
+  ["design-review", "Review a design, UI, or copy for AI-generated patterns and quality"],
+  ["gh-inbox", "Check the current repository's GitHub issues and discussions, triage activity, reply when clear, and persist inbox state"],
+]
+
+// Slash-command surface: one picker entry per kit skill. Beslisboom rows are
+// parsed first-segment-label / last-segment-skill so both derivations agree
+// even if a future label ever contained an arrow.
+const COMMAND_ROWS = [
+  ...[...routingHintLines()].map((line) => {
+    const segments = line.split("→")
+    return [(segments[segments.length - 1] ?? "").trim(), (segments[0] ?? "").trim()]
+  }),
+  ...COMPANION_COMMANDS,
+]
+
+// Build one proper inbox user message without importing @deepseek-ai/dsh-llm:
+// preset-local rows cannot resolve bare specifiers, so this mirrors
+// createUserMessage's shape ({id, role, text content, user source}) that the
+// agent loop forwards verbatim into the next model request.
+function buildUserMessage(text) {
+  return Object.freeze({
+    id: randomUUID(),
+    role: "user",
+    content: Object.freeze([{ type: "text", text }]),
+    source: Object.freeze({ kind: "user" }),
+  })
+}
 
 // Minimal skill stubs so router-core's cascadeRoute can match names without
 // touching a filesystem catalog; only skill names surface in hints anyway.
@@ -182,6 +216,33 @@ export function apply(ctx, config) {
       applySkillFlips(stateFor(exec.agent?.id), skillNameOf(exec.arguments))
     } catch (error) {
       console.error("[ask-kit] skill tracking failed:", error)
+    }
+  })
+
+  // Register one slash command per kit skill. Lazy `ctx.inject` (not the
+  // top-level inject list) mirrors dsh-plan-mode: compositions without a
+  // commands service simply get no picker entries instead of failing the row.
+  ctx.inject(["commands"], (commandCtx) => {
+    for (const [skill, description] of COMMAND_ROWS) {
+      commandCtx.commands.register({
+        name: skill,
+        description,
+        input: { hint: "[focus]" },
+        // Steer the agent with the load-the-skill prompt pattern from the
+        // platform command files; optional rawInput becomes the focus
+        // argument. Per-workflow specifics stay in the skill body itself.
+        handler: ({ agent, rawInput }) => {
+          const focus = String(rawInput || "").trim()
+          const prompt = `Load the '${skill}' skill via the skill tool and follow its full workflow.`
+            + (focus ? ` Apply it to: ${focus}` : "")
+          try {
+            agent.steer(buildUserMessage(prompt))
+          } catch (error) {
+            return { kind: "error", text: `Could not queue skill load: ${error?.message || error}` }
+          }
+          return { kind: "success", text: `Queued skill load: ${skill}${focus ? ` — ${focus}` : ""}` }
+        },
+      })
     }
   })
 
