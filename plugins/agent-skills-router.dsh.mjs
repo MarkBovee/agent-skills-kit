@@ -92,6 +92,18 @@ function buildUserMessage(text) {
   })
 }
 
+// Queue a load-the-skill user message through the agent's steer channel,
+// mirroring the slash-command handler's prompt pattern; best-effort and
+// silent when the agent cannot steer (plain test doubles, headless runs).
+function steerReviewSkill(agent, skill) {
+  try {
+    if (typeof agent?.steer !== "function") return
+    agent.steer(buildUserMessage(
+      `Load the '${skill}' skill via the skill tool and follow its full workflow.`,
+    ))
+  } catch { /* steering is best-effort */ }
+}
+
 // Project the wire view of one tracking bucket: the COMPLETE post-change state
 // per the projection layer's whole-value rule, so every fold is last-write-wins
 // and every served value is self-describing.
@@ -130,10 +142,13 @@ const SKILL_STUBS = [...routingHintLines()]
   .map((skill) => ({ name: skill, description: "", triggers: [] }))
 
 // Fresh per-agent tracking state, mirroring the OpenCode plugin's fields.
+// steeredSkills remembers which review skills a completion phrase already
+// pushed the agent toward, so a single debt episode steers at most once.
 function emptyState() {
   return {
     lastMatch: "", matchedAt: 0, needsCodeReview: false, needsDesignReview: false,
     shouldCaptureImprovement: false, skillsLoadedCount: 0, loadedSkills: [],
+    steeredSkills: [],
   }
 }
 
@@ -243,6 +258,8 @@ export function apply(ctx, config) {
   }
 
   // Apply the kit's review-flag flips for one successfully loaded skill.
+  // Loading a review skill also resets its steer guard, so a fresh debt
+  // episode later in the session can steer the agent toward it again.
   function applySkillFlips(st, loaded) {
     st.skillsLoadedCount += 1
     if (loaded) {
@@ -250,16 +267,31 @@ export function apply(ctx, config) {
       if (st.loadedSkills.length > LOADED_SKILLS_MAX) st.loadedSkills.shift()
       st.lastMatch = loaded
     }
-    if (loaded === SKILL_CODE_REVIEW) { st.needsCodeReview = false; st.shouldCaptureImprovement = true; return }
+    if (loaded === SKILL_CODE_REVIEW) {
+      st.needsCodeReview = false; st.shouldCaptureImprovement = true
+      st.steeredSkills = st.steeredSkills.filter((s) => s !== SKILL_CODE_REVIEW); return
+    }
     if (loaded === SKILL_VERIFICATION) { st.shouldCaptureImprovement = true; return }
-    if (loaded === SKILL_WRITE_SKILL) { st.shouldCaptureImprovement = false; return }
-    if (loaded === SKILL_SESSION_REVIEW) { st.shouldCaptureImprovement = false; return }
+    if (loaded === SKILL_WRITE_SKILL) {
+      st.shouldCaptureImprovement = false
+      st.steeredSkills = st.steeredSkills.filter((s) => s !== SKILL_SESSION_REVIEW); return
+    }
+    if (loaded === SKILL_SESSION_REVIEW) {
+      st.shouldCaptureImprovement = false
+      st.steeredSkills = st.steeredSkills.filter((s) => s !== SKILL_SESSION_REVIEW); return
+    }
     if (loaded === SKILL_UI_UX) { st.needsDesignReview = true; return }
-    if (loaded === SKILL_DESIGN_REVIEW) st.needsDesignReview = false
+    if (loaded === SKILL_DESIGN_REVIEW) {
+      st.needsDesignReview = false
+      st.steeredSkills = st.steeredSkills.filter((s) => s !== SKILL_DESIGN_REVIEW)
+    }
   }
 
-  // Route every incoming prompt: refresh Active hints and clear review debt
-  // on completion phrases, mirroring the OpenCode plugin's append hook.
+  // Route every incoming prompt: refresh Active hints and, on completion
+  // phrases, push the agent to settle pending review debt by steering it
+  // toward the matching review skill — once per skill per episode, so the
+  // chip stays visible until the review is actually loaded (applySkillFlips
+  // clears the flag then) instead of silently vanishing on "done".
   ctx.on("agent/inbox/inserted", (payload) => {
     try {
       const text = messageText(payload?.message)
@@ -267,10 +299,16 @@ export function apply(ctx, config) {
       const st = stateFor(payload?.agent?.id)
       st.lastMatch = cascadeRoute(text, SKILL_STUBS, st)?.matchedSkills?.[0]?.name || "develop"
       st.matchedAt = Date.now()
-      if ((st.needsCodeReview || st.needsDesignReview) && hasPhraseSignal(text, COMPLETION_PHRASES)) {
-        st.needsCodeReview = false
-        st.needsDesignReview = false
-        st.shouldCaptureImprovement = true
+      if (hasPhraseSignal(text, COMPLETION_PHRASES)) {
+        const pending = []
+        if (st.needsCodeReview) pending.push(SKILL_CODE_REVIEW)
+        if (st.needsDesignReview) pending.push(SKILL_DESIGN_REVIEW)
+        if (st.shouldCaptureImprovement) pending.push(SKILL_SESSION_REVIEW)
+        for (const skill of pending) {
+          if (st.steeredSkills.includes(skill)) continue
+          st.steeredSkills.push(skill)
+          steerReviewSkill(payload?.agent, skill)
+        }
       }
       publishPanelState(payload?.agent, st)
     } catch (error) {
