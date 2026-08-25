@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [1.6.1] - Unreleased
+
+### Changed
+
+- **Review nudges now steer the agent instead of silently clearing.** In the dsh router row, a completion phrase ("done", "klaar", …) with pending review debt no longer wipes the flags; it queues a load-the-skill steer toward the outstanding review skill (`code-review`, `design-review`, or `session-review` for an armed improvement capture), once per skill per episode, so the widget chip stays visible until the review is actually loaded — which is what clears it via the skill-load flip table. Loading `write-skill` still resolves the improvement intent and resets the steer guard, so a later improvement episode can steer again. Covered by new assertions in `check-dsh-plugin.js`.
+
 ## [1.6.0] - Unreleased
 
 ### Added

@@ -206,6 +206,47 @@ async function main() {
     const improvementClearedText = improvementCleared.sections.find((entry) => entry.name === "ask-kit:beslisboom").text
     check("session-review load clears improvement nudge", !improvementClearedText.includes("→ Improvement found?"))
 
+    // Wrap-up steering: a completion phrase with pending review debt steers
+    // the agent toward the matching review skill (once per episode) instead
+    // of silently clearing the nudge — the chip stays until the review loads.
+    const steered = []
+    const steerAgent = { id: "steer-check", steer: (msg) => steered.push(msg) }
+    await pre({ name: "edit", agent: steerAgent }, async () => ({ kind: "allow" }))
+    inbox({ agent: steerAgent, message: { text: "ik ben klaar" } })
+    const firstSteerText = steered[0]?.content?.[0]?.text ?? ""
+    check("completion steers code-review once", steered.length === 1 && firstSteerText.includes("'code-review'"))
+    inbox({ agent: steerAgent, message: { text: "nogmaals klaar" } })
+    check("repeat completion does not re-steer", steered.length === 1)
+    const steeredAssembly = await assemble({ sections: [] }, { agent: steerAgent }, async () => ({ sections: [] }))
+    const steeredText = steeredAssembly.sections.find((entry) => entry.name === "ask-kit:beslisboom").text
+    check("completion keeps review nudge armed", steeredText.includes("→ Code edited"))
+    listeners.get("tools/result")[0]({ name: "skill", agent: steerAgent, arguments: { name: "code-review" } }, { isError: false })
+    const afterSteerReview = await assemble({ sections: [] }, { agent: steerAgent }, async () => ({ sections: [] }))
+    const afterSteerReviewText = afterSteerReview.sections.find((entry) => entry.name === "ask-kit:beslisboom").text
+    check("code-review load clears steer debt", !afterSteerReviewText.includes("→ Code edited"))
+    check("code-review load arms improvement after steer", afterSteerReviewText.includes("→ Improvement found?"))
+    inbox({ agent: steerAgent, message: { text: "klaar" } })
+    const secondSteerText = steered[1]?.content?.[0]?.text ?? ""
+    check("completion steers session-review once", steered.length === 2 && secondSteerText.includes("'session-review'"))
+    // write-skill resolves improvement intent, so a fresh improvement episode
+    // later can steer toward session-review again.
+    const steeredWrite = []
+    const writeAgent = { id: "steer-check3", steer: (msg) => steeredWrite.push(msg) }
+    listeners.get("tools/result")[0]({ name: "skill", agent: writeAgent, arguments: { name: "verification" } }, { isError: false })
+    inbox({ agent: writeAgent, message: { text: "klaar" } })
+    check("improvement steers session-review before write-skill", steeredWrite.length === 1)
+    listeners.get("tools/result")[0]({ name: "skill", agent: writeAgent, arguments: { name: "write-skill" } }, { isError: false })
+    listeners.get("tools/result")[0]({ name: "skill", agent: writeAgent, arguments: { name: "verification" } }, { isError: false })
+    inbox({ agent: writeAgent, message: { text: "klaar" } })
+    check("write-skill resets session-review steer guard", steeredWrite.length === 2)
+    // Design debt: loading ui-ux arms design-review, completion steers it.
+    const designSteered = []
+    const designAgent = { id: "steer-check2", steer: (msg) => designSteered.push(msg) }
+    listeners.get("tools/result")[0]({ name: "skill", agent: designAgent, arguments: { name: "ui-ux" } }, { isError: false })
+    inbox({ agent: designAgent, message: { text: "done" } })
+    const designSteerText = designSteered[0]?.content?.[0]?.text ?? ""
+    check("completion steers design-review once", designSteered.length === 1 && designSteerText.includes("'design-review'"))
+
     // Panel state bridge (dsh-panel-widget): mutations append whole-value
     // ask-kit/state events and the askKit projection unit folds them.
     check("registers askKit projection unit", projections.length === 1
