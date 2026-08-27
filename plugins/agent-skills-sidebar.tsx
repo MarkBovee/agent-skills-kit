@@ -8,14 +8,20 @@
 
 /** @jsxImportSource @opentui/solid */
 import { createMemo, For, Show } from "solid-js"
+import { readFileSync } from "node:fs"
 import { createRequire } from "node:module"
+import vm from "node:vm"
+import path from "node:path"
 import type { TuiPlugin, TuiPluginApi, TuiPluginModule } from "@opencode-ai/plugin/tui"
-
-const require = createRequire(import.meta.url)
 
 // Locate core/router-core.js across every known layout the file ships in:
 // repo source (plugins/), the installed OpenCode plugins dir (./core), and the
 // checkout dev copy (.opencode/plugins/). Mirrors the dsh router's resolver.
+//
+// router-core.js is plain CommonJS, but the opencode TUI runtime treats `.js`
+// as ESM: require() throws "async module is unsupported" and import() yields an
+// empty namespace, so neither reaches its module.exports. Execute the source in
+// a sandboxed VM context as CJS instead, reading the populated exports object.
 function resolveRouterCore() {
   const candidates = [
     new URL("./core/router-core.js", import.meta.url).pathname,
@@ -23,7 +29,28 @@ function resolveRouterCore() {
     new URL("../../core/router-core.js", import.meta.url).pathname,
   ]
   for (const candidate of candidates) {
-    try { return require(candidate) } catch { /* try next layout */ }
+    try {
+      const file = candidate
+      const code = readFileSync(file, "utf8")
+      const module = { exports: {} }
+      const sandbox = {
+        module,
+        exports: module.exports,
+        require: createRequire(file),
+        __filename: file,
+        __dirname: path.dirname(file),
+        console,
+        process,
+        Buffer,
+        setTimeout,
+        clearTimeout,
+        setImmediate,
+        URL,
+        URLSearchParams,
+      }
+      vm.runInNewContext(code, sandbox, { filename: file })
+      return module.exports
+    } catch { /* try next layout */ }
   }
   throw new Error(
     "agent-skills-sidebar: cannot find router-core.js in any known layout "
