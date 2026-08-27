@@ -481,6 +481,7 @@ rm -rf "$OPENCODE_CORE_TARGET"
 rm -rf "$OPENCODE_PLUGINS_TARGET/core"
 cp -R "$OPENCODE_CORE_SOURCE" "$OPENCODE_PLUGINS_TARGET/core"
 cp "$OPENCODE_PLUGINS_SOURCE/agent-skills-router.mjs" "$OPENCODE_PLUGINS_TARGET/agent-skills-router.mjs"
+cp "$OPENCODE_PLUGINS_SOURCE/agent-skills-sidebar.tsx" "$OPENCODE_PLUGINS_TARGET/agent-skills-sidebar.tsx"
 
 # Install rules for OpenCode.
 mkdir -p "$OPENCODE_RULES_TARGET"
@@ -508,6 +509,22 @@ if [ -f "$OPENCODE_JSON" ]; then
     fs.writeFileSync(f,JSON.stringify(c,null,2)+'\n');
   "
 fi
+
+# Register the sidebar TUI plugin in tui.json so OpenCode actually loads it.
+# TUI plugins are discovered from the `plugin` array in tui.json (not by
+# scanning the plugins dir), so a bare file copy alone would never render.
+TUI_JSON="$OPENCODE_DIR/tui.json"
+if [ ! -f "$TUI_JSON" ]; then
+  printf '{\n  "$schema": "https://opencode.ai/tui.json",\n  "plugin": []\n}\n' > "$TUI_JSON"
+fi
+node -e "
+  var fs=require('fs'), f='$TUI_JSON';
+  var c=JSON.parse(fs.readFileSync(f,'utf-8'));
+  c.plugin=c.plugin||[];
+  var p='./plugins/agent-skills-sidebar.tsx';
+  var found=c.plugin.some(function(e){return (typeof e==='string'&&e===p)||(Array.isArray(e)&&e[0]===p);});
+  if(!found){c.plugin.push(p);fs.writeFileSync(f,JSON.stringify(c,null,2)+'\n');}
+"
 
 if [ -d "$CLAUDE_DIR" ]; then
   mkdir -p "$CLAUDE_RULES_TARGET"
@@ -547,6 +564,7 @@ echo "Installed OpenCode commands to $OPENCODE_COMMANDS_TARGET"
 echo "Installed Copilot/VS Code prompt files to $COPILOT_PROMPTS_TARGET"
 echo "Installed OpenCode router core to $OPENCODE_PLUGINS_TARGET/core"
 echo "Installed OpenCode router plugin to $OPENCODE_PLUGINS_TARGET/agent-skills-router.mjs"
+echo "Installed OpenCode sidebar plugin to $OPENCODE_PLUGINS_TARGET/agent-skills-sidebar.tsx"
 echo "Installed OpenCode rules to $OPENCODE_RULES_TARGET/coding-standards.md"
 echo "Installed OpenCode agent-skills-kit usage guide to $OPENCODE_RULES_TARGET/agent-skills-kit.md"
 if [ -d "$CLAUDE_DIR" ]; then

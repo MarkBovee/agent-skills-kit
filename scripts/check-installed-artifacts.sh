@@ -109,6 +109,12 @@ assert_installed_strings() {
     "$DSH_HOME/client-plugins/ask-kit-panel/client.js" "✓ capture improvement?" present
   assert_grep "installed opencode core carries the English header" \
     "$OPENCODE_DIR/plugins/core/router-core.js" "╌ Agent Skills Kit ╌" present
+  assert_grep "installed opencode sidebar plugin registers the sidebar slot" \
+    "$OPENCODE_DIR/plugins/agent-skills-sidebar.tsx" "sidebar_content" present
+  assert_grep "installed opencode sidebar plugin shows the English title" \
+    "$OPENCODE_DIR/plugins/agent-skills-sidebar.tsx" "Agent Skills Kit" present
+  assert_grep "installed opencode tui.json registers the sidebar plugin" \
+    "$OPENCODE_DIR/tui.json" "agent-skills-sidebar.tsx" present
 }
 
 # Sweep the installed roots for known-stale managed strings.

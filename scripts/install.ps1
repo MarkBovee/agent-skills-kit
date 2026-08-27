@@ -502,6 +502,7 @@ try {
 
     Copy-Item -LiteralPath $opencodeCoreSource -Destination $opencodePluginCoreTarget -Recurse
     Copy-Item -LiteralPath (Join-Path $opencodePluginsSource "agent-skills-router.mjs") -Destination (Join-Path $opencodePluginsTarget "agent-skills-router.mjs") -Force
+    Copy-Item -LiteralPath (Join-Path $opencodePluginsSource "agent-skills-sidebar.tsx") -Destination (Join-Path $opencodePluginsTarget "agent-skills-sidebar.tsx") -Force
 
     # Install rules for OpenCode.
     New-Item -ItemType Directory -Force -Path $opencodeRulesTarget | Out-Null
@@ -548,6 +549,25 @@ try {
         if ($changed) { $cfg | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $opencodeJsonPath }
     }
 
+    # Register the sidebar TUI plugin in tui.json so OpenCode actually loads it.
+    # TUI plugins are discovered from the `plugin` array in tui.json (not by
+    # scanning the plugins dir), so a bare file copy alone would never render.
+    $tuiJsonPath = Join-Path $OpencodeDir "tui.json"
+    if (-not (Test-Path -LiteralPath $tuiJsonPath)) {
+        Set-Content -LiteralPath $tuiJsonPath -Value ('{' + "`n" + '  "$schema": "https://opencode.ai/tui.json",' + "`n" + '  "plugin": []' + "`n" + '}')
+    }
+    $tui = Get-Content -LiteralPath $tuiJsonPath -Raw | ConvertFrom-Json
+    if ($tui.PSObject.Properties.Match("plugin").Count -eq 0 -or $null -eq $tui.plugin -or $tui.plugin -isnot [System.Array]) {
+        $tui | Add-Member -NotePropertyName plugin -NotePropertyValue @() -Force
+    }
+    $tuiPlugin = "./plugins/agent-skills-sidebar.tsx"
+    $already = $false
+    foreach ($entry in $tui.plugin) {
+        if (($entry -is [string] -and $entry -eq $tuiPlugin) -or ($entry -is [System.Array] -and $entry[0] -eq $tuiPlugin)) { $already = $true; break }
+    }
+    if (-not $already) { $tui.plugin += $tuiPlugin }
+    $tui | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $tuiJsonPath
+
     if (Test-Path -LiteralPath $ClaudeDir) {
         New-Item -ItemType Directory -Force -Path $claudeRulesTarget | Out-Null
         Write-ClaudeRulesFile
@@ -589,6 +609,7 @@ try {
     "Installed Copilot/VS Code prompt files to $copilotPromptsTarget"
     "Installed OpenCode router core to $(Join-Path $opencodePluginsTarget 'core')"
     "Installed OpenCode router plugin to $(Join-Path $opencodePluginsTarget 'agent-skills-router.mjs')"
+    "Installed OpenCode sidebar plugin to $(Join-Path $opencodePluginsTarget 'agent-skills-sidebar.tsx')"
     "Installed OpenCode rules to $(Join-Path $opencodeRulesTarget 'coding-standards.md')"
     "Installed OpenCode agent-skills-kit usage guide to $(Join-Path $opencodeRulesTarget 'agent-skills-kit.md')"
     if (Test-Path -LiteralPath $ClaudeDir) {

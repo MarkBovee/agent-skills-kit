@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [1.7.0] - Unreleased
+
+### Added
+
+- **OpenCode TUI sidebar plugin.** New `plugins/agent-skills-sidebar.tsx` renders a read-only status block into OpenCode's official `sidebar_content` slot (alongside the built-in Context/MCP blocks): the Active Stage (via `cascadeRoute` on the latest user message) colored with the README platform-matrix hex, a review-debt nudge ("⚠️ Review Debt actief" when a code edit was not followed by `code-review`/`verification`, derived from the session tool calls), the suggested execution profile (`buildExecutionProfile` → `task=… · agent=… · delegation=…`), and all 14 skills (12 decision-tree rows + `design-review` + `gh-inbox`). It is display-only (no focus/keyboard/mouse), imports `core/router-core.js` live through a multi-layout resolver so the same file works from `plugins/`, a checkout `.opencode/plugins/` dev copy, and the installed global plugins dir. Both installers now deploy it to `$OPENCODE_PLUGINS_TARGET/agent-skills-sidebar.tsx`, and `check-installed-artifacts.sh` asserts the deployed slot registration and title.
+
 ## [1.6.3] - Unreleased
 
 ### Fixed
