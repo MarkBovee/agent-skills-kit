@@ -4,6 +4,12 @@ All notable changes to `agent-skills-kit` live here.
 
 Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` form.
 
+## [1.8.1] - 2026-09-05
+
+### Fixed
+
+- **Version-independent dsh installer.** Fresh dsh installations no longer depend on a package-shipped `config/agent-presets/standard` directory; legacy `nebu` artifacts are cleaned from managed OpenCode paths.
+
 ## [1.8.0] - 2026-09-05
 
 ### Added
