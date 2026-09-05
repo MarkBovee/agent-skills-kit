@@ -288,10 +288,12 @@ link_dsh_panel_bundle() {
 # row that already carries our id is left alone; an empty `[]` placeholder is
 # swapped for the managed section; anything else gets the section appended.
 manage_web_patch_row() {
-  [ -f "$DSH_WEB_PATCH_FILE" ] || {
-    echo "Skipped panel roster row: web profile patch file not found at $DSH_WEB_PATCH_FILE." >&2
-    return 0
-  }
+  # Create the profile patch when a fresh dsh home has not materialized it yet;
+  # the widget cannot load unless its browser roster row is present.
+  if [ ! -f "$DSH_WEB_PATCH_FILE" ]; then
+    mkdir -p "$(dirname "$DSH_WEB_PATCH_FILE")"
+    printf '%s\n' "$DSH_PATCH_MARKER" "- insert:" "    - id: $DSH_PATCH_ROW_ID" "      name: '$DSH_PANEL_PACKAGE'" > "$DSH_WEB_PATCH_FILE"
+  fi
   # Already managed: report the same outcome a fresh insert would, so repeated
   # installs produce identical output.
   if ! grep -qF -- "- id: $DSH_PATCH_ROW_ID" "$DSH_WEB_PATCH_FILE"; then
@@ -316,6 +318,10 @@ manage_web_patch_row() {
       rm -f "$tmp_file"
       { printf '\n'; printf '%s\n' "$managed_block"; } >> "$DSH_WEB_PATCH_FILE"
     fi
+  fi
+  if ! grep -qF -- "- id: $DSH_PATCH_ROW_ID" "$DSH_WEB_PATCH_FILE"; then
+    echo "Failed to register ask-kit-panel in $DSH_WEB_PATCH_FILE." >&2
+    return 1
   fi
   printf 'Managed ask-kit-panel roster row in %s\n' "$DSH_WEB_PATCH_FILE"
 }

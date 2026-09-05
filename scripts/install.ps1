@@ -308,9 +308,17 @@ function Link-DshPanelBundle {
 # empty `[]` placeholder is rewritten in place keeping header comments; any
 # other content gets the managed section appended after a blank separator.
 function Set-DshWebPatchRow {
+    # Create the profile patch on fresh DSH homes; the browser roster is what
+    # makes the installed client bundle reachable from the web boot graph.
     if (-not (Test-Path -LiteralPath $dshWebPatchFile)) {
-        Write-Warning "Skipped panel roster row: web profile patch file not found at $dshWebPatchFile."
-        return
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $dshWebPatchFile) | Out-Null
+        $initialLines = @(
+            $dshPatchMarker,
+            "- insert:",
+            "    - id: $dshPatchRowId",
+            "      name: '$dshPanelPackage'"
+        )
+        [System.IO.File]::WriteAllText($dshWebPatchFile, (($initialLines -join "`n") + "`n"), (New-Object System.Text.UTF8Encoding($false)))
     }
 
     $patchText = [string](Get-Content -LiteralPath $dshWebPatchFile -Raw)
@@ -336,6 +344,9 @@ function Set-DshWebPatchRow {
         }
     }
 
+    if (-not (Select-String -LiteralPath $dshWebPatchFile -SimpleMatch "- id: $dshPatchRowId" -Quiet)) {
+        throw "Failed to register ask-kit-panel in $dshWebPatchFile."
+    }
     Write-Host "Managed ask-kit-panel roster row in $dshWebPatchFile"
 }
 

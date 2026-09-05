@@ -4,6 +4,12 @@ All notable changes to `agent-skills-kit` live here.
 
 Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` form.
 
+## [1.8.2] - 2026-09-05
+
+### Fixed
+
+- **dsh client-module registration.** The persistent `ask-kit-panel` widget now registers with its fixed roster id when dsh serves client modules through one aggregate URL.
+
 ## [1.8.1] - 2026-09-05
 
 ### Fixed

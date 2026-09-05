@@ -1,61 +1,55 @@
 window.__ModuleLoader__.load({
-	id: (function () {
-		/** Derive this bundle's registration id from its own script URL. The
-		* boot-graph row id equals the roster entry's `name` — the bare package
-		* name (`ask-kit-panel`), which the host serves at /plugins/<id>/client.js
-		* — so the id is recovered here instead of being baked into the repo copy. */
-		try {
-			var src = (typeof document !== "undefined" && document.currentScript && document.currentScript.src) || "";
-			var m = src.match(/\/plugins\/(.+?)\/client\.js(?:\?.*)?$/);
-			if (m && m[1]) return decodeURIComponent(m[1]);
-		} catch { /* fall through to the loud failure below */ }
-		throw new Error("ask-kit-panel: cannot derive bundle id from script URL — served outside the /plugins/<id>/client.js route");
-	})(),
+	// dsh serves client modules through one aggregate URL, so currentScript cannot identify this roster entry.
+	id: "ask-kit-panel",
 	factory: (require) => {
 		var module = { exports: {} };
 		var exports = module.exports;
 		let react = require("react");
-		//#region ask-kit-panel client — ambient status line under the composer.
-		// Prototype semantics only: badge, loaded-skill chips, review nudges.
-		// The decision tree lives in the system prompt and is deliberately NOT
-		// mirrored here. State arrives reactively via the `askKit` session
-		// projection (host fold of `ask-kit/state` whole-value events written
-		// by the ask-kit router row); there is no polling RPC anymore.
+
 		const PROJECTION_KEY = "askKit";
 		const SLOT_NAME = "conversation.composer.dock";
 		const SLOT_ID = "ask-kit-status";
 		const STYLE_TAG_ID = "ask-kit-panel/status.css";
-		const CSS = ".askk-bar{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dsw-alias-label-secondary);padding:2px 4px;flex-wrap:wrap}" +
-			".askk-badge{color:var(--dsw-alias-brand-primary);font-weight:600;white-space:nowrap}" +
-			".askk-chip{border:1px solid var(--dsw-alias-border-l1);border-radius:999px;padding:0 7px;line-height:16px;background:var(--dsw-alias-bg-layer-1);white-space:nowrap}" +
-			".askk-warn{color:var(--dsw-alias-state-warn-primary)}" +
-			".askk-ok{color:var(--dsw-alias-state-success-primary)}";
-		/**
-		* Insert the panel stylesheet once, shipped-package style, so HMR
-		* bookkeeping can find and remove the tag again.
-		*/
+		const CSS = [
+			".askk-shell{position:relative;display:flex;align-items:center;gap:8px;width:100%;min-height:32px;padding:3px 6px;color:var(--dsw-alias-label-secondary);font-size:12px;line-height:18px}",
+			".askk-summary{display:flex;align-items:center;gap:8px;min-width:0;flex:1}",
+			".askk-brand{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;color:var(--dsw-alias-label-primary);font-weight:650;letter-spacing:-.01em}",
+			".askk-mark{display:inline-flex;width:18px;height:18px;align-items:center;justify-content:center;border:1px solid color-mix(in srgb,var(--dsw-alias-brand-primary) 55%,transparent);border-radius:6px;color:var(--dsw-alias-brand-primary);font-size:10px;font-weight:750}",
+			".askk-status{display:inline-flex;align-items:center;gap:5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
+			".askk-dot{width:6px;height:6px;border-radius:50%;background:var(--dsw-alias-state-success-primary);flex:none}",
+			".askk-dot.warn{background:var(--dsw-alias-state-warn-primary)}",
+			".askk-count{color:var(--dsw-alias-label-secondary);white-space:nowrap}",
+			".askk-toggle{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:28px;padding:4px 9px;border:1px solid var(--dsw-alias-border-l1);border-radius:7px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);font:inherit;cursor:pointer;transition:border-color 160ms ease,background 160ms ease,color 160ms ease}",
+			".askk-toggle:hover{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary)}",
+			".askk-toggle:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}",
+			".askk-chevron{font-size:10px;transition:transform 160ms ease}.askk-chevron.open{transform:rotate(180deg)}",
+			".askk-popover{position:absolute;right:6px;bottom:calc(100% + 8px);z-index:20;width:min(360px,calc(100vw - 24px));padding:14px;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-1);box-shadow:0 12px 32px color-mix(in srgb,#000 22%,transparent);color:var(--dsw-alias-label-primary)}",
+			".askk-popover h3{margin:0;font-size:13px;line-height:18px;font-weight:700}.askk-popover p{margin:3px 0 0;color:var(--dsw-alias-label-secondary);font-size:12px}",
+			".askk-section{margin-top:13px}.askk-section-title{margin-bottom:6px;color:var(--dsw-alias-label-secondary);font-size:11px;font-weight:650;letter-spacing:.02em}",
+			".askk-action,.askk-history{display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-top:1px solid var(--dsw-alias-border-l1);font-size:12px}.askk-action:first-of-type{border-top:0}",
+			".askk-action-icon{color:var(--dsw-alias-state-warn-primary);font-weight:800}.askk-action-copy{min-width:0}.askk-action-copy strong{display:block;font-weight:650}.askk-action-copy span{display:block;margin-top:2px;color:var(--dsw-alias-label-secondary)}",
+			".askk-history{display:inline-flex;flex-wrap:wrap;gap:5px;border-top:0;padding-top:0}.askk-chip{display:inline-flex;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:3px 7px;border:1px solid var(--dsw-alias-border-l1);border-radius:5px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-secondary)}",
+			"@media (max-width:520px){.askk-brand span:last-child{display:none}.askk-count{display:none}.askk-shell{padding-inline:2px}.askk-popover{right:0;width:min(360px,calc(100vw - 12px))}}",
+			"@media (prefers-reduced-motion:reduce){.askk-toggle,.askk-chevron{transition:none}}",
+		].join("");
+
+		/** Insert package-local styles once without touching the host document body. */
 		function insertCss() {
 			try {
-				if (typeof document === "undefined") return;
-				if (document.querySelector('style[data-plugin-css="' + STYLE_TAG_ID + '"]') !== null) return;
-				const tag = document.createElement("style");
+				if (typeof document === "undefined" || document.querySelector('style[data-plugin-css="' + STYLE_TAG_ID + '"]')) return;
+				var tag = document.createElement("style");
 				tag.dataset.plugin = "ask-kit-panel";
 				tag.dataset.pluginCss = STYLE_TAG_ID;
 				tag.textContent = CSS;
 				document.head.appendChild(tag);
-			} catch { /* styling is cosmetic; never block activation */ }
+			} catch { /* cosmetic styling must never block the widget */ }
 		}
-		/**
-		* Coerce one raw projection value into the render shape, returning null
-		* for anything absent or malformed so shape drift degrades to a hidden
-		* panel instead of a broken one.
-		* @param value - whole projection view or undefined/null.
-		* @returns normalized view object, or null when there is nothing to show.
-		*/
+
+		/** Normalize projection data at the rendering boundary so malformed logs stay hidden and harmless. */
 		function normalizeView(value) {
 			if (!value || typeof value !== "object") return null;
-			const loadedSkills = Array.isArray(value.loadedSkills)
-				? [...new Set(value.loadedSkills.filter((s) => typeof s === "string" && s.trim()))].slice(-6)
+			var loadedSkills = Array.isArray(value.loadedSkills)
+				? [...new Set(value.loadedSkills.filter((skill) => typeof skill === "string" && skill.trim()))].slice(-6)
 				: [];
 			return {
 				loadedSkills,
@@ -65,109 +59,88 @@ window.__ModuleLoader__.load({
 				shouldCaptureImprovement: value.shouldCaptureImprovement === true,
 			};
 		}
-		/**
-		* Resolve the observable projection face for one session, tolerating
-		* every rc-stage contract gap (no binding, no projections store, old
-		* face shape) by returning undefined.
-		* @param sessions - the client sessions service.
-		* @param sessionId - active session id or undefined.
-		* @returns {getSnapshot,subscribe} face, or undefined.
-		*/
+
+		/** Resolve the live session projection face while tolerating older or incomplete client contracts. */
 		function faceFor(sessions, sessionId) {
 			if (!sessions || typeof sessions.binding !== "function" || typeof sessionId !== "string") return undefined;
 			try {
-				const projections = sessions.binding(sessionId)?.session?.projections;
-				if (projections === undefined || typeof projections.faceOf !== "function") return undefined;
-				const face = projections.faceOf(PROJECTION_KEY);
-				if (face === undefined || typeof face.getSnapshot !== "function") return undefined;
-				return face;
-			} catch { return undefined }
+				var projections = sessions.binding(sessionId)?.session?.projections;
+				if (!projections || typeof projections.faceOf !== "function") return undefined;
+				var face = projections.faceOf(PROJECTION_KEY);
+				return face && typeof face.getSnapshot === "function" ? face : undefined;
+			} catch { return undefined; }
 		}
-		/**
-		* Subscribe one component to the projection value for a session. A hand-
-		* rolled external-store subscription (instead of useSyncExternalStore)
-		* keeps working on older React builds and never throws on contract gaps.
-		* @param faceFactory - stable zero-arg resolver for the current face.
-		* @returns the latest snapshot value (undefined while absent).
-		*/
+
+		/** Subscribe the component to the projection as an external store without polling or duplicate state. */
 		function useProjectionValue(faceFactory) {
-			const [value, setValue] = react.useState(() => {
-				try {
-					const face = faceFactory();
-					return face ? face.getSnapshot() : undefined;
-				} catch { return undefined }
-			});
+			var [value, setValue] = react.useState(() => { try { var face = faceFactory(); return face ? face.getSnapshot() : undefined; } catch { return undefined; } });
 			react.useEffect(() => {
-				let alive = true;
-				let unsubscribe;
+				var alive = true;
+				var unsubscribe;
 				try {
-					const face = faceFactory();
+					var face = faceFactory();
 					if (face) {
 						setValue(face.getSnapshot());
-						if (typeof face.subscribe === "function") {
-							unsubscribe = face.subscribe(() => {
-								if (!alive) return;
-								try { setValue(face.getSnapshot()) } catch { /* next frame retries */ }
-							});
-						}
+						if (typeof face.subscribe === "function") unsubscribe = face.subscribe(() => { if (alive) { try { setValue(face.getSnapshot()); } catch { /* retry on the next projection event */ } } });
 					}
-				} catch { /* capability absent: stay hidden */ }
-				return () => {
-					alive = false;
-					try { if (typeof unsubscribe === "function") unsubscribe() } catch { /* already gone */ }
-				};
+				} catch { /* absent projection means the panel stays hidden */ }
+				return () => { alive = false; try { if (typeof unsubscribe === "function") unsubscribe(); } catch { /* projection already disposed */ } };
 			}, [faceFactory]);
 			return value;
 		}
-		/**
-		* Ambient dock entry: one slim status line of chips and nudges, hidden
-		* entirely until the session carries an askKit projection value.
-		* @param props - slot props ({session, input}); only session.sessionId is read.
-		* @param sessions - captured client sessions service.
-		*/
-		function StatusPanel(props, sessions) {
-			const sessionId = props?.session?.sessionId;
-			const sessionsRef = react.useRef(sessions);
-			sessionsRef.current = sessions;
-			const faceFactory = react.useCallback(() => faceFor(sessionsRef.current, sessionId), [sessionId]);
-			const raw = useProjectionValue(faceFactory);
-			const data = normalizeView(raw);
-			if (!data) return null;
-			const chips = [];
-			if (data.loadedSkills.length > 0) {
-				for (const s of data.loadedSkills) chips.push(react.createElement("span", { className: "askk-chip", key: s }, s));
-			} else {
-				chips.push(react.createElement("span", { className: "askk-chip", key: "none" }, "no skill loaded"));
-			}
-			const notes = [];
-			if (data.needsCodeReview) notes.push(react.createElement("span", { className: "askk-warn", key: "cr" }, "⚠ code-review needed"));
-			if (data.needsDesignReview) notes.push(react.createElement("span", { className: "askk-warn", key: "dr" }, "⚠ design-review needed"));
-			if (data.shouldCaptureImprovement) notes.push(react.createElement("span", { className: "askk-ok", key: "imp" }, "✓ capture improvement?"));
-			if (data.lastMatch && data.loadedSkills.length === 0) notes.push(react.createElement("span", { key: "match" }, "match: " + data.lastMatch));
-			return react.createElement("div", { className: "askk-bar" },
-				react.createElement("span", { className: "askk-badge" }, "╌ Agent Skills Kit ╌"),
-				chips,
-				notes);
+
+		/** Build the actionable review list while keeping status labels consistent with the router state. */
+		function actionsFor(view) {
+			var actions = [];
+			if (view.needsCodeReview) actions.push({ id: "code-review", title: "Code review nodig", detail: "Er is code gewijzigd sinds de vorige review." });
+			if (view.needsDesignReview) actions.push({ id: "design-review", title: "Design review nodig", detail: "Controleer de UI op bruikbaarheid en AI-defaults." });
+			if (view.shouldCaptureImprovement) actions.push({ id: "session-review", title: "Verbetering vastleggen", detail: "Er is een workflowverbetering gesignaleerd." });
+			return actions;
 		}
-		/**
-		* Client plugin body: stylesheet plus the composer dock registration.
-		* @param ctx - client root context (slots + sessions services expected).
-		*/
+
+		/** Render the compact summary and an accessible details popover for one session. */
+		function StatusPanel(props, sessions) {
+			var sessionId = props?.session?.sessionId;
+			var [open, setOpen] = react.useState(false);
+			var sessionsRef = react.useRef(sessions);
+			sessionsRef.current = sessions;
+			var faceFactory = react.useCallback(() => faceFor(sessionsRef.current, sessionId), [sessionId]);
+			var view = normalizeView(useProjectionValue(faceFactory));
+			if (!view) return null;
+			var actions = actionsFor(view);
+			var active = view.lastMatch || view.loadedSkills[view.loadedSkills.length - 1] || "klaar";
+			var statusText = actions.length ? actions[0].title : active;
+			var toggleLabel = open ? "ASK-details sluiten" : "ASK-details openen";
+			var details = open ? react.createElement("div", { id: SLOT_ID + "-details", className: "askk-popover", role: "region", "aria-label": "ASK details" },
+				react.createElement("h3", null, "Agent Skills Kit"),
+				react.createElement("p", null, view.lastMatch ? "Actieve context: " + view.lastMatch : "Live sessiecontext"),
+				actions.length ? react.createElement("div", { className: "askk-section" },
+					react.createElement("div", { className: "askk-section-title" }, "OPEN ACTIES"),
+					actions.map((action) => react.createElement("div", { className: "askk-action", key: action.id },
+						react.createElement("span", { className: "askk-action-icon", "aria-hidden": "true" }, "!"),
+						react.createElement("div", { className: "askk-action-copy" }, react.createElement("strong", null, action.title), react.createElement("span", null, action.detail)))))
+					: react.createElement("div", { className: "askk-section" }, react.createElement("div", { className: "askk-section-title" }, "STATUS"), react.createElement("p", null, "Geen open acties. De sessie is klaar voor de volgende stap.")),
+				view.loadedSkills.length ? react.createElement("div", { className: "askk-section" },
+					react.createElement("div", { className: "askk-section-title" }, "RECENT GELADEN"),
+					react.createElement("div", { className: "askk-history" }, view.loadedSkills.map((skill) => react.createElement("span", { className: "askk-chip", key: skill, title: skill }, skill)))) : null) : null;
+			return react.createElement("div", { className: "askk-shell" },
+				react.createElement("div", { className: "askk-summary" },
+					react.createElement("span", { className: "askk-brand" }, react.createElement("span", { className: "askk-mark", "aria-hidden": "true" }, "A"), react.createElement("span", null, "ASK")),
+					react.createElement("span", { className: "askk-status", title: statusText }, react.createElement("span", { className: "askk-dot" + (actions.length ? " warn" : ""), "aria-hidden": "true" }), statusText),
+					actions.length ? react.createElement("span", { className: "askk-count" }, actions.length + (actions.length === 1 ? " open actie" : " open acties")) : null),
+				react.createElement("button", { type: "button", className: "askk-toggle", onClick: () => setOpen(!open), "aria-expanded": open, "aria-controls": SLOT_ID + "-details", "aria-label": toggleLabel }, "Details", react.createElement("span", { className: "askk-chevron" + (open ? " open" : ""), "aria-hidden": "true" }, "⌄")), details);
+		}
+
+		/** Register the projection-backed widget in the additive composer dock slot. */
 		function apply(ctx) {
 			insertCss();
-			let slots;
-			let sessions;
-			try {
-				slots = ctx.slots;
-				sessions = ctx.sessions;
-			} catch { return }
+			var slots;
+			var sessions;
+			try { slots = ctx.slots; sessions = ctx.sessions; } catch { return; }
 			if (slots === undefined || sessions === undefined) return;
-			slots.inject(SLOT_NAME, () => slots.register(
-				{ name: SLOT_NAME, id: SLOT_ID, order: 50 },
-				(props) => StatusPanel(props, sessions),
-			));
+			slots.inject(SLOT_NAME, () => slots.register({ name: SLOT_NAME, id: SLOT_ID, order: 50 }, (props) => StatusPanel(props, sessions)));
 		}
-		//#endregion
+
 		exports.apply = apply;
 		exports.inject = ["slots", "sessions"];
 		return module.exports;

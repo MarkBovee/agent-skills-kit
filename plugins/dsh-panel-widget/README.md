@@ -1,9 +1,9 @@
 # ask-kit-panel (dsh dual-face widget)
 
-The slim Agent Skills Kit status line under the DSH web composer: badge
-`╌ Agent Skills Kit ╌`, loaded-skill chips, and review nudges (⚠ code-review /
-design-review, ✓ improvement). No decision tree in the UI — the tree stays in the
-system prompt; this surface only mirrors live session state.
+The ASK Context Bar under the DSH web composer: a compact live status summary
+that expands into an accessible details panel with the active skill, open review
+actions, and recently loaded skills. No decision tree in the UI — the tree stays
+in the system prompt; this surface only mirrors live session state.
 
 This is the persistent successor of the `askkit-1` runtime demo
 (`../dsh-panel-prototype/`): a real dual-face package instead of a
@@ -14,9 +14,8 @@ This is the persistent successor of the `askkit-1` runtime demo
 - **Browser face** (`client.js`) — lazy-CJS factory bundle registered in slot
   `conversation.composer.dock` (`id: ask-kit-status`, order 50). Reads the
   `askKit` session projection reactively (`sessions.binding(id).session.
-  projections.faceOf("askKit")`), no polling RPC. The bundle derives its own
-  registration id from its script URL (`/plugins/<id>/client.js`, id = the bare
-  package name), which must match the node face's exported `name`.
+  projections.faceOf("askKit")`), no polling RPC. The bundle uses the fixed
+  roster id `ask-kit-panel`, which must match the node face's exported `name`.
 - **Node face** (`index.mjs`) — inert Cordis plugin so the package loads
   cleanly as a node-plugin row too (dual-face requirement).
 
@@ -44,4 +43,8 @@ Managed by `scripts/install.sh` / `scripts/install.ps1`:
   under marker comments referencing the bare package name `ask-kit-panel`;
   existing patch content is never touched.
 
-A dsh web restart is required after installing or updating the package.
+The installer also creates or updates `~/.dsh/profiles/web/cordis.patch.yml`
+with the `ask-kit-panel` browser roster row and fails when that row cannot be
+verified. A dsh web restart is required after installing or updating the package.
+For local client development, keep the DSH `pnpm run dev:web` watcher running
+before expecting HMR; otherwise rebuild and refresh the browser.

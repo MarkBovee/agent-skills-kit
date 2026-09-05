@@ -99,14 +99,35 @@ assert_installed_strings() {
     "$DSH_HOME/.agent-presets/ask-kit/plugins/ask-kit-router.mjs" "╌ Agent Skills Kit ╌" present
   assert_grep "vendored router-core carries the English decision-tree line" \
     "$DSH_HOME/.agent-presets/ask-kit/vendor/router-core.js" "Decision tree — load a different skill" present
-  assert_grep "installed widget shows the English status badge" \
-    "$DSH_HOME/client-plugins/ask-kit-panel/client.js" "╌ Agent Skills Kit ╌" present
-  assert_grep "installed widget shows the English no-skill chip" \
-    "$DSH_HOME/client-plugins/ask-kit-panel/client.js" "no skill loaded" present
-  assert_grep "installed widget shows the English review nudge" \
-    "$DSH_HOME/client-plugins/ask-kit-panel/client.js" "⚠ code-review needed" present
-  assert_grep "installed widget shows the English improvement nudge" \
-    "$DSH_HOME/client-plugins/ask-kit-panel/client.js" "✓ capture improvement?" present
+  assert_grep "installed widget registers the composer dock" \
+    "$DSH_HOME/client-plugins/ask-kit-panel/client.js" "conversation.composer.dock" present
+  assert_grep "installed widget ships the ASK context bar" \
+    "$DSH_HOME/client-plugins/ask-kit-panel/client.js" "askk-shell" present
+  assert_grep "installed widget ships the expandable details control" \
+    "$DSH_HOME/client-plugins/ask-kit-panel/client.js" "ASK-details openen" present
+  assert_grep "installed widget ships the open-actions view" \
+    "$DSH_HOME/client-plugins/ask-kit-panel/client.js" "OPEN ACTIES" present
+  assert_grep "installed web patch registers the browser roster row" \
+    "$DSH_HOME/profiles/web/cordis.patch.yml" "- id: ask-kit-panel" present
+  assert_grep "installed web patch points at the panel package" \
+    "$DSH_HOME/profiles/web/cordis.patch.yml" "name: 'ask-kit-panel'" present
+  for widget_file in package.json index.mjs client.js README.md; do
+    if [ -f "$DSH_HOME/client-plugins/ask-kit-panel/$widget_file" ]; then
+      check "installed widget file exists: $widget_file" true
+    else
+      check "installed widget file exists: $widget_file" false
+    fi
+  done
+  if [ -L "$DSH_HOME/profiles/node_modules/ask-kit-panel" ]; then
+    check "installed widget package is linked into profile modules" true
+  else
+    check "installed widget package is linked into profile modules" false
+  fi
+  if node --check "$DSH_HOME/client-plugins/ask-kit-panel/client.js" >/dev/null 2>&1; then
+    check "installed widget client bundle parses" true
+  else
+    check "installed widget client bundle parses" false
+  fi
   assert_grep "installed opencode core carries the English header" \
     "$OPENCODE_DIR/plugins/core/router-core.js" "╌ Agent Skills Kit ╌" present
   assert_grep "installed opencode sidebar plugin registers the sidebar slot" \
