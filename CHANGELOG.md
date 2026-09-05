@@ -4,6 +4,25 @@ All notable changes to `agent-skills-kit` live here.
 
 Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` form.
 
+## [1.8.0] - 2026-09-05
+
+### Added
+
+- **GitHub inbox routing.** Issue and discussion prompts now reach the companion `gh-inbox` skill without expanding the decision-tree row count.
+- **Session and widget verification.** Sidebar session checks cover case-normalized skill loads, completed tool states, review timing, and session switching.
+
+### Changed
+
+- **Skill workflow guidance.** Delivery, meta, experience, and inbox skills now use clearer failure taxonomy, consent guards, host-neutral UI-UX commands, readable references, and validated cross-platform exports.
+- **OpenCode sidebar.** Status labels are case-consistent and distinguish observed loads from suggestions and unloaded catalog entries.
+- **Platform exports.** The exporter resolves `<skill-base>` references for Claude, Copilot, and dsh output.
+
+### Fixed
+
+- **Router reachability.** `gh-inbox`, pair-programming, and Dutch collaboration prompts route to their intended skills.
+- **Sidebar robustness.** Failed, pending, malformed, or incomplete host tool states cannot create false load or review status.
+- **GitHub discussion recipe.** Thread replies use the correct discussion ID and root comment ID contract.
+
 ## Unreleased
 
 ## [1.7.1] - 2026-09-05

@@ -21,6 +21,9 @@ build/
 # gh-inbox local state
 .gh-inbox-state.json
 
+# Local planning documents
+plans/
+
 # Editors
 .idea/
 .vscode/

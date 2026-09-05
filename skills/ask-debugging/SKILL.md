@@ -23,8 +23,6 @@ triggers:
   - hangt
   - hanging
   - crash loop
-  - None
-  - target_temp
   - niet werkend
   - doet het niet
   - malfunction
@@ -55,6 +53,7 @@ Fix obvious one-line mistakes directly. For everything else, earn the fix by nar
 
 - Preserve evidence.
 - Change one thing at a time.
+- Classify the failure first: an invalid-argument or parameter error means fix the call, not debug the code — adjust arguments and re-run before treating it as a bug. (Consistent with `develop` default rules for the full taxonomy.)
 - Do not stop for status-only check-ins between normal debugging attempts.
 - After two failed fixes, zoom out and question assumptions or architecture.
 

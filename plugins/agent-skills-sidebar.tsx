@@ -1,7 +1,7 @@
 // agent-skills-sidebar - OpenCode TUI plugin that renders a read-only status
 // block into the right-hand `sidebar_content` slot (alongside the built-in
-// Context/MCP blocks). Shows the active skill + stage color, review debt, and
-// the suggested execution profile, all derived live from core/router-core.js.
+// Context/MCP blocks). Shows the last loaded kit skill, review reminders, and
+// the skill catalog. Router suggestions are only a fallback before a load.
 // Display-only: no focus, keyboard, or mouse handling. Ships as a Solid/opentui
 // JSX plugin (`.tsx`) because OpenCode's TUI plugin API renders slot components
 // as JSX; the host runtime supplies @opentui/solid + @opencode-ai/plugin/tui.
@@ -49,7 +49,7 @@ function resolveRouterCore() {
         URLSearchParams,
       }
       vm.runInNewContext(code, sandbox, { filename: file })
-      return module.exports
+      return module.exports as typeof import("../core/router-core")
     } catch { /* try next layout */ }
   }
   throw new Error(
@@ -59,11 +59,12 @@ function resolveRouterCore() {
 }
 
 const routerCore = resolveRouterCore()
-const { routingHintLines, buildExecutionProfile, cascadeRoute } = routerCore
+const { routingHintLines, cascadeRoute, CODE_EDIT_TOOL_IDS } = routerCore
 
 // Stage colors mirroring the README platform matrix. Keyed by skill name so the
-// Active Stage chip and the skill list share one source of truth.
-const STAGE_COLORS = {
+// small catalog markers share one source of truth. Names use theme text colors
+// instead: the matrix hex colors are not readable on every terminal theme.
+const STAGE_COLORS: Record<string, string> = {
   spec: "#7C5CFF", intake: "#7C5CFF",
   debugging: "#e94560", develop: "#e94560",
   "code-review": "#2ecc71", verification: "#2ecc71",
@@ -72,131 +73,154 @@ const STAGE_COLORS = {
   "ui-ux": "#e91e8c", "design-review": "#e91e8c",
   "text-writing": "#8b5cf6",
 }
-const STAGE_LABELS = {
-  spec: "Start", intake: "Start",
-  debugging: "Execute", develop: "Execute",
-  "code-review": "Validate", verification: "Validate",
-  improve: "Improve", "session-review": "Improve",
-  "agent-workflows": "Coordinate", "write-skill": "Coordinate",
-  "ui-ux": "Product", "design-review": "Product",
-  "text-writing": "Write",
-}
-
 // Build the 14-skill surface: the 12 decision-tree rows from router-core plus
 // the companion skills design-review and gh-inbox that get their own commands.
 const SKILLS = [
+  // Extract canonical names from the shared routing rows.
   ...routingHintLines().map((line) => line.split("→").pop()?.trim()).filter(Boolean),
   "design-review",
   "gh-inbox",
 ]
 
-// Minimal skill stubs so cascadeRoute can match names without a filesystem scan.
+// Minimal routing stubs, not execution metadata or evidence of a skill load.
 const SKILL_STUBS = SKILLS.map((name) => ({ name, description: "", triggers: [] }))
 
-// Extract the latest plain-text user prompt from a session so routing reflects
-// what the user is actually asking; empty string when none is found yet.
-function latestUserText(api, sessionID) {
-  const messages = api.state.session.messages(sessionID) || []
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    const message = messages[i]
-    if (message?.role !== "user") continue
-    const parts = api.state.part(message.id) || []
-    const text = parts
-      .filter((part) => part?.type === "text" && typeof part.text === "string")
-      .map((part) => part.text)
-      .join(" ")
-    if (text.trim()) return text
-  }
-  return ""
+const SKILL_LABELS = {
+  "agent-workflows": "Agent Workflows",
+  "code-review": "Code Review",
+  debugging: "Debugging",
+  "design-review": "Design Review",
+  develop: "Develop",
+  "gh-inbox": "GH Inbox",
+  improve: "Improve",
+  intake: "Intake",
+  "session-review": "Session Review",
+  spec: "Spec",
+  "text-writing": "Text Writing",
+  "ui-ux": "UI/UX",
+  verification: "Verification",
+  "write-skill": "Write Skill",
 }
 
-// Scan every tool call in the session: a code-edit tool (edit/write/apply_patch)
-// arms review debt, a subsequent review skill load clears it. Best-effort and
-// defensive about part shapes so an unknown shape degrades to "no debt".
-function detectReviewDebt(api, sessionID) {
+// Normalize host-provided skill names to the kit's lowercase canonical IDs.
+function normalizeSkillName(value) {
+  if (typeof value !== "string") return ""
+  return value.trim().toLowerCase().replace(/^ask-/, "")
+}
+
+// Render canonical skill IDs as stable, readable labels in the widget.
+function skillLabel(name) {
+  return SKILL_LABELS[name] || name
+}
+
+// Return completed tool metadata only when host state is complete and usable.
+function completedToolState(part) {
+  if (part?.type !== "tool" || part?.state?.status !== "completed") return null
+  const { input, time } = part.state
+  if (!time || typeof time.start !== "number" || typeof time.end !== "number") return null
+  return { input: input || {}, start: time.start, end: time.end }
+}
+
+// Read prompt, successful kit loads and edit/review timing in one session pass.
+// A review started before an edit finished cannot resolve that edit's reminder.
+/** @param {TuiPluginApi} api @param {string} sessionID */
+function readSidebarSession(api, sessionID) {
   const messages = api.state.session.messages(sessionID) || []
-  let debt = false
+  const loadedSkills = new Set()
+  let query = ""
+  let lastLoaded = ""
+  let lastLoadEnd = -Infinity
+  let lastEditEnd = -Infinity
+  let lastReviewStart = -Infinity
   for (const message of messages) {
-    const parts = api.state.part(message?.id) || []
+    const parts = api.state.part(message.id) || []
+    const promptParts = []
     for (const part of parts) {
-      if (part?.type !== "tool") continue
-      const tool = part.tool || part.name || ""
-      if (["edit", "write", "apply_patch"].includes(tool)) { debt = true; continue }
-      if (tool !== "skill") continue
-      const input = part.input || part.args || {}
-      const loaded = input?.name || input?.skill || ""
-      if (["code-review", "verification"].includes(loaded)) debt = false
+      if (message.role === "user" && part.type === "text") promptParts.push(part.text)
+      if (message.role !== "assistant") continue
+      const state = completedToolState(part)
+      if (!state) continue
+      const { input, start, end } = state
+      if (CODE_EDIT_TOOL_IDS.has(part.tool)) {
+        lastEditEnd = Math.max(lastEditEnd, end)
+        continue
+      }
+      if (part.tool !== "skill") continue
+      const name = normalizeSkillName(input.name)
+      if (!SKILLS.includes(name)) continue
+      loadedSkills.add(name)
+      if (end >= lastLoadEnd) {
+        lastLoaded = name
+        lastLoadEnd = end
+      }
+      if (name === "code-review" || name === "verification") {
+        lastReviewStart = Math.max(lastReviewStart, start)
+      }
     }
+    if (message.role === "user") query = promptParts.join(" ").trim()
   }
-  return debt
+  return { query, loadedSkills, lastLoaded, needsReview: lastEditEnd > lastReviewStart }
 }
 
-// Sidebar block component: Active Stage, review-debt nudge, execution profile,
-// and the 14-skill list, all reactive to the current session.
-function View(props) {
+// Keep observed session state prominent and the full catalog quietly scannable.
+function View(props: { api: TuiPluginApi; session_id: string }) {
+  // Read theme tokens reactively so switching themes never leaves stale colors.
   const theme = () => props.api.theme.current
-  const query = createMemo(() => latestUserText(props.api, props.session_id))
-  const route = createMemo(() => {
-    const text = query()
-    return text.trim() ? cascadeRoute(text, SKILL_STUBS, {}) : null
+  // Recompute from this session's reactive messages and tool parts only.
+  const session = createMemo(() => readSidebarSession(props.api, props.session_id))
+  // A route is a suggestion, never proof that the agent loaded that skill.
+  const suggested = createMemo(() => {
+    const { query, lastLoaded } = session()
+    return !lastLoaded && query ? cascadeRoute(query, SKILL_STUBS, {}).matchedSkills[0]?.name : ""
   })
-  const active = createMemo(() => route()?.matchedSkills?.[0]?.name || "none")
-  const profile = createMemo(() => {
-    const hit = route()
-    return hit?.matchedSkills?.[0] ? buildExecutionProfile(hit.matchedSkills[0], query()) : null
-  })
-  const debt = createMemo(() => detectReviewDebt(props.api, props.session_id))
-  const color = (name) => STAGE_COLORS[name] || theme().textMuted
-  const stageLabel = (name) => STAGE_LABELS[name] || "Tool"
+  // Prefer an observed kit load over the prompt's heuristic match.
+  const selected = createMemo(() => session().lastLoaded || suggested())
 
   return (
-    <box
-      border
-      borderColor={theme().border}
-      backgroundColor={theme().backgroundElement}
-      paddingTop={1} paddingBottom={1} paddingLeft={1} paddingRight={1}
-      flexDirection="column" gap={1}
-    >
+    <box paddingTop={1} paddingBottom={1} flexDirection="column" gap={1}>
+      {/* Header: inherit the host sidebar surface, without another frame. */}
       <text fg={theme().text}><b>Agent Skills Kit</b></text>
 
+      {/* Session status: observed load or explicitly labelled suggestion. */}
       <box flexDirection="column" gap={0}>
-        <text fg={theme().textMuted}><b>Active Stage</b></text>
-        <text fg={color(active())}>● {active()}</text>
-        <Show when={active() !== "none"} fallback={<text fg={theme().textMuted}>waiting for a prompt</text>}>
-          <text fg={theme().textMuted}>stage: {stageLabel(active())}</text>
+        <Show when={selected()} fallback={<text fg={theme().textMuted}>Waiting for a prompt</text>}>
+          <text fg={theme().textMuted}>{session().lastLoaded ? "Last loaded" : "Suggested"}</text>
+          <text fg={theme().text}><b>{session().lastLoaded ? "> " : "? "}{skillLabel(selected())}</b></text>
+        </Show>
+        <Show when={session().needsReview} fallback={<text fg={theme().textMuted}>No review pending</text>}>
+          <text fg={theme().warning}>! code-review needed</text>
         </Show>
       </box>
 
+      {/* Catalog: color stays in one small marker column, not entire names. */}
       <box flexDirection="column" gap={0}>
-        <text fg={theme().textMuted}><b>Debt</b></text>
-        <Show when={debt()} fallback={<text fg={STAGE_COLORS["code-review"]}>✓ no review debt</text>}>
-          <text fg={STAGE_COLORS["debugging"]}>⚠️ Review Debt actief</text>
-        </Show>
-      </box>
-
-      <box flexDirection="column" gap={0}>
-        <text fg={theme().textMuted}><b>Execution Profile</b></text>
-        <Show when={profile()} fallback={<text fg={theme().textMuted}>task=— · agent=—</text>}>
-          <text fg={theme().textMuted}>
-            task={profile().executionTier} · agent={profile().agentTier} · {profile().delegationMode}
-          </text>
-        </Show>
-      </box>
-
-      <box flexDirection="column" gap={0}>
-        <text fg={theme().textMuted}><b>Skills</b></text>
+        <text fg={theme().text}><b>Skills</b></text>
         <For each={SKILLS}>
-          {(name) => <text fg={color(name)}>  {name}</text>}
+          {/* Markers distinguish the latest load, previous loads and suggestions. */}
+          {(name) => (
+            <box flexDirection="row">
+              <text width={2} flexShrink={0} fg={STAGE_COLORS[name] || theme().textMuted}>
+                {name === session().lastLoaded ? ">" : session().loadedSkills.has(name) ? "✓" : name === suggested() ? "?" : "·"}
+              </text>
+              <text fg={theme().text}>
+                <Show when={name === session().lastLoaded} fallback={skillLabel(name)}><b>{skillLabel(name)}</b></Show>
+              </text>
+            </box>
+          )}
         </For>
+        <text fg={theme().textMuted}>{session().lastLoaded ? "> loaded   · seen" : "? suggested   · not loaded"}</text>
       </box>
+      {/* End status block. */}
     </box>
   )
 }
 
+// Register a read-only component in the host's existing sidebar stack.
 const tui: TuiPlugin = async (api) => {
   api.slots.register({
     order: 200,
     slots: {
+      // Let session switches update the view through reactive slot props.
       sidebar_content(_ctx, props) {
         return <View api={api} session_id={props.session_id} />
       },

@@ -72,6 +72,11 @@ const ROUTING_CASES = [
   ["hello world", "develop"],
   ["bump version", "develop"],
   ["continue working", "develop"],
+  ["pair programming", "intake"],
+  ["samenwerken", "intake"],
+  ["triage my github issues", "gh-inbox"],
+  ["check discussions", "gh-inbox"],
+  ["reply to this issue", "gh-inbox"],
 ]
 
 // Detect any trigger string that appears in more than one skill.

@@ -47,6 +47,8 @@ Apply the filter silently. Do not narrate "I'm checking this against my anti-slo
 - **Structural defaults:** generic titles ("Home | Product"); brochure meta descriptions; "Our Story" LinkedIn-style summaries; rhetorical-question openers; vague section headers ("Features," "Why Us"); generic CTA copy ("Get Started") that states no result; filler FAQ; unattributed social proof ("Trusted by N+ teams").
 - **Tone & rhythm:** register that strips personality; persona abstraction ("teams like yours"); empty buzzwords (seamless, intuitive, robust); dangling participle openers; puffery; tailing present-participle clauses; weasel attribution ("some critics say"); overused adjectives/verbs/nouns (vibrant, elevate, landscape, delve); flawless-but-flat rhythm; letter-template politeness in casual copy.
 
+**Vocabulary-level bans have a single source: `text-writing`'s `references/banned-words.md`** — when in doubt on a word/phrase ban, check there, not this section. Section C handles the structure/phrase-tells; banned-words.md is the only comprehensive word/phrase prohibition list.
+
 ## Section D — UX, IA & accessibility
 
 - **Defaults:** every landing page in the identical Hero→Logo→Features(3-6)→How It Works(3)→Testimonial→Pricing(3)→FAQ→CTA→Footer sequence; "How It Works" forced to 3 numbered steps; wizard onboarding with no skip; empty states that just say "No items found"; "Something went wrong" with no next step; form errors only after submit; a modal for every confirmation; nav mirroring the org chart.
@@ -87,4 +89,4 @@ The difference between a 40-year practitioner and a model generating defaults is
 - fixing slop with surface patches — a new icon, bigger headline, or different shade of purple is the same default wearing a costume
 - reviewing as if this were a style guide — it is a filter, not a prescription
 - fabricating findings — only report patterns actually present
-- running the DevOps/IaC sections (6-8 of the original checklist) here; those belong to `code-review` and `improve`
+- running the DevOps/IaC sections (6-8 of the original checklist) here; those belong to `code-review` and `improve`; this filter covers visual design, copy, UX, and interaction only.

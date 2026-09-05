@@ -12,13 +12,12 @@ Default to delegating auxiliary work. Spawn subagents freely; keep only what nee
 - the work splits into independent parts
 - one branch is blocked on a slow command or external wait
 - a handoff between sessions is already happening
-- bounded release chore (version bump, changelog, release notes)
+- bounded release chore **parts** worth delegating (changelog draft, version bump across files, release-note draft) — the chore itself runs under `develop`'s release flow
 
 ## Not a good fit
 
 - the steps are tightly coupled and need one shared thread of judgment
-  → Gebruik in plaats daarvan `develop` staged delegation, die sequentiële
-    dependency chains met per-stage validatie ondersteunt.
+  → Use `develop` staged delegation instead: it supports sequential dependency chains with per-stage validation.
 - the next step depends directly on the exact output of the previous step
 - the reasoning or intermediate state is needed for the next step — losing it means re-deriving
 
@@ -68,7 +67,7 @@ What a subagent returns to the main thread:
 - **Blockers** — `[blocked]` + one-line reason. Do not spin; return immediately.
 - **Partial result** — `[partial]` + findings so far. Do not wait for 100%.
 - **Timeout every call** — 30s grep/locate, 60s review, 120s research. If the host supports timeout parameters, use them.
-- **Main never waits forever** — after timeout, use what came back or re-delegate with narrower scope. Never retry unchanged.
+- **Main never waits forever** — after timeout, use what came back or re-delegate with narrower scope. Never retry unchanged. **Never retry unchanged — including after parameter errors and policy denials, not only timeouts; re-dispatch only with adjusted arguments or a narrower scope. Failure taxonomy: see `develop` default rules.**
 
 ### Progress updates for long-running background tasks
 

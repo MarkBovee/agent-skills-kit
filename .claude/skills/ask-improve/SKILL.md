@@ -53,6 +53,8 @@ Skip when:
 - STOP conditions are explicit. Plans stamp the commit SHA they were written against for drift detection.
 - Never copy secrets into plans or issues.
 - Advisor never edits source code; `execute` dispatches a separate executor.
+- **Self-audit hook:** When auditing this kit itself (skills/), run the `text` mode over user-facing skill/docs prose: Dutch body prose or private-project residue is a finding (see plans 004/005/006 for the known set). Trigger words stay untouched — they are deliberately multilingual.
+- **Reference files in this skill:** `references/audit-playbook.md` (category-audit recipes), `references/plan-template.md` (executor-ready handoff plans — the source format for these plans), `references/closing-the-loop.md` (reconcile/execute verdicts). Load them when the matching mode runs.
 
 ## Use with
 

@@ -84,6 +84,7 @@ For a specific person, match their voice: swearing, slang, sentence length, humo
 8. Every paragraph ends with a transition? Cut some.
 9. Fabricated specifics? Remove or mark hypothetical.
 10. Could any AI have written this for anyone? Add something specific.
+11. **Vocabulary disagreements with `design-review` Section C are resolved in favor of `references/banned-words.md`.**
 
 ## Use with
 

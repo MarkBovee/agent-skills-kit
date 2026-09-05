@@ -85,3 +85,19 @@ Use [Conventional Commits](https://www.conventionalcommits.org/):
 
 This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md). Be kind,
 assume good faith, and report unacceptable behavior by opening an issue.
+
+## Skill contribution checklist
+
+When contributing a new skill or revising an existing one, verify the following:
+
+- Frontmatter `name`, `description`, and `triggers` are complete and use kebab-case
+- Body is 30–90 lines excluding frontmatter
+- No private project names, model names, or provider names in generic skills
+- No Dutch body prose (trigger words are deliberately multilingual and stay untouched)
+- No tmp-pagenumber or /tmp paths in the skill body
+- Skill passes `validate-plugin.js` (frontmatter + rules contract)
+- Skill passes `check-trigger-overlap.js` (no duplicate triggers)
+- Skill passes `check-router-nudges.js` (decision tree intact)
+- Skill passes `check-dsh-plugin.js` (dependency-free, config defaults)
+- exports regenerated via `node ./scripts/export-platform-skills.js` in an authorized worktree without hand-edits
+- No repo-specific path recipes in the skill body (support files live in the skill's own directory)

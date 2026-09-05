@@ -25,26 +25,21 @@ Default to steady progress: inspect, create, test, review, continue. If the next
 
 | Complexity | Tier → model | Fits |
 |---|---|---|
-| Mechanical, boilerplate, bounded parsing | light / mini → **flash** | EbusService, RegisterService, EntityFactoryService |
-| Nuanced but contained | standard / default → **flash** | — |
-| Cross-cutting, implicit reasoning, error handling | heavy / high → **pro** | DiscoveryService, CoordinatorService |
+| Mechanical, boilerplate, bounded parsing | light / mini → **mini** | payment-service split |
+| Nuanced but contained | standard / default → **default** | report pipeline |
+| Cross-cutting, implicit reasoning, error handling | heavy / high → **high** | coordinator-service refactor |
 
 ## Staged delegation
 
-Use when refactoring splits into dependent steps with mixed complexity (e.g. service-by-service refactor). Not for parallel work — use plain `Delegate` for that.
+Use when refactoring splits into dependent steps with mixed complexity. Not for parallel work: use `agent-workflows`.
 
-1. **Break work into ordered stages.** Each stage builds on the previous one. No parallelism.
-2. **Tag each stage with a complexity tier** (light/standard/heavy). See model tiering above.
-3. **Peak-pricing check** before dispatch: are you in the DeepSeek peak window (01:00–04:00 or 06:00–10:00 UTC, 2x price)? Mention it briefly but do not block — leave the choice to the user.
-4. **Dispatch stage N** with the right agent tier. Output must contain the dependency for stage N+1.
-5. **Validate.** Does the output match scope? Tests green? If not: re-dispatch with a narrower scope instead of taking over yourself.
-6. **Commit per stage** on the work branch. Only proceed to stage N+1 on green.
-7. **Re-dispatch on failure.** Reformulate the subtask more specifically and dispatch again. Only do it yourself for trivial corrections.
-
-Output contract per stage (see `agent-workflows` for the full contract):
-- Structured output, no narrative
-- Dependency for the next stage
-- Test results
+1. Break work into ordered stages. Each stage builds on the previous one.
+2. Tag each stage with a complexity tier. See the model tiering table above.
+3. Mention the host's peak-window warning if shown; never block on it.
+4. Dispatch stage N with the dependency needed by stage N+1.
+5. Validate scope and tests before continuing; re-dispatch narrowly on failure.
+6. Commit per stage on the authorized work branch.
+7. Return structured output, next-stage dependency, and test results.
 
 ## Core loop
 
@@ -57,18 +52,20 @@ Output contract per stage (see `agent-workflows` for the full contract):
 
 ## Git workflow (default)
 
+Follow the repo's contributor guidance. Run git steps only on the repository and branch the user authorized for this task.
+
 ### Feature
-1. Branch from main: `git checkout -b feat/description main`
-2. Open a draft PR right away with title + short scope description
-3. Commit iteratively, push regularly, PR updates itself
-4. Done? Mark PR ready → review → squash merge with a Conventional Commits message
-5. Delete remote + local branch, `git checkout main && git pull`
+1. Branch from main.
+2. Open a draft PR with scope description.
+3. Commit iteratively and push only when authorized.
+4. Mark ready, review, then squash merge with a Conventional Commits message.
+5. Delete branches only after explicit authorization.
 
 ### Bugfix
-Same flow, `git checkout -b fix/description main`. Draft PR optional (small enough to open directly).
+Same flow on a `fix/` branch; draft PR optional for small fixes.
 
 ### Hotfix
-Same flow as release: fix branch → PR → merge → tag. No feature iteration.
+Fix branch, review, merge, then tag through the release helper. No feature iteration.
 
 ## Default rules
 
@@ -81,8 +78,10 @@ Same flow as release: fix branch → PR → merge → tag. No feature iteration.
 7. When work reveals reusable workflow friction, capture it with `write-skill`.
 8. Reuse the repo's existing durable planning or spec system; do not create a parallel doc tree.
 9. Delegate only when the work is parallel, repetitive, or context-heavy.
-10. Follow the standard git workflow: branch, draft PR, commits, squash merge, cleanup.
+10. Follow the standard git workflow: branch, draft PR, commits, squash merge, cleanup. **Run these git steps only on the repository and branch the user authorized for this task: confirm before pushing, opening a PR, merging, or deleting branches whenever the current branch or remote target is ambiguous — never auto-merge or delete branches as a side effect of 'done'.**
 11. **Never modify or delete external system state** (entity registries, device registries, databases, config files on remote hosts) without showing the user what will change and asking for confirmation. "Check X then do Y" means show check results first, then ask before acting.
+
+12. **Classify every failed call before retrying:** (a) invalid arguments or a parameter error → fix the arguments and re-run once; (b) policy denial or blocked operation → do not retry the same call; use an in-scope alternative or stop and report; (c) genuine defect → debug it. Every retry must differ from the failed attempt; after two attempts on one hypothesis, zoom out. Permission escalation is only a one-shot retry of a command actually denied for access, with strictly wider access — never without a real denial, and never when the host has approval prompts disabled (that denial is final; do not work around it).
 
 ## Use with
 

@@ -18,6 +18,10 @@ Two modes: (1) create or revise skills that improve agent judgment, (2) capture 
 6. General skills should not hardcode branded artifact trees or repo-local folder conventions.
 7. Encode hard gates only for failures that are expensive and common.
 
+### Generic revision guidance (optional, after rule 6)
+
+When revising skills inside a repository, follow that repository's contributor guidance (e.g. `CONTRIBUTING.md`) in addition to these generic rules.
+
 ### Design test
 
 - What mistake will the model make without this skill?
@@ -59,4 +63,3 @@ When agent behavior reveals a reusable gap:
 - Creating new skills when existing one can absorb guidance
 - Vague meta-issues without observed pattern or proposed change
 - Descriptions that summarize workflow instead of saying when to use
-- Repo-specific path recipes in generic skills

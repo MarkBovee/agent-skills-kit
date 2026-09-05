@@ -19,6 +19,7 @@ const SKILL_SESSION_REVIEW = "session-review"
 const SKILL_AGENT_WORKFLOWS = "agent-workflows"
 const SKILL_WRITE_SKILL = "write-skill"
 const SKILL_TEXT_WRITING = "text-writing"
+const SKILL_GH_INBOX = "gh-inbox"
 const VALID_EXECUTION_TIERS = new Set(["light", "standard", "heavy", "deep"])
 const VALID_DELEGATION_MODES = new Set(["auto", "prefer-subagent", "owner-only"])
 
@@ -57,6 +58,12 @@ const SESSION_REVIEW_PHRASES = [
 const AGENT_PHRASES = [
   "multi-agent", "parallel work", "agent coordination", "task handoff",
   "subagent delegation", "parallelize",
+]
+const GH_INBOX_PHRASES = [
+  "github inbox", "gh inbox", "triage issues", "triage mijn issues",
+  "triage my github issues", "check issues", "check discussions", "process inbox",
+  "reply to issue", "reply to this issue",
+  "beantwoord issue", "gh-inbox",
 ]
 const WRITE_SKILL_PHRASES = [
   "create skill", "revise skill", "skill design", "trigger-focused",
@@ -109,6 +116,7 @@ const AMBIGUITY_PHRASES = [
   "not sure where to start", "start by clarifying", "start with questions",
   "ik weet niet waar te beginnen", "hoe pakken we dit aan",
   "plan", "plannen", "multi-file work", "multi-phase work", "migration",
+  "pair programming", "samenwerken", "pairing",
   "sequencing risk",
   "staged refactor", "stages", "service by service",
   "dependency chain", "sequential steps",
@@ -353,6 +361,7 @@ return (
     tryRoute(IMPROVE_PHRASES, SKILL_IMPROVE) ||           // 5. Improve
     tryRoute(SESSION_REVIEW_PHRASES, SKILL_SESSION_REVIEW) ||         // 6. Improve
     tryRoute(AGENT_PHRASES, SKILL_AGENT_WORKFLOWS) ||       // 7. Coordinate
+    tryRoute(GH_INBOX_PHRASES, SKILL_GH_INBOX) ||           // 8. Inbox companion
     tryRoute(WRITE_SKILL_PHRASES, SKILL_WRITE_SKILL) ||     // 8. Coordinate
     tryRoute(UI_PHRASES, SKILL_UI_UX) ||                    // 9. Product
     tryRoute(TEXT_WRITING_PHRASES, SKILL_TEXT_WRITING) ||   // 10. Product
@@ -425,7 +434,7 @@ module.exports = {
   SKILL_AGENT_WORKFLOWS, SKILL_CODE_REVIEW, SKILL_DEBUGGING,
   SKILL_SESSION_REVIEW, SKILL_IMPROVE, SKILL_DEVELOP, SKILL_INTAKE, SKILL_UI_UX,
   SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SPEC, COMPLETION_PHRASES, SKILL_DESIGN_REVIEW,
-  SKILL_TEXT_WRITING,
+  SKILL_TEXT_WRITING, SKILL_GH_INBOX,
   buildSkillOverview, cascadeRoute, buildExecutionProfile, loadSkills,
   createEmptySessionState, getSessionState, setSessionState,
   findSkill, hasPhraseSignal, routingHintLines,

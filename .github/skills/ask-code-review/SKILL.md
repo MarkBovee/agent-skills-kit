@@ -21,6 +21,7 @@ This is a mandatory second pass after **every** code edit. Review depth scales w
 - Tiny, local change: quick checklist pass — still required, just fast.
 - Medium or subtle change: use a review agent or second pass.
 - Risky or cross-cutting diff: review against requirements and likely regressions explicitly.
+- **Report the diff's risk against the tests that were NOT run. Approval means 'reviewed for correctness, requirements, and risk' — never 'tested'. When a risky diff lacks proof, name the missing proof and hand to `verification`; for tiny local changes, state 'no proof needed, scope trivial' explicitly — do not demand a full proof run for every small review.**
 
 ## Improvement hook
 

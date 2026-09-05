@@ -192,7 +192,9 @@ function transformBody(body, platform, skillName) {
       : platform === "dsh"
         ? "."
         : ".github/skills/ask-ui-ux"
-    transformed = transformed.replace(/<path-to-this-skill>/g, replacement)
+    transformed = transformed
+      .replace(/<path-to-this-skill>/g, replacement)
+      .replace(/<skill-base>/g, replacement)
   }
 
   return transformed

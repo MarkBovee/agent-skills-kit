@@ -39,12 +39,13 @@ Formalize intent into a validated, traceable specification before development st
 - Decision register (owner + rationale)
 - Process and data view (flows, roles, data objects, exceptions)
 - Dependency map
-
 **Validate** — every output passes explicit review; decisions stay human-owned. Run each gate:
+
 1. **Completeness** — are the necessary objects present?
 2. **Stakeholder** — have the right people reviewed?
 3. **Readiness** — can the next phase proceed without guessing?
 4. **Handover** — can development build with enough context?
+5. **Depth floor** — for a light spec the minimum is need → context → decision → requirement → handover status; for enterprise scope add stakeholder map, constraint log, dependency map. A gate passes only when that floor is met and no flagged ambiguity remains open.
 
 **Transfer** — hand over a build-ready package, no guessing required.
 - Requirements set

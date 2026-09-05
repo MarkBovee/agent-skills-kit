@@ -4,7 +4,7 @@ description: "Use when the request is to design, redesign, polish, review, or im
 ---
 # ASK UI/UX
 
-Design intelligence powered by a searchable database of 84 UI styles, 192 color palettes, 74 font pairings, 192 product types with reasoning rules, 98 UX guidelines, and 16 GSAP motion presets across 22 technology stacks.
+Design intelligence powered by a searchable database of 67 UI styles, 192 color palettes, 56 font pairings, 95 product types with reasoning rules, 98 UX guidelines, and 16 GSAP motion presets across 22 technology stacks.
 
 ## Use this when
 
@@ -44,7 +44,7 @@ Extract product type, target audience, style keywords, and stack (check `package
 Start with `--design-system` to get comprehensive recommendations:
 
 ```bash
-python3 skills/ask-ui-ux/scripts/search.py "<product_type> <industry> <keywords>" --design-system [-p "Project Name"]
+python3 .github/skills/ask-ui-ux/scripts/search.py "<product_type> <industry> <keywords>" --design-system [-p "Project Name"]
 ```
 
 This searches product/style/color/landing/typography domains in parallel, applies reasoning rules from `ui-reasoning.csv`, and returns pattern, style, colors, typography, effects, and anti-patterns.
@@ -52,7 +52,7 @@ This searches product/style/color/landing/typography domains in parallel, applie
 **Design Dials** (optional 1-10 sliders that tune output):
 
 ```bash
-python3 skills/ask-ui-ux/scripts/search.py "<query>" --design-system --variance <1-10> --motion <1-10> --density <1-10>
+python3 .github/skills/ask-ui-ux/scripts/search.py "<query>" --design-system --variance <1-10> --motion <1-10> --density <1-10>
 ```
 
 | Dial | Low (1-3) | Mid (4-7) | High (8-10) |
@@ -64,7 +64,7 @@ python3 skills/ask-ui-ux/scripts/search.py "<query>" --design-system --variance 
 ### Step 2b: Persist design system (Master + Overrides pattern)
 
 ```bash
-python3 skills/ask-ui-ux/scripts/search.py "<query>" --design-system --persist -p "Project Name" --output-dir "<project-root>"
+python3 .github/skills/ask-ui-ux/scripts/search.py "<query>" --design-system --persist -p "Project Name" --output-dir "<project-root>"
 ```
 
 Creates `design-system/<slug>/MASTER.md` and optionally `pages/<page>.md`. When building a page, read MASTER.md first, then check for page override.
@@ -72,23 +72,10 @@ Creates `design-system/<slug>/MASTER.md` and optionally `pages/<page>.md`. When 
 ### Step 3: Supplement with detailed searches
 
 ```bash
-python3 skills/ask-ui-ux/scripts/search.py "<keyword>" --domain <domain> [-n <max_results>]
+python3 .github/skills/ask-ui-ux/scripts/search.py "<keyword>" --domain <domain> [-n <max_results>]
 ```
 
-| Need | Domain | Example |
-|------|--------|---------|
-| Product type patterns | `product` | `--domain product "entertainment social"` |
-| More style options | `style` | `--domain style "glassmorphism dark"` |
-| Color palettes | `color` | `--domain color "entertainment vibrant"` |
-| Font pairings | `typography` | `--domain typography "playful modern"` |
-| Individual Google Fonts | `google-fonts` | `--domain google-fonts "sans serif variable"` |
-| Chart recommendations | `chart` | `--domain chart "real-time dashboard"` |
-| UX best practices | `ux` | `--domain ux "animation accessibility"` |
-| Landing page structure | `landing` | `--domain landing "hero social-proof"` |
-| Icon recommendations | `icons` | `--domain icons "navigation outline"` |
-| GSAP animation presets | `gsap` | `--domain gsap "scroll reveal stagger"` |
-| React/Next.js performance | `react` | `--domain react "rerender memo list"` |
-| App/native interface | `web` | `--domain web "accessibilityLabel touch safe-areas"` |
+For domain-specific searches, see `references/search-domains.md`.
 
 ### Step 4: Filter before showing
 
@@ -97,76 +84,48 @@ Before presenting the design, run it through the `design-review` skill's anti-de
 ### Step 5: Stack guidelines
 
 ```bash
-python3 skills/ask-ui-ux/scripts/search.py "<keyword>" --stack <stack>
+python3 .github/skills/ask-ui-ux/scripts/search.py "<keyword>" --stack <stack>
 ```
 
-Stacks: `react`, `nextjs`, `vue`, `svelte`, `astro`, `nuxtjs`, `nuxt-ui`, `angular`, `laravel`, `swiftui`, `react-native`, `flutter`, `jetpack-compose`, `html-tailwind`, `shadcn`, `threejs`, `javafx`, `wpf`, `winui`, `avalonia`, `uno`, `uwp`.
+See `references/search-domains.md` for available stack names.
 
 ## Never do this
 
-- purple or violet as the default accent, especially `#7c3aed`, `#8b5cf6`, or generic purple gradients
+- purple or violet as the default accent, especially generic purple gradients
 - `Inter` plus an oversized hero headline as the default type pairing
-- uniform card grids with the same `border-radius`, shadow, spacing, and visual weight everywhere
-- frosted glass on everything as a substitute for actual design direction
-- gradient hero banners with centered text and one obvious CTA button
-- icon + title + body copy repeated in a 3-column feature grid by reflex
-- dark mode that is only a flat near-black background with white text and no hierarchy
+- uniform card grids, frosted glass everywhere, or gradient hero banners by reflex
 - choosing a visual direction before checking what already exists in the repo
-- defaulting to Tailwind's stock palette without a reason tied to the product
-- treating desktop UI as if it will just "shrink" to mobile
-
-Reference anchors for intentional direction when no existing system exists:
-- Linear: tight spacing, monochrome, purposeful motion
-- Vercel: brutal simplicity, strong typographic hierarchy
-- Resend: developer-product clarity, minimal chrome
-- Basement Studio: bold type, dark, textured, non-generic
+- treating desktop UI as if it will simply shrink to mobile
 
 ## Quality bar
 
-- clear information hierarchy
-- strong spacing rhythm and alignment
-- deliberate typography choices
-- components that feel consistent with each other
-- obvious interactive states
-- responsive behavior on mobile and desktop
+- clear hierarchy and spacing rhythm
+- deliberate typography and consistent components
+- obvious interactive states and responsive behavior
 - accessible contrast, focus states, labels, and keyboard behavior
 
 ## Avoid
 
 - safe but forgettable layouts when the product needs a stronger point of view
 - visual churn that ignores the existing system
-- overcrowded screens and weak hierarchy
 - using color alone to communicate state
-- hover effects that shift layout or feel noisy
-- low-contrast text, especially in light mode
-- fabricating search results — if search returns 0 results, retry with broader keywords, then fall back to built-in defaults and state it explicitly
+- fabricating search results; broaden the query, then state when defaults were used
 
 ## Delivery checklist
 
 - test key screens at narrow mobile and common desktop widths
 - check empty, loading, error, hover, focus, disabled, and active states when relevant
-- verify there is no horizontal scroll unless intentional
-- keep icons, radii, shadows, borders, and spacing visually consistent
+- verify no horizontal scroll unless intentional
 - respect `prefers-reduced-motion` when animation is meaningful
-- for native/mobile app UI, read `references/pro-rules.md` and run through its pre-delivery checklist
+- for native/mobile UI, use `references/pro-rules.md`
 
 ## Review
 
-Use screenshot review as part of the default UI loop, not as a final optional pass.
+Use screenshot review in the default UI loop, not only at the end. Store captures in
+`$TMPDIR/ask-ui-ux-review/<run-id>/` or another host scratch directory, and fix the
+highest-signal issue before repeating the review.
 
-Default capture: `1440x900` desktop, `390x844` mobile, `device_scale_factor=1`, store in `/tmp/opencode/ask-ui-ux-review/<run-id>/`. Use `npx playwright screenshot` or a tiny Playwright script waiting for `networkidle`. Delete temp screenshots after review unless explicitly needed.
-
-Vision review prompt:
-
-> Review this UI screenshot. For each issue found: name it, locate it (component or section), and apply the fix immediately. Flag generic purple accents, uniform card grids, hero gradient banners, oversized centered headlines, frosted glass overuse, or weak visual hierarchy. Do not ask for confirmation unless the visual direction itself needs to change.
-
-Fix the highest-signal issue first and repeat the loop instead of stacking speculative changes.
-
-## Notes
-
-- Prefer a strong design direction when the product allows it.
-- Preserve the existing product language when the project already has one.
-- Use the search helper to accelerate decisions, then apply local judgment.
+See `references/screenshot-review.md` for the delivery checklist and review prompt.
 
 ## Use with
 

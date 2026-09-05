@@ -113,8 +113,23 @@ assert_installed_strings() {
     "$OPENCODE_DIR/plugins/agent-skills-sidebar.tsx" "sidebar_content" present
   assert_grep "installed opencode sidebar plugin shows the English title" \
     "$OPENCODE_DIR/plugins/agent-skills-sidebar.tsx" "Agent Skills Kit" present
+  assert_grep "installed opencode sidebar distinguishes observed loads" \
+    "$OPENCODE_DIR/plugins/agent-skills-sidebar.tsx" "Last loaded" present
+  assert_grep "installed opencode sidebar shows an English review reminder" \
+    "$OPENCODE_DIR/plugins/agent-skills-sidebar.tsx" "! code-review needed" present
+  assert_grep "installed opencode sidebar drops the default-only profile" \
+    "$OPENCODE_DIR/plugins/agent-skills-sidebar.tsx" "Execution Profile" absent
   assert_grep "installed opencode tui.json registers the sidebar plugin" \
     "$OPENCODE_DIR/tui.json" "agent-skills-sidebar.tsx" present
+  if node --input-type=module -e '
+    import { pathToFileURL } from "node:url";
+    const plugin = await import(pathToFileURL(process.argv[1]));
+    await plugin.AgentSkillsRouter();
+  ' "$OPENCODE_DIR/plugins/agent-skills-router.mjs"; then
+    check "installed opencode router resolves its deployed core" true
+  else
+    check "installed opencode router resolves its deployed core" false
+  fi
 }
 
 # Sweep the installed roots for known-stale managed strings.

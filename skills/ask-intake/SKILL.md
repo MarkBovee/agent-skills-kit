@@ -76,11 +76,12 @@ Clarify enough to avoid wrong work, then move. One skill for the full pre-execut
 3. Order work chunks by meaningful progress, not micro-steps.
 4. Note key risks or open questions.
 5. **Detect if work splits into dependent stages:**
-   - Zitten er natuurlijke service/module-grenzen in?
-   - Zijn er dependency chains (stap B heeft output A nodig)?
-   - Lopen complexiteit en benodigd redeneervermogen uiteen tussen stappen?
-     (sommige mechanisch/boilerplate, andere cross-cutting/reasoning)
-   - Zo ja: plan stages met volgorde, tier per stage (light/standard/heavy), en validatie-gates.
+   - Are there natural service/module boundaries?
+   - Are there dependency chains (stage B needs output A)?
+   - Does complexity and reasoning ability vary between steps?
+     (some mechanical/boilerplate, others cross-cutting/reasoning)
+   - If yes: plan stages with order and per-stage tier (light/standard/heavy), and validation gates.
+   - Stage mechanics live in `develop` (staged delegation); do not restate them here.
 6. Define validation needed before claiming done.
 7. Skip plan for one or two obvious edits. Use short bullets for normal multi-step work. Fuller plan only when sequencing or coordination risk is high.
 8. If repo already has a durable planning or spec system, update that record instead of creating parallel docs.

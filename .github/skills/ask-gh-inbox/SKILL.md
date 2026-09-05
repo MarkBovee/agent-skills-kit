@@ -4,10 +4,12 @@ description: "Process the current repository's GitHub issues and discussions, tr
 ---
 # ASK GitHub Inbox
 
+Reachable via the `/gh-inbox` command on every platform and proposed by the router when you mention issues or discussions; the decision tree keeps it as a companion skill.
+
 Process the current repository's GitHub inbox. Detect the repository from the current
 working directory, fetch issues and discussions, diff against stored state, triage new
 items, reply to users where the action is clear, and persist updated state to the local
-`.gh-inbox-state.json` file.
+`.gh-inbox-state.json` file using your file tool (see `references/gh-api-recipes.md` §state).
 
 All GitHub replies, issue drafts, and report text must be written in English. Preserve
 user quotes and proper nouns as written. Never infer repository-specific behavior from
@@ -26,26 +28,10 @@ First resolve the repository without hard-coded owner or name:
 
 ```bash
 gh repo view --json nameWithOwner
-```
-
-**Issues** (sorted by most recently updated first):
-
-```bash
 gh issue list --state open --json number,title,updatedAt,comments,labels --limit 50
 ```
 
-**Discussions** (number, title, updatedAt, comment count, latest comments with author + date):
-
-```bash
-OWNER=$(gh repo view --json owner --jq '.owner.login')
-NAME=$(gh repo view --json name --jq '.name')
-gh api graphql -f owner="$OWNER" -f name="$NAME" -f query='query($owner: String!, $name: String!) { repository(owner: $owner, name: $name) { discussions(first: 50, orderBy: {field: UPDATED_AT, direction: DESC}) { nodes { number title updatedAt url comments(first: 20) { totalCount nodes { id createdAt author { login } body replies(first: 20) { totalCount nodes { id createdAt author { login } body } } } } } } } }'
-```
-
-`Discussion.comments` returns only top-level comments; threaded replies hide under each comment's
-`replies` connection and do not bump `comments.totalCount`. When scanning, treat reply nodes as
-comments (author + body) and count them too, so a threaded user reply is triaged like any other
-new comment.
+For discussions, use the GraphQL query in `references/gh-api-recipes.md` §fetch. Threaded replies are nested below top-level comments and do not bump `comments.totalCount`; count them explicitly.
 
 ### 2. Diff against stored state
 
@@ -86,11 +72,7 @@ For each **new** item, decide:
 Draft new issues from discussion feature requests only as suggestions. Create issues only
 after explicit approval with `gh issue create`.
 
-Post a direct reply with `gh issue comment <n> --body "<text>"` (for discussions, reply via
-`gh api` GraphQL `addDiscussionComment`; REST cannot create discussion comments — POST returns
-404). When replying inside a thread, `replyToId` must be the thread's **root** comment: pointing
-it at a reply already inside the thread is rejected ("Parent comment is already in a thread,
-cannot reply to it"). After posting, mark the item `replied_to: true`.
+Post issue replies with `gh issue comment <n> --body "<text>"`; use the GraphQL recipe for discussions. When replying inside a thread, `replyToId` must be the thread's root comment. After posting, mark the item `replied_to: true`.
 
 ### 4. Report
 
@@ -107,26 +89,13 @@ closed issues that were open before.
 
 ### 5. Persist state
 
-Update `.gh-inbox-state.json` with one entry per scanned item:
+Update `.gh-inbox-state.json` with one entry per scanned item using your file tool:
 
-```bash
-python3 - <<'PY'
-import json
-from pathlib import Path
-
-path = Path(".gh-inbox-state.json")
-state = json.loads(path.read_text()) if path.exists() else {}
-state["issue-<n>"] = {
-    "last_updated_at": "<iso>",
-    "last_comment_count": <int>,
-    "replied_to": <bool>,
-}
-path.write_text(json.dumps(state, indent=2) + "\n")
-PY
+```json
+{"issue-<n>": {"last_updated_at": "<iso>", "last_comment_count": <int>, "replied_to": <bool>}}
 ```
 
-Use the same shape for discussions. Do this for every scanned item, not just the new
-ones. Preserve existing `replied_to: true` values unless a reply was never posted.
+See `references/gh-api-recipes.md` §state for the exact shape. Do this for every scanned item, not just the new ones. Preserve existing `replied_to: true` values unless a reply was never posted.
 
 ## Use with
 

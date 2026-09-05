@@ -40,8 +40,6 @@ Match the proof to the claim. Bigger claim, stronger evidence.
 
 ## Verification
 
-Match the proof to the claim. Bigger claim, stronger evidence.
-
 - **One bug fixed:** reproduce the bug path and show the focused proof now passes
 - **Feature works:** run targeted tests and exercise the important path
 - **Ready to merge or hand off:** run the relevant suite, build, or lint checks that cover the touched surface
@@ -53,6 +51,7 @@ Match the proof to the claim. Bigger claim, stronger evidence.
 2. Verify the original symptom when possible, not just nearby tests.
 3. Say plainly what was not checked.
 4. Do not inflate a partial check into a full-success statement.
+5. **Close with exactly: [claim] / [evidence: <command> + <output anchor>] / [not checked: <list or "none>].**
 
 ## Workspace wrap-up
 

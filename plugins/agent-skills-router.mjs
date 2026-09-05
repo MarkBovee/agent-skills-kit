@@ -9,6 +9,11 @@ import { homedir } from "node:os"
 const require = createRequire(import.meta.url)
 const here = dirname(fileURLToPath(import.meta.url))
 
+// Installed plugins carry core beside them; repository sources use ../core.
+const corePath = existsSync(resolve(here, "core/router-core.js"))
+  ? resolve(here, "core/router-core.js")
+  : resolve(here, "../core/router-core.js")
+
 const {
   CODE_EDIT_TOOL_IDS, CODE_WORK_TOOL_IDS, RECENT_TOOL_MAX, COMPLETION_PHRASES,
   SKILL_CODE_REVIEW, SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SESSION_REVIEW, SKILL_DESIGN_REVIEW, SKILL_UI_UX,
@@ -16,7 +21,7 @@ const {
   buildSkillOverview, cascadeRoute, getSessionState, loadSkills,
   setSessionState, hasPhraseSignal, toSingleLine, isInPeakWindow, describePeakWindow, unique,
   routingHintLines,
-} = require(resolve(here, "../core/router-core"))
+} = require(corePath)
 
 function resolveSkillPath() {
   const candidates = [resolve(homedir(), ".agents", "skills"), resolve(here, "../skills")]
