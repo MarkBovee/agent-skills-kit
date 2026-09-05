@@ -6,6 +6,17 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [1.7.1] - 2026-09-05
+
+### Changed
+
+- **Compact OpenCode sidebar.** Removed the extra frame and default-only execution profile. The status block now distinguishes `Last loaded` from `Suggested`, keeps stage colors in small catalog markers, and shows all 14 skills with an explicit loaded-marker legend. Review reminders use English text and the host warning color.
+
+### Fixed
+
+- **Installed OpenCode router loads its core.** Resolve the installer-managed `plugins/core/router-core.js` before the repository's `../core` layout. The installed-artifact check now imports the deployed router instead of only checking its text.
+- **Sidebar skill and review tracking.** A single session scan reads OpenCode's `part.state.input` and completed tool statuses. Failed or pending loads cannot mark skills as loaded or clear review reminders; failed edits do not create reminders. Completion timestamps identify the last loaded kit skill, and a review started before an edit finished cannot clear that edit's reminder. Skill loads indicate loading, not completion of the review itself.
+
 ## [1.7.0] - Unreleased
 
 ### Added
