@@ -71,7 +71,11 @@ remove_legacy_install_artifacts() {
     "$OPENCODE_DIR/plugins/nebu-ctx.ts" \
     "$OPENCODE_DIR/plugins/nebu-ctx.ts.nebu-ctx.bak" \
     "$OPENCODE_DIR/plugins/nebu-skills-router.js" \
+    "$OPENCODE_DIR/plugins/nebu-skills-router.mjs" \
     "$OPENCODE_DIR/rules/nebu-ctx.md" \
+    "$OPENCODE_DIR/rules/nebu-skills.md" \
+    "$OPENCODE_DIR/plugins/rules/nebu-skills.md" \
+    "$OPENCODE_DIR/.nebu-skills-install.txt" \
     "$CLAUDE_DIR/hooks/nebu-ctx-redirect-native" \
     "$CLAUDE_DIR/hooks/nebu-ctx-redirect-native.nebu-ctx.bak" \
     "$CLAUDE_DIR/hooks/nebu-ctx-redirect.sh" \
@@ -150,7 +154,7 @@ EOF
   printf '%s\n' "$section" >> "$DSH_AGENTS_FILE"
 }
 
-# Locate the deployed dsh package's shipped standard preset directory.
+# Locate an optional dsh preset source without depending on one package layout.
 find_dsh_standard_preset() {
   local dsh_bin="" pkg_root="" candidate=""
 
@@ -194,12 +198,15 @@ install_dsh_preset() {
   if [ ! -f "$DSH_PRESET_TARGET/agent.cordis.yml" ]; then
     state="new"
     if ! standard_dir="$(find_dsh_standard_preset)"; then
-      echo "Skipped dsh preset install: deployed standard preset not found." >&2
-      printf 'skipped\n'
-      return 0
+      # Recent dsh packages no longer ship a copyable standard preset. The kit
+      # row only needs a valid composition file, so bootstrap the minimal one.
+      standard_dir=""
+      mkdir -p "$DSH_PRESET_TARGET"
+      : > "$DSH_PRESET_TARGET/agent.cordis.yml"
+    else
+      mkdir -p "$DSH_PRESET_TARGET"
+      cp -R "$standard_dir/." "$DSH_PRESET_TARGET/"
     fi
-    mkdir -p "$DSH_PRESET_TARGET"
-    cp -R "$standard_dir/." "$DSH_PRESET_TARGET/"
   fi
 
   mkdir -p "$DSH_PRESET_TARGET/plugins" "$DSH_PRESET_TARGET/vendor"

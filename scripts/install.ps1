@@ -68,7 +68,11 @@ function Remove-LegacyInstallArtifacts {
         (Join-Path $opencodePluginsTarget "nebu-ctx.ts"),
         (Join-Path $opencodePluginsTarget "nebu-ctx.ts.nebu-ctx.bak"),
         (Join-Path $opencodePluginsTarget "nebu-skills-router.js"),
+        (Join-Path $opencodePluginsTarget "nebu-skills-router.mjs"),
         (Join-Path $opencodeRulesTarget "nebu-ctx.md"),
+        (Join-Path $opencodeRulesTarget "nebu-skills.md"),
+        (Join-Path $opencodePluginsTarget "rules\nebu-skills.md"),
+        (Join-Path $OpencodeDir ".nebu-skills-install.txt"),
         (Join-Path $ClaudeDir "hooks\nebu-ctx-redirect-native"),
         (Join-Path $ClaudeDir "hooks\nebu-ctx-redirect-native.nebu-ctx.bak"),
         (Join-Path $ClaudeDir "hooks\nebu-ctx-redirect.sh"),
@@ -130,7 +134,7 @@ $dshSectionMarker
     Add-Content -LiteralPath $dshAgentsFile -Value "`n"
 }
 
-# Locate the deployed dsh package's shipped standard preset directory.
+# Locate an optional dsh preset source without depending on one package layout.
 function Find-DshStandardPreset {
     $dshCommand = Get-Command dsh -ErrorAction SilentlyContinue
     if ($dshCommand) {
@@ -170,14 +174,14 @@ function Install-DshPreset {
     $composition = Join-Path $dshPresetTarget "agent.cordis.yml"
     if (-not (Test-Path -LiteralPath $composition)) {
         $standardDir = Find-DshStandardPreset
-        if (-not $standardDir) {
-            Write-Warning "Skipped dsh preset install: deployed standard preset not found."
-            return $null
-        }
-
-        # Create nothing until the source resolves, so a skip leaves no broken roster entry.
         New-Item -ItemType Directory -Force -Path $dshPresetTarget | Out-Null
-        Copy-Item -Path (Join-Path $standardDir "*") -Destination $dshPresetTarget -Recurse -Force
+        if ($standardDir) {
+            Copy-Item -Path (Join-Path $standardDir "*") -Destination $dshPresetTarget -Recurse -Force
+        }
+        else {
+            # Recent dsh packages no longer ship a copyable standard preset.
+            New-Item -ItemType File -Force -Path $composition | Out-Null
+        }
     }
     else {
         $state = "refresh"
