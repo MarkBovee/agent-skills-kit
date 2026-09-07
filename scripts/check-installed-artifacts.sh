@@ -67,6 +67,7 @@ EOF
   HOME_DIR="$SANDBOX/home"
   DSH_HOME="$SANDBOX/dsh"
   AGENTS_DIR="$SANDBOX/agents"
+  CODEX_HOME="$SANDBOX/codex"
   COPILOT_DIR="$SANDBOX/copilot"
   OPENCODE_DIR="$SANDBOX/opencode"
   CLAUDE_DIR="$SANDBOX/claude"
@@ -80,6 +81,7 @@ run_installer() {
     HOME="$HOME_DIR" \
     DSH_HOME="$DSH_HOME" \
     AGENTS_DIR="$AGENTS_DIR" \
+    CODEX_HOME="$CODEX_HOME" \
     COPILOT_DIR="$COPILOT_DIR" \
     OPENCODE_DIR="$OPENCODE_DIR" \
     CLAUDE_DIR="$CLAUDE_DIR" \
@@ -109,6 +111,10 @@ assert_installed_strings() {
     "$DSH_HOME/client-plugins/ask-kit-panel/client.js" "✓ capture improvement?" present
   assert_grep "installed opencode core carries the English header" \
     "$OPENCODE_DIR/plugins/core/router-core.js" "╌ Agent Skills Kit ╌" present
+  assert_grep "shared root contains Codex-discoverable skills" \
+    "$AGENTS_DIR/skills/.ask-managed-skills.txt" "ask-develop" present
+  check "installer does not create duplicate Codex skill tree" \
+    "$([ ! -d "$CODEX_HOME/skills" ] && printf true || printf false)"
 }
 
 # Sweep the installed roots for known-stale managed strings.

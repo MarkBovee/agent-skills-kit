@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$AgentsDir = (Join-Path $HOME ".agents"),
+    [string]$CodexHome = $(if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $HOME ".codex" }),
     [string]$CopilotDir = (Join-Path $HOME ".copilot"),
     [string]$OpencodeDir = $(if ($env:XDG_CONFIG_HOME) { Join-Path $env:XDG_CONFIG_HOME "opencode" } else { Join-Path $HOME ".config\opencode" }),
     [string]$ClaudeDir = (Join-Path $HOME ".claude"),
@@ -584,6 +585,12 @@ try {
     Write-InstallMetadata -RepoRoot $repoRoot -Platform "shared-agents" -InstallRoot $AgentsDir -OutputPath $installMetadataFile
 
     "Installed $($installedSkills.Count) agent-skills-kit to $sharedSkillsTarget"
+    if (Test-Path -LiteralPath $CodexHome) {
+        "Codex discovers ASK skills natively from $sharedSkillsTarget (no duplicate Codex skill tree created)"
+    }
+    else {
+        "Codex support uses native discovery from $sharedSkillsTarget; no $CodexHome config was changed"
+    }
     "Installed Copilot instructions to $copilotInstructionsFile"
     "Installed OpenCode commands to $opencodeCommandsTarget"
     "Installed Copilot/VS Code prompt files to $copilotPromptsTarget"

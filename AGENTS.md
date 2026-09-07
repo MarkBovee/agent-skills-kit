@@ -2,7 +2,7 @@
 
 ## Project
 
-Multi-platform skill-pack for OpenCode, GitHub Copilot, Claude Code. Ships workflow skills, router plugin, generated platform exports, install scripts. No build step, no runtime, no package manager.
+Multi-platform skill-pack for OpenCode, Codex, GitHub Copilot, Claude Code, and experimental dsh. Ships workflow skills, router plugin, generated platform exports, install scripts. No build step, no runtime, no package manager.
 
 ## Structure
 
@@ -14,6 +14,8 @@ Multi-platform skill-pack for OpenCode, GitHub Copilot, Claude Code. Ships workf
 - `scripts/` — install/update/bootstrap scripts (bash + PowerShell parity)
 - `README.md` — public docs
 - `AGENTS.md` — this file, for AI agents
+
+Codex uses native Agent Skills discovery, which scans `~/.agents/skills/`. The unified installer keeps that shared root canonical and does not create a duplicate `~/.codex/skills` tree or modify Codex configuration.
 
 ## Coding standards
 

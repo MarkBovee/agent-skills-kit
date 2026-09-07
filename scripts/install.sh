@@ -6,6 +6,7 @@ REPO_ROOT="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
 . "$SCRIPT_DIR/release-helpers.sh"
 
 AGENTS_DIR="${AGENTS_DIR:-$HOME/.agents}"
+CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 COPILOT_DIR="${COPILOT_DIR:-$HOME/.copilot}"
 OPENCODE_DIR="${OPENCODE_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/opencode}"
 CLAUDE_DIR="${CLAUDE_DIR:-$HOME/.claude}"
@@ -542,6 +543,11 @@ mkdir -p "$AGENTS_DIR"
 write_install_metadata "$REPO_ROOT" "shared-agents" "$AGENTS_DIR" "$INSTALL_METADATA_FILE"
 
 echo "Installed ${installed_count} agent-skills-kit to $SHARED_SKILLS_TARGET"
+if [ -d "$CODEX_HOME" ]; then
+  echo "Codex discovers ASK skills natively from $SHARED_SKILLS_TARGET (no duplicate Codex skill tree created)"
+else
+  echo "Codex support uses native discovery from $SHARED_SKILLS_TARGET; no $CODEX_HOME config was changed"
+fi
 echo "Installed Copilot instructions to $COPILOT_INSTRUCTIONS_FILE"
 echo "Installed OpenCode commands to $OPENCODE_COMMANDS_TARGET"
 echo "Installed Copilot/VS Code prompt files to $COPILOT_PROMPTS_TARGET"

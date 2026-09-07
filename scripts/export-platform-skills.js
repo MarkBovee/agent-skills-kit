@@ -350,7 +350,7 @@ async function exportSkills() {
 exportSkills()
   .then(async (count) => {
     const commandCount = await exportCommands()
-    console.log(`Exported ${count} skills and ${commandCount} commands for GitHub Copilot, Claude Code, and DeepSeek Harness (dsh).`)
+    console.log(`Exported ${count} skills and ${commandCount} commands for GitHub Copilot, Claude Code, and DeepSeek Harness (dsh); Codex uses the canonical shared skill root.`)
   })
   .catch((error) => {
     console.error(error)
