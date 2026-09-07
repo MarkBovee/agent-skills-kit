@@ -6,6 +6,8 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [1.8.3] - 2026-09-07
+
 ### Added
 
 - **Codex support.** ASK now documents and verifies Codex-native discovery from the canonical `~/.agents/skills/` root. Installers report the Codex integration without creating duplicate `~/.codex/skills` copies or modifying Codex configuration. Codex has no supported ASK router/widget hook yet, so it receives canonical skills and native skill selection rather than OpenCode's live routing nudges.
