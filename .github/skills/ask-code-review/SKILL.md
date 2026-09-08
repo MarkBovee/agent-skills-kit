@@ -14,6 +14,7 @@ This is a mandatory second pass after **every** code edit. Review depth scales w
 
 - Does the diff solve the asked problem?
 - Follows `coding-standards.md`? — intent comments on every function, DRY, meaningful names, explicit data shapes, language-specific rules, fail-fast error handling
+- **Hard style gate:** Was local code, `.editorconfig`, and tool configuration inspected before formatting? Was formatting scoped by language/file type, valid local style preserved, and a representative example checked? For C#, apply ASK's 240-character default unless `.editorconfig` explicitly overrides it; reject unnecessary wrapping of fitting signatures/calls, lost newline braces, or missing comments at meaningful workflow boundaries. Check the complete tree for unintended generated output. Treat any failure as a blocking finding.
 - Did it change anything outside scope?
 - Is the proof proportional to the risk?
 - Are docs or follow-on changes needed?
