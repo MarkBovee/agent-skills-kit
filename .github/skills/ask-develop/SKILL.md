@@ -6,6 +6,10 @@ description: "Default baseline skill for normal software work: small safe iterat
 
 Default to steady progress: inspect, create, test, review, continue. If the next logical step is clear, keep going without pausing for routine check-ins.
 
+## Mandatory style gate
+
+Before any formatting or refactoring, inspect the active file, nearby user-authored code, `.editorconfig`, and language/tool configuration. Establish the repository's valid local style before invoking a tool. Use 240 characters as ASK's default C# maximum line width unless `.editorconfig` explicitly overrides it. Scope formatting to the intended language and file set, preserve valid compact code, newline brace placement, and workflow-boundary comments, and keep C#, XML, project files, and IDE configuration on separate paths. Keep fitting method signatures and calls compact instead of wrapping them to a generic width. If the style is ambiguous or a formatter would rewrite valid local style, stop and ask or constrain the tool; never apply generic defaults. Afterward, inspect a representative example and the complete Git tree for unintended generated output, including tracked `bin/` or `obj/` files. This is a hard gate, not a suggestion.
+
 ## Choose the mode
 
 - **Direct:** known files, tight coupling, fast iteration, nuanced judgment

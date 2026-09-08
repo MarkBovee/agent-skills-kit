@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [1.9.2] - 2026-09-08
+
+### Changed
+
+- **Repository-specific style preservation (issue #42).** ASK now hard-enforces local formatting inspection, language-scoped formatter use, compact fitting C# signatures and calls, newline braces, workflow-boundary comments, representative post-format checks, and clean-tree validation. C# uses a 240-character default maximum line width unless `.editorconfig` explicitly overrides it.
+
 ## [1.9.1] - 2026-09-08
 
 ### Changed

@@ -24,6 +24,7 @@ Match the proof to the claim. Bigger claim, stronger evidence.
 4. Validate likely false positives before calling them defects; classify intentional trade-offs explicitly.
 5. Say plainly what was not checked.
 6. Do not inflate a partial check into a full-success statement.
+7. Treat repository-style preservation as a release gate: confirm the active file and nearby local style were inspected, formatting was scoped by language/file type, and a representative example still matches. For C#, verify ASK's 240-character default was applied unless `.editorconfig` explicitly overrides it; fitting signatures and calls must remain compact, newline braces must remain intact, and comments must mark meaningful workflow boundaries. Confirm that the complete Git tree has no unintended generated output or tracked `bin/`/`obj/` files. If any part is missing, do not claim completion.
 
 ## Workspace wrap-up
 

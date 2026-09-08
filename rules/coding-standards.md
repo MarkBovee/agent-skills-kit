@@ -2,6 +2,20 @@
 
 Language-agnostic. Applies to every file in every project unless an explicit repo-local convention overrides.
 
+## Repository Style Preservation (Hard Gate)
+
+Before formatting, refactoring, reviewing, or verifying code:
+
+1. Inspect the active file, nearby user-authored code, repository `.editorconfig`, and language/tool configuration.
+2. Treat the repository's valid local style as the baseline. Do not replace it with generic formatter defaults.
+3. Scope formatting to the intended language and file set. Keep C#, XML, project files, and IDE configuration on their own formatting paths.
+4. Preserve valid compact signatures, statements, fluent calls, brace placement, and meaningful workflow comments when they fit the repository's configured width. For C#, ASK's default maximum line width is 240 characters; keep a fitting method signature, event-store call, and projection call on one line rather than wrapping them to a generic default width. A repository's explicit `.editorconfig` width overrides this default.
+5. If local style and tool defaults conflict, configure or constrain the tool. If the intended style remains ambiguous, stop and ask; never normalize by preference.
+6. After formatting, inspect a representative user-named example and validate the intended build, tests, or formatter check. Reject the change if it rewrites valid local style.
+7. Before handoff, inspect the complete Git tree and reject unintended generated output, including tracked `bin/` or `obj/` files.
+
+This gate is mandatory. A formatter run without the inspection, scoped execution, representative check, and clean-tree check above is an invalid workflow.
+
 ## Core Principles
 
 - **DRY and SOLID.** Before adding code, check whether the behavior already exists. Refactor 3+ duplications into shared components. Single responsibility, open/closed, Liskov substitution, interface segregation, dependency inversion.
@@ -75,6 +89,7 @@ Language-agnostic. Applies to every file in every project unless an explicit rep
 - Separate member groups and logical workflow phases with blank lines.
 - Always use braces for control-flow blocks, including one-line bodies.
 - Keep non-trivial initializers, request messages, argument lists, and control flow multiline.
+- Use 240 characters as ASK's default C# maximum line width unless the repository's `.editorconfig` explicitly sets another width. Within that width, preserve fitting method signatures, calls, and fluent expressions on one line. Keep opening braces on new lines when that is the local convention. Add short intent comments at meaningful workflow boundaries such as tracing, loading, validation, rehydration, persistence, and projection; do not split valid code or add narration merely to satisfy a generic formatter.
 - Prefer explicit locals when they make transformations, persistence, requests, or error paths easier to follow.
 - Separate consecutive independent `if` blocks so they do not look like one compound branch.
 - Keep `try` and `finally` blocks multiline, with a blank line before each distinct recovery phase.
