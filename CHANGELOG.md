@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [1.9.1] - 2026-09-08
+
+### Changed
+
+- **Proportional code-smell verification (issue #40).** `verification` now performs an evidence-based smell scan before completion claims, while `improve` owns deeper repository-wide scans and `code-review` remains focused on correctness, requirements, regressions, and design risk.
+
 ## [1.9.0] - 2026-09-08
 
 ### Added

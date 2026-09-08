@@ -15,13 +15,16 @@ Match the proof to the claim. Bigger claim, stronger evidence.
 - **Feature works:** run targeted tests and exercise the important path
 - **Ready to merge or hand off:** run the relevant suite, build, or lint checks that cover the touched surface
 - **Installer or deployer changed:** run the installer into an isolated home and verify the installed copies of user-visible surfaces match the repo, including a refresh over a stale existing install — a green repo-side suite says nothing about what actually got deployed
+- **Any meaningful code change:** run a proportional smell scan after the main proof. Scan changed files for unbounded loops, sync-over-async, swallowed exceptions, missing cancellation, duplicated I/O or N+1 queries, hardcoded configuration, runtime artifacts, silent unknown-event handling, and relevant test gaps. Expand to a repository-wide scan for cross-module changes, audits, or explicit tech-debt work.
 
 ### Rules
 
 1. Use fresh evidence, not memory.
 2. Verify the original symptom when possible, not just nearby tests.
-3. Say plainly what was not checked.
-4. Do not inflate a partial check into a full-success statement.
+3. Report smell findings only with file and line or symbol evidence, concrete impact, and severity.
+4. Validate likely false positives before calling them defects; classify intentional trade-offs explicitly.
+5. Say plainly what was not checked.
+6. Do not inflate a partial check into a full-success statement.
 
 ## Workspace wrap-up
 
