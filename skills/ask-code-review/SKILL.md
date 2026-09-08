@@ -25,6 +25,8 @@ triggers:
 
 Review for correctness, requirements, and risk first. Enforce `coding-standards.md` hard rules, including its scoped .NET/C# section when applicable, as correctness — not style.
 
+Keep scope clear: code-review checks behavior, requirements, regressions, and design risk. The final `verification` pass owns proportional code-smell scanning and evidence-based test-gap reporting; escalate deeper repository-wide smell analysis to `improve`.
+
 This is a mandatory second pass after **every** code edit. Review depth scales with risk — but no edit skips review entirely.
 
 ## Review checklist
