@@ -5,7 +5,7 @@ when_to_use: "Common triggers: review, nakijken, pull request, code review, fres
 ---
 # ASK Code Review
 
-Review for correctness, requirements, and risk first. Enforce `coding-standards.md` hard rules (intent comments, meaningful names, DRY, explicit shapes, language rules) as correctness — not style.
+Review for correctness, requirements, and risk first. Enforce `coding-standards.md` hard rules, including its scoped .NET/C# section when applicable, as correctness — not style.
 
 This is a mandatory second pass after **every** code edit. Review depth scales with risk — but no edit skips review entirely.
 

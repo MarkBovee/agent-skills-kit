@@ -301,7 +301,10 @@ function buildSkillOverview(sessionState) {
       : "Load matching skill *now* via `skill(name: '...')` before tools:",
     "",
   ]
-  for (const row of OVERVIEW_ROWS) {
+  // Keep internal develop fallback separate from actionable user suggestions.
+  const hasSpecificMatch = (sessionState.matchedSkills || []).some(({ name }) => name !== SKILL_DEVELOP)
+  const visibleRows = OVERVIEW_ROWS.filter((row) => row.skill !== SKILL_DEVELOP || (!skillsLoaded && !hasSpecificMatch))
+  for (const row of visibleRows) {
     lines.push(`  ${row.label} → ${row.skill}`)
   }
   const matched = sessionState.matchedSkills || []

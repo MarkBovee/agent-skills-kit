@@ -233,7 +233,9 @@ export function apply(ctx, config) {
       ? "Decision tree — load a different skill via `skill(name: '...')`:"
       : "Load matching skill *now* via `skill(name: '...')` before tools:")
     lines.push("")
-    lines.push(...routingHintLines())
+    const hasSpecificMatch = st.lastMatch && st.lastMatch !== "develop"
+    const showDevelopFallback = !hasSpecificMatch && st.skillsLoadedCount === 0
+    lines.push(...routingHintLines().filter((line) => showDevelopFallback || !line.endsWith("→ develop")))
     if (st.lastMatch) { lines.push(""); lines.push(`Active: ${st.lastMatch}`) }
     if (st.interactionCountSinceSkillLoad >= INTERACTION_GUARD_THRESHOLD && st.skillsLoadedCount === 0) {
       lines.push("→ Working through 5 actions without a loaded skill — `skill(name: 'develop')` sets workflow guardrails")

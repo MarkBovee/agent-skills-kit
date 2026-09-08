@@ -164,9 +164,19 @@ async function main() {
     if (section) {
       const hintLines = routerCore.routingHintLines()
       for (const line of hintLines) {
-        check(`decision-tree row derives from router-core (${line.split("→").pop().trim()})`, section.text.includes(line))
+        const isDevelopFallback = line.endsWith("→ develop")
+        const expected = !isDevelopFallback
+        check(`decision-tree row derives from router-core (${line.split("→").pop().trim()})`, section.text.includes(line) === expected)
       }
     }
+
+    // Develop remains visible only as a user-facing fallback before a specific
+    // match or loaded skill exists; it is still the internal route fallback.
+    const freshAgent = { id: "fresh-overview" }
+    const freshAssembly = await assemble({ sections: [] }, { agent: freshAgent }, async () => ({ sections: [] }))
+    const freshSection = freshAssembly.sections.find((entry) => entry.name === "ask-kit:router")
+    check("empty session shows develop fallback", Boolean(freshSection) && freshSection.text.includes("Normal software work (default) → develop"))
+    check("specific match hides develop fallback", Boolean(section) && !section.text.includes("Normal software work (default) → develop"))
 
     // Routing smoke: a Dutch debugging prompt lands on debugging.
     const agent2 = { id: "route-check" }

@@ -23,15 +23,6 @@ function stateFor(key) {
   return s
 }
 
-// Most recently touched state bucket, used when the caller has no key yet.
-function latestState() {
-  let newest = null
-  for (const s of states.values()) {
-    if (!newest || (s.matchedAt || 0) >= (newest.matchedAt || 0)) newest = s
-  }
-  return newest
-}
-
 const CODE_EDIT_TOOLS = new Set(['edit', 'write', 'apply_patch'])
 const REVIEW_SKILL = 'code-review'
 const VERIFICATION_SKILL = 'verification'
@@ -47,6 +38,14 @@ function skillNameOf(args) {
 
 return {
   apply(ctx) {
+    // Remove disposed sessions so review debt cannot leak into a later session.
+    ctx.on('agent/disposed', (payload) => {
+      try {
+        const id = payload?.agent?.id
+        if (id) states.delete(id)
+      } catch { /* cleanup is best-effort */ }
+    })
+
     // Observe dispatches: mark review debt on code-edit tools.
     ctx.on('tools/pre-execute', (exec, next) => {
       try {
@@ -79,7 +78,7 @@ return {
     // Package-private RPC feeding the composer status panel.
     harness.handle('ask-kit/state', (args) => {
       const wanted = args && typeof args.sessionId === 'string' ? args.sessionId : ''
-      const st = (wanted && states.get(wanted)) || latestState() || emptyState()
+      const st = (wanted && states.get(wanted)) || emptyState()
       return {
         loadedSkills: st.loadedSkills.slice(-6),
         lastMatch: st.lastMatch,

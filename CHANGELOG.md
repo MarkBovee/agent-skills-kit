@@ -6,6 +6,17 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [1.9.0] - 2026-09-08
+
+### Added
+
+- **Pragmatic .NET/C# repository standards (issue #37).** `rules/coding-standards.md` now includes scoped guidance for valid `.editorconfig` files, readable C# layout and control flow, ASP.NET Core JSON contracts, pragmatic XML documentation, typed integration tests, KISS architecture, verification order, and separate reporting of dependency warnings.
+
+### Fixed
+
+- **dsh session state isolation (issue #38).** The panel no longer falls back to the most recently touched session when a requested session is unknown. Disposed agent state is removed so review debt cannot leak into another session.
+- **Contextual `develop` fallback (issue #39).** `develop` remains the internal route for empty or unmatched prompts, but is no longer shown as a competing user-facing suggestion when a specific skill matches or a skill is already loaded.
+
 ## [1.8.3] - 2026-09-07
 
 ### Added
