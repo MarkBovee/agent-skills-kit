@@ -14,6 +14,7 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 - **Independent evidence workflow.** Existing intake, development, agent-coordination, code-review, and verification skills now define plan checks, validation/review/audit separation, reproduce → regression → fix → validate → re-audit loops, release-gate inputs, and read-only release decisions. OpenCode and dsh surface lifecycle risk, phase, gates, subagent count, unresolved findings, and release status.
 - **Conditional specification gate.** Requirements-driven, behavior-changing, unclear, and external-contract work now follows `INTAKE → SPEC → PLAN`; ordinary bugs and small edits remain proportional.
 - **Proof-oriented specifications.** The `spec` skill now produces a proportional engineering contract covering requirements, decisions, constraints, assumptions, invariants, acceptance criteria, proof obligations, counterexamples, dependencies, compatibility, non-goals, and change impact for downstream development, verification, and audit.
+- **Materiality and readiness in specifications.** `spec` now distinguishes ordinary, material, and critical requirements; requires status-aware decisions, explicit must-remain-unchanged behavior, investigative challenge, derived audit targets, conflict detection, claim-oriented proof evidence, and readiness blockers for unresolved implementation-critical uncertainty.
 
 ## [1.9.4] - 2026-09-10
 
