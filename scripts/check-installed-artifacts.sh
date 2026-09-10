@@ -109,6 +109,16 @@ assert_installed_strings() {
     "$DSH_HOME/client-plugins/ask-kit-panel/client.js" "CONFIDENCE" present
   assert_grep "installed widget shows routing hierarchy" \
     "$DSH_HOME/client-plugins/ask-kit-panel/client.js" "ROUTING" present
+  assert_grep "installed OpenCode router package exposes a TUI entrypoint" \
+    "$OPENCODE_DIR/plugins/agent-skills-router/package.json" '"./tui": "./tui.tsx"' present
+  assert_grep "installed OpenCode TUI panel shows the ASK title" \
+    "$OPENCODE_DIR/plugins/agent-skills-router/tui.tsx" "Agent Skills Kit" present
+  assert_grep "installed OpenCode TUI panel uses sidebar content" \
+    "$OPENCODE_DIR/plugins/agent-skills-router/tui.tsx" "sidebar_content" present
+  assert_grep "installer configures the OpenCode router package" \
+    "$OPENCODE_DIR/opencode.json" "./plugins/agent-skills-router" present
+  assert_grep "installer removes old OpenCode router file configuration" \
+    "$OPENCODE_DIR/opencode.json" "./plugins/agent-skills-router.mjs" absent
   assert_grep "installed opencode core carries the English header" \
     "$OPENCODE_DIR/plugins/core/router-core.js" "╌ Agent Skills Kit ╌" present
   assert_grep "shared root contains Codex-discoverable skills" \

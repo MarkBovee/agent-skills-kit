@@ -185,7 +185,7 @@ Manual install copies:
 
 * all folders under `~/.agents/skills/`
 * `core/router-core.js`
-* `plugins/agent-skills-router.mjs`
+* `plugins/agent-skills-router/` — dual-entrypoint router package: server routing hooks and TUI sidebar panel
 
 Common OpenCode config locations:
 
@@ -354,7 +354,7 @@ The pack favors fast trustworthy checks, then proportional review and verificati
 
 ## Router
 
-`plugins/agent-skills-router.mjs` presents a **decision tree** every prompt. The agent — not the router — evaluates the task against the tree and loads the matching skill via `skill(name: '...')`. No automated phrase matching, no scoring, no hidden routing.
+`plugins/agent-skills-router/` presents a **decision tree** every prompt and renders its router-core status snapshot in OpenCode's TUI sidebar. The agent — not the router — evaluates the task against the tree and loads the matching skill via `skill(name: '...')`. No automated phrase matching, no scoring, no hidden routing.
 
 The decision tree injected every prompt:
 
@@ -445,7 +445,7 @@ Hard boundaries:
 
 | Platform               | Status         | Ships                                                                                         | Generated assets or install target                                                                                                                                 |
 | ---------------------- | -------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| OpenCode               | Reference      | router plugin, routing support, bootstrap/install/update tooling                              | installs managed skills plus `core/router-core.js` and `plugins/agent-skills-router.mjs`                                                                           |
+| OpenCode               | Reference      | router plugin, routing support, bootstrap/install/update tooling                              | installs managed skills plus `core/router-core.js` and `plugins/agent-skills-router/`                                                                              |
 | Codex                  | Supported      | native Agent Skills discovery from shared root                                                | `~/.agents/skills/`; no Codex config or duplicate skill copy                                                                                                      |
 | GitHub Copilot         | Supported      | VS Code Agent Plugin, native skills, lifecycle hooks, generated skills, reusable instructions | `.claude-plugin/plugin.json`, `skills/`, `hooks/hooks.json`, `.github/skills/`, `.github/copilot-instructions.md`, `~/.agents/skills/`, `~/.copilot/instructions/` |
 | Claude Code            | Supported      | generated skills, reusable rules, bootstrap/install/update tooling                            | `.claude/skills/`, `CLAUDE.md`, `~/.claude/skills/`, `~/.claude/rules/`                                                                                            |
@@ -484,7 +484,7 @@ node ./scripts/validate-plugin.js
 Load the router plugin directly:
 
 ```bash
-node -e "import('./plugins/agent-skills-router.mjs')"
+node -e "import('./plugins/agent-skills-router/server.mjs')"
 ```
 
 Check release metadata before tagging:
@@ -576,7 +576,7 @@ skills/                     Canonical workflow skills
 .claude/skills/             Generated Claude Code export
 
 core/router-core.js         Shared scoring, frontmatter, and session helpers
-plugins/agent-skills-router.mjs
+plugins/agent-skills-router/  OpenCode server/TUI router package
 
 scripts/bootstrap.*
 scripts/install.*

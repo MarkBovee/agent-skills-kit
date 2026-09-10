@@ -511,7 +511,9 @@ mkdir -p "$OPENCODE_PLUGINS_TARGET"
 rm -rf "$OPENCODE_CORE_TARGET"
 rm -rf "$OPENCODE_PLUGINS_TARGET/core"
 cp -R "$OPENCODE_CORE_SOURCE" "$OPENCODE_PLUGINS_TARGET/core"
-cp "$OPENCODE_PLUGINS_SOURCE/agent-skills-router.mjs" "$OPENCODE_PLUGINS_TARGET/agent-skills-router.mjs"
+rm -f "$OPENCODE_PLUGINS_TARGET/agent-skills-router.mjs"
+rm -rf "$OPENCODE_PLUGINS_TARGET/agent-skills-router"
+cp -R "$OPENCODE_PLUGINS_SOURCE/agent-skills-router" "$OPENCODE_PLUGINS_TARGET/agent-skills-router"
 
 # Install rules for OpenCode.
 mkdir -p "$OPENCODE_RULES_TARGET"
@@ -522,16 +524,18 @@ for rule in coding-standards.md agent-skills-kit.md; do
   fi
 done
 OPENCODE_JSON="$OPENCODE_DIR/opencode.json"
-if [ -f "$OPENCODE_JSON" ]; then
-  node -e "
+if [ ! -f "$OPENCODE_JSON" ]; then
+  printf '{}\n' > "$OPENCODE_JSON"
+fi
+node -e "
     var fs=require('fs'), f='$OPENCODE_JSON';
     var c=JSON.parse(fs.readFileSync(f,'utf-8'));
     c.instructions=c.instructions||[];
     var rules=['./rules/coding-standards.md','./rules/agent-skills-kit.md'];
     for(var i=0;i<rules.length;i++){if(!c.instructions.includes(rules[i])){c.instructions.push(rules[i]);}}
     c.plugin=c.plugin||[];
-    c.plugin=c.plugin.filter(function(p){return p!=='./plugins/nebu-skills-router.mjs'&&p!=='./plugins/nebu-skills-router.js';});
-    var p='./plugins/agent-skills-router.mjs';
+    c.plugin=c.plugin.filter(function(p){return p!=='./plugins/nebu-skills-router.mjs'&&p!=='./plugins/nebu-skills-router.js'&&p!=='./plugins/agent-skills-router.mjs';});
+    var p='./plugins/agent-skills-router';
     if(!c.plugin.includes(p)){c.plugin.push(p);}
     c.permission=c.permission||{};
     c.permission.external_directory=c.permission.external_directory||{};
@@ -539,7 +543,6 @@ if [ -f "$OPENCODE_JSON" ]; then
     if(c.permission.external_directory[ocPath]!=='allow'){c.permission.external_directory[ocPath]='allow';}
     fs.writeFileSync(f,JSON.stringify(c,null,2)+'\n');
   "
-fi
 
 if [ -d "$CLAUDE_DIR" ]; then
   mkdir -p "$CLAUDE_RULES_TARGET"
@@ -583,7 +586,7 @@ echo "Installed Copilot instructions to $COPILOT_INSTRUCTIONS_FILE"
 echo "Installed OpenCode commands to $OPENCODE_COMMANDS_TARGET"
 echo "Installed Copilot/VS Code prompt files to $COPILOT_PROMPTS_TARGET"
 echo "Installed OpenCode router core to $OPENCODE_PLUGINS_TARGET/core"
-echo "Installed OpenCode router plugin to $OPENCODE_PLUGINS_TARGET/agent-skills-router.mjs"
+echo "Installed OpenCode router package to $OPENCODE_PLUGINS_TARGET/agent-skills-router"
 echo "Installed OpenCode rules to $OPENCODE_RULES_TARGET/coding-standards.md"
 echo "Installed OpenCode agent-skills-kit usage guide to $OPENCODE_RULES_TARGET/agent-skills-kit.md"
 if [ -d "$CLAUDE_DIR" ]; then

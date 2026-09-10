@@ -8,7 +8,7 @@ Multi-platform skill-pack for OpenCode, Codex, GitHub Copilot, Claude Code, and 
 
 - `skills/<name>/SKILL.md` — one skill per directory
 - `commands/<name>.md` — one slash command per skill, referencing its skill
-- `plugins/agent-skills-router.mjs` — OpenCode plugin: deterministic cascade routing, injects routing hints into system prompt
+- `plugins/agent-skills-router/` — OpenCode dual-entrypoint package: deterministic cascade routing and TUI status sidebar
 - `plugins/agent-skills-router.dsh.mjs` — dsh (DeepSeek Harness) Cordis plugin: same router behavior as a preset row; requires `core/router-core.js` via a vendored copy in the installed preset
 - `core/router-core.js` — shared router helpers (cascade routing, lifecycle risk/state, session state, frontmatter parsing)
 - `scripts/` — install/update/bootstrap scripts (bash + PowerShell parity)
@@ -79,13 +79,13 @@ Export targets (via `export-platform-skills.js`): OpenCode → `.opencode/comman
 
 ## Router plugin
 
-`plugins/agent-skills-router.mjs` injects a decision tree every prompt — agent self-selects skills via `skill(name: '...')`. No automatic phrase matching. When changing:
+`plugins/agent-skills-router/` injects a decision tree every prompt and renders its canonical status snapshot in OpenCode's TUI sidebar. The server entry is `server.mjs`; the TUI entry is `tui.tsx`. Agent self-selects skills via `skill(name: '...')`. No automatic phrase matching. When changing:
 
 - The decision tree has 12 routing rows. `design-review` is a companion skill, not a routing row: it fires when the `ui-ux` skill is loaded (plugin sets `needsDesignReview` and nudges `skill(name: 'design-review')` until it is loaded), mirroring `needsCodeReview`. `text-writing` is a routing row, matching text that must read human rather than AI. The blocked-tool hint and the rules-file decision tree are derived from `routingHintLines()` in `core/router-core.js` — never hand-edit either copy; `validate-plugin.js` fails on drift.
 
-- `node --input-type=module -e "import('./plugins/agent-skills-router.mjs')"` — verify it loads
+- `node --input-type=module -e "import('./plugins/agent-skills-router/server.mjs')"` — verify server entry loads
 - `node -e "const {buildSkillOverview,createEmptySessionState}=require('./core/router-core'); const s=createEmptySessionState(); s.matchedSkills=[{name:'develop'}]; console.log(buildSkillOverview(s))"` — test decision-tree output
-- `node -e "import('./plugins/agent-skills-router.mjs').then(async m=>{const p=await m.AgentSkillsRouter(); await p['session.created'](); const r=await p['tui.prompt.append']({prompt:'test'}); console.log(r?.append?.slice(0,200))})"` — test plugin hooks
+- `node -e "import('./plugins/agent-skills-router/server.mjs').then(async m=>{const p=await m.AgentSkillsRouter(); await p['session.created'](); const r=await p['tui.prompt.append']({prompt:'test'}); console.log(r?.append?.slice(0,200))})"` — test plugin hooks
  - Keep plugin stateless except session-scoped state (tool tracking, skill-load events, lifecycle gates, audit flag)
 
 ### dsh router variant
@@ -96,13 +96,13 @@ Export targets (via `export-platform-skills.js`): OpenCode → `.opencode/comman
 
 Before claiming a fix ships:
 
-1. `node -e "import('./plugins/agent-skills-router.mjs')"` — plugin loads without error
+1. `node -e "import('./plugins/agent-skills-router/server.mjs')"` — server plugin loads without error
 2. `node ./scripts/export-platform-skills.js` — exports regenerate
 3. Decision-tree check: `node -e "const {buildSkillOverview,createEmptySessionState}=require('./core/router-core'); console.log(buildSkillOverview(createEmptySessionState()))"` — output contains `╌ Agent Skills Kit ╌` and all 12 skills
 4. `node ./scripts/check-router-nudges.js` — nudge behavior (audit, blocked-tool guard, auto-match, review nudges) passes
 5. `node ./scripts/check-workflow-lifecycle.js` — risk profiles, lifecycle gates, evidence contract, and status output pass
 6. `node ./scripts/check-dsh-plugin.js` — dsh router variant passes (exports, config defaults, event wiring, strict gate, decision-tree drift)
-7. OpenCode plugin check: in a test session, verify `╌ Agent Skills Kit ╌` appears in the system prompt with the decision tree. If missing, check `opencode.json` `plugins` array includes `./plugins/agent-skills-router.mjs` and the file exists at that path.
+7. OpenCode plugin check: in a test session, verify `╌ Agent Skills Kit ╌` appears in the system prompt and status panel appears in sidebar. If missing, check `opencode.json` `plugins` array includes `./plugins/agent-skills-router` and package has `server.mjs` plus `tui.tsx`.
 8. `./scripts/check-installed-artifacts.sh` — installs into isolated homes (fake dsh shim on PATH) and asserts the deployed user-visible strings — preset.yml description, router prompt header, widget status bar — match the repo, including refresh migration of a stale pre-English preset
 
 ## Install scripts
@@ -128,7 +128,7 @@ Change both `.sh` and `.ps1` together.
 After changes:
 
 1. Every `skills/*/SKILL.md` has valid frontmatter (`name`, `description`, `triggers`)
-2. Router loads: `node -e "import('./plugins/agent-skills-router.mjs')"`
+2. Router server entry loads: `node -e "import('./plugins/agent-skills-router/server.mjs')"`
 3. Exports regenerate: `node ./scripts/export-platform-skills.js`
 4. Install/bootstrap scripts idempotent: run twice, same output
 5. No hardcoded workspace-specific paths in generic skills

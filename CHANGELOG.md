@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.0.3] - 2026-09-10
+
+### Fixed
+
+- **OpenCode live ASK panel.** The existing OpenCode router now ships as a dual-entrypoint package: its server entry persists the canonical router-core status snapshot in session metadata and its TUI entry renders the compact sidebar panel. Bash and PowerShell installers deploy and configure the package, replacing the previous server-only router file.
+
 ## [2.0.2] - 2026-09-10
 
 ### Added

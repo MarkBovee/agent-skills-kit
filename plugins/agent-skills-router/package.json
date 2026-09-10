@@ -1,0 +1,10 @@
+{
+  "name": "agent-skills-router",
+  "private": true,
+  "type": "module",
+  "main": "./server.mjs",
+  "exports": {
+    "./server": "./server.mjs",
+    "./tui": "./tui.tsx"
+  }
+}

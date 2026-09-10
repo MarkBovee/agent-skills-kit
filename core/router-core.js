@@ -317,10 +317,11 @@ function workflowRoute(workflow) {
   const completed = new Set(Array.isArray(workflow.completedGates) ? workflow.completedGates : [])
   const route = workflow.requiredPhases.map((phase) => ({
     phase,
+    label: phase.charAt(0) + phase.slice(1).toLowerCase().replace(/_/g, " "),
     state: completed.has(phase) ? "completed" : (workflow.phase === phase ? "active" : "pending"),
   }))
   if (workflow.phase && !route.some((entry) => entry.state === "active") && ["ITERATE", "AUDIT", "RELEASE_GATE", "DONE", "BLOCKED"].includes(workflow.phase)) {
-    route.push({ phase: workflow.phase, state: "active" })
+    route.push({ phase: workflow.phase, label: workflow.phase.charAt(0) + workflow.phase.slice(1).toLowerCase().replace(/_/g, " "), state: "active" })
   }
   return route
 }
