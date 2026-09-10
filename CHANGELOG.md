@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.0.2] - 2026-09-10
+
+### Changed
+
+- **Host-neutral ASK discovery.** GitHub Copilot and other supported agent runtimes now have explicit instructions for discovering canonical skills, selecting the most specific workflow, loading `SKILL.md`, and combining directly implied companion skills.
+
 ## [2.0.1] - 2026-09-10
 
 ### Changed

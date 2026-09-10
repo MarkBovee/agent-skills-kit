@@ -354,7 +354,22 @@ The pack favors fast trustworthy checks, then proportional review and verificati
 
 ## Router
 
-`plugins/agent-skills-router.mjs` presents a **decision tree** every prompt. The agent — not the router — evaluates the task against the tree and loads the matching skill via `skill(name: '...')`. No automated phrase matching, no scoring, no hidden routing.
+`plugins/agent-skills-router.mjs` presents a **decision tree** every prompt and adds optional phrase-based match hints. The agent remains responsible for loading the matching skill via `skill(name: '...')`; the router does not execute skills, rewrite commands, or take over the session.
+
+### Host-neutral discovery and loading
+
+Every supported host can use the same conceptual lifecycle, even when its native API differs:
+
+```text
+user request
+  → enumerate canonical skills/*/SKILL.md (or the installed ~/.agents/skills/*/SKILL.md)
+  → compare each skill's name, description, and triggers with the request
+  → select the most specific match; use develop as the normal-work fallback
+  → load that skill's complete SKILL.md before acting
+  → follow its workflow with the host's available tools
+```
+
+The canonical skill is the directory containing `skills/<name>/SKILL.md`. `commands/`, generated platform copies, instruction files, and router code describe or expose skills; they are not additional skills. When a request matches multiple workflows, load the primary skill first and add only an implied companion such as `ui-ux` → `design-review` or `code-review` → `verification`. OpenCode and optional dsh routing plugins add prompt hints and session state, but native Copilot, Codex, and Claude skill discovery can follow this contract without relying on OpenCode behavior.
 
 The decision tree injected every prompt:
 

@@ -234,13 +234,12 @@ async function listSkillDirectories() {
 // Build a compact always-on Copilot instructions file that points the agent at the skills.
 function buildCopilotInstructions(skills) {
   const preview = skills
-    .slice(0, 8)
     .map((skill) => `- ${skill.name}: ${toSingleLine(skill.description, 100)}`)
     .join("\n")
 
   return `# Agent Skills Kit for GitHub Copilot
 
-This repository ships portable workflow skills under [.github/skills](./skills).
+This repository ships portable workflow skills under [skills](../skills). The canonical source is one directory per skill at \`skills/<skill-name>/SKILL.md\`; generated copies under \`.github/skills\`, \`.agents/skills\`, or user-level roots are platform exports, not additional skills.
 
 - At the start of a task, choose the best matching skill immediately; do not wait for a manual trigger when the fit is clear.
 - Prefer these skills when the user's request clearly matches one of them instead of restating the full workflow inline.
@@ -249,6 +248,18 @@ This repository ships portable workflow skills under [.github/skills](./skills).
 - If review or verification exposes a reusable workflow gap, capture it with \`write-skill\` before ending cold.
 - When editing code, add concise intent comments by default; place one short comment above each function unless the repo's local convention says otherwise.
 - Keep always-on instructions compact; put reusable procedures in skills so Copilot can load them on demand.
+
+## ASK discovery and execution contract
+
+1. Discover skills by enumerating the canonical directories matching \`skills/*/SKILL.md\` (or the installed shared root \`~/.agents/skills/*/SKILL.md\`). Count each directory once. Do not treat \`commands/\`, \`.github/prompts/\`, \`.github/skills/\`, router code, or instruction files as additional skills.
+2. Read each skill's YAML frontmatter. \`name\` is the exact short name, \`description\` explains purpose, and \`triggers\` describe common use cases. Read the selected \`SKILL.md\` body before acting.
+3. Route the request by matching its intent to the skill descriptions and triggers. Use the most specific applicable skill; use \`develop\` when no stronger skill matches. For unclear scope or multi-phase work, use \`intake\` before implementation. For explicit requirements or a new external contract, use \`spec\` before implementation.
+4. If more than one skill applies, load the primary skill first and add only a directly implied companion workflow. Common combinations are \`ui-ux\` followed by \`design-review\`, and \`code-review\` followed by \`verification\` when claiming completion. Do not execute unrelated skills.
+5. Follow the selected skill's \`SKILL.md\` workflow with the host's available tools. A host may load skills natively; the OpenCode and optional dsh routers only provide additional hints and session state. No host-specific router is required to understand or execute the canonical skill contract.
+
+### Complete skill roster
+
+${preview}
 
 ## Coding standards
 
