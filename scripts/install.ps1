@@ -529,6 +529,12 @@ try {
             $cfg | Add-Member -NotePropertyName plugin -NotePropertyValue @() -Force
             $changed = $true
         }
+        $legacyPlugins = @("./plugins/nebu-skills-router.mjs", "./plugins/nebu-skills-router.js")
+        $filteredPlugins = @($cfg.plugin | Where-Object { $_ -notin $legacyPlugins })
+        if ($filteredPlugins.Count -ne @($cfg.plugin).Count) {
+            $cfg.plugin = $filteredPlugins
+            $changed = $true
+        }
         $pl = "./plugins/agent-skills-router.mjs"
         if ($pl -notin $cfg.plugin) { $cfg.plugin += $pl; $changed = $true }
         # Grant OpenCode access to its own config directory (needed for plugin/core/rules)
