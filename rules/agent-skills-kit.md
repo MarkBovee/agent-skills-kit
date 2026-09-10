@@ -46,7 +46,7 @@ Subagent results must use explicit `ASK_WORKFLOW_PASS`, `ASK_WORKFLOW_FINDINGS`,
 
 ## Status panel
 
-The compact ASK panel shows the active routed skill, routing confidence, and current workflow route. `core/router-core.js` produces this snapshot; router adapters emit it through the existing `ask-kit/state` event and the widget only renders it.
+The compact ASK panel shows the active routed skill, routing confidence, and current workflow route. `core/router-core.js` produces this snapshot. DSH emits it through `ask-kit/state`; OpenCode persists it under `askKit` session metadata. Both widgets only render it.
 
 Confidence is a deterministic routing score, not an ML probability. Explicit skill selection scores highest; specific, multiple signals improve the score; competing signals reduce it. Workflow markers retain `completed`, `active`, and `pending` state internally. Solid markers are reached gates, hollow markers are pending.
 

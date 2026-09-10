@@ -14,6 +14,7 @@ const VERSION_PATH = path.join(REPO_ROOT, "VERSION")
 const README_PATH = path.join(REPO_ROOT, "README.md")
 const ROUTER_RULES_PATH = path.join(REPO_ROOT, "rules", "agent-skills-kit.md")
 const COMMANDS_PATH = path.join(REPO_ROOT, "commands")
+const OPENCODE_ROUTER_PACKAGE_PATH = path.join(REPO_ROOT, "plugins", "agent-skills-router", "package.json")
 const REFERENCE_PATTERN = /`([^`]+)`/g
 const NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
@@ -48,6 +49,26 @@ async function validatePluginManifest(errors) {
 
   const version = (await fs.readFile(VERSION_PATH, "utf8")).trim()
   if (plugin.version !== version) errors.push(`plugin.json version must match VERSION (${version})`)
+}
+
+// Require both OpenCode faces so a router release cannot again ship only the
+// server hooks while documentation promises a live sidebar panel.
+async function validateOpenCodeRouterPackage(errors) {
+  const pkg = await readJson(OPENCODE_ROUTER_PACKAGE_PATH, errors)
+  if (!pkg) return
+  if (pkg.exports?.["./server"] !== "./server.mjs") {
+    errors.push("plugins/agent-skills-router/package.json must expose ./server")
+  }
+  if (pkg.exports?.["./tui"] !== "./tui.tsx") {
+    errors.push("plugins/agent-skills-router/package.json must expose ./tui")
+  }
+  for (const file of ["server.mjs", "tui.tsx"]) {
+    try {
+      await fs.access(path.join(path.dirname(OPENCODE_ROUTER_PACKAGE_PATH), file))
+    } catch {
+      errors.push(`plugins/agent-skills-router/${file} is missing`)
+    }
+  }
 }
 
 // Validate the hook manifest against the supported VS Code lifecycle shape.
@@ -186,6 +207,7 @@ async function validateSkillReferences(errors) {
 async function main() {
   const errors = []
   await validatePluginManifest(errors)
+  await validateOpenCodeRouterPackage(errors)
   await validateHooks(errors)
   const skillNames = await validateSkills(errors)
   await validateSkillReferences(errors)

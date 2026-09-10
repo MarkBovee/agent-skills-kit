@@ -166,6 +166,34 @@ async function main() {
     !(afterSessionReview?.append || "").includes("`skill(name: 'session-review')`"),
   )
 
+  const metadataUpdates = []
+  const metadata = { preserved: true }
+  const panelPlugin = await AgentSkillsRouter({
+    client: {
+      session: {
+        get: async (input) => {
+          if (input?.sessionID !== "panel-session") throw new Error("invalid session get arguments")
+          return { data: { metadata } }
+        },
+        update: async (input) => {
+          if (input?.sessionID !== "panel-session" || !input.metadata?.askKit) throw new Error("invalid session update arguments")
+          Object.assign(metadata, input.metadata)
+          metadataUpdates.push(input)
+        },
+      },
+    },
+  })
+  await panelPlugin["session.created"]({ sessionID: "panel-session" })
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  const emptyPanelMetadata = metadataUpdates.at(-1)?.metadata
+  check("new session persists safe empty sidebar state", emptyPanelMetadata?.askKit?.activeSkill === null
+    && emptyPanelMetadata.askKit?.confidence === null && emptyPanelMetadata.askKit?.workflow?.route?.length > 0)
+  await panelPlugin["tui.prompt.append"]({ sessionID: "panel-session", prompt: "fix this bug in the parser" })
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  const panelMetadata = metadataUpdates.at(-1)?.metadata
+  check("router persists the canonical status snapshot for the TUI", panelMetadata?.preserved === true
+    && panelMetadata.askKit?.activeSkill === "debugging" && panelMetadata.askKit?.workflow?.route?.length > 0)
+
   if (failedChecks > 0) {
     console.error(`\n${failedChecks} nudge check(s) failed.`)
     process.exitCode = 1

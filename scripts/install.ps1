@@ -530,7 +530,12 @@ try {
     }
 
     Copy-Item -LiteralPath $opencodeCoreSource -Destination $opencodePluginCoreTarget -Recurse
-    Copy-Item -LiteralPath (Join-Path $opencodePluginsSource "agent-skills-router.mjs") -Destination (Join-Path $opencodePluginsTarget "agent-skills-router.mjs") -Force
+    Remove-Item -LiteralPath (Join-Path $opencodePluginsTarget "agent-skills-router.mjs") -Force -ErrorAction SilentlyContinue
+    $opencodeRouterTarget = Join-Path $opencodePluginsTarget "agent-skills-router"
+    if (Test-Path -LiteralPath $opencodeRouterTarget) {
+        Remove-Item -LiteralPath $opencodeRouterTarget -Recurse -Force
+    }
+    Copy-Item -LiteralPath (Join-Path $opencodePluginsSource "agent-skills-router") -Destination $opencodeRouterTarget -Recurse -Force
 
     # Install rules for OpenCode.
     New-Item -ItemType Directory -Force -Path $opencodeRulesTarget | Out-Null
@@ -543,9 +548,11 @@ try {
 
     # Patch opencode.json: add instructions, plugin entries, and permissions idempotently.
     $opencodeJsonPath = Join-Path $OpencodeDir "opencode.json"
-    if (Test-Path -LiteralPath $opencodeJsonPath) {
-        $cfg = Get-Content -LiteralPath $opencodeJsonPath -Raw | ConvertFrom-Json
-        $changed = $false
+    if (-not (Test-Path -LiteralPath $opencodeJsonPath)) {
+        "{}" | Set-Content -LiteralPath $opencodeJsonPath
+    }
+    $cfg = Get-Content -LiteralPath $opencodeJsonPath -Raw | ConvertFrom-Json
+    $changed = $false
         if ($cfg.PSObject.Properties.Match("instructions").Count -eq 0 -or $null -eq $cfg.instructions -or $cfg.instructions -isnot [System.Array]) {
             $cfg | Add-Member -NotePropertyName instructions -NotePropertyValue @() -Force
             $changed = $true
@@ -557,13 +564,13 @@ try {
             $cfg | Add-Member -NotePropertyName plugin -NotePropertyValue @() -Force
             $changed = $true
         }
-        $legacyPlugins = @("./plugins/nebu-skills-router.mjs", "./plugins/nebu-skills-router.js")
+        $legacyPlugins = @("./plugins/nebu-skills-router.mjs", "./plugins/nebu-skills-router.js", "./plugins/agent-skills-router.mjs")
         $filteredPlugins = @($cfg.plugin | Where-Object { $_ -notin $legacyPlugins })
         if ($filteredPlugins.Count -ne @($cfg.plugin).Count) {
             $cfg.plugin = $filteredPlugins
             $changed = $true
         }
-        $pl = "./plugins/agent-skills-router.mjs"
+        $pl = "./plugins/agent-skills-router"
         if ($pl -notin $cfg.plugin) { $cfg.plugin += $pl; $changed = $true }
         # Grant OpenCode access to its own config directory (needed for plugin/core/rules)
         if ($cfg.PSObject.Properties.Match("permission").Count -eq 0 -or $null -eq $cfg.permission -or $cfg.permission -isnot [System.Management.Automation.PSCustomObject]) {
@@ -580,8 +587,7 @@ try {
             $cfg.permission.external_directory | Add-Member -NotePropertyName $ocPath -NotePropertyValue "allow" -Force
             $changed = $true
         }
-        if ($changed) { $cfg | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $opencodeJsonPath }
-    }
+    if ($changed) { $cfg | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $opencodeJsonPath }
 
     if (Test-Path -LiteralPath $ClaudeDir) {
         New-Item -ItemType Directory -Force -Path $claudeRulesTarget | Out-Null
@@ -629,7 +635,7 @@ try {
     "Installed OpenCode commands to $opencodeCommandsTarget"
     "Installed Copilot/VS Code prompt files to $copilotPromptsTarget"
     "Installed OpenCode router core to $(Join-Path $opencodePluginsTarget 'core')"
-    "Installed OpenCode router plugin to $(Join-Path $opencodePluginsTarget 'agent-skills-router.mjs')"
+    "Installed OpenCode router package to $(Join-Path $opencodePluginsTarget 'agent-skills-router')"
     "Installed OpenCode rules to $(Join-Path $opencodeRulesTarget 'coding-standards.md')"
     "Installed OpenCode agent-skills-kit usage guide to $(Join-Path $opencodeRulesTarget 'agent-skills-kit.md')"
     if (Test-Path -LiteralPath $ClaudeDir) {
