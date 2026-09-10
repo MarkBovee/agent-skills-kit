@@ -500,6 +500,7 @@ if [ -f "$OPENCODE_JSON" ]; then
     var rules=['./rules/coding-standards.md','./rules/agent-skills-kit.md'];
     for(var i=0;i<rules.length;i++){if(!c.instructions.includes(rules[i])){c.instructions.push(rules[i]);}}
     c.plugin=c.plugin||[];
+    c.plugin=c.plugin.filter(function(p){return p!=='./plugins/nebu-skills-router.mjs'&&p!=='./plugins/nebu-skills-router.js';});
     var p='./plugins/agent-skills-router.mjs';
     if(!c.plugin.includes(p)){c.plugin.push(p);}
     c.permission=c.permission||{};
