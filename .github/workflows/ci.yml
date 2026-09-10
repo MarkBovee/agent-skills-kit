@@ -27,6 +27,12 @@ jobs:
       - name: Validate trigger routing
         run: node ./scripts/check-trigger-overlap.js
 
+      - name: Validate evidence-aware communication guidance
+        run: node ./scripts/check-evidence-aware-communication.js
+
+      - name: Validate model-agnostic guidance
+        run: node ./scripts/check-model-agnostic-guidance.js
+
       - name: Validate router nudges
         run: node ./scripts/check-router-nudges.js
 

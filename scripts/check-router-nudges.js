@@ -123,6 +123,20 @@ async function main() {
     completionText.includes("`skill(name: 'session-review')`"),
   )
 
+  // Delegated review completion clears parent debt through its explicit handoff marker.
+  await plugin["tool.execute.after"]({ tool: "edit" }, {})
+  const delegatedReviewFollowUp = await plugin["tui.prompt.append"]({ prompt: "subagent handoff: ASK_REVIEW_COMPLETE" })
+  check(
+    "delegated review completion clears code-review nudge",
+    !(delegatedReviewFollowUp?.append || "").includes("Code edited"),
+  )
+  await plugin["tool.execute.after"]({ tool: "edit" }, {})
+  const editAfterDelegatedReview = await plugin["tui.prompt.append"]({ prompt: "new edit after delegated review" })
+  check(
+    "edit after delegated review re-arms code-review nudge",
+    (editAfterDelegatedReview?.append || "").includes("Code edited"),
+  )
+
   // Loading session-review files the improvement, so the capture hint clears.
   await plugin["tool.execute.after"]({ tool: "skill" }, { args: { name: "session-review" } })
   const afterSessionReview = await plugin["tui.prompt.append"]({ prompt: "en nu verder" })

@@ -25,8 +25,8 @@ const {
   SKILL_CODE_REVIEW, SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SESSION_REVIEW, SKILL_DESIGN_REVIEW, SKILL_UI_UX,
   SKILL_DEVELOP,
   buildSkillOverview, cascadeRoute, getSessionState, loadSkills,
-  setSessionState, hasPhraseSignal, toSingleLine, isInPeakWindow, describePeakWindow, unique,
-  routingHintLines,
+  setSessionState, hasPhraseSignal, toSingleLine, unique,
+  hasReviewCompletionSignal, routingHintLines,
 } = resolveRouterCore()
 
 function resolveSkillPath() {
@@ -50,6 +50,11 @@ function resolveSkillName(input, output) {
 const SESSION_KEY = "default"
 const BLOCKED_BEFORE_SKILL = new Set(["edit", "write", "apply_patch", "bash"])
 
+// Clear parent review debt when a direct or delegated review reports completion.
+function isReviewCompletion(input, output) {
+  return hasReviewCompletionSignal(input) || hasReviewCompletionSignal(output)
+}
+
 let skillsCache = null
 async function getSkills() {
   if (skillsCache) return skillsCache
@@ -64,13 +69,6 @@ export const AgentSkillsRouter = async () => {
     "session.created": async () => {
       try { await getSkills() } catch { /* ok */ }
     },
-    "chat.params": async (input) => {
-      try {
-        const providerID = input?.provider?.info?.id || input?.model?.providerID || ""
-        if (!providerID) return
-        setSessionState(sessionState, SESSION_KEY, { providerID })
-      } catch { /* plugin error, skip provider tracking this call */ }
-    },
     "tui.prompt.append": async (input) => {
       try {
         const promptText = (input?.prompt || input?.text || "").trim()
@@ -78,6 +76,11 @@ export const AgentSkillsRouter = async () => {
         let state = getSessionState(sessionState, SESSION_KEY)
         const skills = await getSkills()
         const extraLines = []
+
+        // A delegated review returns through the parent prompt rather than a local skill tool result.
+        if (hasReviewCompletionSignal(promptText)) {
+          state = setSessionState(sessionState, SESSION_KEY, { needsCodeReview: false, shouldCaptureImprovement: true })
+        }
 
         const route = cascadeRoute(promptText, skills, state)
         const matchSkill = route?.matchedSkills?.[0]
@@ -91,12 +94,6 @@ export const AgentSkillsRouter = async () => {
           executionProfile: route?.executionProfile || null,
           interactionCountSinceSkillLoad: (state.interactionCountSinceSkillLoad || 0) + 1,
         })
-
-        const providerID = state.providerID || ""
-        if (providerID && isInPeakWindow(new Date(), providerID) && !state.peakWarningShown) {
-          extraLines.push(`→ ${describePeakWindow(providerID)}`)
-          setSessionState(sessionState, SESSION_KEY, { peakWarningShown: true })
-        }
 
         if (!state.hasDoneSessionAudit) {
           const auditLines = ["FIRST ACTION: scan the decision tree, load matching skill before any code or tools:"]
@@ -153,6 +150,10 @@ export const AgentSkillsRouter = async () => {
           : (state.interactionCountSinceSkillLoad || 0),
       }
 
+      if (isReviewCompletion(input, output)) {
+        setSessionState(sessionState, SESSION_KEY, { ...base, needsCodeReview: false, shouldCaptureImprovement: true })
+        return
+      }
       if (CODE_EDIT_TOOL_IDS.has(toolID)) { setSessionState(sessionState, SESSION_KEY, { ...base, needsCodeReview: true }); return }
       if (toolID !== "skill") { setSessionState(sessionState, SESSION_KEY, base); return }
       const skillName = resolveSkillName(input, output)

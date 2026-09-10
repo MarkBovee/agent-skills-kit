@@ -216,6 +216,18 @@ async function main() {
     const improvementClearedText = improvementCleared.sections.find((entry) => entry.name === "ask-kit:router").text
     check("session-review load clears improvement nudge", !improvementClearedText.includes("→ Improvement found?"))
 
+    // Delegated review completion clears parent debt through its explicit handoff marker.
+    const delegatedAgent = { id: "delegated-review-check" }
+    await pre({ name: "edit", agent: delegatedAgent }, async () => ({ kind: "allow" }))
+    const delegatedBefore = await assemble({ sections: [] }, { agent: delegatedAgent }, async () => ({ sections: [] }))
+    check("delegated review starts with code-review nudge", delegatedBefore.sections.find((entry) => entry.name === "ask-kit:router").text.includes("→ Code edited"))
+    listeners.get("tools/result")[0]({ name: "task", agent: delegatedAgent }, { isError: false, output: "ASK_REVIEW_COMPLETE" })
+    const delegatedAfter = await assemble({ sections: [] }, { agent: delegatedAgent }, async () => ({ sections: [] }))
+    check("delegated review completion clears parent nudge", !delegatedAfter.sections.find((entry) => entry.name === "ask-kit:router").text.includes("→ Code edited"))
+    await pre({ name: "edit", agent: delegatedAgent }, async () => ({ kind: "allow" }))
+    const delegatedRearmed = await assemble({ sections: [] }, { agent: delegatedAgent }, async () => ({ sections: [] }))
+    check("edit after delegated review re-arms nudge", delegatedRearmed.sections.find((entry) => entry.name === "ask-kit:router").text.includes("→ Code edited"))
+
     // Wrap-up steering: a completion phrase with pending review debt steers
     // the agent toward the matching review skill (once per episode) instead
     // of silently clearing the nudge — the chip stays until the review loads.

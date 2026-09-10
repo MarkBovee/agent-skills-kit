@@ -6,6 +6,25 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [1.9.4] - 2026-09-10
+
+### Added
+
+- **Evidence-aware maintainer communication (issue #48).** Shared ASK guidance and GitHub-facing workflows now distinguish established evidence from open questions, track report-to-verification phases, and request only the smallest fresh evidence needed after an implementation or release.
+
+## [1.9.5] - 2026-09-10
+
+### Fixed
+
+- **Delegated code-review completion (issue #49).** OpenCode and dsh now clear parent review debt when a completed delegated review emits the explicit `ASK_REVIEW_COMPLETE` handoff marker, while later edits still re-arm the review nudge.
+- **Model-agnostic guidance.** Active workflow instructions and router behavior no longer depend on model or provider names, versions, or pricing windows. A CI guard prevents those dependencies from returning to shipped guidance.
+
+## [1.9.6] - 2026-09-10
+
+### Fixed
+
+- **Model-agnostic guidance guard.** The shipped guidance scan now allows platform names and file conventions while rejecting model-family, provider, and model-version references in active workflow instructions.
+
 ## [1.9.3] - 2026-09-10
 
 ### Fixed

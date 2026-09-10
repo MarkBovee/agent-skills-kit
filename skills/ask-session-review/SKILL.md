@@ -31,6 +31,16 @@ Use at session close to evaluate whether the skill ecosystem served the work wel
 6. Before filing, check for equivalent open issues with `gh issue list --search` against `MarkBovee/agent-skills-kit`.
 7. If improvement is confirmed, flag `shouldCaptureImprovement: true` in session state.
 
+## Evidence-aware issue communication
+
+When writing an issue, follow the shared evidence-aware policy:
+
+- Establish current state from the complete available context before describing a gap.
+- Distinguish observed evidence, conclusions, and information still needed.
+- Keep the workflow phase explicit when a report has moved into implementation, release, or verification.
+- Ask for new evidence only when a changed version, configuration, or environment makes a fresh capture necessary; explain what it will verify.
+- Prefer the smallest concrete next step over a broad diagnostic checklist.
+
 ## Issue Filing Mode
 
 For explicit issue creation requests (bug report, review finding, follow-up):
