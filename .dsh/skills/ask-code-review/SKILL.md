@@ -11,6 +11,10 @@ Keep scope clear: code-review checks behavior, requirements, regressions, and de
 
 This is a mandatory second pass after **every** code edit. Review depth scales with risk — but no edit skips review entirely.
 
+## Completion handoff
+
+When review is fully complete, include the exact marker `ASK_REVIEW_COMPLETE` in the final handoff. This is required when a review runs in a subagent so the parent session can clear its pending review flag. Do not emit the marker for blocked, partial, or still-actionable reviews.
+
 ## Review checklist
 
 - Does the diff solve the asked problem?

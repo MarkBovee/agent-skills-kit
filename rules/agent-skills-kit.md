@@ -28,6 +28,18 @@ Normal software work (default)           → develop
 | `→ Working without loaded skill` | 5+ interactions without loading any skill. Load one now. |
 | `→ Improvement found? skill(name: 'session-review')` | Session uncovered a reusable workflow gap worth filing. |
 
+## Evidence-aware communication
+
+When interacting with users, issue reporters, reviewers, or maintainers:
+
+1. Establish current state from all available context.
+2. Separate facts already proven from information still unknown.
+3. Never request evidence that is already available.
+4. Track the workflow phase: `report → investigation → evidence → implementation → release → verification`.
+5. Once a change or release exists, switch from diagnosis mode to verification mode.
+6. Request the smallest fresh evidence that closes the current gap, and explain why it is needed.
+7. Stay direct, concise, factual, and pragmatic; do not blindly trust old evidence when version, configuration, or hardware state changed.
+
 ## Handoff to subagents
 
 Include the same decision tree in the handoff prompt so subagents also know which skill to load.

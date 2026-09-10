@@ -423,15 +423,6 @@ Hard boundaries:
 * no session takeover
 * no hidden automation
 
-### Provider peak-window warnings
-
-The router detects the active model provider (via `chat.params`) and, once per session, surfaces a one-line warning when the provider's peak window is active:
-
-* **Anthropic / Claude** — weekdays 13:00–19:00 UTC, session limit drains faster.
-* **DeepSeek** — 01:00–04:00 or 06:00–10:00 UTC, usage costs 2x.
-
-These are informational hints only — they never block work or force delegation.
-
 ---
 
 ## Platform Matrix

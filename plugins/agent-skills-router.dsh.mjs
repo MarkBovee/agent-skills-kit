@@ -45,7 +45,7 @@ const {
   SKILL_CODE_REVIEW, SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SESSION_REVIEW,
   SKILL_UI_UX, SKILL_DESIGN_REVIEW,
   routingHintLines, cascadeRoute, hasPhraseSignal, COMPLETION_PHRASES,
-  INTERACTION_GUARD_THRESHOLD,
+  hasReviewCompletionSignal, INTERACTION_GUARD_THRESHOLD,
 } = routerCore
 
 const CODE_EDIT_TOOL_IDS = new Set(["edit", "write", "apply_patch"])
@@ -309,6 +309,13 @@ export function apply(ctx, config) {
       const text = messageText(payload?.message)
       if (!text.trim()) return
       const st = stateFor(payload?.agent?.id)
+      if (hasReviewCompletionSignal(text)) {
+        st.needsCodeReview = false
+        st.shouldCaptureImprovement = true
+        st.steeredSkills = st.steeredSkills.filter((s) => s !== SKILL_CODE_REVIEW)
+        publishPanelState(payload?.agent, st)
+        return
+      }
       st.interactionCountSinceSkillLoad += 1
       st.lastMatch = cascadeRoute(text, SKILL_STUBS, st)?.matchedSkills?.[0]?.name || "develop"
       st.matchedAt = Date.now()
@@ -355,8 +362,16 @@ export function apply(ctx, config) {
   // Count successful skill loads and hand off to the flip table.
   ctx.on("tools/result", (exec, result) => {
     try {
-      if (exec?.name !== "skill" || !result || result.isError) return
+      if (!result || result.isError) return
       const st = stateFor(exec.agent?.id)
+      if (hasReviewCompletionSignal(result)) {
+        st.needsCodeReview = false
+        st.shouldCaptureImprovement = true
+        st.steeredSkills = st.steeredSkills.filter((s) => s !== SKILL_CODE_REVIEW)
+        publishPanelState(exec?.agent, st)
+        return
+      }
+      if (exec?.name !== "skill") return
       applySkillFlips(st, skillNameOf(exec.arguments))
       publishPanelState(exec.agent, st)
     } catch (error) {

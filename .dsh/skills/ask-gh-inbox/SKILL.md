@@ -19,6 +19,18 @@ GitHub replies must use clean Markdown: complete sentences, correct punctuation,
 paragraphs separated by blank lines, and new lines for lists or distinct points. Do not
 post compressed, run-on, or caveman-style prose to GitHub.
 
+## Evidence-aware communication
+
+Before asking a reporter for more information, apply this policy:
+
+1. Read the complete issue, all comments, linked attachments, relevant fixtures, and recent implementation or release history.
+2. Separate evidence already available from the facts still unknown. Do not request an existing dump, log, or reproduction again.
+3. Identify the phase: `report → investigation → evidence → implementation → release → verification`.
+4. When an implementation or release exists, switch to verification mode. Confirm what changed and ask only for evidence of the remaining integration or real-world gap.
+5. Ask for the smallest fresh capture needed, and state what it will verify. Fresh evidence is justified when version, configuration, or hardware state changed.
+
+Example: if existing raw data proves that registers are exposed and a released fix changes their integration mapping, request a fresh integration discovery capture from the new release. Do not restart with a generic diagnostic checklist or request the raw register proof again.
+
 ## Flow
 
 ### 1. Fetch current state

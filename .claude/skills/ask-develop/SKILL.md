@@ -25,13 +25,13 @@ Before any formatting or refactoring, inspect the active file, nearby user-autho
 3. Escalate to default agent only if scope grows beyond the original bounded task.
 4. Escalate to high or xhigh only for cross-cutting, analysis-heavy, or repeatedly failing work.
 
-### Model tiering by task reasoning
+### Execution tiers by task reasoning
 
-| Complexity | Tier → model | Fits |
+| Complexity | Execution tier | Fits |
 |---|---|---|
-| Mechanical, boilerplate, bounded parsing | light / mini → **flash** | EbusService, RegisterService, EntityFactoryService |
-| Nuanced but contained | standard / default → **flash** | — |
-| Cross-cutting, implicit reasoning, error handling | heavy / high → **pro** | DiscoveryService, CoordinatorService |
+| Mechanical, boilerplate, bounded parsing | light | EbusService, RegisterService, EntityFactoryService |
+| Nuanced but contained | standard | — |
+| Cross-cutting, implicit reasoning, error handling | heavy | DiscoveryService, CoordinatorService |
 
 ## Staged delegation
 
@@ -39,11 +39,10 @@ Use when refactoring splits into dependent steps with mixed complexity (e.g. ser
 
 1. **Break work into ordered stages.** Each stage builds on the previous one. No parallelism.
 2. **Tag each stage with a complexity tier** (light/standard/heavy). See model tiering above.
-3. **Peak-pricing check** before dispatch: are you in the DeepSeek peak window (01:00–04:00 or 06:00–10:00 UTC, 2x price)? Mention it briefly but do not block — leave the choice to the user.
-4. **Dispatch stage N** with the right agent tier. Output must contain the dependency for stage N+1.
-5. **Validate.** Does the output match scope? Tests green? If not: re-dispatch with a narrower scope instead of taking over yourself.
-6. **Commit per stage** on the work branch. Only proceed to stage N+1 on green.
-7. **Re-dispatch on failure.** Reformulate the subtask more specifically and dispatch again. Only do it yourself for trivial corrections.
+3. **Dispatch stage N** with the right execution tier. Output must contain the dependency for stage N+1.
+4. **Validate.** Does the output match scope? Tests green? If not: re-dispatch with a narrower scope instead of taking over yourself.
+5. **Commit per stage** on the work branch. Only proceed to stage N+1 on green.
+6. **Re-dispatch on failure.** Reformulate the subtask more specifically and dispatch again. Only do it yourself for trivial corrections.
 
 Output contract per stage (see `agent-workflows` for the full contract):
 - Structured output, no narrative

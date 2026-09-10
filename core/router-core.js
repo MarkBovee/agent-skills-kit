@@ -20,6 +20,7 @@ const SKILL_SESSION_REVIEW = "session-review"
 const SKILL_AGENT_WORKFLOWS = "agent-workflows"
 const SKILL_WRITE_SKILL = "write-skill"
 const SKILL_TEXT_WRITING = "text-writing"
+const REVIEW_COMPLETION_MARKER = "ASK_REVIEW_COMPLETE"
 const VALID_EXECUTION_TIERS = new Set(["light", "standard", "heavy", "deep"])
 const VALID_DELEGATION_MODES = new Set(["auto", "prefer-subagent", "owner-only"])
 
@@ -133,6 +134,16 @@ function createEmptySessionState() {
 
 function unique(values) {
   return [...new Set(values.filter(Boolean))]
+}
+
+// Detect the explicit handoff marker emitted when a delegated code review is complete.
+function hasReviewCompletionSignal(value) {
+  if (typeof value === "string") return value.includes(REVIEW_COMPLETION_MARKER)
+  try {
+    return JSON.stringify(value)?.includes(REVIEW_COMPLETION_MARKER) === true
+  } catch {
+    return false
+  }
 }
 
 function hasPhraseSignal(query, phrases) {
@@ -387,39 +398,6 @@ function getSessionState(cache, sessionID) {
   return cache.get(sessionID) || createEmptySessionState()
 }
 
-// Check whether a provider's usage currently falls inside its peak-pricing
-// or session-drain window. Anthropic drains Claude session limits faster on
-// weekdays 13:00-19:00 UTC; DeepSeek doubles its price during 01:00-04:00
-// or 06:00-10:00 UTC. Returns false for unknown providers or off-window times.
-function isInPeakWindow(date, providerID) {
-  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return false
-  const provider = String(providerID || "").toLowerCase()
-  const day = date.getUTCDay()
-  const hour = date.getUTCHours() + date.getUTCMinutes() / 60
-
-  if (provider.includes("anthropic") || provider.includes("claude")) {
-    return day >= 1 && day <= 5 && hour >= 13 && hour < 19
-  }
-
-  if (provider.includes("deepseek")) {
-    return (hour >= 1 && hour < 4) || (hour >= 6 && hour < 10)
-  }
-
-  return false
-}
-
-// Build a short human-readable description of a provider's active peak window.
-function describePeakWindow(providerID) {
-  const provider = String(providerID || "").toLowerCase()
-  if (provider.includes("anthropic") || provider.includes("claude")) {
-    return "Claude peak hours (Mon-Fri 13:00-19:00 UTC) - session limit drains faster than usual"
-  }
-  if (provider.includes("deepseek")) {
-    return "DeepSeek peak window (01:00-04:00 or 06:00-10:00 UTC) - usage costs 2x"
-  }
-  return ""
-}
-
 module.exports = {
   CODE_EDIT_TOOL_IDS, CODE_WORK_TOOL_IDS, DEFAULT_MAX_HINTS, DEFAULT_MAX_LISTED_SKILLS,
   INTERACTION_GUARD_THRESHOLD, RECENT_TOOL_MAX,
@@ -427,11 +405,10 @@ module.exports = {
   SKILL_AGENT_WORKFLOWS, SKILL_CODE_REVIEW, SKILL_DEBUGGING,
   SKILL_SESSION_REVIEW, SKILL_IMPROVE, SKILL_DEVELOP, SKILL_INTAKE, SKILL_UI_UX,
   SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SPEC, COMPLETION_PHRASES, SKILL_DESIGN_REVIEW,
-  SKILL_TEXT_WRITING,
+  SKILL_TEXT_WRITING, REVIEW_COMPLETION_MARKER, hasReviewCompletionSignal,
   buildSkillOverview, cascadeRoute, buildExecutionProfile, loadSkills,
   createEmptySessionState, getSessionState, setSessionState,
   findSkill, hasPhraseSignal, routingHintLines,
   stripFrontmatter, toSingleLine, normalizeStringList,
   parseBooleanField, parseFrontmatter, unique,
-  isInPeakWindow, describePeakWindow,
 }
