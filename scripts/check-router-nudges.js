@@ -35,6 +35,7 @@ async function main() {
   const auditText = auditAppend?.append || ""
   check("first prompt contains session audit header", auditText.includes("FIRST ACTION: scan the decision tree"))
   check("first prompt contains kit overview", auditText.includes("╌ Agent Skills Kit ╌"))
+  check("first prompt exposes normal lifecycle status", auditText.includes("Workflow: PLAN | risk=normal"))
 
   // Blocked-tool guard: bash before any skill load returns the derived hint rows.
   const blocked = await plugin["tool.execute.before"]({ tool: "bash" })
@@ -53,24 +54,40 @@ async function main() {
     "auto-match nudge proposes debugging",
     (matchAppend?.append || "").includes("Match: debugging"),
   )
+  const releaseAppend = await plugin["tui.prompt.append"]({ prompt: "prepare release candidate" })
+  check(
+    "release prompt exposes release-sensitive lifecycle",
+    (releaseAppend?.append || "").includes("risk=release-sensitive")
+      && (releaseAppend?.append || "").includes("RELEASE_GATE"),
+  )
+  const specAppend = await plugin["tui.prompt.append"]({ prompt: "write requirements specification for this feature" })
+  check(
+    "spec prompt exposes spec gate",
+    (specAppend?.append || "").includes("risk=spec-required")
+      && (specAppend?.append || "").includes("TODO:SPEC"),
+  )
 
-  // Interaction guard: prompts count even when no tools run between them.
-  for (let interaction = 0; interaction < 2; interaction += 1) {
-    const append = await plugin["tui.prompt.append"]({ prompt: `routine interaction ${interaction}` })
+  // Interaction guard: use a fresh plugin so unrelated routing assertions do
+  // not change the exact interaction count this check is proving.
+  const guardPlugin = await (await import(PLUGIN_PATH)).AgentSkillsRouter()
+  await guardPlugin["session.created"]()
+  await guardPlugin["tui.prompt.append"]({ prompt: "guard start" })
+  for (let interaction = 0; interaction < 3; interaction += 1) {
+    const append = await guardPlugin["tui.prompt.append"]({ prompt: `routine interaction ${interaction}` })
     check(
-      `interaction guard stays quiet before five actions (${interaction + 3})`,
+      `interaction guard stays quiet before five actions (${interaction + 2})`,
       !(append?.append || "").includes("Working through 5 actions"),
     )
   }
-  const guardAppend = await plugin["tui.prompt.append"]({ prompt: "fifth routine interaction" })
+  const guardAppend = await guardPlugin["tui.prompt.append"]({ prompt: "fifth routine interaction" })
   check(
     "interaction guard uses five actions without tools",
     (guardAppend?.append || "").includes("Working through 5 actions"),
   )
 
   // A successful skill load resets the interaction guard.
-  await plugin["tool.execute.after"]({ tool: "skill" }, { args: { name: "develop" } })
-  const afterSkillLoad = await plugin["tui.prompt.append"]({ prompt: "reset check" })
+  await guardPlugin["tool.execute.after"]({ tool: "skill" }, { args: { name: "develop" } })
+  const afterSkillLoad = await guardPlugin["tui.prompt.append"]({ prompt: "reset check" })
   check(
     "skill load resets interaction guard",
     !(afterSkillLoad?.append || "").includes("Working through 5 actions"),

@@ -45,7 +45,8 @@ const {
   SKILL_CODE_REVIEW, SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SESSION_REVIEW,
   SKILL_UI_UX, SKILL_DESIGN_REVIEW,
   routingHintLines, cascadeRoute, hasPhraseSignal, COMPLETION_PHRASES,
-  hasReviewCompletionSignal, INTERACTION_GUARD_THRESHOLD,
+  hasReviewCompletionSignal, INTERACTION_GUARD_THRESHOLD, buildWorkflowState, workflowHintLines,
+  workflowForSkill, parseWorkflowEvidence, recordWorkflowEvidence,
 } = routerCore
 
 const CODE_EDIT_TOOL_IDS = new Set(["edit", "write", "apply_patch"])
@@ -117,6 +118,7 @@ function panelViewOf(st) {
     shouldCaptureImprovement: st.shouldCaptureImprovement === true,
     skillsLoadedCount: st.skillsLoadedCount,
     interactionCountSinceSkillLoad: st.interactionCountSinceSkillLoad,
+    workflow: st.workflow,
   }
 }
 
@@ -136,6 +138,7 @@ function normalizePanelView(data) {
     interactionCountSinceSkillLoad: Number.isFinite(data.interactionCountSinceSkillLoad)
       ? data.interactionCountSinceSkillLoad
       : 0,
+    workflow: data.workflow && typeof data.workflow === "object" ? data.workflow : buildWorkflowState("", null),
   }
 }
 
@@ -155,6 +158,7 @@ function emptyState() {
     shouldCaptureImprovement: false, skillsLoadedCount: 0, loadedSkills: [],
     interactionCountSinceSkillLoad: 0,
     steeredSkills: [],
+    workflow: buildWorkflowState("", null),
   }
 }
 
@@ -237,6 +241,7 @@ export function apply(ctx, config) {
     const showDevelopFallback = !hasSpecificMatch && st.skillsLoadedCount === 0
     lines.push(...routingHintLines().filter((line) => showDevelopFallback || !line.endsWith("→ develop")))
     if (st.lastMatch) { lines.push(""); lines.push(`Active: ${st.lastMatch}`) }
+    lines.push("", ...workflowHintLines(st.workflow))
     if (st.interactionCountSinceSkillLoad >= INTERACTION_GUARD_THRESHOLD && st.skillsLoadedCount === 0) {
       lines.push("→ Working through 5 actions without a loaded skill — `skill(name: 'develop')` sets workflow guardrails")
     }
@@ -318,6 +323,7 @@ export function apply(ctx, config) {
       }
       st.interactionCountSinceSkillLoad += 1
       st.lastMatch = cascadeRoute(text, SKILL_STUBS, st)?.matchedSkills?.[0]?.name || "develop"
+      st.workflow = buildWorkflowState(text, st)
       st.matchedAt = Date.now()
       if (hasPhraseSignal(text, COMPLETION_PHRASES)) {
         const pending = []
@@ -364,6 +370,12 @@ export function apply(ctx, config) {
     try {
       if (!result || result.isError) return
       const st = stateFor(exec.agent?.id)
+      const workflowEvidence = parseWorkflowEvidence(exec) || parseWorkflowEvidence(result)
+      if (workflowEvidence) {
+        st.workflow = recordWorkflowEvidence(st.workflow, workflowEvidence)
+        publishPanelState(exec?.agent, st)
+        return
+      }
       if (hasReviewCompletionSignal(result)) {
         st.needsCodeReview = false
         st.shouldCaptureImprovement = true
@@ -372,7 +384,9 @@ export function apply(ctx, config) {
         return
       }
       if (exec?.name !== "skill") return
-      applySkillFlips(st, skillNameOf(exec.arguments))
+      const loadedSkill = skillNameOf(exec.arguments)
+      st.workflow = workflowForSkill(st.workflow, loadedSkill)
+      applySkillFlips(st, loadedSkill)
       publishPanelState(exec.agent, st)
     } catch (error) {
       console.error("[ask-kit] skill tracking failed:", error)

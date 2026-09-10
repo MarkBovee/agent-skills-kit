@@ -5,15 +5,47 @@ when_to_use: "Common triggers: multi-agent, parallel work, agent coordination, t
 ---
 # ASK Agent Workflows
 
+Coordinate independent evidence, not agent activity for its own sake.
+
 ## Good fit
 
-Default to delegating auxiliary work. Spawn subagents freely; keep only what needs to persist in main context.
+Delegate only when it improves independence, coverage, specialist reasoning, or speed. The primary agent owns scope, integration, iteration, and final communication.
 
 - **any auxiliary work (default)** — grep, review, research, isolated edit
 - the work splits into independent parts
 - one branch is blocked on a slow command or external wait
 - a handoff between sessions is already happening
 - bounded release chore (version bump, changelog, release notes)
+
+## Lifecycle policy
+
+Select workflow depth by risk:
+
+1. **Small** — execute → validate. No subagent unless it materially improves proof.
+2. **Normal** — plan → execute → validate → review. Delegate validation or review when a second context improves confidence.
+3. **Significant** — intake → plan → plan-check → execute → validate → review → iterate → independent audit.
+4. **Release-sensitive** — significant flow plus release-gate. Release-gate consumes evidence and never modifies source.
+
+Keep phases distinct: validation asks whether defined checks pass; review checks requirements, regressions, and design risk; audit independently searches for counterexamples, bypasses, ambiguity, unsafe fallbacks, nondeterminism, and compatibility breaks.
+
+## Subagent evidence contract
+
+Return one explicit status with concrete evidence:
+
+- `ASK_WORKFLOW_PASS phase=VALIDATE` — required checks passed.
+- `ASK_WORKFLOW_FINDINGS phase=AUDIT` — actionable findings remain; include path, impact, invariant, severity, and regression needed.
+- `ASK_WORKFLOW_BLOCKED phase=REVIEW` — required context or capability is unavailable.
+- `ASK_WORKFLOW_FAILED phase=VALIDATE` — execution failed; include command and error.
+
+Missing output, timeout, and tool failure are not passes. For release-sensitive work, a required audit or release-gate that cannot run blocks release.
+
+## Finding loop
+
+P0/P1 findings follow: reproduce → regression test → minimal fix → validation → affected re-audit. Do not close a finding because code changed; re-prove its invariant.
+
+## Handoff context
+
+Give subagents requirements, acceptance criteria, repository state, and relevant diff. Do not pass the primary agent's conclusion as authoritative. Include the decision tree so the subagent can load the matching workflow itself.
 
 ## Not a good fit
 

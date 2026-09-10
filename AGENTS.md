@@ -10,7 +10,7 @@ Multi-platform skill-pack for OpenCode, Codex, GitHub Copilot, Claude Code, and 
 - `commands/<name>.md` — one slash command per skill, referencing its skill
 - `plugins/agent-skills-router.mjs` — OpenCode plugin: deterministic cascade routing, injects routing hints into system prompt
 - `plugins/agent-skills-router.dsh.mjs` — dsh (DeepSeek Harness) Cordis plugin: same router behavior as a preset row; requires `core/router-core.js` via a vendored copy in the installed preset
-- `core/router-core.js` — shared router helpers (cascade routing, session state, frontmatter parsing)
+- `core/router-core.js` — shared router helpers (cascade routing, lifecycle risk/state, session state, frontmatter parsing)
 - `scripts/` — install/update/bootstrap scripts (bash + PowerShell parity)
 - `README.md` — public docs
 - `AGENTS.md` — this file, for AI agents
@@ -86,7 +86,7 @@ Export targets (via `export-platform-skills.js`): OpenCode → `.opencode/comman
 - `node --input-type=module -e "import('./plugins/agent-skills-router.mjs')"` — verify it loads
 - `node -e "const {buildSkillOverview,createEmptySessionState}=require('./core/router-core'); const s=createEmptySessionState(); s.matchedSkills=[{name:'develop'}]; console.log(buildSkillOverview(s))"` — test decision-tree output
 - `node -e "import('./plugins/agent-skills-router.mjs').then(async m=>{const p=await m.AgentSkillsRouter(); await p['session.created'](); const r=await p['tui.prompt.append']({prompt:'test'}); console.log(r?.append?.slice(0,200))})"` — test plugin hooks
-- Keep plugin stateless except session-scoped state (tool tracking, skill-load events, audit flag)
+ - Keep plugin stateless except session-scoped state (tool tracking, skill-load events, lifecycle gates, audit flag)
 
 ### dsh router variant
 
@@ -100,9 +100,10 @@ Before claiming a fix ships:
 2. `node ./scripts/export-platform-skills.js` — exports regenerate
 3. Decision-tree check: `node -e "const {buildSkillOverview,createEmptySessionState}=require('./core/router-core'); console.log(buildSkillOverview(createEmptySessionState()))"` — output contains `╌ Agent Skills Kit ╌` and all 12 skills
 4. `node ./scripts/check-router-nudges.js` — nudge behavior (audit, blocked-tool guard, auto-match, review nudges) passes
-5. `node ./scripts/check-dsh-plugin.js` — dsh router variant passes (exports, config defaults, event wiring, strict gate, decision-tree drift)
-6. OpenCode plugin check: in a test session, verify `╌ Agent Skills Kit ╌` appears in the system prompt with the decision tree. If missing, check `opencode.json` `plugins` array includes `./plugins/agent-skills-router.mjs` and the file exists at that path.
-7. `./scripts/check-installed-artifacts.sh` — installs into isolated homes (fake dsh shim on PATH) and asserts the deployed user-visible strings — preset.yml description, router prompt header, widget status bar — match the repo, including refresh migration of a stale pre-English preset
+5. `node ./scripts/check-workflow-lifecycle.js` — risk profiles, lifecycle gates, evidence contract, and status output pass
+6. `node ./scripts/check-dsh-plugin.js` — dsh router variant passes (exports, config defaults, event wiring, strict gate, decision-tree drift)
+7. OpenCode plugin check: in a test session, verify `╌ Agent Skills Kit ╌` appears in the system prompt with the decision tree. If missing, check `opencode.json` `plugins` array includes `./plugins/agent-skills-router.mjs` and the file exists at that path.
+8. `./scripts/check-installed-artifacts.sh` — installs into isolated homes (fake dsh shim on PATH) and asserts the deployed user-visible strings — preset.yml description, router prompt header, widget status bar — match the repo, including refresh migration of a stale pre-English preset
 
 ## Install scripts
 

@@ -184,6 +184,8 @@ async function main() {
     const routed = await assemble({ sections: [] }, { agent: agent2 }, async () => ({ sections: [] }))
     const routedSection = routed.sections.find((entry) => entry.name === "ask-kit:router")
     check("cascade routes Dutch bug phrase to debugging", Boolean(routedSection) && routedSection.text.includes("Active: debugging"))
+    check("dsh exposes lifecycle risk and phase", Boolean(routedSection)
+      && routedSection.text.includes("Workflow:") && routedSection.text.includes("risk=normal"))
 
     // Tool-injected contexts (leading tool-result blocks) must not flip routing.
     const agentCtx = { id: "ctx-check" }

@@ -38,6 +38,10 @@ triggers:
 
 Match the proof to the claim. Bigger claim, stronger evidence.
 
+For delegated validation, report `ASK_WORKFLOW_PASS phase=VALIDATE`, `ASK_WORKFLOW_FINDINGS phase=VALIDATE`, `ASK_WORKFLOW_BLOCKED phase=VALIDATE`, or `ASK_WORKFLOW_FAILED phase=VALIDATE` with commands and evidence. Never turn a timeout, missing output, or tool failure into a pass.
+
+Validation proves defined technical checks. It does not replace review, independent audit, or release-gate evaluation.
+
 ## Verification
 
 Match the proof to the claim. Bigger claim, stronger evidence.

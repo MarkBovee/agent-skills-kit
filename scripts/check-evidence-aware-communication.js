@@ -22,6 +22,7 @@ async function checkEvidenceAwareCommunication() {
   const sharedGuidance = await readRepoFile("rules/agent-skills-kit.md")
   const inboxSkill = await readRepoFile("skills/ask-gh-inbox/SKILL.md")
   const sessionReviewSkill = await readRepoFile("skills/ask-session-review/SKILL.md")
+  const workflowRules = await readRepoFile("rules/agent-skills-kit.md")
 
   for (const phrase of [
     "## Evidence-aware communication",
@@ -49,6 +50,15 @@ async function checkEvidenceAwareCommunication() {
     "Prefer the smallest concrete next step over a broad diagnostic checklist.",
   ]) {
     assertIncludes(sessionReviewSkill, phrase, "skills/ask-session-review/SKILL.md")
+  }
+
+  for (const phrase of [
+    "## Lifecycle gates",
+    "Risk determines workflow depth",
+    "ASK_WORKFLOW_PASS",
+    "Missing output, timeout, or tool failure is not a pass",
+  ]) {
+    assertIncludes(workflowRules, phrase, "rules/agent-skills-kit.md")
   }
 }
 
