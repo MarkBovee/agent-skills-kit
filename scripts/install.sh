@@ -60,6 +60,34 @@ CURRENT_MANAGED_COMMANDS=""
 CURRENT_MANAGED_PROMPTS=""
 GENERATED_ASSETS_LOCK_HELD=0
 
+# Show compact interactive installer identity without polluting scripted output.
+show_ask_banner() {
+  [[ -t 1 ]] || return 0
+  [[ -n "${CI:-}" ]] && return 0
+
+  local use_color=1 use_unicode=1 reset="" accent=""
+  if [[ -n "${NO_COLOR:-}" || "${TERM:-}" == "dumb" ]]; then
+    use_color=0
+  fi
+  if [[ "${TERM:-}" == "dumb" || "${LC_ALL:-${LC_CTYPE:-${LANG:-}}}" =~ ^(C|POSIX)([.@].*)?$ ]]; then
+    use_unicode=0
+  fi
+
+  if [[ "$use_unicode" -eq 1 ]]; then
+    if [[ "$use_color" -eq 1 ]]; then
+      reset=$'\033[0m'
+      accent=$'\033[38;5;75m'
+    fi
+    printf '\n%s╭──────────────────────────────────────────────╮%s\n' "$accent" "$reset"
+    printf '%s│  ASK · Agent Skills Kit                      │%s\n' "$accent" "$reset"
+    printf '%s│  Workflow skills for coding agents           │%s\n' "$accent" "$reset"
+    printf '%s╰──────────────────────────────────────────────╯%s\n\n' "$accent" "$reset"
+    return 0
+  fi
+
+  printf '\nASK - Agent Skills Kit\nWorkflow skills for coding agents\n\n'
+}
+
 # Remove files from the pre-ASK installer without touching user-owned content.
 remove_legacy_install_artifacts() {
   rm -f \
@@ -105,6 +133,8 @@ cleanup_install() {
 }
 
 trap cleanup_install EXIT
+
+show_ask_banner
 
 # Write the Claude rule file when a Claude home already exists.
 write_claude_rules_file() {

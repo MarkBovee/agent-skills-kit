@@ -30,7 +30,7 @@ triggers:
 
 # ASK Spec
 
-Formalize agreed intent into one traceable specification and engineering contract before development. Humans own decisions; downstream agents should not need to rediscover intent.
+Formalize agreed intent into one traceable specification and engineering contract before development. The agent must establish what is agreed, why it is believed, how it is observed, and what evidence will prove it. Humans own decisions; downstream agents should not need to rediscover intent.
 
 ## Proportionality
 - **Trivial** — skip heavy spec; use `intake` or direct execution.
@@ -40,18 +40,18 @@ Formalize agreed intent into one traceable specification and engineering contrac
 Classify requirements by impact: **ordinary** = local behavior; **material** = violation could affect behavior, correctness, data, compatibility, architecture, ownership, routing, security, production safety, or release readiness; **critical** = material with severe potential impact. Material and critical requirements need deeper detail. Use impact, not numeric scoring or document size. Do not catalogue every edge case.
 
 ## Flow
-**Capture** — record need, context, goals, scope, non-goals, stakeholders, constraints, risks, dependencies, compatibility boundaries, open questions, and assumptions. Flag ambiguity; never assume.
+**Capture** — record need, context, goals, scope, non-goals, stakeholders, constraints, risks, dependencies, compatibility boundaries, open questions, and assumptions. Flag ambiguity; never assume. Keep the artifact proportional: ordinary work may need only a short requirements and acceptance record.
 
-**Structure** — produce one contract containing requirements, decisions, constraints, must-remain-unchanged behavior, non-goals, invariants, acceptance criteria, proof obligations, dependencies, compatibility, and change impact. Decisions record choice, owner, rationale, and status: `proposed`, `confirmed`, `rejected`, or `superseded`; only `confirmed` decisions are settled implementation input. For each material or critical requirement, preserve where relevant:
+**Structure** — produce one contract containing requirements, decisions, constraints, must-remain-unchanged behavior, non-goals, invariants, acceptance criteria, proof obligations, dependencies, compatibility, and change impact. Keep requirement, constraint, non-goal, protected behavior, and invariant distinct. Decisions record choice, owner, rationale, and status: `proposed`, `confirmed`, `rejected`, or `superseded`; only `confirmed` decisions are settled implementation input. AI may recommend options, but may not settle product, ownership, compatibility, or architectural decisions for a human owner. For each material or critical requirement, preserve where relevant:
 
 ```text
-Requirement → Invariant / expected behavior → Acceptance criterion → Proof obligation
+Requirement → expected behavior / invariant → observable acceptance criterion → claim → proof obligation → required evidence
 ```
-Distinguish: requirement = must be true; invariant = must never be violated; acceptance criterion = observable behavior; proof obligation = required evidence; counterexample = how behavior or invariant could fail.
+Distinguish: requirement = must be true; invariant = must never be violated; acceptance criterion = observable behavior; claim = statement that can be made after validation; proof obligation = what must be demonstrated about the claim; required evidence = the observations that demonstrate it; counterexample = how behavior or invariant could fail. `Run tests` is not a proof obligation by itself. If a material requirement cannot have a direct proof obligation, record why and what indirect evidence or human judgment is required.
 
-**Challenge** — make challenge investigative, not ritual. Inspect relevant requirements, existing behavior, architecture, callers, constraints, and available evidence before deciding whether a challenge applies; absence of a documented problem is not evidence that it does not exist.
+**Challenge** — investigate, do not complete a checklist. For each material or critical concern, inspect the relevant primary evidence first, then existing behavior, architecture and production callers, constraints, and compatibility boundaries. Challenge assumptions that could change implementation; record the finding and evidence, including evidence-backed non-applicability when useful. Absence of a documented problem is not evidence that it does not exist. Do not invent hypothetical edge cases without material relevance.
 
-For material or critical behavior, investigate applicable zero/multiple candidates, conflicting evidence, missing metadata, partial/invalid input, unsafe fallbacks, caller bypasses, ordering/determinism, dependency assumptions, and backwards-compatibility edges. Record findings, evidence-backed non-applicability, and failure modes. Derive audit targets from discovered assumptions, invariants, counterexamples, failure modes, and architectural boundaries, for example:
+For material or critical behavior, investigate only applicable failure modes such as zero or multiple candidates, conflicting evidence, missing metadata, partial or invalid input, unsafe fallbacks, caller bypasses, ordering/determinism, dependency assumptions, and backwards-compatibility edges. Record meaningful findings and failure modes. Derive audit targets from discovered assumptions, invariants, counterexamples, failure modes, bypass paths, fallback behavior, determinism requirements, compatibility boundaries, and ownership boundaries, for example:
 
 ```text
 INV-004: one authoritative ownership source
@@ -63,13 +63,13 @@ Use this model for material assumptions; status is `unverified`, `confirmed`, or
 ```text
 Assumption | Source | Owner | Status | Impact
 ```
-Never turn an unresolved assumption or inferred behavior into a normative requirement without evidence or explicit ownership.
+`confirmed` requires sufficient primary evidence or an explicit decision by the responsible human owner. If evidence is insufficient, keep the item `unverified`, state what evidence is missing, and name the owner needed to resolve it. Never turn inference into confirmation. Apply the same rule to a `confirmed` decision when its choice depends on an unresolved factual claim. Do not create an evidence score.
 
-**Validate** — check completeness, observability, proof readiness, ownership, contradictions, readiness, and handover. Explicitly detect contradictory requirements, incompatible constraints, conflicting decisions, unsatisfiable acceptance criteria, and compatibility conflicts; never resolve them silently.
+**Validate** — check completeness, observability, proof readiness, ownership, contradictions, readiness, and handover. Compare requirements, constraints, decisions, assumptions, protected behavior, observed behavior, and acceptance criteria for contradictions: detect incompatible constraints, conflicting decisions, unsatisfiable acceptance criteria, compatibility conflicts, and assumptions that conflict with evidence. Never resolve a conflict silently.
 
-For each material requirement, connect `claim → proof obligation → required evidence`, or record why it is not directly verifiable. State what must be demonstrated, not merely a tool or command. Prefer `Given ... When ... Then ...` where it fits. Do not mark `READY` with implementation-affecting uncertainty: material ambiguity/contradiction, unowned critical decision, unverified critical assumption, missing material acceptance/proof, or unresolved compatibility. Human-owned resolution must be recorded; inference is not resolution.
+For each material requirement, connect `claim → proof obligation → required evidence`, or record why it is not directly verifiable. State what must be demonstrated, not merely a tool or command. Prefer `Given ... When ... Then ...` where it fits. `READY` means development can proceed without rediscovering implementation-affecting intent. Do not mark it `READY` with material ambiguity or contradiction, an unowned critical decision, an unverified critical assumption, a missing material acceptance criterion or proof obligation, unresolved compatibility, or unresolved implementation-affecting behavior. Human-owned resolution must be recorded; inference is not resolution.
 
-**Transfer** — hand over one coherent artifact. `develop` gets build scope, confirmed decisions, constraints, must-remain-unchanged behavior, and non-goals; `verification` gets behavior, acceptance criteria, claims, proof obligations, and required evidence; `audit` gets derived targets from assumptions, invariants, counterexamples, bypass/fallback paths, determinism, compatibility risks, and architectural boundaries.
+**Transfer** — hand over one coherent artifact. `develop` gets build scope, confirmed decisions, constraints, must-remain-unchanged behavior, and non-goals; `verification` gets behavior, acceptance criteria, claims, proof obligations, and required evidence; `code-review` checks implementation against the contract; `improve`/audit gets derived targets from assumptions, invariants, counterexamples, bypass/fallback paths, determinism, compatibility risks, and architectural boundaries. `spec` formalizes and gates intent; it does not implement, verify, review, or audit.
 
 ## Traceability
 `Need → Context → Decision → Requirement → Invariant → Acceptance → Proof → Handover → Build`
