@@ -287,6 +287,10 @@ async function main() {
       for (const event of appended) state = unit.apply(state, event)
       check("fold lands on the last whole value", state !== null && state.needsDesignReview === true
         && Array.isArray(state.loadedSkills) && state.loadedSkills.includes("ui-ux"))
+      check("panel event exposes router-owned active skill", state.activeSkill === "ui-ux" && state.activeSkillLabel === "Ui Ux")
+      check("panel event exposes bounded routing confidence", Number.isFinite(state.confidence) && state.confidence >= 0 && state.confidence <= 1)
+      check("panel event exposes workflow route states", Array.isArray(state.workflow?.route)
+        && state.workflow.route.some((entry) => entry.state === "active"))
       check("schema accepts the folded view", unit.schema.parse(state) === state)
       check("schema accepts null (pre-first-event)", unit.schema.parse(null) === null)
       check("schema rejects non-object views", throws(() => unit.schema.parse(42)))

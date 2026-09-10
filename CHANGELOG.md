@@ -8,6 +8,10 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## [2.0.2] - 2026-09-10
 
+### Added
+
+- **Live ASK status panel.** The composer panel now renders router-core's active skill, deterministic routing-confidence score, and risk-aware workflow route from the existing `ask-kit/state` session event. The widget remains presentation-only; explicit skill selections, prompt evidence, ambiguity, and lifecycle state stay canonical in `router-core.js`.
+
 ### Changed
 
 - **Host-neutral ASK discovery.** GitHub Copilot and other supported agent runtimes now have explicit instructions for discovering canonical skills, selecting the most specific workflow, loading `SKILL.md`, and combining directly implied companion skills.

@@ -46,7 +46,7 @@ const {
   SKILL_UI_UX, SKILL_DESIGN_REVIEW,
   routingHintLines, cascadeRoute, hasPhraseSignal, COMPLETION_PHRASES,
   hasReviewCompletionSignal, INTERACTION_GUARD_THRESHOLD, buildWorkflowState, workflowHintLines,
-  workflowForSkill, parseWorkflowEvidence, recordWorkflowEvidence,
+  workflowForSkill, parseWorkflowEvidence, recordWorkflowEvidence, buildRoutingStatus,
 } = routerCore
 
 const CODE_EDIT_TOOL_IDS = new Set(["edit", "write", "apply_patch"])
@@ -110,6 +110,7 @@ function steerReviewSkill(agent, skill) {
 // per the projection layer's whole-value rule, so every fold is last-write-wins
 // and every served value is self-describing.
 function panelViewOf(st) {
+  const status = st.routing || buildRoutingStatus(null, st)
   return {
     loadedSkills: [...st.loadedSkills],
     lastMatch: st.lastMatch,
@@ -118,7 +119,12 @@ function panelViewOf(st) {
     shouldCaptureImprovement: st.shouldCaptureImprovement === true,
     skillsLoadedCount: st.skillsLoadedCount,
     interactionCountSinceSkillLoad: st.interactionCountSinceSkillLoad,
-    workflow: st.workflow,
+    activeSkill: status.activeSkill,
+    activeSkillLabel: status.activeSkillLabel,
+    confidence: status.confidence,
+    confidenceDisplay: status.confidenceDisplay,
+    routingEvidence: status.evidence,
+    workflow: status.workflow,
   }
 }
 
@@ -138,6 +144,11 @@ function normalizePanelView(data) {
     interactionCountSinceSkillLoad: Number.isFinite(data.interactionCountSinceSkillLoad)
       ? data.interactionCountSinceSkillLoad
       : 0,
+    activeSkill: typeof data.activeSkill === "string" ? data.activeSkill : null,
+    activeSkillLabel: typeof data.activeSkillLabel === "string" ? data.activeSkillLabel : null,
+    confidence: Number.isFinite(data.confidence) && data.confidence >= 0 && data.confidence <= 1 ? data.confidence : null,
+    confidenceDisplay: data.confidenceDisplay && typeof data.confidenceDisplay === "object" ? data.confidenceDisplay : null,
+    routingEvidence: data.routingEvidence && typeof data.routingEvidence === "object" ? data.routingEvidence : null,
     workflow: data.workflow && typeof data.workflow === "object" ? data.workflow : buildWorkflowState("", null),
   }
 }
@@ -159,6 +170,7 @@ function emptyState() {
     interactionCountSinceSkillLoad: 0,
     steeredSkills: [],
     workflow: buildWorkflowState("", null),
+    routing: null,
   }
 }
 
@@ -322,8 +334,10 @@ export function apply(ctx, config) {
         return
       }
       st.interactionCountSinceSkillLoad += 1
-      st.lastMatch = cascadeRoute(text, SKILL_STUBS, st)?.matchedSkills?.[0]?.name || "develop"
+      const route = cascadeRoute(text, SKILL_STUBS, st)
+      st.lastMatch = route?.matchedSkills?.[0]?.name || "develop"
       st.workflow = buildWorkflowState(text, st)
+      st.routing = buildRoutingStatus(route, st)
       st.matchedAt = Date.now()
       if (hasPhraseSignal(text, COMPLETION_PHRASES)) {
         const pending = []
@@ -373,6 +387,7 @@ export function apply(ctx, config) {
       const workflowEvidence = parseWorkflowEvidence(exec) || parseWorkflowEvidence(result)
       if (workflowEvidence) {
         st.workflow = recordWorkflowEvidence(st.workflow, workflowEvidence)
+        st.routing = buildRoutingStatus(null, st)
         publishPanelState(exec?.agent, st)
         return
       }
@@ -387,6 +402,7 @@ export function apply(ctx, config) {
       const loadedSkill = skillNameOf(exec.arguments)
       st.workflow = workflowForSkill(st.workflow, loadedSkill)
       applySkillFlips(st, loadedSkill)
+      st.routing = buildRoutingStatus(null, st, loadedSkill)
       publishPanelState(exec.agent, st)
     } catch (error) {
       console.error("[ask-kit] skill tracking failed:", error)
