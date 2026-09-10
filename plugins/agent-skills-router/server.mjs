@@ -31,7 +31,7 @@ const {
 } = resolveRouterCore()
 
 function resolveSkillPath() {
-  const candidates = [resolve(homedir(), ".agents", "skills"), resolve(here, "../skills")]
+  const candidates = [resolve(homedir(), ".agents", "skills"), resolve(here, "../../skills")]
   for (const p of candidates) { if (existsSync(p)) return p }
   return candidates[0]
 }
