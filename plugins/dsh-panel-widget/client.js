@@ -6,21 +6,23 @@ window.__ModuleLoader__.load({
 		var module = { exports: {} };
 		var exports = module.exports;
 		let react = require("react");
-		//#region ask-kit-panel client — ambient status line under the composer.
-		// Prototype semantics only: badge, loaded-skill chips, review nudges.
-		// The decision tree lives in the system prompt and is deliberately NOT
-		// mirrored here. State arrives reactively via the `askKit` session
+		//#region ask-kit-panel client — compact ASK routing status under the composer.
+		// Semantic state arrives completed from router-core via the `askKit` session
 		// projection (host fold of `ask-kit/state` whole-value events written
-		// by the ask-kit router row); there is no polling RPC anymore.
+		// by the ask-kit router row); this widget only presents that snapshot.
 		const PROJECTION_KEY = "askKit";
 		const SLOT_NAME = "conversation.composer.dock";
 		const SLOT_ID = "ask-kit-status";
 		const STYLE_TAG_ID = "ask-kit-panel/status.css";
-		const CSS = ".askk-bar{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dsw-alias-label-secondary);padding:2px 4px;flex-wrap:wrap}" +
-			".askk-badge{color:var(--dsw-alias-brand-primary);font-weight:600;white-space:nowrap}" +
-			".askk-chip{border:1px solid var(--dsw-alias-border-l1);border-radius:999px;padding:0 7px;line-height:16px;background:var(--dsw-alias-bg-layer-1);white-space:nowrap}" +
-			".askk-warn{color:var(--dsw-alias-state-warn-primary)}" +
-			".askk-ok{color:var(--dsw-alias-state-success-primary)}";
+		const CSS = ".askk-panel{min-width:200px;padding:8px 4px;color:var(--dsw-alias-label-secondary);font-size:11px;line-height:1.45}" +
+			".askk-title{color:var(--dsw-alias-brand-primary);font-size:12px;font-weight:600;margin-bottom:9px}" +
+			".askk-label{color:var(--dsw-alias-label-tertiary);font-size:10px;font-weight:600;letter-spacing:.06em;margin-top:8px}" +
+			".askk-value{color:var(--dsw-alias-label-primary);font-size:12px;font-weight:600}" +
+			".askk-meter{font-family:monospace;letter-spacing:-.1em;white-space:nowrap}" +
+			".askk-route{border-top:1px solid var(--dsw-alias-border-l1);margin-top:3px;padding-top:4px}" +
+			".askk-phase{white-space:nowrap}" +
+			".askk-phase-active{color:var(--dsw-alias-label-primary);font-weight:600}" +
+			".askk-empty{color:var(--dsw-alias-label-tertiary)}";
 		/**
 		* Insert the panel stylesheet once, shipped-package style, so HMR
 		* bookkeeping can find and remove the tag again.
@@ -37,23 +39,22 @@ window.__ModuleLoader__.load({
 			} catch { /* styling is cosmetic; never block activation */ }
 		}
 		/**
-		* Coerce one raw projection value into the render shape, returning null
-		* for anything absent or malformed so shape drift degrades to a hidden
-		* panel instead of a broken one.
+		* Coerce a router-owned snapshot into a safe render shape. This validates
+		* completed state only; it never derives skill, confidence, or workflow.
 		* @param value - whole projection view or undefined/null.
 		* @returns normalized view object, or null when there is nothing to show.
 		*/
 		function normalizeView(value) {
 			if (!value || typeof value !== "object") return null;
-			const loadedSkills = Array.isArray(value.loadedSkills)
-				? [...new Set(value.loadedSkills.filter((s) => typeof s === "string" && s.trim()))].slice(-6)
+			const route = Array.isArray(value.workflow?.route)
+				? value.workflow.route.filter((entry) => entry && typeof entry.phase === "string" && ["completed", "active", "pending"].includes(entry.state))
 				: [];
 			return {
-				loadedSkills,
-				lastMatch: typeof value.lastMatch === "string" ? value.lastMatch : "",
-				needsCodeReview: value.needsCodeReview === true,
-				needsDesignReview: value.needsDesignReview === true,
-				shouldCaptureImprovement: value.shouldCaptureImprovement === true,
+				activeSkillLabel: typeof value.activeSkillLabel === "string" && value.activeSkillLabel ? value.activeSkillLabel : null,
+				confidenceDisplay: value.confidenceDisplay && typeof value.confidenceDisplay.meter === "string" && Number.isFinite(value.confidenceDisplay.percent)
+					? value.confidenceDisplay
+					: null,
+				route,
 			};
 		}
 		/**
@@ -93,6 +94,7 @@ window.__ModuleLoader__.load({
 				let unsubscribe;
 				try {
 					const face = faceFactory();
+					setValue(undefined);
 					if (face) {
 						setValue(face.getSnapshot());
 						if (typeof face.subscribe === "function") {
@@ -111,8 +113,8 @@ window.__ModuleLoader__.load({
 			return value;
 		}
 		/**
-		* Ambient dock entry: one slim status line of chips and nudges, hidden
-		* entirely until the session carries an askKit projection value.
+		* Compact dock entry for router-owned routing status, hidden until the
+		* session carries an askKit projection value.
 		* @param props - slot props ({session, input}); only session.sessionId is read.
 		* @param sessions - captured client sessions service.
 		*/
@@ -124,21 +126,19 @@ window.__ModuleLoader__.load({
 			const raw = useProjectionValue(faceFactory);
 			const data = normalizeView(raw);
 			if (!data) return null;
-			const chips = [];
-			if (data.loadedSkills.length > 0) {
-				for (const s of data.loadedSkills) chips.push(react.createElement("span", { className: "askk-chip", key: s }, s));
-			} else {
-				chips.push(react.createElement("span", { className: "askk-chip", key: "none" }, "no skill loaded"));
-			}
-			const notes = [];
-			if (data.needsCodeReview) notes.push(react.createElement("span", { className: "askk-warn", key: "cr" }, "⚠ code-review needed"));
-			if (data.needsDesignReview) notes.push(react.createElement("span", { className: "askk-warn", key: "dr" }, "⚠ design-review needed"));
-			if (data.shouldCaptureImprovement) notes.push(react.createElement("span", { className: "askk-ok", key: "imp" }, "✓ capture improvement?"));
-			if (data.lastMatch && data.loadedSkills.length === 0) notes.push(react.createElement("span", { key: "match" }, "match: " + data.lastMatch));
-			return react.createElement("div", { className: "askk-bar" },
-				react.createElement("span", { className: "askk-badge" }, "╌ Agent Skills Kit ╌"),
-				chips,
-				notes);
+			const phases = data.route.length > 0
+				? data.route.map((entry) => react.createElement("div", { className: "askk-phase" + (entry.state === "active" ? " askk-phase-active" : ""), key: entry.phase },
+					entry.state === "pending" ? "○ " : "● ", entry.phase.charAt(0) + entry.phase.slice(1).toLowerCase().replace(/_/g, " ")))
+				: react.createElement("div", { className: "askk-empty" }, "No workflow");
+			return react.createElement("section", { className: "askk-panel", "aria-label": "Agent Skills Kit status" },
+				react.createElement("div", { className: "askk-title" }, "Agent Skills Kit"),
+				react.createElement("div", { className: "askk-label" }, "ACTIVE SKILL"),
+				react.createElement("div", { className: data.activeSkillLabel ? "askk-value" : "askk-empty" }, data.activeSkillLabel || "Not matched"),
+				react.createElement("div", { className: "askk-label" }, "CONFIDENCE"),
+				react.createElement("div", { className: data.confidenceDisplay ? "askk-value askk-meter" : "askk-empty" },
+					data.confidenceDisplay ? data.confidenceDisplay.meter + " " + data.confidenceDisplay.percent + "%" : "Unavailable"),
+				react.createElement("div", { className: "askk-label" }, "ROUTING"),
+				react.createElement("div", { className: "askk-route" }, phases));
 		}
 		/**
 		* Client plugin body: stylesheet plus the composer dock registration.

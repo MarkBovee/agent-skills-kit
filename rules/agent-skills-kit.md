@@ -44,6 +44,12 @@ Router status reports current phase, risk, required gates, subagent evidence cou
 
 Subagent results must use explicit `ASK_WORKFLOW_PASS`, `ASK_WORKFLOW_FINDINGS`, `ASK_WORKFLOW_BLOCKED`, or `ASK_WORKFLOW_FAILED` markers with a phase. Missing output, timeout, or tool failure is not a pass.
 
+## Status panel
+
+The compact ASK panel shows the active routed skill, routing confidence, and current workflow route. `core/router-core.js` produces this snapshot; router adapters emit it through the existing `ask-kit/state` event and the widget only renders it.
+
+Confidence is a deterministic routing score, not an ML probability. Explicit skill selection scores highest; specific, multiple signals improve the score; competing signals reduce it. Workflow markers retain `completed`, `active`, and `pending` state internally. Solid markers are reached gates, hollow markers are pending.
+
 ## Evidence-aware communication
 
 When interacting with users, issue reporters, reviewers, or maintainers:

@@ -1,9 +1,8 @@
 # ask-kit-panel (dsh dual-face widget)
 
-The slim Agent Skills Kit status line under the DSH web composer: badge
-`╌ Agent Skills Kit ╌`, loaded-skill chips, and review nudges (⚠ code-review /
-design-review, ✓ improvement). No decision tree in the UI — the tree stays in the
-system prompt; this surface only mirrors live session state.
+Compact Agent Skills Kit status panel under the DSH web composer. It shows only
+the router-owned active skill, deterministic routing-confidence score, and
+workflow route. It performs no routing or lifecycle inference.
 
 This is the persistent successor of the `askkit-1` runtime demo
 (`../dsh-panel-prototype/`): a real dual-face package instead of a
@@ -23,8 +22,9 @@ This is the persistent successor of the `askkit-1` runtime demo
 
 ## State bridge
 
-The **ask-kit router row** (`plugins/agent-skills-router.dsh.mjs`) owns the
-canonical skill/review state. On every mutation it appends a whole-value
+`core/router-core.js` owns the canonical active skill, confidence, and workflow
+route snapshot. The **ask-kit router row** (`plugins/agent-skills-router.dsh.mjs`)
+appends it with its existing tracking state as a whole-value
 `ask-kit/state` event to the agent's session log (`agent.session.append`) — the
 whole-value rule keeps replay trivially cheap. It also registers the `askKit`
 projection unit via `ctx.inject(["sessionProjections"], …)`: a pure fold
@@ -33,6 +33,12 @@ so preset-local rows stay free of bare npm specifiers.
 
 The client reads only the finished view from the projection store; sessions
 without an askKit value (no router row mounted) render nothing.
+
+Confidence is a deterministic routing score, not an ML probability. Explicit
+skill selection scores highest; prompt signal specificity and count increase the
+score, while competing matching intents reduce it. Route markers retain
+`completed`, `active`, and `pending` state; solid markers mean a reached gate,
+while hollow markers are pending.
 
 ## Install
 

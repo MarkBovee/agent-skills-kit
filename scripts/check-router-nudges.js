@@ -7,6 +7,7 @@
 
 const {
   COMPLETION_PHRASES,
+  getSessionState,
   routingHintLines,
 } = require("../core/router-core")
 
@@ -92,6 +93,9 @@ async function main() {
     "skill load resets interaction guard",
     !(afterSkillLoad?.append || "").includes("Working through 5 actions"),
   )
+  await guardPlugin["tool.execute.after"]({ tool: "skill" }, { args: { name: "write-skill" } })
+  const openCodeStatus = getSessionState(new Map(), "missing")
+  check("empty session routing state is safe", openCodeStatus.routing.activeSkill === null && openCodeStatus.routing.confidence === null)
 
   // Code-edit tracking: an edit tool sets the code-review nudge.
   await plugin["tool.execute.after"]({ tool: "edit" }, {})

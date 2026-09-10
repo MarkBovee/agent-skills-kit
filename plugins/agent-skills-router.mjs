@@ -27,6 +27,7 @@ const {
   buildSkillOverview, cascadeRoute, getSessionState, loadSkills,
   setSessionState, hasPhraseSignal, toSingleLine, unique,
   hasReviewCompletionSignal, routingHintLines, buildWorkflowState, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
+  buildRoutingStatus,
 } = resolveRouterCore()
 
 function resolveSkillPath() {
@@ -95,6 +96,7 @@ export const AgentSkillsRouter = async () => {
           executionProfile: route?.executionProfile || null,
           interactionCountSinceSkillLoad: (state.interactionCountSinceSkillLoad || 0) + 1,
           workflow,
+          routing: buildRoutingStatus(route, { ...state, workflow }),
         })
 
         if (!state.hasDoneSessionAudit) {
@@ -155,7 +157,8 @@ export const AgentSkillsRouter = async () => {
 
       const workflowEvidence = parseWorkflowEvidence(input) || parseWorkflowEvidence(output)
       if (workflowEvidence) {
-        setSessionState(sessionState, SESSION_KEY, { ...base, workflow: recordWorkflowEvidence(state.workflow, workflowEvidence) })
+        const workflow = recordWorkflowEvidence(state.workflow, workflowEvidence)
+        setSessionState(sessionState, SESSION_KEY, { ...base, workflow, routing: buildRoutingStatus(null, { ...state, workflow }) })
         return
       }
       if (isReviewCompletion(input, output)) {
@@ -167,13 +170,14 @@ export const AgentSkillsRouter = async () => {
       const skillName = resolveSkillName(input, output)
       if (!skillName) { setSessionState(sessionState, SESSION_KEY, base); return }
       const skillWorkflow = workflowForSkill(state.workflow, skillName)
-      if (skillName === SKILL_CODE_REVIEW) { setSessionState(sessionState, SESSION_KEY, { ...base, needsCodeReview: false, shouldCaptureImprovement: true, workflow: skillWorkflow }); return }
-      if (skillName === SKILL_VERIFICATION) { setSessionState(sessionState, SESSION_KEY, { ...base, shouldCaptureImprovement: true, workflow: skillWorkflow }); return }
-      if (skillName === SKILL_WRITE_SKILL) { setSessionState(sessionState, SESSION_KEY, { ...base, shouldCaptureImprovement: false }); return }
-      if (skillName === SKILL_SESSION_REVIEW) { setSessionState(sessionState, SESSION_KEY, { ...base, shouldCaptureImprovement: false }); return }
-      if (skillName === SKILL_UI_UX) { setSessionState(sessionState, SESSION_KEY, { ...base, needsDesignReview: true, workflow: skillWorkflow }); return }
-      if (skillName === SKILL_DESIGN_REVIEW) { setSessionState(sessionState, SESSION_KEY, { ...base, needsDesignReview: false }); return }
-      setSessionState(sessionState, SESSION_KEY, base)
+      const routing = buildRoutingStatus(null, { ...state, workflow: skillWorkflow }, skillName)
+      if (skillName === SKILL_CODE_REVIEW) { setSessionState(sessionState, SESSION_KEY, { ...base, needsCodeReview: false, shouldCaptureImprovement: true, workflow: skillWorkflow, routing }); return }
+      if (skillName === SKILL_VERIFICATION) { setSessionState(sessionState, SESSION_KEY, { ...base, shouldCaptureImprovement: true, workflow: skillWorkflow, routing }); return }
+      if (skillName === SKILL_WRITE_SKILL) { setSessionState(sessionState, SESSION_KEY, { ...base, shouldCaptureImprovement: false, routing }); return }
+      if (skillName === SKILL_SESSION_REVIEW) { setSessionState(sessionState, SESSION_KEY, { ...base, shouldCaptureImprovement: false, routing }); return }
+      if (skillName === SKILL_UI_UX) { setSessionState(sessionState, SESSION_KEY, { ...base, needsDesignReview: true, workflow: skillWorkflow, routing }); return }
+      if (skillName === SKILL_DESIGN_REVIEW) { setSessionState(sessionState, SESSION_KEY, { ...base, needsDesignReview: false, routing }); return }
+      setSessionState(sessionState, SESSION_KEY, { ...base, routing })
     },
   }
 }

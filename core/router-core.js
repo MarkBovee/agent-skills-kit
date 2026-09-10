@@ -26,6 +26,9 @@ const VALID_DELEGATION_MODES = new Set(["auto", "prefer-subagent", "owner-only"]
 const WORKFLOW_PHASES = ["INTAKE", "SPEC", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "ITERATE", "AUDIT", "RELEASE_GATE", "DONE", "BLOCKED"]
 const WORKFLOW_RISK_LEVELS = new Set(["small", "normal", "spec-required", "significant", "release-sensitive"])
 const SPEC_REQUIRED_PHRASES = ["specify requirements", "requirements spec", "requirements specification", "design brief", "decision register", "requirements traceability", "spec before build", "behavior-changing", "behavior changing", "new external contract", "new external contracts", "acceptance criteria unclear", "unclear acceptance criteria"]
+const RELEASE_RISK_PHRASES = ["release candidate", "production readiness", "ready to ship", "ready to merge", "release-sensitive"]
+const SIGNIFICANT_RISK_PHRASES = ["architecture", "architectural", "migration", "ownership", "routing change", "multi-module", "backwards compatibility", "cross-cutting", "significant refactor"]
+const SMALL_RISK_PHRASES = ["typo", "documentation-only", "docs only", "rename variable", "version bump", "changelog tweak"]
 
 const CODE_WORK_TOOL_IDS = new Set(["edit", "write", "apply_patch"])
 const RECENT_TOOL_MAX = 20
@@ -132,6 +135,7 @@ function createEmptySessionState() {
     toolCallCount: 0, interactionCountSinceSkillLoad: 0,
     recentToolIds: [], recentEditedPaths: [],
     hasDoneSessionAudit: false, skillsLoadedCount: 0,
+    routing: { activeSkill: null, activeSkillLabel: null, confidence: null, evidence: null },
     workflow: {
       risk: "normal", phase: "PLAN", requiredPhases: ["PLAN", "EXECUTE", "VALIDATE", "REVIEW"],
       completedGates: [], subagents: [], unresolvedFindings: [], releaseStatus: "NOT_REQUIRED",
@@ -164,6 +168,14 @@ function hasPhraseSignal(query, phrases) {
       return normalized.includes(phrase)
     }
   })
+}
+
+// Count distinct phrase signals so routing confidence can expose deterministic
+// evidence without changing the cascade's priority-based selection.
+function matchingPhrases(query, phrases) {
+  const normalized = String(query || "").trim().toLowerCase()
+  if (!normalized) return []
+  return phrases.filter((phrase) => hasPhraseSignal(normalized, [phrase]))
 }
 
 function stripQuotes(value) {
@@ -233,11 +245,18 @@ function parseDelegationMode(value, fallback = "auto") {
 function classifyWorkflowRisk(query) {
   const normalized = String(query || "").trim().toLowerCase()
   if (!normalized) return "normal"
-  if (hasPhraseSignal(normalized, ["release candidate", "production readiness", "ready to ship", "ready to merge", "release-sensitive"])) return "release-sensitive"
+  if (hasPhraseSignal(normalized, RELEASE_RISK_PHRASES)) return "release-sensitive"
   if (hasPhraseSignal(normalized, SPEC_REQUIRED_PHRASES)) return "spec-required"
-  if (hasPhraseSignal(normalized, ["architecture", "architectural", "migration", "ownership", "routing change", "multi-module", "backwards compatibility", "cross-cutting", "significant refactor"])) return "significant"
-  if (hasPhraseSignal(normalized, ["typo", "documentation-only", "docs only", "rename variable", "version bump", "changelog tweak"])) return "small"
+  if (hasPhraseSignal(normalized, SIGNIFICANT_RISK_PHRASES)) return "significant"
+  if (hasPhraseSignal(normalized, SMALL_RISK_PHRASES)) return "small"
   return "normal"
+}
+
+// Treat only an explicit lifecycle-risk signal as a new route selection. Plain
+// follow-up prompts retain the current task's risk and accumulated evidence.
+function hasWorkflowRiskSignal(query) {
+  const normalized = String(query || "").trim().toLowerCase()
+  return hasPhraseSignal(normalized, [...RELEASE_RISK_PHRASES, ...SPEC_REQUIRED_PHRASES, ...SIGNIFICANT_RISK_PHRASES, ...SMALL_RISK_PHRASES])
 }
 
 // Select lifecycle gates for a risk level while keeping release decisions
@@ -260,9 +279,11 @@ function requiredWorkflowPhases(risk, query = "") {
 
 // Build observable lifecycle state for router surfaces and subagent handoffs.
 function buildWorkflowState(query, previous = null) {
-  const risk = classifyWorkflowRisk(query)
-  const requiredPhases = requiredWorkflowPhases(risk, query)
   const previousWorkflow = previous?.workflow || {}
+  const risk = previousWorkflow.risk && !hasWorkflowRiskSignal(query)
+    ? previousWorkflow.risk
+    : classifyWorkflowRisk(query)
+  const requiredPhases = requiredWorkflowPhases(risk, query)
   const sameRisk = previousWorkflow.risk === risk
   return {
     risk,
@@ -287,6 +308,104 @@ function workflowHintLines(workflow) {
     `Workflow: ${workflow.phase} | risk=${workflow.risk} | ${gates.join(" ")}`,
     `Evidence: subagents=${(workflow.subagents || []).length} | unresolved-findings=${findings} | release=${workflow.releaseStatus}`,
   ]
+}
+
+// Describe each required gate from explicit workflow state. A gate is never
+// considered complete merely because it appears before the current phase.
+function workflowRoute(workflow) {
+  if (!workflow || !Array.isArray(workflow.requiredPhases)) return []
+  const completed = new Set(Array.isArray(workflow.completedGates) ? workflow.completedGates : [])
+  const route = workflow.requiredPhases.map((phase) => ({
+    phase,
+    state: completed.has(phase) ? "completed" : (workflow.phase === phase ? "active" : "pending"),
+  }))
+  if (workflow.phase && !route.some((entry) => entry.state === "active") && ["ITERATE", "AUDIT", "RELEASE_GATE", "DONE", "BLOCKED"].includes(workflow.phase)) {
+    route.push({ phase: workflow.phase, state: "active" })
+  }
+  return route
+}
+
+// Format the canonical skill identity for compact human-facing status surfaces.
+function skillDisplayName(skillName) {
+  if (typeof skillName !== "string" || !skillName.trim()) return null
+  return skillName.trim().split("-").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ")
+}
+
+// Keep routing-confidence scores in the documented [0, 1] interval.
+function clampConfidence(value) {
+  return Math.max(0, Math.min(1, value))
+}
+
+// Score a selected route from observable signals, not as a probability. An
+// explicit skill invocation wins over prompt matching; competing route signals
+// reduce confidence even though cascade priority still selects one skill.
+function routingConfidence(route) {
+  const evidence = route?.routingEvidence
+  if (!evidence?.activeSkill) return { confidence: null, evidence: null }
+  if (evidence.explicit) {
+    return {
+      confidence: 1,
+      evidence: { source: "explicit-skill", matchingSignals: 1, competingSkills: [], cascadePriority: null },
+    }
+  }
+  if (evidence.source === "fallback") {
+    return {
+      confidence: 0.45,
+      evidence: { source: "default-fallback", matchingSignals: 0, competingSkills: [], cascadePriority: null },
+    }
+  }
+  const matchingSignals = evidence.matchingSignals || []
+  const longestSignal = Math.max(...matchingSignals.map((signal) => signal.length), 0)
+  const signalBonus = Math.min(Math.max(matchingSignals.length - 1, 0) * 0.06, 0.12)
+  const specificityBonus = longestSignal >= 12 ? 0.08 : 0
+  const priorityBonus = evidence.cascadePriority === 0 ? 0.08 : 0.04
+  const ambiguityPenalty = Math.min((evidence.competingSkills || []).length * 0.1, 0.25)
+  const sessionBonus = evidence.matchesLoadedSkill ? 0.05 : 0
+  return {
+    confidence: clampConfidence(0.6 + signalBonus + specificityBonus + priorityBonus + sessionBonus - ambiguityPenalty),
+    evidence: {
+      source: "prompt-signals",
+      matchingSignals: matchingSignals.length,
+      competingSkills: evidence.competingSkills || [],
+      cascadePriority: evidence.cascadePriority,
+    },
+  }
+}
+
+// Build presentation-ready confidence text once so all panels render the same
+// deterministic score without independently interpreting routing evidence.
+function confidenceDisplay(confidence) {
+  if (!Number.isFinite(confidence)) return null
+  const percent = Math.round(clampConfidence(confidence) * 100)
+  const filled = Math.round(percent / 5)
+  return { percent, meter: `${"█".repeat(filled)}${"░".repeat(20 - filled)}` }
+}
+
+// Build the canonical status snapshot shared by prompt, event, and panel
+// surfaces. Presentation layers receive final facts and make no semantic calls.
+function buildRoutingStatus(route, sessionState, explicitSkill = "") {
+  const previous = sessionState?.routing || {}
+  const activeSkill = explicitSkill || route?.matchedSkills?.[0]?.name || previous.activeSkill || null
+  const statusRoute = explicitSkill
+    ? { ...route, routingEvidence: { activeSkill, explicit: true } }
+    : route
+  const confidence = statusRoute ? routingConfidence(statusRoute) : { confidence: previous.confidence ?? null, evidence: previous.evidence ?? null }
+  const workflow = sessionState?.workflow
+  return {
+    activeSkill,
+    activeSkillLabel: skillDisplayName(activeSkill),
+    confidence: confidence.confidence,
+    confidenceDisplay: confidenceDisplay(confidence.confidence),
+    evidence: confidence.evidence,
+    workflow: workflow
+      ? {
+        phase: workflow.phase,
+        requiredPhases: [...(workflow.requiredPhases || [])],
+        completedGates: [...(workflow.completedGates || [])],
+        route: workflowRoute(workflow),
+      }
+      : null,
+  }
 }
 
 // Parse explicit subagent evidence without treating missing or malformed output
@@ -472,35 +591,68 @@ function cascadeRoute(query, skills, sessionState) {
   const q = query.trim().toLowerCase()
   if (!q) {
     const fallback = findSkill(skills, SKILL_DEVELOP)
-    return { matchedSkills: fallback ? [fallback] : [], executionProfile: buildExecutionProfile(fallback, "") }
+    return {
+      matchedSkills: fallback ? [fallback] : [], executionProfile: buildExecutionProfile(fallback, ""),
+      routingEvidence: fallback ? { activeSkill: fallback.name, source: "fallback" } : null,
+    }
   }
-  const tryRoute = (phrases, name) => {
-    if (!hasPhraseSignal(q, phrases)) return null
+  const candidates = [
+    [SPEC_PHRASES, SKILL_SPEC], [AMBIGUITY_PHRASES, SKILL_INTAKE], [BUG_PHRASES, SKILL_DEBUGGING],
+    [REVIEW_PHRASES, SKILL_CODE_REVIEW], [COMPLETION_PHRASES, SKILL_VERIFICATION], [IMPROVE_PHRASES, SKILL_IMPROVE],
+    [SESSION_REVIEW_PHRASES, SKILL_SESSION_REVIEW], [AGENT_PHRASES, SKILL_AGENT_WORKFLOWS], [WRITE_SKILL_PHRASES, SKILL_WRITE_SKILL],
+    [UI_PHRASES, SKILL_UI_UX], [TEXT_WRITING_PHRASES, SKILL_TEXT_WRITING],
+  ]
+  const matchedCandidates = candidates.map(([phrases, name], cascadePriority) => ({ name, cascadePriority, signals: matchingPhrases(q, phrases) }))
+    .filter((candidate) => candidate.signals.length > 0)
+  const tryRoute = (phrases, name, cascadePriority) => {
+    const signals = matchingPhrases(q, phrases)
+    if (signals.length === 0) return null
     const skill = findSkill(skills, name)
-    return skill ? { matchedSkills: [skill], executionProfile: buildExecutionProfile(skill, q) } : null
+    if (!skill) return null
+    return {
+      matchedSkills: [skill], executionProfile: buildExecutionProfile(skill, q),
+      routingEvidence: {
+        activeSkill: skill.name,
+        source: "prompt",
+        matchingSignals: signals,
+        competingSkills: matchedCandidates.filter((candidate) => candidate.name !== name).map((candidate) => candidate.name),
+        cascadePriority,
+        matchesLoadedSkill: (sessionState.loadedSkills || []).includes(skill.name),
+      },
+    }
   }
 return (
-    tryRoute(SPEC_PHRASES, SKILL_SPEC) ||                   // 1. Start (explicit spec)
-    tryRoute(AMBIGUITY_PHRASES, SKILL_INTAKE) ||            // 2. Start
-    tryRoute(BUG_PHRASES, SKILL_DEBUGGING) ||               // 2. Execute
-    tryRoute(REVIEW_PHRASES, SKILL_CODE_REVIEW) ||          // 3. Validate
+    tryRoute(SPEC_PHRASES, SKILL_SPEC, 0) ||                   // 1. Start (explicit spec)
+    tryRoute(AMBIGUITY_PHRASES, SKILL_INTAKE, 1) ||            // 2. Start
+    tryRoute(BUG_PHRASES, SKILL_DEBUGGING, 2) ||               // 2. Execute
+    tryRoute(REVIEW_PHRASES, SKILL_CODE_REVIEW, 3) ||          // 3. Validate
     (sessionState.needsCodeReview && (() => {
       if (!hasPhraseSignal(q, COMPLETION_PHRASES)) return null
       const primary = findSkill(skills, SKILL_CODE_REVIEW)
       if (!primary) return null
       const secondary = findSkill(skills, SKILL_VERIFICATION)
-      return { matchedSkills: secondary ? [primary, secondary] : [primary], executionProfile: buildExecutionProfile(primary, q) }
+      return {
+        matchedSkills: secondary ? [primary, secondary] : [primary], executionProfile: buildExecutionProfile(primary, q),
+        routingEvidence: {
+          activeSkill: primary.name, source: "prompt", matchingSignals: matchingPhrases(q, COMPLETION_PHRASES),
+          competingSkills: matchedCandidates.filter((candidate) => candidate.name !== primary.name).map((candidate) => candidate.name),
+          cascadePriority: 4, matchesLoadedSkill: (sessionState.loadedSkills || []).includes(primary.name),
+        },
+      }
     })()) ||
-    tryRoute(COMPLETION_PHRASES, SKILL_VERIFICATION) ||     // 4. Validate
-    tryRoute(IMPROVE_PHRASES, SKILL_IMPROVE) ||           // 5. Improve
-    tryRoute(SESSION_REVIEW_PHRASES, SKILL_SESSION_REVIEW) ||         // 6. Improve
-    tryRoute(AGENT_PHRASES, SKILL_AGENT_WORKFLOWS) ||       // 7. Coordinate
-    tryRoute(WRITE_SKILL_PHRASES, SKILL_WRITE_SKILL) ||     // 8. Coordinate
-    tryRoute(UI_PHRASES, SKILL_UI_UX) ||                    // 9. Product
-    tryRoute(TEXT_WRITING_PHRASES, SKILL_TEXT_WRITING) ||   // 10. Product
+    tryRoute(COMPLETION_PHRASES, SKILL_VERIFICATION, 4) ||     // 4. Validate
+    tryRoute(IMPROVE_PHRASES, SKILL_IMPROVE, 5) ||           // 5. Improve
+    tryRoute(SESSION_REVIEW_PHRASES, SKILL_SESSION_REVIEW, 6) ||         // 6. Improve
+    tryRoute(AGENT_PHRASES, SKILL_AGENT_WORKFLOWS, 7) ||       // 7. Coordinate
+    tryRoute(WRITE_SKILL_PHRASES, SKILL_WRITE_SKILL, 8) ||     // 8. Coordinate
+    tryRoute(UI_PHRASES, SKILL_UI_UX, 9) ||                    // 9. Product
+    tryRoute(TEXT_WRITING_PHRASES, SKILL_TEXT_WRITING, 10) ||   // 10. Product
     (() => {
       const fallback = findSkill(skills, SKILL_DEVELOP)
-      return { matchedSkills: fallback ? [fallback] : [], executionProfile: buildExecutionProfile(fallback, q) }
+      return {
+        matchedSkills: fallback ? [fallback] : [], executionProfile: buildExecutionProfile(fallback, q),
+        routingEvidence: fallback ? { activeSkill: fallback.name, source: "fallback" } : null,
+      }
     })()                                                     // 11. Execute (default)
   )
 }
@@ -537,10 +689,10 @@ module.exports = {
   SKILL_SESSION_REVIEW, SKILL_IMPROVE, SKILL_DEVELOP, SKILL_INTAKE, SKILL_UI_UX,
   SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SPEC, COMPLETION_PHRASES, SKILL_DESIGN_REVIEW,
   SKILL_TEXT_WRITING, REVIEW_COMPLETION_MARKER, hasReviewCompletionSignal,
-  buildSkillOverview, cascadeRoute, buildExecutionProfile, loadSkills,
+  buildSkillOverview, cascadeRoute, buildExecutionProfile, buildRoutingStatus, routingConfidence, confidenceDisplay, workflowRoute, skillDisplayName, loadSkills,
   createEmptySessionState, getSessionState, setSessionState,
   findSkill, hasPhraseSignal, routingHintLines,
-  classifyWorkflowRisk, requiredWorkflowPhases, buildWorkflowState, workflowHintLines, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
+  classifyWorkflowRisk, hasWorkflowRiskSignal, requiredWorkflowPhases, buildWorkflowState, workflowHintLines, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
   stripFrontmatter, toSingleLine, normalizeStringList,
   parseBooleanField, parseFrontmatter, unique,
 }
