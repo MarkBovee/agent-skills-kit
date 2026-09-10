@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [1.9.3] - 2026-09-10
+
+### Fixed
+
+- **OpenCode router installation.** The router now resolves `router-core.js` from both repository checkouts and installed `plugins/core/` layouts. Bash and PowerShell installers also remove stale `nebu-skills-router` plugin entries from `opencode.json`.
+
 ## [1.9.2] - 2026-09-08
 
 ### Changed
