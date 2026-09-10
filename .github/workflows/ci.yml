@@ -39,6 +39,9 @@ jobs:
       - name: Validate workflow lifecycle
         run: node ./scripts/check-workflow-lifecycle.js
 
+      - name: Validate ASK panel widget
+        run: node ./scripts/check-panel-widget.js
+
       - name: Check release readiness
         run: node ./scripts/check-release-readiness.js
 

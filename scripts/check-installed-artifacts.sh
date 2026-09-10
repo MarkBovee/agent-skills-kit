@@ -101,14 +101,14 @@ assert_installed_strings() {
     "$DSH_HOME/.agent-presets/ask-kit/plugins/ask-kit-router.mjs" "╌ Agent Skills Kit ╌" present
   assert_grep "vendored router-core carries the English decision-tree line" \
     "$DSH_HOME/.agent-presets/ask-kit/vendor/router-core.js" "Decision tree — load a different skill" present
-  assert_grep "installed widget shows the English status badge" \
-    "$DSH_HOME/client-plugins/ask-kit-panel/client.js" "╌ Agent Skills Kit ╌" present
-  assert_grep "installed widget shows the English no-skill chip" \
-    "$DSH_HOME/client-plugins/ask-kit-panel/client.js" "no skill loaded" present
-  assert_grep "installed widget shows the English review nudge" \
-    "$DSH_HOME/client-plugins/ask-kit-panel/client.js" "⚠ code-review needed" present
-  assert_grep "installed widget shows the English improvement nudge" \
-    "$DSH_HOME/client-plugins/ask-kit-panel/client.js" "✓ capture improvement?" present
+  assert_grep "installed widget shows the ASK status title" \
+    "$DSH_HOME/client-plugins/ask-kit-panel/client.js" "Agent Skills Kit" present
+  assert_grep "installed widget shows active skill hierarchy" \
+    "$DSH_HOME/client-plugins/ask-kit-panel/client.js" "ACTIVE SKILL" present
+  assert_grep "installed widget shows confidence hierarchy" \
+    "$DSH_HOME/client-plugins/ask-kit-panel/client.js" "CONFIDENCE" present
+  assert_grep "installed widget shows routing hierarchy" \
+    "$DSH_HOME/client-plugins/ask-kit-panel/client.js" "ROUTING" present
   assert_grep "installed opencode core carries the English header" \
     "$OPENCODE_DIR/plugins/core/router-core.js" "╌ Agent Skills Kit ╌" present
   assert_grep "shared root contains Codex-discoverable skills" \
