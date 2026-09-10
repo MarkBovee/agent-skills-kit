@@ -531,6 +531,7 @@ try {
 
     Copy-Item -LiteralPath $opencodeCoreSource -Destination $opencodePluginCoreTarget -Recurse
     Remove-Item -LiteralPath (Join-Path $opencodePluginsTarget "agent-skills-router.mjs") -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath (Join-Path $opencodePluginsTarget "agent-skills-sidebar.tsx") -Force -ErrorAction SilentlyContinue
     $opencodeRouterTarget = Join-Path $opencodePluginsTarget "agent-skills-router"
     if (Test-Path -LiteralPath $opencodeRouterTarget) {
         Remove-Item -LiteralPath $opencodeRouterTarget -Recurse -Force
@@ -588,6 +589,29 @@ try {
             $changed = $true
         }
     if ($changed) { $cfg | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $opencodeJsonPath }
+
+    # TUI plugins have no directory auto-discovery: OpenCode only loads TUI entries
+    # listed in tui.json. Register the router's sidebar entry here and retire the
+    # legacy standalone sidebar plugin so the old widget cannot keep rendering.
+    $opencodeTuiJsonPath = Join-Path $OpencodeDir "tui.json"
+    if (-not (Test-Path -LiteralPath $opencodeTuiJsonPath)) {
+        "{}" | Set-Content -LiteralPath $opencodeTuiJsonPath
+    }
+    $tuiCfg = Get-Content -LiteralPath $opencodeTuiJsonPath -Raw | ConvertFrom-Json
+    $tuiChanged = $false
+    if ($tuiCfg.PSObject.Properties.Match("plugin").Count -eq 0 -or $null -eq $tuiCfg.plugin -or $tuiCfg.plugin -isnot [System.Array]) {
+        $tuiCfg | Add-Member -NotePropertyName plugin -NotePropertyValue @() -Force
+        $tuiChanged = $true
+    }
+    $legacyTuiPlugins = @("./plugins/agent-skills-sidebar.tsx")
+    $filteredTuiPlugins = @($tuiCfg.plugin | Where-Object { $_ -notin $legacyTuiPlugins })
+    if ($filteredTuiPlugins.Count -ne @($tuiCfg.plugin).Count) {
+        $tuiCfg.plugin = $filteredTuiPlugins
+        $tuiChanged = $true
+    }
+    $tuiPluginSpec = "./plugins/agent-skills-router/tui.tsx"
+    if ($tuiPluginSpec -notin $tuiCfg.plugin) { $tuiCfg.plugin += $tuiPluginSpec; $tuiChanged = $true }
+    if ($tuiChanged) { $tuiCfg | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $opencodeTuiJsonPath }
 
     if (Test-Path -LiteralPath $ClaudeDir) {
         New-Item -ItemType Directory -Force -Path $claudeRulesTarget | Out-Null

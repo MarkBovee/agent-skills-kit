@@ -119,6 +119,12 @@ assert_installed_strings() {
     "$OPENCODE_DIR/opencode.json" "./plugins/agent-skills-router" present
   assert_grep "installer removes old OpenCode router file configuration" \
     "$OPENCODE_DIR/opencode.json" "./plugins/agent-skills-router.mjs" absent
+  assert_grep "installer registers the OpenCode TUI sidebar entry" \
+    "$OPENCODE_DIR/tui.json" "./plugins/agent-skills-router/tui.tsx" present
+  assert_grep "installer retires the legacy OpenCode sidebar config" \
+    "$OPENCODE_DIR/tui.json" "./plugins/agent-skills-sidebar.tsx" absent
+  assert_grep "installer removes the legacy OpenCode sidebar plugin file" \
+    "$OPENCODE_DIR/plugins/agent-skills-sidebar.tsx" "agent-skills-sidebar" absent
   assert_grep "installed opencode core carries the English header" \
     "$OPENCODE_DIR/plugins/core/router-core.js" "╌ Agent Skills Kit ╌" present
   assert_grep "shared root contains Codex-discoverable skills" \

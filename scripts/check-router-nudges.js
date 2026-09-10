@@ -29,7 +29,7 @@ function check(label, condition, detail) {
 async function main() {
   const { AgentSkillsRouter } = await import(PLUGIN_PATH)
   const plugin = await AgentSkillsRouter()
-  await plugin["session.created"]()
+  await plugin.event({ event: { type: "session.created", properties: { info: { id: "default" } } } })
 
   // Fresh session: first prompt injects the skill catalog audit plus decision tree.
   const auditAppend = await plugin["tui.prompt.append"]({ prompt: "start hier" })
@@ -71,7 +71,7 @@ async function main() {
   // Interaction guard: use a fresh plugin so unrelated routing assertions do
   // not change the exact interaction count this check is proving.
   const guardPlugin = await (await import(PLUGIN_PATH)).AgentSkillsRouter()
-  await guardPlugin["session.created"]()
+  await guardPlugin.event({ event: { type: "session.created", properties: { info: { id: "default" } } } })
   await guardPlugin["tui.prompt.append"]({ prompt: "guard start" })
   for (let interaction = 0; interaction < 3; interaction += 1) {
     const append = await guardPlugin["tui.prompt.append"]({ prompt: `routine interaction ${interaction}` })
@@ -172,27 +172,34 @@ async function main() {
     client: {
       session: {
         get: async (input) => {
-          if (input?.sessionID !== "panel-session") throw new Error("invalid session get arguments")
+          if (input?.path?.id !== "panel-session") throw new Error("invalid session get arguments")
           return { data: { metadata } }
         },
         update: async (input) => {
-          if (input?.sessionID !== "panel-session" || !input.metadata?.askKit) throw new Error("invalid session update arguments")
-          Object.assign(metadata, input.metadata)
+          if (input?.path?.id !== "panel-session" || !input.body?.metadata?.askKit) throw new Error("invalid session update arguments")
+          Object.assign(metadata, input.body.metadata)
           metadataUpdates.push(input)
         },
       },
     },
   })
-  await panelPlugin["session.created"]({ sessionID: "panel-session" })
+  await panelPlugin.event({ event: { type: "session.created", properties: { info: { id: "panel-session" } } } })
   await new Promise((resolve) => setTimeout(resolve, 0))
-  const emptyPanelMetadata = metadataUpdates.at(-1)?.metadata
+  const emptyPanelMetadata = metadataUpdates.at(-1)?.body?.metadata
   check("new session persists safe empty sidebar state", emptyPanelMetadata?.askKit?.activeSkill === null
     && emptyPanelMetadata.askKit?.confidence === null && emptyPanelMetadata.askKit?.workflow?.route?.length > 0)
   await panelPlugin["tui.prompt.append"]({ sessionID: "panel-session", prompt: "fix this bug in the parser" })
   await new Promise((resolve) => setTimeout(resolve, 0))
-  const panelMetadata = metadataUpdates.at(-1)?.metadata
+  const panelMetadata = metadataUpdates.at(-1)?.body?.metadata
   check("router persists the canonical status snapshot for the TUI", panelMetadata?.preserved === true
     && panelMetadata.askKit?.activeSkill === "debugging" && panelMetadata.askKit?.workflow?.route?.length > 0)
+  await panelPlugin["chat.message"](
+    { sessionID: "panel-session" },
+    { message: { role: "user" }, parts: [{ type: "text", text: "write requirements specification for this feature" }] },
+  )
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  const chatMetadata = metadataUpdates.at(-1)?.body?.metadata
+  check("chat.message persists the canonical status snapshot", chatMetadata?.askKit?.activeSkill === "spec")
 
   if (failedChecks > 0) {
     console.error(`\n${failedChecks} nudge check(s) failed.`)
