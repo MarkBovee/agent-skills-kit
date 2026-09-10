@@ -81,9 +81,11 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
       .catch(() => {})
       .then(async () => {
         try {
-          const current = await client.session.get({ sessionID })
+          // The plugin client is the v1 SDK: path params live under `path` and
+          // the body under `body`. Flattened shapes build a literal `{id}` URL.
+          const current = await client.session.get({ path: { id: sessionID } })
           const metadata = current?.data?.metadata || {}
-          await client.session.update({ sessionID, metadata: { ...metadata, askKit: state.routing } })
+          await client.session.update({ path: { id: sessionID }, body: { metadata: { ...metadata, askKit: state.routing } } })
         } catch { /* sidebar state is best-effort and must never block routing */ }
       })
     pendingPersistence.set(sessionID, next)
@@ -99,60 +101,94 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
     persistStatus(key, state)
     return state
   }
+  // Route one user prompt, advance workflow state, and persist the canonical
+  // status snapshot. Returns the decision-tree append section for the prompt.
+  async function processPrompt(input, promptText) {
+    let state = getSessionState(sessionState, sessionKey(input))
+    const skills = await getSkills()
+    const extraLines = []
+
+    // A delegated review returns through the parent prompt rather than a local skill tool result.
+    if (hasReviewCompletionSignal(promptText)) {
+      state = save(input, { needsCodeReview: false, shouldCaptureImprovement: true })
+    }
+
+    const route = cascadeRoute(promptText, skills, state)
+    const matchSkill = route?.matchedSkills?.[0]
+    const loadedSkills = state.loadedSkills || []
+    if (matchSkill && matchSkill.name !== SKILL_DEVELOP && !loadedSkills.includes(matchSkill.name)) {
+      extraLines.push(`→ Match: ${matchSkill.name} — call \`skill(name: '${matchSkill.name}')\` now`)
+    }
+
+    const workflow = buildWorkflowState(promptText, state)
+    state = save(input, {
+      matchedSkills: route?.matchedSkills || [],
+      executionProfile: route?.executionProfile || null,
+      interactionCountSinceSkillLoad: (state.interactionCountSinceSkillLoad || 0) + 1,
+      workflow,
+      routing: buildRoutingStatus(route, { ...state, workflow }),
+    })
+
+    if (!state.hasDoneSessionAudit) {
+      const auditLines = ["FIRST ACTION: scan the decision tree, load matching skill before any code or tools:"]
+      for (const s of skills) {
+        auditLines.push(`  • ${s.name}: ${toSingleLine(s.description, 70)}`)
+      }
+      auditLines.push("Call `skill(name: '...')` now to load the right workflow.")
+      save(input, { hasDoneSessionAudit: true })
+      const overview = buildSkillOverview(state)
+      const section = [...extraLines, ...auditLines].join("\n")
+      return `\n--- Agent Skills Kit ---\n${section}\n\n${overview}`
+    }
+
+    if ((state.needsCodeReview || state.needsDesignReview) && hasPhraseSignal(promptText, COMPLETION_PHRASES)) {
+      save(input, { needsCodeReview: false, needsDesignReview: false, shouldCaptureImprovement: true })
+    }
+
+    const lines = buildSkillOverview(state)
+    const section = [...extraLines, lines].join("\n")
+    return `\n--- Agent Skills Kit ---\n${section}`
+  }
+
+  // Join the user text parts of a chat.message payload for routing analysis.
+  function promptTextFromMessage(output) {
+    const parts = Array.isArray(output?.parts) ? output.parts : []
+    return parts
+      .filter((part) => part?.type === "text" && typeof part.text === "string")
+      .map((part) => part.text)
+      .join(" ")
+      .trim()
+  }
+
   return {
-    "session.created": async (input) => {
-      try { await getSkills() } catch { /* ok */ }
-      const state = getSessionState(sessionState, sessionKey(input))
-      save(input, { routing: buildRoutingStatus(null, state) })
+    // Real server hook: a user message arrived. Analyze and persist status so
+    // the TUI sidebar reflects the current route before the model responds.
+    "chat.message": async (input, output) => {
+      try {
+        const promptText = promptTextFromMessage(output)
+        if (!promptText) return
+        await processPrompt(input, promptText)
+      } catch { /* plugin error, skip ask hints this prompt */ }
     },
+    // Real server hook: initialize safe sidebar state when a session starts.
+    event: async ({ event } = {}) => {
+      try {
+        if (event?.type !== "session.created") return
+        const sessionID = event?.properties?.info?.id
+        await getSkills()
+        const input = { sessionID }
+        const state = getSessionState(sessionState, sessionKey(input))
+        save(input, { routing: buildRoutingStatus(null, state) })
+      } catch { /* ok */ }
+    },
+    // Legacy TUI event hook kept for host compatibility; returns the prompt
+    // append section for hosts that still dispatch it.
     "tui.prompt.append": async (input) => {
       try {
         const promptText = (input?.prompt || input?.text || "").trim()
         if (!promptText) return
-        let state = getSessionState(sessionState, sessionKey(input))
-        const skills = await getSkills()
-        const extraLines = []
-
-        // A delegated review returns through the parent prompt rather than a local skill tool result.
-        if (hasReviewCompletionSignal(promptText)) {
-          state = save(input, { needsCodeReview: false, shouldCaptureImprovement: true })
-        }
-
-        const route = cascadeRoute(promptText, skills, state)
-        const matchSkill = route?.matchedSkills?.[0]
-        const loadedSkills = state.loadedSkills || []
-        if (matchSkill && matchSkill.name !== SKILL_DEVELOP && !loadedSkills.includes(matchSkill.name)) {
-          extraLines.push(`→ Match: ${matchSkill.name} — call \`skill(name: '${matchSkill.name}')\` now`)
-        }
-
-        const workflow = buildWorkflowState(promptText, state)
-        state = save(input, {
-          matchedSkills: route?.matchedSkills || [],
-          executionProfile: route?.executionProfile || null,
-          interactionCountSinceSkillLoad: (state.interactionCountSinceSkillLoad || 0) + 1,
-          workflow,
-          routing: buildRoutingStatus(route, { ...state, workflow }),
-        })
-
-        if (!state.hasDoneSessionAudit) {
-          const auditLines = ["FIRST ACTION: scan the decision tree, load matching skill before any code or tools:"]
-          for (const s of skills) {
-            auditLines.push(`  • ${s.name}: ${toSingleLine(s.description, 70)}`)
-          }
-          auditLines.push("Call `skill(name: '...')` now to load the right workflow.")
-          save(input, { hasDoneSessionAudit: true })
-          const overview = buildSkillOverview(state)
-          const section = [...extraLines, ...auditLines].join("\n")
-          return { append: `\n--- Agent Skills Kit ---\n${section}\n\n${overview}` }
-        }
-
-        if ((state.needsCodeReview || state.needsDesignReview) && hasPhraseSignal(promptText, COMPLETION_PHRASES)) {
-          save(input, { needsCodeReview: false, needsDesignReview: false, shouldCaptureImprovement: true })
-        }
-
-        const lines = buildSkillOverview(state)
-        const section = [...extraLines, lines].join("\n")
-        return { append: `\n--- Agent Skills Kit ---\n${section}` }
+        const append = await processPrompt(input, promptText)
+        return append ? { append } : undefined
       } catch { /* plugin error, skip ask hints this prompt */ }
     },
     "tool.execute.before": async (input) => {

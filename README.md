@@ -186,6 +186,7 @@ Manual install copies:
 * all folders under `~/.agents/skills/`
 * `core/router-core.js`
 * `plugins/agent-skills-router/` — dual-entrypoint router package: server routing hooks and TUI sidebar panel
+* `tui.json` entry `./plugins/agent-skills-router/tui.tsx` — required because OpenCode has no directory auto-discovery for TUI plugins
 
 Common OpenCode config locations:
 

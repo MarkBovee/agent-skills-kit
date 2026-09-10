@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.0.4] - 2026-09-10
+
+### Fixed
+
+- **OpenCode ASK sidebar not loading.** OpenCode has no directory auto-discovery for TUI plugins: a sidebar must be listed in `tui.json`. The Bash and PowerShell installers now register `./plugins/agent-skills-router/tui.tsx` there and retire the legacy `./plugins/agent-skills-sidebar.tsx` entry and file, which had kept the old widget rendering. The router now persists its status snapshot through the plugin's real hooks (`chat.message`, `event`, `tool.execute.after`) and the v1 SDK option shape (`{ path, body }`), which earlier flattened calls never stored, and the TUI panel reads that metadata through reactive memos so it appears and updates as the router persists state.
+
 ## [2.0.3] - 2026-09-10
 
 ### Fixed

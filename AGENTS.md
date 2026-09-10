@@ -87,6 +87,8 @@ Export targets (via `export-platform-skills.js`): OpenCode → `.opencode/comman
 - `node -e "const {buildSkillOverview,createEmptySessionState}=require('./core/router-core'); const s=createEmptySessionState(); s.matchedSkills=[{name:'develop'}]; console.log(buildSkillOverview(s))"` — test decision-tree output
 - `node -e "import('./plugins/agent-skills-router/server.mjs').then(async m=>{const p=await m.AgentSkillsRouter(); await p['session.created'](); const r=await p['tui.prompt.append']({prompt:'test'}); console.log(r?.append?.slice(0,200))})"` — test plugin hooks
  - Keep plugin stateless except session-scoped state (tool tracking, skill-load events, lifecycle gates, audit flag)
+ - Sidebar state is persisted through the plugin's v1 SDK client: `client.session.get({ path: { id } })` and `client.session.update({ path: { id }, body: { metadata } })`. Flattened shapes (`{ sessionID }`) build a literal `{id}` URL and fail with HTTP 500. Persist from real hooks only (`chat.message`, `event`, `tool.execute.after`); `tui.prompt.append` is a TUI-bus event, not a server hook, and `session.created` is not a hook — handle it via `event`.
+ - TUI plugins are **not** auto-discovered. `tui.tsx` only loads when `tui.json` lists it (`./plugins/agent-skills-router/tui.tsx`). The installers write that entry and remove the legacy `./plugins/agent-skills-sidebar.tsx` entry/file; `check-installed-artifacts.sh` guards both. The terminal is a dumb presentation layer: read router state through `createMemo`, never compute it in the TUI.
 
 ### dsh router variant
 
@@ -102,7 +104,7 @@ Before claiming a fix ships:
 4. `node ./scripts/check-router-nudges.js` — nudge behavior (audit, blocked-tool guard, auto-match, review nudges) passes
 5. `node ./scripts/check-workflow-lifecycle.js` — risk profiles, lifecycle gates, evidence contract, and status output pass
 6. `node ./scripts/check-dsh-plugin.js` — dsh router variant passes (exports, config defaults, event wiring, strict gate, decision-tree drift)
-7. OpenCode plugin check: in a test session, verify `╌ Agent Skills Kit ╌` appears in the system prompt and status panel appears in sidebar. If missing, check `opencode.json` `plugins` array includes `./plugins/agent-skills-router` and package has `server.mjs` plus `tui.tsx`.
+7. OpenCode plugin check: in a test session, verify `╌ Agent Skills Kit ╌` appears in the system prompt and status panel appears in sidebar. If missing, check `opencode.json` `plugins` array includes `./plugins/agent-skills-router` (server) **and** `tui.json` lists `./plugins/agent-skills-router/tui.tsx` (TUI), since TUI plugins are not auto-discovered. The package needs `server.mjs` plus `tui.tsx`.
 8. `./scripts/check-installed-artifacts.sh` — installs into isolated homes (fake dsh shim on PATH) and asserts the deployed user-visible strings — preset.yml description, router prompt header, widget status bar — match the repo, including refresh migration of a stale pre-English preset
 
 ## Install scripts

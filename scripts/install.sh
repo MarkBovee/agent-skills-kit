@@ -513,6 +513,7 @@ rm -rf "$OPENCODE_PLUGINS_TARGET/core"
 cp -R "$OPENCODE_CORE_SOURCE" "$OPENCODE_PLUGINS_TARGET/core"
 rm -f "$OPENCODE_PLUGINS_TARGET/agent-skills-router.mjs"
 rm -rf "$OPENCODE_PLUGINS_TARGET/agent-skills-router"
+rm -f "$OPENCODE_PLUGINS_TARGET/agent-skills-sidebar.tsx"
 cp -R "$OPENCODE_PLUGINS_SOURCE/agent-skills-router" "$OPENCODE_PLUGINS_TARGET/agent-skills-router"
 
 # Install rules for OpenCode.
@@ -541,6 +542,24 @@ node -e "
     c.permission.external_directory=c.permission.external_directory||{};
     var ocPath=require('path').resolve(require('os').homedir(),'.config','opencode')+'/**';
     if(c.permission.external_directory[ocPath]!=='allow'){c.permission.external_directory[ocPath]='allow';}
+    fs.writeFileSync(f,JSON.stringify(c,null,2)+'\n');
+  "
+
+# TUI plugins have no directory auto-discovery: OpenCode only loads TUI entries
+# listed in tui.json. Register the router's sidebar entry here and retire the
+# legacy standalone sidebar plugin so the old widget cannot keep rendering.
+OPENCODE_TUI_JSON="$OPENCODE_DIR/tui.json"
+if [ ! -f "$OPENCODE_TUI_JSON" ]; then
+  printf '{}\n' > "$OPENCODE_TUI_JSON"
+fi
+node -e "
+    var fs=require('fs'), f='$OPENCODE_TUI_JSON';
+    var c=JSON.parse(fs.readFileSync(f,'utf-8'));
+    c.plugin=Array.isArray(c.plugin)?c.plugin:[];
+    var legacy='./plugins/agent-skills-sidebar.tsx';
+    c.plugin=c.plugin.filter(function(p){return p!==legacy;});
+    var p='./plugins/agent-skills-router/tui.tsx';
+    if(!c.plugin.includes(p)){c.plugin.push(p);}
     fs.writeFileSync(f,JSON.stringify(c,null,2)+'\n');
   "
 
