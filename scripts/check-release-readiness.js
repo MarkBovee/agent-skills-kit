@@ -106,7 +106,8 @@ function validateVersion(version) {
   return errors
 }
 
-// Validate that shipped changes moved VERSION ahead of the latest stable tag.
+// Validate that shipped changes moved VERSION ahead of the latest stable tag,
+// except when changelog edits explicitly update an already-published release.
 function validateVersionAheadOfLatestStable(version, latestStableVersion, changedPaths) {
   const errors = []
 
@@ -120,7 +121,8 @@ function validateVersionAheadOfLatestStable(version, latestStableVersion, change
     return errors
   }
 
-  if (compareSemVer(version, latestStableVersion) <= 0) {
+  const isExplicitPublishedReleaseUpdate = version === latestStableVersion && changedPaths.includes("CHANGELOG.md")
+  if (compareSemVer(version, latestStableVersion) <= 0 && !isExplicitPublishedReleaseUpdate) {
     const samplePaths = releaseSensitivePaths.slice(0, 5).join(", ")
     const suffix = releaseSensitivePaths.length > 5 ? ", ..." : ""
     errors.push(
