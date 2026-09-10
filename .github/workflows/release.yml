@@ -56,6 +56,7 @@ jobs:
         env:
           TAG: ${{ steps.version.outputs.tag }}
         run: |
+          git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG" 2>/dev/null || true
           if git show-ref --tags --verify --quiet "refs/tags/$TAG"; then
             if [ "$(git rev-list -n 1 "$TAG")" != "$GITHUB_SHA" ]; then
               echo "Tag $TAG already exists on a different commit."
@@ -66,7 +67,14 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git tag -a "$TAG" -m "Release $TAG"
-            git push origin "$TAG"
+            if ! git push origin "$TAG"; then
+              git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG"
+              if [ "$(git rev-list -n 1 "$TAG")" != "$GITHUB_SHA" ]; then
+                echo "Tag $TAG was created on a different commit while this job was running."
+                exit 1
+              fi
+              echo "Tag $TAG was created concurrently on this commit."
+            fi
           fi
 
       - name: Extract changelog entry
