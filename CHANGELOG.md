@@ -6,6 +6,13 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.0.1] - 2026-09-10
+
+### Changed
+
+- **Spec contract refinement.** `spec` now makes evidence sufficiency, investigative challenge, material traceability, contradiction detection, derived audit targets, and implementation-affecting `READY` blockers explicit without changing lifecycle ownership or proportionality.
+- **Installer presentation.** Interactive Bash and PowerShell installs now show a compact ASK terminal banner with ANSI/Unicode output and plain-text fallback; redirected and CI output remains unchanged.
+
 ## [2.0.0] - 2026-09-10
 
 ### Added

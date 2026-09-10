@@ -57,6 +57,31 @@ $managedCommandsManifest = ".ask-managed-commands.txt"
 $managedPromptsManifest = ".ask-managed-prompts.txt"
 $dshSectionMarker = "<!-- agent-skills-kit:dsh -->"
 
+# Show compact interactive installer identity without polluting scripted output.
+function Show-AskBanner {
+    if ([Console]::IsOutputRedirected -or $env:CI) {
+        return
+    }
+
+    $useColor = -not $env:NO_COLOR -and $env:TERM -ne "dumb"
+    $locale = if ($env:LC_ALL) { $env:LC_ALL } elseif ($env:LC_CTYPE) { $env:LC_CTYPE } else { $env:LANG }
+    $useUnicode = $env:TERM -ne "dumb" -and $locale -notmatch '^(C|POSIX)([.@].*)?$'
+    if ($useColor -and $useUnicode) {
+        Write-Host ""
+        Write-Host "╭──────────────────────────────────────────────╮" -ForegroundColor DarkCyan
+        Write-Host "│  ASK · Agent Skills Kit                      │" -ForegroundColor DarkCyan
+        Write-Host "│  Workflow skills for coding agents           │" -ForegroundColor DarkCyan
+        Write-Host "╰──────────────────────────────────────────────╯" -ForegroundColor DarkCyan
+        Write-Host ""
+        return
+    }
+
+    Write-Host ""
+    Write-Host "ASK - Agent Skills Kit"
+    Write-Host "Workflow skills for coding agents"
+    Write-Host ""
+}
+
 # Remove files from the pre-ASK installer without touching user-owned content.
 function Remove-LegacyInstallArtifacts {
     $legacyPaths = @(
@@ -88,6 +113,9 @@ function Remove-LegacyInstallArtifacts {
         }
     }
 }
+
+# Render installer identity before file operations begin.
+Show-AskBanner
 
 # Write the Claude rule file when a Claude home already exists.
 function Write-ClaudeRulesFile {
