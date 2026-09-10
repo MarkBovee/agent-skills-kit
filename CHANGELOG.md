@@ -6,6 +6,15 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.0.0] - 2026-09-10
+
+### Added
+
+- **Risk-based lifecycle gates (issue #51).** ASK now exposes an observable `INTAKE` → `PLAN` → `PLAN_CHECK` → `EXECUTE` → `VALIDATE` → `REVIEW` → `ITERATE` → `AUDIT` → `RELEASE_GATE` lifecycle, scales required phases for small, normal, significant, and release-sensitive work, and carries explicit subagent evidence states (`PASS`, `FINDINGS`, `BLOCKED`, `FAILED`) without treating missing output as success.
+- **Independent evidence workflow.** Existing intake, development, agent-coordination, code-review, and verification skills now define plan checks, validation/review/audit separation, reproduce → regression → fix → validate → re-audit loops, release-gate inputs, and read-only release decisions. OpenCode and dsh surface lifecycle risk, phase, gates, subagent count, unresolved findings, and release status.
+- **Conditional specification gate.** Requirements-driven, behavior-changing, unclear, and external-contract work now follows `INTAKE → SPEC → PLAN`; ordinary bugs and small edits remain proportional.
+- **Proof-oriented specifications.** The `spec` skill now produces a proportional engineering contract covering requirements, decisions, constraints, assumptions, invariants, acceptance criteria, proof obligations, counterexamples, dependencies, compatibility, non-goals, and change impact for downstream development, verification, and audit.
+
 ## [1.9.4] - 2026-09-10
 
 ### Added

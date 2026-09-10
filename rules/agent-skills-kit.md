@@ -28,6 +28,22 @@ Normal software work (default)           → develop
 | `→ Working without loaded skill` | 5+ interactions without loading any skill. Load one now. |
 | `→ Improvement found? skill(name: 'session-review')` | Session uncovered a reusable workflow gap worth filing. |
 
+## Lifecycle gates
+
+Risk determines workflow depth:
+
+1. Small: `EXECUTE → VALIDATE`.
+2. Normal: `PLAN → EXECUTE → VALIDATE → REVIEW`.
+3. Spec-required: `INTAKE → SPEC → PLAN → PLAN_CHECK → EXECUTE → VALIDATE → REVIEW`.
+4. Significant: `INTAKE → PLAN → PLAN_CHECK → EXECUTE → VALIDATE → REVIEW → ITERATE → AUDIT`.
+5. Release-sensitive: significant flow plus `RELEASE_GATE`.
+
+`SPEC` is required for explicit requirements/design-brief intent, unclear acceptance criteria, behavior-changing work, and new external contracts. It is not required for ordinary bugs, small edits, or known implementation work.
+
+Router status reports current phase, risk, required gates, subagent evidence count, unresolved findings, and release status. Validation proves defined checks; review challenges requirements and regressions; audit independently searches for counterexamples and bypasses; release-gate decides from evidence and never edits source.
+
+Subagent results must use explicit `ASK_WORKFLOW_PASS`, `ASK_WORKFLOW_FINDINGS`, `ASK_WORKFLOW_BLOCKED`, or `ASK_WORKFLOW_FAILED` markers with a phase. Missing output, timeout, or tool failure is not a pass.
+
 ## Evidence-aware communication
 
 When interacting with users, issue reporters, reviewers, or maintainers:

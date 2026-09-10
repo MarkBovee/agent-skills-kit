@@ -4,6 +4,8 @@ description: "Use when the goal, constraints, or success criteria are not yet cr
 ---
 # ASK Kickoff
 
+Classify risk and choose lifecycle gates before implementation.
+
 Clarify enough to avoid wrong work, then move. One skill for the full pre-execution phase: design exploration, scope clarification, and execution planning.
 
 ## Three entry points
@@ -36,6 +38,8 @@ Clarify enough to avoid wrong work, then move. One skill for the full pre-execut
 6. Define validation needed before claiming done.
 7. Skip plan for one or two obvious edits. Use short bullets for normal multi-step work. Fuller plan only when sequencing or coordination risk is high.
 8. If repo already has a durable planning or spec system, update that record instead of creating parallel docs.
+
+For significant or release-sensitive work, add a plan-check gate: challenge scope, affected callers, compatibility, fallback behavior, ambiguity, determinism, and proof gaps before execution.
 
 ## Pair programming flow
 

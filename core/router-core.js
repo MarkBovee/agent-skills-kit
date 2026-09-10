@@ -23,6 +23,9 @@ const SKILL_TEXT_WRITING = "text-writing"
 const REVIEW_COMPLETION_MARKER = "ASK_REVIEW_COMPLETE"
 const VALID_EXECUTION_TIERS = new Set(["light", "standard", "heavy", "deep"])
 const VALID_DELEGATION_MODES = new Set(["auto", "prefer-subagent", "owner-only"])
+const WORKFLOW_PHASES = ["INTAKE", "SPEC", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "ITERATE", "AUDIT", "RELEASE_GATE", "DONE", "BLOCKED"]
+const WORKFLOW_RISK_LEVELS = new Set(["small", "normal", "spec-required", "significant", "release-sensitive"])
+const SPEC_REQUIRED_PHRASES = ["specify requirements", "requirements spec", "requirements specification", "design brief", "decision register", "requirements traceability", "spec before build", "behavior-changing", "behavior changing", "new external contract", "new external contracts", "acceptance criteria unclear", "unclear acceptance criteria"]
 
 const CODE_WORK_TOOL_IDS = new Set(["edit", "write", "apply_patch"])
 const RECENT_TOOL_MAX = 20
@@ -129,6 +132,10 @@ function createEmptySessionState() {
     toolCallCount: 0, interactionCountSinceSkillLoad: 0,
     recentToolIds: [], recentEditedPaths: [],
     hasDoneSessionAudit: false, skillsLoadedCount: 0,
+    workflow: {
+      risk: "normal", phase: "PLAN", requiredPhases: ["PLAN", "EXECUTE", "VALIDATE", "REVIEW"],
+      completedGates: [], subagents: [], unresolvedFindings: [], releaseStatus: "NOT_REQUIRED",
+    },
   }
 }
 
@@ -219,6 +226,128 @@ function parseDelegationMode(value, fallback = "auto") {
   if (typeof value !== "string") return fallback
   const normalized = value.trim().toLowerCase()
   return VALID_DELEGATION_MODES.has(normalized) ? normalized : fallback
+}
+
+// Classify prompt risk so workflow gates scale with impact instead of applying
+// the release process to every small edit.
+function classifyWorkflowRisk(query) {
+  const normalized = String(query || "").trim().toLowerCase()
+  if (!normalized) return "normal"
+  if (hasPhraseSignal(normalized, ["release candidate", "production readiness", "ready to ship", "ready to merge", "release-sensitive"])) return "release-sensitive"
+  if (hasPhraseSignal(normalized, SPEC_REQUIRED_PHRASES)) return "spec-required"
+  if (hasPhraseSignal(normalized, ["architecture", "architectural", "migration", "ownership", "routing change", "multi-module", "backwards compatibility", "cross-cutting", "significant refactor"])) return "significant"
+  if (hasPhraseSignal(normalized, ["typo", "documentation-only", "docs only", "rename variable", "version bump", "changelog tweak"])) return "small"
+  return "normal"
+}
+
+// Select lifecycle gates for a risk level while keeping release decisions
+// separate from implementation and ordinary validation.
+function requiredWorkflowPhases(risk, query = "") {
+  const phases = (() => {
+    switch (risk) {
+      case "small": return ["EXECUTE", "VALIDATE"]
+      case "spec-required": return ["INTAKE", "SPEC", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW"]
+      case "significant": return ["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "ITERATE", "AUDIT"]
+      case "release-sensitive": return ["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "ITERATE", "AUDIT", "RELEASE_GATE"]
+      default: return ["PLAN", "EXECUTE", "VALIDATE", "REVIEW"]
+    }
+  })()
+  if (risk !== "small" && hasPhraseSignal(String(query || ""), SPEC_REQUIRED_PHRASES) && !phases.includes("SPEC")) {
+    phases.splice(1, 0, "SPEC")
+  }
+  return phases
+}
+
+// Build observable lifecycle state for router surfaces and subagent handoffs.
+function buildWorkflowState(query, previous = null) {
+  const risk = classifyWorkflowRisk(query)
+  const requiredPhases = requiredWorkflowPhases(risk, query)
+  const previousWorkflow = previous?.workflow || {}
+  const sameRisk = previousWorkflow.risk === risk
+  return {
+    risk,
+    phase: sameRisk ? (previousWorkflow.phase || requiredPhases[0]) : requiredPhases[0],
+    requiredPhases,
+    completedGates: sameRisk && Array.isArray(previousWorkflow.completedGates) ? previousWorkflow.completedGates : [],
+    subagents: sameRisk && Array.isArray(previousWorkflow.subagents) ? previousWorkflow.subagents : [],
+    unresolvedFindings: sameRisk && Array.isArray(previousWorkflow.unresolvedFindings) ? previousWorkflow.unresolvedFindings : [],
+    releaseStatus: sameRisk && previousWorkflow.releaseStatus
+      ? previousWorkflow.releaseStatus
+      : (risk === "release-sensitive" ? "PENDING" : "NOT_REQUIRED"),
+  }
+}
+
+// Render concise lifecycle status for prompt and panel surfaces.
+function workflowHintLines(workflow) {
+  if (!workflow) return []
+  const completed = new Set(workflow.completedGates || [])
+  const gates = (workflow.requiredPhases || []).map((phase) => `${completed.has(phase) ? "PASS" : "TODO"}:${phase}`)
+  const findings = (workflow.unresolvedFindings || []).length
+  return [
+    `Workflow: ${workflow.phase} | risk=${workflow.risk} | ${gates.join(" ")}`,
+    `Evidence: subagents=${(workflow.subagents || []).length} | unresolved-findings=${findings} | release=${workflow.releaseStatus}`,
+  ]
+}
+
+// Parse explicit subagent evidence without treating missing or malformed output
+// as success; callers must handle BLOCKED and FAILED as non-passing results.
+function parseWorkflowEvidence(value) {
+  let text = typeof value === "string" ? value : ""
+  if (!text) {
+    try { text = JSON.stringify(value) || "" } catch { return null }
+  }
+  const match = text.match(/ASK_WORKFLOW_(PASS|FINDINGS|BLOCKED|FAILED)\b[^\n]*?\bphase=([A-Z_]+)/)
+  if (!match) return null
+  const phase = match[2] && WORKFLOW_PHASES.includes(match[2]) ? match[2] : null
+  return { status: match[1], phase }
+}
+
+// Move lifecycle status to a skill-owned phase while preserving collected
+// evidence and making unresolved findings explicit.
+function workflowForSkill(workflow, skillName) {
+  const phaseBySkill = {
+    [SKILL_SPEC]: "SPEC",
+    [SKILL_INTAKE]: "INTAKE",
+    [SKILL_DEVELOP]: "EXECUTE",
+    [SKILL_VERIFICATION]: "VALIDATE",
+    [SKILL_CODE_REVIEW]: "REVIEW",
+    [SKILL_IMPROVE]: "AUDIT",
+  }
+  const phase = phaseBySkill[skillName]
+  return phase && WORKFLOW_PHASES.includes(phase) ? { ...workflow, phase } : workflow
+}
+
+// Apply one structured subagent result to lifecycle state and advance only on
+// explicit evidence; absent output never completes a gate.
+function recordWorkflowEvidence(workflow, evidence, role = "subagent") {
+  if (!evidence || !WORKFLOW_PHASES.includes(evidence.phase || workflow.phase)) return workflow
+  const phase = evidence.phase || workflow.phase
+  const completedGates = new Set(workflow.completedGates || [])
+  const unresolvedFindings = [...(workflow.unresolvedFindings || [])]
+  let nextPhase = workflow.phase
+  let releaseStatus = workflow.releaseStatus
+
+  if (evidence.status === "PASS") {
+    completedGates.add(phase)
+    const nextRequired = (workflow.requiredPhases || []).find((candidate) => !completedGates.has(candidate))
+    nextPhase = nextRequired || "DONE"
+    if (phase === "RELEASE_GATE") releaseStatus = "RELEASE"
+  } else if (evidence.status === "FINDINGS") {
+    unresolvedFindings.push({ role, phase, status: evidence.status })
+    nextPhase = "ITERATE"
+  } else {
+    nextPhase = "BLOCKED"
+    releaseStatus = "BLOCKED"
+  }
+
+  return {
+    ...workflow,
+    phase: nextPhase,
+    completedGates: [...completedGates],
+    subagents: [...(workflow.subagents || []), { role, phase, status: evidence.status }],
+    unresolvedFindings,
+    releaseStatus,
+  }
 }
 
 async function pathExists(target) {
@@ -312,6 +441,7 @@ function buildSkillOverview(sessionState) {
       : "Load matching skill *now* via `skill(name: '...')` before tools:",
     "",
   ]
+  lines.push(...workflowHintLines(sessionState.workflow), "")
   // Keep internal develop fallback separate from actionable user suggestions.
   const hasSpecificMatch = (sessionState.matchedSkills || []).some(({ name }) => name !== SKILL_DEVELOP)
   const visibleRows = OVERVIEW_ROWS.filter((row) => row.skill !== SKILL_DEVELOP || (!skillsLoaded && !hasSpecificMatch))
@@ -402,6 +532,7 @@ module.exports = {
   CODE_EDIT_TOOL_IDS, CODE_WORK_TOOL_IDS, DEFAULT_MAX_HINTS, DEFAULT_MAX_LISTED_SKILLS,
   INTERACTION_GUARD_THRESHOLD, RECENT_TOOL_MAX,
   VALID_DELEGATION_MODES, VALID_EXECUTION_TIERS,
+  WORKFLOW_PHASES, WORKFLOW_RISK_LEVELS,
   SKILL_AGENT_WORKFLOWS, SKILL_CODE_REVIEW, SKILL_DEBUGGING,
   SKILL_SESSION_REVIEW, SKILL_IMPROVE, SKILL_DEVELOP, SKILL_INTAKE, SKILL_UI_UX,
   SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SPEC, COMPLETION_PHRASES, SKILL_DESIGN_REVIEW,
@@ -409,6 +540,7 @@ module.exports = {
   buildSkillOverview, cascadeRoute, buildExecutionProfile, loadSkills,
   createEmptySessionState, getSessionState, setSessionState,
   findSkill, hasPhraseSignal, routingHintLines,
+  classifyWorkflowRisk, requiredWorkflowPhases, buildWorkflowState, workflowHintLines, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
   stripFrontmatter, toSingleLine, normalizeStringList,
   parseBooleanField, parseFrontmatter, unique,
 }

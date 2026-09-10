@@ -36,6 +36,9 @@ jobs:
       - name: Validate router nudges
         run: node ./scripts/check-router-nudges.js
 
+      - name: Validate workflow lifecycle
+        run: node ./scripts/check-workflow-lifecycle.js
+
       - name: Check release readiness
         run: node ./scripts/check-release-readiness.js
 

@@ -25,6 +25,8 @@ Skip when:
 3. **Plan**: convert findings into self-contained, executor-ready plans with drift checks, verification gates, hard boundaries, and escape hatches
 4. **Follow-through**: `execute <plan>`, `reconcile`, `next`, `branch`
 
+For significant or release-sensitive work, act as the independent audit role: inspect callers and the complete diff, challenge ownership, ambiguity, fallbacks, determinism, compatibility, and test invariants. Return concrete evidence, not generic quality advice. Use `ASK_WORKFLOW_PASS phase=AUDIT`, `ASK_WORKFLOW_FINDINGS phase=AUDIT`, `ASK_WORKFLOW_BLOCKED phase=AUDIT`, or `ASK_WORKFLOW_FAILED phase=AUDIT`.
+
 ## Modes
 
 - (bare): Full audit + plans (recon → audit → plan)

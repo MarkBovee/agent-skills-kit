@@ -401,6 +401,22 @@ flowchart TD
 
 Session state tracks code edits, tool usage, and skill-load events. The router nudges when code was edited without review, when a UI was produced (load `design-review`), or when many tools ran without loading any skill — always hint, never force.
 
+### Risk-based lifecycle
+
+For non-trivial work, ASK exposes proportional lifecycle gates rather than treating every change as a release candidate:
+
+| Risk | Gates |
+| --- | --- |
+| Small | `EXECUTE → VALIDATE` |
+| Normal | `PLAN → EXECUTE → VALIDATE → REVIEW` |
+| Spec-required | `INTAKE → SPEC → PLAN → PLAN_CHECK → EXECUTE → VALIDATE → REVIEW` |
+| Significant | `INTAKE → PLAN → PLAN_CHECK → EXECUTE → VALIDATE → REVIEW → ITERATE → AUDIT` |
+| Release-sensitive | Significant flow plus `RELEASE_GATE` |
+
+Validation proves defined technical checks. Review challenges requirements, regressions, and design risk. Independent audit searches for counterexamples, bypasses, ambiguity, unsafe fallbacks, nondeterminism, and compatibility breaks. Release-gate consumes evidence and never edits source. Subagents report explicit `ASK_WORKFLOW_PASS`, `ASK_WORKFLOW_FINDINGS`, `ASK_WORKFLOW_BLOCKED`, or `ASK_WORKFLOW_FAILED` markers with a phase; missing output, timeout, and tool failure are never passes.
+
+`SPEC` is conditional, not a mandatory ceremony: use it for explicit requirements/design-brief work, unclear acceptance criteria, behavior-changing work, and new external contracts. Ordinary bugs and small edits go directly through their proportional flow.
+
 ### Cost-aware execution profile
 
 Two optional frontmatter fields let a skill declare how expensive its default flow is, so hosts that support cheaper subagents or models can route mechanical work to them instead of the primary agent:

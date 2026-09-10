@@ -57,6 +57,12 @@ Output contract per stage (see `agent-workflows` for the full contract):
 4. Review it for clarity, safety, consistency, and scope.
 5. Continue unless a real blocker or decision point appears.
 
+## Lifecycle handoff
+
+For significant work, execute only after plan-check evidence exists. After implementation, request independent validation and review; use an independent audit for architecture, ownership, routing, migration, or release-sensitive changes. Iterate on concrete findings, then return structured evidence to the primary agent.
+
+Never self-declare release readiness from a green test suite alone. Release-sensitive work needs an independent release-gate decision based on the final diff, validation, review, audit, compatibility evidence, and unresolved debt.
+
 ## Git workflow (default)
 
 ### Feature
