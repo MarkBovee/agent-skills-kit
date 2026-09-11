@@ -14,8 +14,8 @@ type RouteEntry = {
 
 type AskStatus = {
   activeSkillLabel?: unknown
-  confidenceDisplay?: { meter?: unknown; percent?: unknown }
   workflow?: { route?: unknown }
+  pending?: unknown
 }
 
 // Validate router output at the UI boundary without deriving any status values.
@@ -28,6 +28,14 @@ function readStatus(value: unknown): AskStatus | null {
 function routeEntries(status: AskStatus | null): RouteEntry[] {
   const route = status?.workflow?.route
   return Array.isArray(route) ? (route as RouteEntry[]) : []
+}
+
+// Extract the router-owned pending review obligations as display labels.
+function pendingLabels(status: AskStatus | null): string[] {
+  if (!Array.isArray(status?.pending)) return []
+  return (status?.pending as Array<{ label?: unknown }>)
+    .map((entry) => entry?.label)
+    .filter((label): label is string => typeof label === "string" && label.length > 0)
 }
 
 // Present one router-owned workflow entry using its already calculated state.
@@ -44,30 +52,36 @@ function StatusPanel(props: { api: TuiPluginApi; sessionID: string }) {
   const theme = () => props.api.theme.current
   const status = createMemo(() => readStatus(props.api.state.session.get(props.sessionID)?.metadata?.askKit))
   const route = createMemo(() => routeEntries(status()))
-  const confidence = createMemo(() => status()?.confidenceDisplay)
+  const pending = createMemo(() => pendingLabels(status()))
   const activeSkill = createMemo(() => status()?.activeSkillLabel)
-  const confidenceText = createMemo(() => {
-    const value = confidence()
-    return typeof value?.meter === "string" && Number.isFinite(value?.percent as number)
-      ? `${value?.meter} ${value?.percent}%`
-      : "Unavailable"
-  })
 
   return (
     <Show when={status()}>
       <box flexDirection="column" gap={1} paddingTop={1} paddingBottom={1} paddingLeft={1} paddingRight={1}>
         <text fg={theme().primary}><b>Agent Skills Kit</b></text>
-        <text fg={theme().textMuted}>ACTIVE SKILL</text>
-        <text fg={theme().text}>{typeof activeSkill() === "string" && activeSkill() ? activeSkill() : "Not matched"}</text>
-        <text fg={theme().textMuted}>CONFIDENCE</text>
-        <text fg={theme().text}>{confidenceText()}</text>
-        <text fg={theme().textMuted}>ROUTING</text>
-        <text fg={theme().textMuted}>──────────────</text>
+        {/* Group each header with its details so the section gap only opens between sections. */}
         <box flexDirection="column">
-          <Show when={route().length > 0} fallback={<text fg={theme().textMuted}>No workflow</text>}>
-            <For each={route()}>{(entry) => <RouteLine entry={entry} muted={theme().textMuted} text={theme().text} />}</For>
-          </Show>
+          <text fg={theme().textMuted}>ACTIVE SKILL</text>
+          <text fg={theme().text}>{typeof activeSkill() === "string" && activeSkill() ? activeSkill() : "Not matched"}</text>
         </box>
+        <box flexDirection="column">
+          <text fg={theme().textMuted}>ROUTING</text>
+          <text fg={theme().textMuted}>──────────────</text>
+          <box flexDirection="column">
+            <Show when={route().length > 0} fallback={<text fg={theme().textMuted}>No workflow</text>}>
+              <For each={route()}>{(entry) => <RouteLine entry={entry} muted={theme().textMuted} text={theme().text} />}</For>
+            </Show>
+          </box>
+        </box>
+        <Show when={pending().length > 0}>
+          <box flexDirection="column">
+            <text fg={theme().textMuted}>PENDING</text>
+            <text fg={theme().textMuted}>──────────────</text>
+            <box flexDirection="column">
+              <For each={pending()}>{(label) => <text fg={theme().text}>→ {label}</text>}</For>
+            </box>
+          </box>
+        </Show>
       </box>
     </Show>
   )

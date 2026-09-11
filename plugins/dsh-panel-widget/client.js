@@ -18,7 +18,6 @@ window.__ModuleLoader__.load({
 			".askk-title{color:var(--dsw-alias-brand-primary);font-size:12px;font-weight:600;margin-bottom:9px}" +
 			".askk-label{color:var(--dsw-alias-label-tertiary);font-size:10px;font-weight:600;letter-spacing:.06em;margin-top:8px}" +
 			".askk-value{color:var(--dsw-alias-label-primary);font-size:12px;font-weight:600}" +
-			".askk-meter{font-family:monospace;letter-spacing:-.1em;white-space:nowrap}" +
 			".askk-route{border-top:1px solid var(--dsw-alias-border-l1);margin-top:3px;padding-top:4px}" +
 			".askk-phase{white-space:nowrap}" +
 			".askk-phase-active{color:var(--dsw-alias-label-primary);font-weight:600}" +
@@ -40,7 +39,7 @@ window.__ModuleLoader__.load({
 		}
 		/**
 		* Coerce a router-owned snapshot into a safe render shape. This validates
-		* completed state only; it never derives skill, confidence, or workflow.
+		* completed state only; it never derives skill, workflow, or obligations.
 		* @param value - whole projection view or undefined/null.
 		* @returns normalized view object, or null when there is nothing to show.
 		*/
@@ -49,12 +48,13 @@ window.__ModuleLoader__.load({
 			const route = Array.isArray(value.workflow?.route)
 				? value.workflow.route.filter((entry) => entry && typeof entry.phase === "string" && ["completed", "active", "pending"].includes(entry.state))
 				: [];
+			const pending = Array.isArray(value.pending)
+				? value.pending.filter((entry) => entry && typeof entry.label === "string" && entry.label.trim()).map((entry) => entry.label)
+				: [];
 			return {
 				activeSkillLabel: typeof value.activeSkillLabel === "string" && value.activeSkillLabel ? value.activeSkillLabel : null,
-				confidenceDisplay: value.confidenceDisplay && typeof value.confidenceDisplay.meter === "string" && Number.isFinite(value.confidenceDisplay.percent)
-					? value.confidenceDisplay
-					: null,
 				route,
+				pending,
 			};
 		}
 		/**
@@ -130,15 +130,20 @@ window.__ModuleLoader__.load({
 				? data.route.map((entry) => react.createElement("div", { className: "askk-phase" + (entry.state === "active" ? " askk-phase-active" : ""), key: entry.phase },
 					entry.state === "pending" ? "○ " : "● ", entry.phase.charAt(0) + entry.phase.slice(1).toLowerCase().replace(/_/g, " ")))
 				: react.createElement("div", { className: "askk-empty" }, "No workflow");
+			const pending = data.pending.length > 0
+				? [
+					react.createElement("div", { className: "askk-label", key: "pending-label" }, "PENDING"),
+					react.createElement("div", { className: "askk-route", key: "pending-list" },
+						data.pending.map((label) => react.createElement("div", { className: "askk-phase", key: label }, "→ " + label))),
+				]
+				: null;
 			return react.createElement("section", { className: "askk-panel", "aria-label": "Agent Skills Kit status" },
 				react.createElement("div", { className: "askk-title" }, "Agent Skills Kit"),
 				react.createElement("div", { className: "askk-label" }, "ACTIVE SKILL"),
 				react.createElement("div", { className: data.activeSkillLabel ? "askk-value" : "askk-empty" }, data.activeSkillLabel || "Not matched"),
-				react.createElement("div", { className: "askk-label" }, "CONFIDENCE"),
-				react.createElement("div", { className: data.confidenceDisplay ? "askk-value askk-meter" : "askk-empty" },
-					data.confidenceDisplay ? data.confidenceDisplay.meter + " " + data.confidenceDisplay.percent + "%" : "Unavailable"),
 				react.createElement("div", { className: "askk-label" }, "ROUTING"),
-				react.createElement("div", { className: "askk-route" }, phases));
+				react.createElement("div", { className: "askk-route" }, phases),
+				pending);
 		}
 		/**
 		* Client plugin body: stylesheet plus the composer dock registration.

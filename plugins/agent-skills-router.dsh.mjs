@@ -108,9 +108,10 @@ function steerReviewSkill(agent, skill) {
 
 // Project the wire view of one tracking bucket: the COMPLETE post-change state
 // per the projection layer's whole-value rule, so every fold is last-write-wins
-// and every served value is self-describing.
+// and every served value is self-describing. The snapshot is always rebuilt
+// from the full state so review-flag changes surface without a routing change.
 function panelViewOf(st) {
-  const status = st.routing || buildRoutingStatus(null, st)
+  const status = buildRoutingStatus(null, st)
   return {
     loadedSkills: [...st.loadedSkills],
     lastMatch: st.lastMatch,
@@ -121,10 +122,8 @@ function panelViewOf(st) {
     interactionCountSinceSkillLoad: st.interactionCountSinceSkillLoad,
     activeSkill: status.activeSkill,
     activeSkillLabel: status.activeSkillLabel,
-    confidence: status.confidence,
-    confidenceDisplay: status.confidenceDisplay,
-    routingEvidence: status.evidence,
     workflow: status.workflow,
+    pending: status.pending,
   }
 }
 
@@ -146,10 +145,13 @@ function normalizePanelView(data) {
       : 0,
     activeSkill: typeof data.activeSkill === "string" ? data.activeSkill : null,
     activeSkillLabel: typeof data.activeSkillLabel === "string" ? data.activeSkillLabel : null,
-    confidence: Number.isFinite(data.confidence) && data.confidence >= 0 && data.confidence <= 1 ? data.confidence : null,
-    confidenceDisplay: data.confidenceDisplay && typeof data.confidenceDisplay === "object" ? data.confidenceDisplay : null,
-    routingEvidence: data.routingEvidence && typeof data.routingEvidence === "object" ? data.routingEvidence : null,
-    workflow: data.workflow && typeof data.workflow === "object" ? data.workflow : buildWorkflowState("", null),
+    // No route yet must stay null; a generic default is never fabricated here.
+    workflow: data.workflow && typeof data.workflow === "object" ? data.workflow : null,
+    pending: Array.isArray(data.pending)
+      ? data.pending
+        .filter((entry) => entry && typeof entry.flag === "string" && typeof entry.label === "string")
+        .map((entry) => ({ flag: entry.flag, skill: typeof entry.skill === "string" ? entry.skill : null, label: entry.label }))
+      : [],
   }
 }
 
@@ -162,14 +164,15 @@ const SKILL_STUBS = [...routingHintLines()]
 
 // Fresh per-agent tracking state, mirroring the OpenCode plugin's fields.
 // steeredSkills remembers which review skills a completion phrase already
-// pushed the agent toward, so a single debt episode steers at most once.
+// pushed the agent toward, so a single debt episode steers at most once. There
+// is no workflow until a real prompt routes one, so the panel stays neutral.
 function emptyState() {
   return {
     lastMatch: "", matchedAt: 0, needsCodeReview: false, needsDesignReview: false,
     shouldCaptureImprovement: false, skillsLoadedCount: 0, loadedSkills: [],
     interactionCountSinceSkillLoad: 0,
     steeredSkills: [],
-    workflow: buildWorkflowState("", null),
+    workflow: null,
     routing: null,
   }
 }

@@ -127,6 +127,9 @@ const AMBIGUITY_PHRASES = [
   "requirements are unclear", "what should we do next", "what next",
 ]
 
+// A brand-new session has no route yet: the workflow stays null until a real
+// routing decision (an actual prompt or comparable input) establishes one, so
+// no surface can render a predicted default workflow before ASK decides.
 function createEmptySessionState() {
   return {
     matchedSkills: [], needsCodeReview: false, shouldCaptureImprovement: false,
@@ -135,11 +138,8 @@ function createEmptySessionState() {
     toolCallCount: 0, interactionCountSinceSkillLoad: 0,
     recentToolIds: [], recentEditedPaths: [],
     hasDoneSessionAudit: false, skillsLoadedCount: 0,
-    routing: { activeSkill: null, activeSkillLabel: null, confidence: null, evidence: null },
-    workflow: {
-      risk: "normal", phase: "PLAN", requiredPhases: ["PLAN", "EXECUTE", "VALIDATE", "REVIEW"],
-      completedGates: [], subagents: [], unresolvedFindings: [], releaseStatus: "NOT_REQUIRED",
-    },
+    routing: { activeSkill: null, activeSkillLabel: null },
+    workflow: null,
   }
 }
 
@@ -170,8 +170,8 @@ function hasPhraseSignal(query, phrases) {
   })
 }
 
-// Count distinct phrase signals so routing confidence can expose deterministic
-// evidence without changing the cascade's priority-based selection.
+// Count distinct phrase signals for one route so the cascade can tell whether a
+// skill's triggers actually fired without changing priority-based selection.
 function matchingPhrases(query, phrases) {
   const normalized = String(query || "").trim().toLowerCase()
   if (!normalized) return []
@@ -278,13 +278,17 @@ function requiredWorkflowPhases(risk, query = "") {
 }
 
 // Build observable lifecycle state for router surfaces and subagent handoffs.
+// Returns null when no routing decision exists yet: an empty input with no
+// prior decision must stay neutral rather than adopt a generic default route.
 function buildWorkflowState(query, previous = null) {
-  const previousWorkflow = previous?.workflow || {}
-  const risk = previousWorkflow.risk && !hasWorkflowRiskSignal(query)
+  const normalizedQuery = String(query || "").trim()
+  const previousWorkflow = previous?.workflow || null
+  if (!normalizedQuery && !previousWorkflow) return null
+  const risk = previousWorkflow?.risk && !hasWorkflowRiskSignal(normalizedQuery)
     ? previousWorkflow.risk
-    : classifyWorkflowRisk(query)
-  const requiredPhases = requiredWorkflowPhases(risk, query)
-  const sameRisk = previousWorkflow.risk === risk
+    : classifyWorkflowRisk(normalizedQuery)
+  const requiredPhases = requiredWorkflowPhases(risk, normalizedQuery)
+  const sameRisk = previousWorkflow?.risk === risk
   return {
     risk,
     phase: sameRisk ? (previousWorkflow.phase || requiredPhases[0]) : requiredPhases[0],
@@ -332,54 +336,14 @@ function skillDisplayName(skillName) {
   return skillName.trim().split("-").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ")
 }
 
-// Keep routing-confidence scores in the documented [0, 1] interval.
-function clampConfidence(value) {
-  return Math.max(0, Math.min(1, value))
-}
-
-// Score a selected route from observable signals, not as a probability. An
-// explicit skill invocation wins over prompt matching; competing route signals
-// reduce confidence even though cascade priority still selects one skill.
-function routingConfidence(route) {
-  const evidence = route?.routingEvidence
-  if (!evidence?.activeSkill) return { confidence: null, evidence: null }
-  if (evidence.explicit) {
-    return {
-      confidence: 1,
-      evidence: { source: "explicit-skill", matchingSignals: 1, competingSkills: [], cascadePriority: null },
-    }
-  }
-  if (evidence.source === "fallback") {
-    return {
-      confidence: 0.45,
-      evidence: { source: "default-fallback", matchingSignals: 0, competingSkills: [], cascadePriority: null },
-    }
-  }
-  const matchingSignals = evidence.matchingSignals || []
-  const longestSignal = Math.max(...matchingSignals.map((signal) => signal.length), 0)
-  const signalBonus = Math.min(Math.max(matchingSignals.length - 1, 0) * 0.06, 0.12)
-  const specificityBonus = longestSignal >= 12 ? 0.08 : 0
-  const priorityBonus = evidence.cascadePriority === 0 ? 0.08 : 0.04
-  const ambiguityPenalty = Math.min((evidence.competingSkills || []).length * 0.1, 0.25)
-  const sessionBonus = evidence.matchesLoadedSkill ? 0.05 : 0
-  return {
-    confidence: clampConfidence(0.6 + signalBonus + specificityBonus + priorityBonus + sessionBonus - ambiguityPenalty),
-    evidence: {
-      source: "prompt-signals",
-      matchingSignals: matchingSignals.length,
-      competingSkills: evidence.competingSkills || [],
-      cascadePriority: evidence.cascadePriority,
-    },
-  }
-}
-
-// Build presentation-ready confidence text once so all panels render the same
-// deterministic score without independently interpreting routing evidence.
-function confidenceDisplay(confidence) {
-  if (!Number.isFinite(confidence)) return null
-  const percent = Math.round(clampConfidence(confidence) * 100)
-  const filled = Math.round(percent / 5)
-  return { percent, meter: `${"█".repeat(filled)}${"░".repeat(20 - filled)}` }
+// Describe the router's currently outstanding review/capture obligations so a
+// panel can show what ASK still needs and hide each item once it is satisfied.
+function pendingReviewRequirements(sessionState) {
+  const pending = []
+  if (sessionState?.needsCodeReview) pending.push({ flag: "needsCodeReview", skill: SKILL_CODE_REVIEW, label: "Code review" })
+  if (sessionState?.needsDesignReview) pending.push({ flag: "needsDesignReview", skill: SKILL_DESIGN_REVIEW, label: "Design review" })
+  if (sessionState?.shouldCaptureImprovement) pending.push({ flag: "shouldCaptureImprovement", skill: SKILL_SESSION_REVIEW, label: "Capture improvement" })
+  return pending
 }
 
 // Build the canonical status snapshot shared by prompt, event, and panel
@@ -387,17 +351,10 @@ function confidenceDisplay(confidence) {
 function buildRoutingStatus(route, sessionState, explicitSkill = "") {
   const previous = sessionState?.routing || {}
   const activeSkill = explicitSkill || route?.matchedSkills?.[0]?.name || previous.activeSkill || null
-  const statusRoute = explicitSkill
-    ? { ...route, routingEvidence: { activeSkill, explicit: true } }
-    : route
-  const confidence = statusRoute ? routingConfidence(statusRoute) : { confidence: previous.confidence ?? null, evidence: previous.evidence ?? null }
   const workflow = sessionState?.workflow
   return {
     activeSkill,
     activeSkillLabel: skillDisplayName(activeSkill),
-    confidence: confidence.confidence,
-    confidenceDisplay: confidenceDisplay(confidence.confidence),
-    evidence: confidence.evidence,
     workflow: workflow
       ? {
         phase: workflow.phase,
@@ -406,6 +363,7 @@ function buildRoutingStatus(route, sessionState, explicitSkill = "") {
         route: workflowRoute(workflow),
       }
       : null,
+    pending: pendingReviewRequirements(sessionState),
   }
 }
 
@@ -423,8 +381,10 @@ function parseWorkflowEvidence(value) {
 }
 
 // Move lifecycle status to a skill-owned phase while preserving collected
-// evidence and making unresolved findings explicit.
+// evidence and making unresolved findings explicit. A session with no route
+// yet stays null rather than fabricating a partial workflow object.
 function workflowForSkill(workflow, skillName) {
+  if (!workflow) return workflow
   const phaseBySkill = {
     [SKILL_SPEC]: "SPEC",
     [SKILL_INTAKE]: "INTAKE",
@@ -438,9 +398,10 @@ function workflowForSkill(workflow, skillName) {
 }
 
 // Apply one structured subagent result to lifecycle state and advance only on
-// explicit evidence; absent output never completes a gate.
+// explicit evidence; absent output never completes a gate. Without an
+// established workflow there is nothing to advance, so the state stays null.
 function recordWorkflowEvidence(workflow, evidence, role = "subagent") {
-  if (!evidence || !WORKFLOW_PHASES.includes(evidence.phase || workflow.phase)) return workflow
+  if (!workflow || !evidence || !WORKFLOW_PHASES.includes(evidence.phase || workflow.phase)) return workflow
   const phase = evidence.phase || workflow.phase
   const completedGates = new Set(workflow.completedGates || [])
   const unresolvedFindings = [...(workflow.unresolvedFindings || [])]
@@ -592,69 +553,40 @@ function cascadeRoute(query, skills, sessionState) {
   const q = query.trim().toLowerCase()
   if (!q) {
     const fallback = findSkill(skills, SKILL_DEVELOP)
-    return {
-      matchedSkills: fallback ? [fallback] : [], executionProfile: buildExecutionProfile(fallback, ""),
-      routingEvidence: fallback ? { activeSkill: fallback.name, source: "fallback" } : null,
-    }
+    return { matchedSkills: fallback ? [fallback] : [], executionProfile: buildExecutionProfile(fallback, "") }
   }
-  const candidates = [
-    [SPEC_PHRASES, SKILL_SPEC], [AMBIGUITY_PHRASES, SKILL_INTAKE], [BUG_PHRASES, SKILL_DEBUGGING],
-    [REVIEW_PHRASES, SKILL_CODE_REVIEW], [COMPLETION_PHRASES, SKILL_VERIFICATION], [IMPROVE_PHRASES, SKILL_IMPROVE],
-    [SESSION_REVIEW_PHRASES, SKILL_SESSION_REVIEW], [AGENT_PHRASES, SKILL_AGENT_WORKFLOWS], [WRITE_SKILL_PHRASES, SKILL_WRITE_SKILL],
-    [UI_PHRASES, SKILL_UI_UX], [TEXT_WRITING_PHRASES, SKILL_TEXT_WRITING],
-  ]
-  const matchedCandidates = candidates.map(([phrases, name], cascadePriority) => ({ name, cascadePriority, signals: matchingPhrases(q, phrases) }))
-    .filter((candidate) => candidate.signals.length > 0)
-  const tryRoute = (phrases, name, cascadePriority) => {
-    const signals = matchingPhrases(q, phrases)
-    if (signals.length === 0) return null
+  const tryRoute = (phrases, name) => {
+    if (matchingPhrases(q, phrases).length === 0) return null
     const skill = findSkill(skills, name)
     if (!skill) return null
-    return {
-      matchedSkills: [skill], executionProfile: buildExecutionProfile(skill, q),
-      routingEvidence: {
-        activeSkill: skill.name,
-        source: "prompt",
-        matchingSignals: signals,
-        competingSkills: matchedCandidates.filter((candidate) => candidate.name !== name).map((candidate) => candidate.name),
-        cascadePriority,
-        matchesLoadedSkill: (sessionState.loadedSkills || []).includes(skill.name),
-      },
-    }
+    return { matchedSkills: [skill], executionProfile: buildExecutionProfile(skill, q) }
   }
-return (
-    tryRoute(SPEC_PHRASES, SKILL_SPEC, 0) ||                   // 1. Start (explicit spec)
-    tryRoute(AMBIGUITY_PHRASES, SKILL_INTAKE, 1) ||            // 2. Start
-    tryRoute(BUG_PHRASES, SKILL_DEBUGGING, 2) ||               // 2. Execute
-    tryRoute(REVIEW_PHRASES, SKILL_CODE_REVIEW, 3) ||          // 3. Validate
+  return (
+    tryRoute(SPEC_PHRASES, SKILL_SPEC) ||                      // 1. Start (explicit spec)
+    tryRoute(AMBIGUITY_PHRASES, SKILL_INTAKE) ||               // 2. Start
+    tryRoute(BUG_PHRASES, SKILL_DEBUGGING) ||                  // 2. Execute
+    tryRoute(REVIEW_PHRASES, SKILL_CODE_REVIEW) ||             // 3. Validate
     (sessionState.needsCodeReview && (() => {
       if (!hasPhraseSignal(q, COMPLETION_PHRASES)) return null
       const primary = findSkill(skills, SKILL_CODE_REVIEW)
       if (!primary) return null
       const secondary = findSkill(skills, SKILL_VERIFICATION)
       return {
-        matchedSkills: secondary ? [primary, secondary] : [primary], executionProfile: buildExecutionProfile(primary, q),
-        routingEvidence: {
-          activeSkill: primary.name, source: "prompt", matchingSignals: matchingPhrases(q, COMPLETION_PHRASES),
-          competingSkills: matchedCandidates.filter((candidate) => candidate.name !== primary.name).map((candidate) => candidate.name),
-          cascadePriority: 4, matchesLoadedSkill: (sessionState.loadedSkills || []).includes(primary.name),
-        },
+        matchedSkills: secondary ? [primary, secondary] : [primary],
+        executionProfile: buildExecutionProfile(primary, q),
       }
     })()) ||
-    tryRoute(COMPLETION_PHRASES, SKILL_VERIFICATION, 4) ||     // 4. Validate
-    tryRoute(IMPROVE_PHRASES, SKILL_IMPROVE, 5) ||           // 5. Improve
-    tryRoute(SESSION_REVIEW_PHRASES, SKILL_SESSION_REVIEW, 6) ||         // 6. Improve
-    tryRoute(AGENT_PHRASES, SKILL_AGENT_WORKFLOWS, 7) ||       // 7. Coordinate
-    tryRoute(WRITE_SKILL_PHRASES, SKILL_WRITE_SKILL, 8) ||     // 8. Coordinate
-    tryRoute(UI_PHRASES, SKILL_UI_UX, 9) ||                    // 9. Product
-    tryRoute(TEXT_WRITING_PHRASES, SKILL_TEXT_WRITING, 10) ||   // 10. Product
-    (() => {
+    tryRoute(COMPLETION_PHRASES, SKILL_VERIFICATION) ||        // 4. Validate
+    tryRoute(IMPROVE_PHRASES, SKILL_IMPROVE) ||                // 5. Improve
+    tryRoute(SESSION_REVIEW_PHRASES, SKILL_SESSION_REVIEW) ||  // 6. Improve
+    tryRoute(AGENT_PHRASES, SKILL_AGENT_WORKFLOWS) ||          // 7. Coordinate
+    tryRoute(WRITE_SKILL_PHRASES, SKILL_WRITE_SKILL) ||        // 8. Coordinate
+    tryRoute(UI_PHRASES, SKILL_UI_UX) ||                       // 9. Product
+    tryRoute(TEXT_WRITING_PHRASES, SKILL_TEXT_WRITING) ||      // 10. Product
+    (() => {                                                   // 11. Execute (default)
       const fallback = findSkill(skills, SKILL_DEVELOP)
-      return {
-        matchedSkills: fallback ? [fallback] : [], executionProfile: buildExecutionProfile(fallback, q),
-        routingEvidence: fallback ? { activeSkill: fallback.name, source: "fallback" } : null,
-      }
-    })()                                                     // 11. Execute (default)
+      return { matchedSkills: fallback ? [fallback] : [], executionProfile: buildExecutionProfile(fallback, q) }
+    })()
   )
 }
 
@@ -690,7 +622,7 @@ module.exports = {
   SKILL_SESSION_REVIEW, SKILL_IMPROVE, SKILL_DEVELOP, SKILL_INTAKE, SKILL_UI_UX,
   SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SPEC, COMPLETION_PHRASES, SKILL_DESIGN_REVIEW,
   SKILL_TEXT_WRITING, REVIEW_COMPLETION_MARKER, hasReviewCompletionSignal,
-  buildSkillOverview, cascadeRoute, buildExecutionProfile, buildRoutingStatus, routingConfidence, confidenceDisplay, workflowRoute, skillDisplayName, loadSkills,
+  buildSkillOverview, cascadeRoute, buildExecutionProfile, buildRoutingStatus, pendingReviewRequirements, workflowRoute, skillDisplayName, loadSkills,
   createEmptySessionState, getSessionState, setSessionState,
   findSkill, hasPhraseSignal, routingHintLines,
   classifyWorkflowRisk, hasWorkflowRiskSignal, requiredWorkflowPhases, buildWorkflowState, workflowHintLines, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,

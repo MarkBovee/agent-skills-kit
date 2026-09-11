@@ -4,7 +4,6 @@ const {
   buildWorkflowState,
   buildRoutingStatus,
   classifyWorkflowRisk,
-  confidenceDisplay,
   createEmptySessionState,
   parseWorkflowEvidence,
   recordWorkflowEvidence,
@@ -72,23 +71,24 @@ function checkStatusHints() {
   check("status reports evidence and release", lines[1].includes("subagents=0") && lines[1].includes("release=PENDING"))
 }
 
-// Verify the panel snapshot exposes the actual routed skill, confidence, and
-// explicit workflow states without asking consumers to recreate router logic.
+// Verify the panel snapshot exposes the actual routed skill, pending review
+// obligations, and explicit workflow states without asking consumers to
+// recreate router logic.
 function checkRoutingStatus() {
   const skills = ["develop", "debugging", "code-review", "verification", "spec", "intake"].map((name) => ({ name }))
   const state = createEmptySessionState()
-  const explicit = buildRoutingStatus(null, state, "debugging")
   const ambiguousRoute = cascadeRoute("debug this bug and review the diff", skills, state)
   const ambiguousWorkflow = buildWorkflowState("debug this bug and review the diff", state)
   const ambiguous = buildRoutingStatus(ambiguousRoute, { ...state, workflow: ambiguousWorkflow })
   const noMatch = buildRoutingStatus(cascadeRoute("", [], state), state)
 
   check("status exposes the cascade-selected active skill", ambiguous.activeSkill === "debugging" && ambiguous.activeSkillLabel === "Debugging")
-  check("explicit skill has stronger confidence than ambiguous route", explicit.confidence > ambiguous.confidence)
-  check("routing confidence is deterministic", ambiguous.confidence === buildRoutingStatus(ambiguousRoute, { ...state, workflow: ambiguousWorkflow }).confidence)
-  check("routing confidence stays in range", [explicit, ambiguous].every((status) => status.confidence >= 0 && status.confidence <= 1))
-  check("no route exposes no fabricated skill or confidence", noMatch.activeSkill === null && noMatch.confidence === null)
-  check("confidence display derives from router confidence", confidenceDisplay(0.88)?.percent === 88 && confidenceDisplay(0.88)?.meter === "██████████████████░░")
+  check("no route exposes no fabricated skill or workflow", noMatch.activeSkill === null && noMatch.workflow === null)
+  check("fresh status carries no pending obligations", noMatch.pending.length === 0)
+
+  const reviewDebt = buildRoutingStatus(null, { ...state, needsCodeReview: true, needsDesignReview: true, shouldCaptureImprovement: true })
+  check("pending obligations expose code, design, and improvement skills", reviewDebt.pending.map((entry) => entry.skill).join(",") === "code-review,design-review,session-review")
+  check("cleared flags leave no pending obligations", buildRoutingStatus(null, { ...state, needsCodeReview: false }).pending.length === 0)
 
   const workflowCases = [
     ["fix typo in docs", "small"],

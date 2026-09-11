@@ -73,9 +73,12 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
   const sessionState = new Map()
   const pendingPersistence = new Map()
   // Persist only the router snapshot under its own metadata key so the TUI
-  // face can read it through OpenCode's native session state.
+  // face can read it through OpenCode's native session state. The snapshot is
+  // rebuilt from the full merged state so review-flag changes are reflected
+  // even when no routing field changed.
   function persistStatus(sessionID, state) {
     if (!client || !sessionID || sessionID === "default") return
+    const askKit = buildRoutingStatus(null, state)
     const previous = pendingPersistence.get(sessionID) || Promise.resolve()
     const next = previous
       .catch(() => {})
@@ -85,7 +88,7 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
           // the body under `body`. Flattened shapes build a literal `{id}` URL.
           const current = await client.session.get({ path: { id: sessionID } })
           const metadata = current?.data?.metadata || {}
-          await client.session.update({ path: { id: sessionID }, body: { metadata: { ...metadata, askKit: state.routing } } })
+          await client.session.update({ path: { id: sessionID }, body: { metadata: { ...metadata, askKit } } })
         } catch { /* sidebar state is best-effort and must never block routing */ }
       })
     pendingPersistence.set(sessionID, next)

@@ -8,7 +8,7 @@ Multi-platform skill-pack for OpenCode, Codex, GitHub Copilot, Claude Code, and 
 
 - `skills/<name>/SKILL.md` — one skill per directory
 - `commands/<name>.md` — one slash command per skill, referencing its skill
-- `plugins/agent-skills-router/` — OpenCode dual-entrypoint package: deterministic cascade routing and TUI status sidebar
+- `plugins/agent-skills-router/` — OpenCode dual-entrypoint package: cascade routing plus a TUI status sidebar that renders the router-core snapshot (active skill, workflow route, pending review obligations)
 - `plugins/agent-skills-router.dsh.mjs` — dsh (DeepSeek Harness) Cordis plugin: same router behavior as a preset row; requires `core/router-core.js` via a vendored copy in the installed preset
 - `core/router-core.js` — shared router helpers (cascade routing, lifecycle risk/state, session state, frontmatter parsing)
 - `scripts/` — install/update/bootstrap scripts (bash + PowerShell parity)
@@ -79,20 +79,20 @@ Export targets (via `export-platform-skills.js`): OpenCode → `.opencode/comman
 
 ## Router plugin
 
-`plugins/agent-skills-router/` injects a decision tree every prompt and renders its canonical status snapshot in OpenCode's TUI sidebar. The server entry is `server.mjs`; the TUI entry is `tui.tsx`. Agent self-selects skills via `skill(name: '...')`. No automatic phrase matching. When changing:
+`plugins/agent-skills-router/` injects a decision tree every prompt and renders its canonical status snapshot in OpenCode's TUI sidebar. The server entry is `server.mjs`; the TUI entry is `tui.tsx`. Agent self-selects skills via `skill(name: '...')`. No automatic phrase matching. A fresh session renders neutral — no active skill, no workflow route, no obligations — and the panel only shows a route once a real prompt has established one. The snapshot fields are `activeSkill`/`activeSkillLabel`, `workflow` (`phase`, `requiredPhases`, `completedGates`, `route`), and `pending` (the review/capture obligations ASK still needs). When changing:
 
 - The decision tree has 12 routing rows. `design-review` is a companion skill, not a routing row: it fires when the `ui-ux` skill is loaded (plugin sets `needsDesignReview` and nudges `skill(name: 'design-review')` until it is loaded), mirroring `needsCodeReview`. `text-writing` is a routing row, matching text that must read human rather than AI. The blocked-tool hint and the rules-file decision tree are derived from `routingHintLines()` in `core/router-core.js` — never hand-edit either copy; `validate-plugin.js` fails on drift.
 
 - `node --input-type=module -e "import('./plugins/agent-skills-router/server.mjs')"` — verify server entry loads
 - `node -e "const {buildSkillOverview,createEmptySessionState}=require('./core/router-core'); const s=createEmptySessionState(); s.matchedSkills=[{name:'develop'}]; console.log(buildSkillOverview(s))"` — test decision-tree output
-- `node -e "import('./plugins/agent-skills-router/server.mjs').then(async m=>{const p=await m.AgentSkillsRouter(); await p['session.created'](); const r=await p['tui.prompt.append']({prompt:'test'}); console.log(r?.append?.slice(0,200))})"` — test plugin hooks
+- `node -e "import('./plugins/agent-skills-router/server.mjs').then(async m=>{const p=await m.AgentSkillsRouter(); await p.event({event:{type:'session.created',properties:{info:{id:'s'}}}}); const r=await p['tui.prompt.append']({sessionID:'s',prompt:'test'}); console.log(r?.append?.slice(0,200))})"` — test plugin hooks
  - Keep plugin stateless except session-scoped state (tool tracking, skill-load events, lifecycle gates, audit flag)
- - Sidebar state is persisted through the plugin's v1 SDK client: `client.session.get({ path: { id } })` and `client.session.update({ path: { id }, body: { metadata } })`. Flattened shapes (`{ sessionID }`) build a literal `{id}` URL and fail with HTTP 500. Persist from real hooks only (`chat.message`, `event`, `tool.execute.after`); `tui.prompt.append` is a TUI-bus event, not a server hook, and `session.created` is not a hook — handle it via `event`.
+ - Sidebar state is persisted from real server hooks only (`chat.message`, `event`, `tool.execute.after`); `tui.prompt.append` is a TUI-bus event kept for host compatibility, and `session.created` is not a hook — handle it through `event`. The plugin calls the v1 SDK with `client.session.get({ path: { id } })` and `client.session.update({ path: { id }, body: { metadata: { askKit } } })` — the path key is `id`, not `sessionID`. The running session route accepts `metadata` and re-emits `session.updated`, which the TUI's reactive session store folds into the sidebar memo. `persistStatus` rebuilds the snapshot from the full merged state on every save, so review-flag flips surface even when no routing field changed.
  - TUI plugins are **not** auto-discovered. `tui.tsx` only loads when `tui.json` lists it (`./plugins/agent-skills-router/tui.tsx`). The installers write that entry and remove the legacy `./plugins/agent-skills-sidebar.tsx` entry/file; `check-installed-artifacts.sh` guards both. The terminal is a dumb presentation layer: read router state through `createMemo`, never compute it in the TUI.
 
 ### dsh router variant
 
-`plugins/agent-skills-router.dsh.mjs` is the DeepSeek Harness counterpart, loaded as an `ask-kit` agent-preset row (`name: ./plugins/ask-kit-router.mjs`, installed by `install.*`). It appends the router section through the `system-prompt/assemble` waterfall, registers one slash command per kit skill through a lazy `ctx.inject(["commands"])` (decision-tree rows double as picker descriptions; companion skills `design-review`/`gh-inbox` are explicit and must not drift from `commands/<name>.md`), tracks skill/review state via `tools/pre-execute` / `tools/result` / `agent/inbox/inserted`, and gates tools only when row config `blockUntilSkillLoaded` is true (default false). The file must stay dependency-free — preset-local rows cannot resolve bare specifiers such as `@deepseek-ai/schemastery`, so row config is normalized manually in `apply()`. All decision-tree rows come from `routingHintLines()`; `node ./scripts/check-dsh-plugin.js` validates exports, dependency-freedom, event wiring, gating, cascade routing, the slash-command surface, and decision-tree drift against `core/router-core.js`.
+`plugins/agent-skills-router.dsh.mjs` is the DeepSeek Harness counterpart, loaded as an `ask-kit` agent-preset row (`name: ./plugins/ask-kit-router.mjs`, installed by `install.*`). It appends the router section through the `system-prompt/assemble` waterfall, registers one slash command per kit skill through a lazy `ctx.inject(["commands"])` (decision-tree rows double as picker descriptions; companion skills `design-review`/`gh-inbox` are explicit and must not drift from `commands/<name>.md`), tracks skill/review state via `tools/pre-execute` / `tools/result` / `agent/inbox/inserted`, and gates tools only when row config `blockUntilSkillLoaded` is true (default false). The file must stay dependency-free — preset-local rows cannot resolve bare specifiers such as `@deepseek-ai/schemastery`, so row config is normalized manually in `apply()`. All decision-tree rows come from `routingHintLines()`; `node ./scripts/check-dsh-plugin.js` validates exports, dependency-freedom, event wiring, gating, cascade routing, the slash-command surface, and decision-tree drift against `core/router-core.js`. Each mutation also appends the rebuilt router-core snapshot as a whole-value `ask-kit/state` session event, folded by the `askKit` projection unit that `plugins/dsh-panel-widget/` reads; both the event and the widget start neutral and show pending obligations that clear as their skills load.
 
 ### New-session validation
 
@@ -104,8 +104,9 @@ Before claiming a fix ships:
 4. `node ./scripts/check-router-nudges.js` — nudge behavior (audit, blocked-tool guard, auto-match, review nudges) passes
 5. `node ./scripts/check-workflow-lifecycle.js` — risk profiles, lifecycle gates, evidence contract, and status output pass
 6. `node ./scripts/check-dsh-plugin.js` — dsh router variant passes (exports, config defaults, event wiring, strict gate, decision-tree drift)
-7. OpenCode plugin check: in a test session, verify `╌ Agent Skills Kit ╌` appears in the system prompt and status panel appears in sidebar. If missing, check `opencode.json` `plugins` array includes `./plugins/agent-skills-router` (server) **and** `tui.json` lists `./plugins/agent-skills-router/tui.tsx` (TUI), since TUI plugins are not auto-discovered. The package needs `server.mjs` plus `tui.tsx`.
-8. `./scripts/check-installed-artifacts.sh` — installs into isolated homes (fake dsh shim on PATH) and asserts the deployed user-visible strings — preset.yml description, router prompt header, widget status bar — match the repo, including refresh migration of a stale pre-English preset
+7. `node ./scripts/check-widget-live-state.js` — the widget starts neutral and follows real routing decisions, workflow progression, active-skill changes, and obligation set/clear transitions with no stale state
+8. OpenCode plugin check: in a test session, verify `╌ Agent Skills Kit ╌` appears in the system prompt and status panel appears in sidebar. If missing, check `opencode.json` `plugins` array includes `./plugins/agent-skills-router` (server) **and** `tui.json` lists `./plugins/agent-skills-router/tui.tsx` (TUI), since TUI plugins are not auto-discovered. The package needs `server.mjs` plus `tui.tsx`.
+9. `./scripts/check-installed-artifacts.sh` — installs into isolated homes (fake dsh shim on PATH) and asserts the deployed user-visible strings — preset.yml description, router prompt header, widget status bar — match the repo, including refresh migration of a stale pre-English preset
 
 ## Install scripts
 
@@ -134,4 +135,5 @@ After changes:
 3. Exports regenerate: `node ./scripts/export-platform-skills.js`
 4. Install/bootstrap scripts idempotent: run twice, same output
 5. No hardcoded workspace-specific paths in generic skills
-6. Installers deploy current user-visible strings: `./scripts/check-installed-artifacts.sh`
+6. Widget live-state checks pass: `node ./scripts/check-widget-live-state.js`
+7. Installers deploy current user-visible strings: `./scripts/check-installed-artifacts.sh`
