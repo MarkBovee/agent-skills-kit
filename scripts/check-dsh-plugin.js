@@ -279,18 +279,38 @@ async function main() {
       const unit = projections[0]
       const appended = []
       const bridgeAgent = { id: "bridge-check", session: { append: (type, data) => appended.push({ type, data }) } }
+      // Before any real routing decision a mutation must still publish a neutral
+      // view: no active skill and no predicted workflow route. The edit's
+      // review obligation is real state and may already be pending.
       await pre({ name: "edit", agent: bridgeAgent }, async () => ({ kind: "allow" }))
+      const neutralView = appended.at(-1)?.data
+      check("pre-route panel view carries no predicted workflow", Boolean(neutralView)
+        && neutralView.activeSkill === null && neutralView.workflow === null)
+      // A real prompt establishes the route, then the skill load updates it.
+      inbox({ agent: bridgeAgent, message: { text: "design a ui for the dashboard" } })
       listeners.get("tools/result")[0]({ name: "skill", agent: bridgeAgent, arguments: { name: "ui-ux" } }, { isError: false })
-      check("mutations append whole-value panel events", appended.length >= 2
+      check("mutations append whole-value panel events", appended.length >= 3
         && appended.every((event) => event.type === "ask-kit/state"))
       let state = unit.init()
       for (const event of appended) state = unit.apply(state, event)
       check("fold lands on the last whole value", state !== null && state.needsDesignReview === true
         && Array.isArray(state.loadedSkills) && state.loadedSkills.includes("ui-ux"))
       check("panel event exposes router-owned active skill", state.activeSkill === "ui-ux" && state.activeSkillLabel === "Ui Ux")
-      check("panel event exposes bounded routing confidence", Number.isFinite(state.confidence) && state.confidence >= 0 && state.confidence <= 1)
+      check("panel event exposes pending obligations", Array.isArray(state.pending)
+        && state.pending.some((entry) => entry.skill === "design-review") && state.pending.some((entry) => entry.skill === "code-review"))
       check("panel event exposes workflow route states", Array.isArray(state.workflow?.route)
         && state.workflow.route.some((entry) => entry.state === "active"))
+      // Loading the obligation's skill clears it from the live snapshot.
+      listeners.get("tools/result")[0]({ name: "skill", agent: bridgeAgent, arguments: { name: "design-review" } }, { isError: false })
+      state = unit.apply(state, appended.at(-1))
+      check("completed design review clears its pending obligation", !state.pending.some((entry) => entry.skill === "design-review"))
+      listeners.get("tools/result")[0]({ name: "skill", agent: bridgeAgent, arguments: { name: "code-review" } }, { isError: false })
+      state = unit.apply(state, appended.at(-1))
+      check("completed code review clears review debt and arms capture", !state.pending.some((entry) => entry.skill === "code-review")
+        && state.pending.some((entry) => entry.skill === "session-review"))
+      listeners.get("tools/result")[0]({ name: "skill", agent: bridgeAgent, arguments: { name: "session-review" } }, { isError: false })
+      state = unit.apply(state, appended.at(-1))
+      check("capturing the improvement leaves no pending obligations", state.pending.length === 0)
       check("schema accepts the folded view", unit.schema.parse(state) === state)
       check("schema accepts null (pre-first-event)", unit.schema.parse(null) === null)
       check("schema rejects non-object views", throws(() => unit.schema.parse(42)))
@@ -299,9 +319,12 @@ async function main() {
       check("malformed payload cannot poison the fold",
         unit.apply(state, { type: "ask-kit/state", data: { loadedSkills: "nope" } }) === state)
       // The edit flip publishes only on false→true so repeat edits stay quiet.
-      const before = appended.length
-      await pre({ name: "edit", agent: bridgeAgent }, async () => ({ kind: "allow" }))
-      check("repeat code edit does not re-publish", appended.length === before)
+      const dedupeAppended = []
+      const dedupeAgent = { id: "dedupe-check", session: { append: (type, data) => dedupeAppended.push({ type, data }) } }
+      await pre({ name: "edit", agent: dedupeAgent }, async () => ({ kind: "allow" }))
+      const afterFirstEdit = dedupeAppended.length
+      await pre({ name: "edit", agent: dedupeAgent }, async () => ({ kind: "allow" }))
+      check("repeat code edit does not re-publish", dedupeAppended.length === afterFirstEdit)
     }
   } finally {
     fs.rmSync(workDir, { recursive: true, force: true })

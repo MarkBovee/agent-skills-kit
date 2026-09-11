@@ -67,21 +67,23 @@ function main() {
   const renderer = loadWidget({
     activeSkill: "develop",
     activeSkillLabel: "Develop",
-    confidence: 0.88,
-    confidenceDisplay: { percent: 88, meter: "██████████████████░░" },
     workflow: { route: [{ phase: "PLAN", state: "completed" }, { phase: "EXECUTE", state: "active" }, { phase: "VALIDATE", state: "pending" }] },
+    pending: [{ flag: "needsCodeReview", skill: "code-review", label: "Code review" }],
   })
   const visible = textOf(renderer({ session: { sessionId: "test" } }))
   check("renders active skill", visible.includes("ACTIVE SKILL") && visible.includes("Develop"))
-  check("renders router confidence", visible.includes("CONFIDENCE") && visible.includes("88%"))
+  check("no longer renders a confidence meter", !visible.includes("CONFIDENCE") && !visible.includes("%"))
   check("renders workflow route", visible.includes("● Plan") && visible.includes("● Execute") && visible.includes("○ Validate"))
-  check("renders safe empty state", textOf(loadWidget({})({ session: { sessionId: "empty" } })).includes("Not matched"))
+  check("renders pending review obligations", visible.includes("PENDING") && visible.includes("Code review"))
+  const emptyVisible = textOf(loadWidget({})({ session: { sessionId: "empty" } }))
+  check("renders safe empty state", emptyVisible.includes("Not matched"))
+  check("hides pending section when no obligations", !emptyVisible.includes("PENDING"))
   const terminal = textOf(loadWidget({ activeSkillLabel: "Develop", workflow: { route: [{ phase: "BLOCKED", state: "active" }] } })({ session: { sessionId: "terminal" } }))
   check("renders terminal workflow state", terminal.includes("● Blocked"))
   const sessionRenderer = loadWidget({ activeSkillLabel: "Develop" }, { activeSkillLabel: "Debugging" })
   textOf(sessionRenderer({ session: { sessionId: "first" } }))
   check("missing session projection does not retain prior state", textOf(sessionRenderer({ session: { sessionId: "missing" } })) === "")
-  check("does not perform routing", !["cascadeRoute", "buildWorkflowState", "routingConfidence", "matchingPhrases"].some((name) => source.includes(name)))
+  check("does not perform routing", !["cascadeRoute", "buildWorkflowState", "pendingReviewRequirements", "matchingPhrases", "confidence"].some((name) => source.includes(name)))
 
   if (failures > 0) {
     console.error(`\ncheck-panel-widget: ${failures} failure(s).`)

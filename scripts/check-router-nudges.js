@@ -95,7 +95,8 @@ async function main() {
   )
   await guardPlugin["tool.execute.after"]({ tool: "skill" }, { args: { name: "write-skill" } })
   const openCodeStatus = getSessionState(new Map(), "missing")
-  check("empty session routing state is safe", openCodeStatus.routing.activeSkill === null && openCodeStatus.routing.confidence === null)
+  check("empty session routing state is safe", openCodeStatus.routing.activeSkill === null
+    && openCodeStatus.workflow === null && !("confidence" in openCodeStatus.routing))
 
   // Code-edit tracking: an edit tool sets the code-review nudge.
   await plugin["tool.execute.after"]({ tool: "edit" }, {})
@@ -186,8 +187,8 @@ async function main() {
   await panelPlugin.event({ event: { type: "session.created", properties: { info: { id: "panel-session" } } } })
   await new Promise((resolve) => setTimeout(resolve, 0))
   const emptyPanelMetadata = metadataUpdates.at(-1)?.body?.metadata
-  check("new session persists safe empty sidebar state", emptyPanelMetadata?.askKit?.activeSkill === null
-    && emptyPanelMetadata.askKit?.confidence === null && emptyPanelMetadata.askKit?.workflow?.route?.length > 0)
+  check("new session persists neutral sidebar state without a predicted route", emptyPanelMetadata?.askKit?.activeSkill === null
+    && emptyPanelMetadata.askKit?.workflow === null && emptyPanelMetadata.askKit?.pending?.length === 0)
   await panelPlugin["tui.prompt.append"]({ sessionID: "panel-session", prompt: "fix this bug in the parser" })
   await new Promise((resolve) => setTimeout(resolve, 0))
   const panelMetadata = metadataUpdates.at(-1)?.body?.metadata

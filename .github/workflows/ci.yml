@@ -42,6 +42,9 @@ jobs:
       - name: Validate ASK panel widget
         run: node ./scripts/check-panel-widget.js
 
+      - name: Validate ASK widget live state
+        run: node ./scripts/check-widget-live-state.js
+
       - name: Check release readiness
         run: node ./scripts/check-release-readiness.js
 

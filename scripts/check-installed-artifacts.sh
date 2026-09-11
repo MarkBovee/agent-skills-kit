@@ -105,8 +105,10 @@ assert_installed_strings() {
     "$DSH_HOME/client-plugins/ask-kit-panel/client.js" "Agent Skills Kit" present
   assert_grep "installed widget shows active skill hierarchy" \
     "$DSH_HOME/client-plugins/ask-kit-panel/client.js" "ACTIVE SKILL" present
-  assert_grep "installed widget shows confidence hierarchy" \
-    "$DSH_HOME/client-plugins/ask-kit-panel/client.js" "CONFIDENCE" present
+  assert_grep "installed widget shows pending review hierarchy" \
+    "$DSH_HOME/client-plugins/ask-kit-panel/client.js" "PENDING" present
+  assert_grep "installed widget drops fabricated confidence" \
+    "$DSH_HOME/client-plugins/ask-kit-panel/client.js" "CONFIDENCE" absent
   assert_grep "installed widget shows routing hierarchy" \
     "$DSH_HOME/client-plugins/ask-kit-panel/client.js" "ROUTING" present
   assert_grep "installed OpenCode router package exposes a TUI entrypoint" \

@@ -6,6 +6,18 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.0.5] - 2026-09-11
+
+### Fixed
+
+- **ASK status panel no longer predicts the workflow.** A fresh session started by writing a generic default route (`PLAN → EXECUTE → VALIDATE → REVIEW`) into the canonical snapshot, so the OpenCode sidebar showed a workflow before ASK had actually routed anything. The initial state is now neutral: no active skill, no route, no fabricated confidence. The route only appears once a real prompt establishes one, and `buildWorkflowState` returns `null` for an empty input with no prior decision.
+- **Live review obligations.** The panel now shows the review/capture obligations ASK actually has pending (`Code review`, `Design review`, `Capture improvement`) and clears each one as soon as its skill loads. The snapshot is rebuilt from the full merged state on every save, so a flag flip re-renders the panel even when no routing field changed.
+- **Tighter OpenCode panel spacing.** Section headers sit directly above their details again; the sidebar gap now opens only between sections.
+
+### Changed
+
+- **Removed the routing-confidence score.** The weighted heuristic was presented as a percentage meter even though it was not a probability and, for default fallback routes, exposed a fabricated `45%`. The panel now presents only router-owned facts; `router-core.js` remains the source of truth for the active skill, workflow route, and pending obligations.
+
 ## [2.0.4] - 2026-09-10
 
 ### Fixed

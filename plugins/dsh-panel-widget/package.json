@@ -1,6 +1,6 @@
 {
   "name": "ask-kit-panel",
-  "description": "Agent Skills Kit routing status panel for the DSH web composer: active skill, confidence, and workflow route from the askKit session projection",
+  "description": "Agent Skills Kit routing status panel for the DSH web composer: active skill, workflow route, and pending review obligations from the askKit session projection",
   "version": "1.6.0",
   "private": true,
   "main": "./index.mjs",
