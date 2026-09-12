@@ -52,7 +52,7 @@ Output contract per stage (see `agent-workflows` for the full contract):
 
 0. **Plan if missing.** Non-trivial task (3+ changes, multi-file, risky) without a plan? If scope is new or unclear, load `intake` first. Otherwise generate inline plan with `todowrite` or short bullets. Trivial 1-2 edits: skip.
 1. Inspect the next boundary that matters.
-2. Create the smallest coherent improvement.
+2. Create the smallest coherent improvement. For logic or behavior changes, write or update the failing test first (RED → GREEN → REFACTOR); for bug fixes write a regression test that demonstrates the bug before fixing it.
 3. Test it with the fastest trustworthy proof.
 4. Review it for clarity, safety, consistency, and scope.
 5. Continue unless a real blocker or decision point appears.
@@ -93,6 +93,7 @@ Same flow as release: fix branch → PR → merge → tag. No feature iteration.
 11. **Never modify or delete external system state** (entity registries, device registries, databases, config files on remote hosts) without showing the user what will change and asking for confirmation. "Check X then do Y" means show check results first, then ask before acting.
 12. **Discover the repository's own test/build/lint commands** from manifests, CI workflows, and documented commands; never assume a default runner.
 13. **Push back when an approach has clear problems**: name the concrete downside (quantified when possible), propose an alternative, and only accept the override when the user decides with full information.
+14. **Verify framework and library decisions against official documentation.** Detect the exact versions from dependency files, follow the documented patterns, and cite the source. When no authoritative source is found, flag the approach as `UNVERIFIED` instead of improvising confidently; never treat training data, tutorials, or forum answers as authoritative.
 
 ## Use with
 

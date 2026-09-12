@@ -6,6 +6,15 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.2.1] - 2026-09-12
+
+### Added
+
+- **Test-first discipline folded into `develop`.** For logic or behavior changes the core loop now writes or updates the failing test first (RED → GREEN → REFACTOR); for bug fixes it writes a regression test that demonstrates the bug before fixing it. `verification`'s quality floor already demanded a regression test that fails without its fix, so the fold keeps the guard coherent without a new skill.
+- **Source-driven development norm.** `develop` now verifies framework and library decisions against official documentation: detect exact versions from dependency files, follow documented patterns, cite the source, and flag the approach `UNVERIFIED` when no authoritative source exists. Training data, tutorials, and forum answers are explicitly not authoritative.
+- **Stronger requirement extraction in `intake`.** Design exploration now attaches the current guess to each question so the user can react faster, probes what the user actually wants rather than what they think they should want, and treats "whatever you think" or "sounds good" as not a yes.
+- **Capability mapping and decision history in `spec`.** When one requirement spans several independently testable capabilities, the spec now maps capabilities and their dependency direction first so it decomposes instead of staying monolithic. Decisions record alternatives considered and their consequences alongside choice, owner, rationale, and status.
+
 ## [2.2.0] - 2026-09-12
 
 ### Added
