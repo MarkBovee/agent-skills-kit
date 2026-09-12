@@ -180,7 +180,7 @@ is_generated_platform_status_line() {
   fi
 
   case "$path" in
-    CLAUDE.md|.claude/*|.github/*|.dsh/*)
+    CLAUDE.md|.claude/*|.dsh/*|.github/skills/*|.github/prompts/*|.github/copilot-instructions.md)
       return 0
       ;;
     *)
@@ -216,12 +216,12 @@ EOF
 
   [ "$restored" -eq 1 ] || return 2
 
-  git -C "$repo_root" restore --source=HEAD --staged --worktree -- .claude .github .dsh CLAUDE.md || {
+  git -C "$repo_root" restore --source=HEAD --staged --worktree -- .claude .dsh .github/skills .github/prompts .github/copilot-instructions.md CLAUDE.md || {
     echo "Failed to restore generated platform artifacts in managed checkout $repo_root." >&2
     return 1
   }
 
-  git -C "$repo_root" clean -fd -- .claude .github .dsh CLAUDE.md >/dev/null 2>&1 || {
+  git -C "$repo_root" clean -fd -- .claude .dsh .github/skills .github/prompts .github/copilot-instructions.md CLAUDE.md >/dev/null 2>&1 || {
     echo "Failed to clean generated platform artifacts in managed checkout $repo_root." >&2
     return 1
   }

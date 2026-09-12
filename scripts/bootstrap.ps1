@@ -48,7 +48,7 @@ function Invoke-BootstrapManagedCheckoutPull {
             $path = ($path -split ' -> ')[-1].Trim()
         }
 
-        if ($path -ne "CLAUDE.md" -and -not $path.StartsWith(".claude/") -and -not $path.StartsWith(".github/") -and -not $path.StartsWith(".dsh/")) {
+        if ($path -ne "CLAUDE.md" -and -not $path.StartsWith(".claude/") -and -not $path.StartsWith(".dsh/") -and -not $path.StartsWith(".github/skills/") -and -not $path.StartsWith(".github/prompts/") -and $path -ne ".github/copilot-instructions.md") {
             $onlyGeneratedArtifacts = $false
             break
         }
@@ -58,12 +58,12 @@ function Invoke-BootstrapManagedCheckoutPull {
         throw "git pull failed for managed checkout $RepoRoot (exit code $pullExitCode). Resolve the git error above. If this checkout is incomplete, delete $RepoRoot and rerun bootstrap."
     }
 
-    & $git.Source -C $RepoRoot restore --source=HEAD --staged --worktree -- .claude .github .dsh CLAUDE.md
+    & $git.Source -C $RepoRoot restore --source=HEAD --staged --worktree -- .claude .dsh .github/skills .github/prompts .github/copilot-instructions.md CLAUDE.md
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to restore generated platform artifacts in managed checkout $RepoRoot."
     }
 
-    & $git.Source -C $RepoRoot clean -fd -- .claude .github .dsh CLAUDE.md 1>$null 2>$null
+    & $git.Source -C $RepoRoot clean -fd -- .claude .dsh .github/skills .github/prompts .github/copilot-instructions.md CLAUDE.md 1>$null 2>$null
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to clean generated platform artifacts in managed checkout $RepoRoot."
     }

@@ -13,10 +13,10 @@ const RELEASE_SENSITIVE_PATH_PATTERNS = [
   /^core\//,
   /^plugins\//,
   /^skills\//,
-  /^scripts\/bootstrap-.*\.(?:sh|ps1)$/,
-  /^scripts\/install-.*\.(?:sh|ps1)$/,
+  /^scripts\/bootstrap(?:-.*)?\.(?:sh|ps1)$/,
+  /^scripts\/install(?:-.*)?\.(?:sh|ps1)$/,
   /^scripts\/tag-release\.(?:sh|ps1)$/,
-  /^scripts\/update-.*\.(?:sh|ps1)$/,
+  /^scripts\/update(?:-.*)?\.(?:sh|ps1)$/,
   /^scripts\/release-helpers\.(?:sh|ps1)$/,
 ]
 const execFile = util.promisify(childProcess.execFile)
@@ -121,7 +121,8 @@ function validateVersionAheadOfLatestStable(version, latestStableVersion, change
     return errors
   }
 
-  const isExplicitPublishedReleaseUpdate = version === latestStableVersion && changedPaths.includes("CHANGELOG.md")
+  const isExplicitPublishedReleaseUpdate = version === latestStableVersion && changedPaths.length > 0
+    && changedPaths.every((filePath) => filePath === "CHANGELOG.md")
   if (compareSemVer(version, latestStableVersion) <= 0 && !isExplicitPublishedReleaseUpdate) {
     const samplePaths = releaseSensitivePaths.slice(0, 5).join(", ")
     const suffix = releaseSensitivePaths.length > 5 ? ", ..." : ""
@@ -131,6 +132,12 @@ function validateVersionAheadOfLatestStable(version, latestStableVersion, change
   }
 
   return errors
+}
+
+// Prove the changelog-only exception cannot hide a shipped install-surface change.
+function checkVersionBypassPolicy() {
+  const errors = validateVersionAheadOfLatestStable("2.1.1", "2.1.1", ["CHANGELOG.md", "scripts/install.sh"])
+  if (errors.length === 0) throw new Error("release readiness accepts a shipped change without a version bump")
 }
 
 // Validate that the changelog contains required release-management sections.
@@ -162,6 +169,12 @@ async function main() {
     ...validateVersionAheadOfLatestStable(version, latestStableVersion, changedPaths),
     ...validateChangelog(changelog, version, options.requireVersionEntry),
   ]
+
+  try {
+    checkVersionBypassPolicy()
+  } catch (error) {
+    errors.push(error.message)
+  }
 
   if (errors.length > 0) {
     for (const error of errors) {

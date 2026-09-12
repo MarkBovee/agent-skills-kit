@@ -22,6 +22,7 @@ if ($version -notmatch '^\d+\.\d+\.\d+$') {
 }
 
 $releaseTag = "v$version"
+
 $statusOutput = & $git.Source -C $repoRoot status --porcelain
 if ($LASTEXITCODE -ne 0) {
     throw "Failed to inspect git status before tagging."
@@ -29,6 +30,34 @@ if ($LASTEXITCODE -ne 0) {
 
 if ($statusOutput) {
     throw "Working tree must be clean before tagging $releaseTag."
+}
+
+$currentBranch = & $git.Source -C $repoRoot symbolic-ref --quiet --short HEAD 2>$null
+if ($LASTEXITCODE -ne 0 -or $currentBranch.Trim() -ne "main") {
+    throw "Releases must be tagged from main."
+}
+
+& $git.Source -C $repoRoot fetch origin main 1>$null
+if ($LASTEXITCODE -ne 0) {
+    throw "Failed to fetch origin/main before tagging."
+}
+
+$headCommit = (& $git.Source -C $repoRoot rev-parse HEAD).Trim()
+$remoteMainCommit = (& $git.Source -C $repoRoot rev-parse origin/main).Trim()
+if ($headCommit -ne $remoteMainCommit) {
+    throw "Local main must match origin/main before tagging."
+}
+
+# Regenerate after proving no user changes can be overwritten. A stale or broken
+# export leaves a dirty tree and blocks the tag at the second clean-tree check.
+& $node.Source (Join-Path $repoRoot "scripts/export-platform-skills.js")
+if ($LASTEXITCODE -ne 0) {
+    throw "Platform export failed."
+}
+
+$generatedStatus = & $git.Source -C $repoRoot status --porcelain
+if ($LASTEXITCODE -ne 0 -or $generatedStatus) {
+    throw "Generated platform exports are stale. Commit them before tagging $releaseTag."
 }
 
 & $node.Source (Join-Path $repoRoot "scripts/validate-plugin.js")
@@ -46,15 +75,7 @@ if ($LASTEXITCODE -eq 0) {
     throw "Tag $releaseTag already exists."
 }
 
-$currentBranch = $null
-if ($Push) {
-    $currentBranch = & $git.Source -C $repoRoot symbolic-ref --quiet --short HEAD 2>$null
-    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($currentBranch)) {
-        throw "Cannot push from detached HEAD. Check out a branch first."
-    }
-
-    $currentBranch = $currentBranch.Trim()
-}
+$currentBranch = "main"
 
 "Prepared release $releaseTag from VERSION $version."
 
