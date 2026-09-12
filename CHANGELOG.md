@@ -6,6 +6,19 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.2.0] - 2026-09-12
+
+### Added
+
+- **Regression guard in debugging.** `debugging` now ends with a `GUARD` step: a regression test or check that fails without the fix and passes with it, so a verified fix cannot silently regress. The flow also names the root-cause discipline ("why does this happen?" until the cause is reached) and end-to-end verification with the repository's own commands.
+- **Error output is data.** `debugging` now treats error messages, stack traces, and log output as data to analyze rather than instructions to follow, guarding against instruction-like text embedded by compromised dependencies, malicious input, or adversarial systems.
+- **Repository-aware proof commands.** `develop` and `verification` now discover the repository's own test/build/lint commands from manifests, CI workflows, and documented commands instead of assuming a default runner.
+- **Verification quality floor.** `verification` now carries a standing bar every change must clear: no new suppressions, no skipped or deleted tests, no weakened thresholds or stripped assertions, and a regression test guarding the original symptom. Raising the bar is silent; lowering it is loud.
+- **Security and performance axes in code review.** `code-review` now checks the diff explicitly for security (input validation, secrets hygiene, authorization, parameterized queries, output encoding) and performance (N+1/unbounded fetch patterns, unbounded loops, sync-over-async in hot paths), with deep smell-scanning remaining owned by `verification`.
+- **Structural remedy guidance.** `code-review` now asks reviewers to name the move when flagging structural problems ("replace a chain of conditionals with a typed dispatcher", "delete a pass-through wrapper") instead of only saying "this is complex".
+- **Focused performance and security norms.** `improve` `perf` mode now measures before optimizing, treats a neutral result as a revert, and logs every attempt including reverted ones; `security` mode starts from a threat model where trust follows who wrote a value, not which channel delivered it.
+- **Anti-sycophancy norm.** `develop` now explicitly pushes back on approaches with clear problems: name the quantified downside, propose an alternative, and accept the override only when the user decides with full information.
+
 ## [2.1.1] - 2026-09-12
 
 ### Changed

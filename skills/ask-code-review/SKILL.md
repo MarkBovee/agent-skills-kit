@@ -44,6 +44,17 @@ For delegated review, return `ASK_WORKFLOW_PASS phase=REVIEW` only when requirem
 - Is the proof proportional to the risk?
 - Are docs or follow-on changes needed?
 
+## Additional axes
+
+Check these explicitly on the diff when it touches them:
+
+- **Security:** Is input validated and untrusted external data rejected at boundaries? Are secrets kept out of code, logs, and revision history? Is authorization checked where access is gated? Are SQL queries parameterized and outputs encoded?
+- **Performance:** Does the diff introduce N+1 or unbounded query/fetch patterns, unbounded loops, or sync-over-async in hot paths? Deep smell-scanning of these patterns is owned by `verification`; here, judge only what the diff itself ships.
+
+## Structural remedies
+
+When you flag a structural problem, name the move, not just the problem: "replace a chain of conditionals with a typed dispatcher," "delete a pass-through wrapper," "make the type boundary explicit," "separate orchestration from business logic." Prefer the remedy that removes moving pieces over one that spreads the same complexity elsewhere.
+
 ## Apply proportionally
 
 - Tiny, local change: quick checklist pass — still required, just fast.

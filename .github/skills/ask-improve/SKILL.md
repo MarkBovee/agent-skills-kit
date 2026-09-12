@@ -31,13 +31,18 @@ For significant or release-sensitive work, act as the independent audit role: in
 
 - (bare): Full audit + plans (recon → audit → plan)
 - `quick` / `deep`: Audit depth modifier; `quick` keeps smell scanning focused on the relevant changed surface, while `deep` expands it across affected modules or the repository
-- `security` / `perf` / `tests` / `deps` / `dx` / `docs` / `direction` / `tech-debt` / `text`: Focus on one category (`text` = user-facing language/locale consistency across UI copy, docs, and installer output)
+- `security` / `perf` / `tests` / `deps` / `dx` / `docs` / `direction` / `tech-debt` / `text`: Focus on one category. The `perf` and `security` modes carry standing behavior rules (below), not just a scan.
 - `refactor`: Focused simplification pass — not full audit
 - `execute <plan>`: Dispatch executor, review, verdict (APPROVE/REVISE/BLOCK)
 - `reconcile`: Refresh plan backlog, verify DONE, investigate BLOCKED
 - `next` / `features` / `roadmap`: Direction-only audit
 - `branch`: Diff-only audit of current branch vs default branch
 - `--issues`: Publish plans as GitHub issues
+
+## Focus rules
+
+- **`perf`**: Measure before optimizing. Neutral results are reverts, not keeps; log every attempt including the reverted ones so a discarded optimization stays discarded.
+- **`security`**: Start from a threat model. Trust follows who wrote a value, not which channel delivered it.
 
 ## Refactoring pattern
 

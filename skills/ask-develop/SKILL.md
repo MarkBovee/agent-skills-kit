@@ -142,6 +142,8 @@ Same flow as release: fix branch → PR → merge → tag. No feature iteration.
 9. Delegate only when the work is parallel, repetitive, or context-heavy.
 10. Follow the standard git workflow: branch, draft PR, commits, squash merge, cleanup.
 11. **Never modify or delete external system state** (entity registries, device registries, databases, config files on remote hosts) without showing the user what will change and asking for confirmation. "Check X then do Y" means show check results first, then ask before acting.
+12. **Discover the repository's own test/build/lint commands** from manifests, CI workflows, and documented commands; never assume a default runner.
+13. **Push back when an approach has clear problems**: name the concrete downside (quantified when possible), propose an alternative, and only accept the override when the user decides with full information.
 
 ## Use with
 
