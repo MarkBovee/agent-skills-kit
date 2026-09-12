@@ -22,16 +22,17 @@ function resolveRouterCore() {
 
 const {
   CODE_EDIT_TOOL_IDS, CODE_WORK_TOOL_IDS, RECENT_TOOL_MAX, COMPLETION_PHRASES,
-  SKILL_CODE_REVIEW, SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SESSION_REVIEW, SKILL_DESIGN_REVIEW, SKILL_UI_UX,
+  SKILL_CODE_REVIEW, SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SESSION_REVIEW, SKILL_DESIGN_REVIEW, SKILL_DESIGN,
   SKILL_DEVELOP,
   buildSkillOverview, cascadeRoute, getSessionState, loadSkills,
   setSessionState, hasPhraseSignal, toSingleLine, unique,
-  hasReviewCompletionSignal, routingHintLines, buildWorkflowState, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
+  hasTerminalReviewCompletion, routingHintLines, buildWorkflowState, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
   buildRoutingStatus,
 } = resolveRouterCore()
 
 function resolveSkillPath() {
-  const candidates = [resolve(homedir(), ".agents", "skills"), resolve(here, "../../skills")]
+  const configuredSkillsPath = process.env.ASK_SKILLS_DIR
+  const candidates = [configuredSkillsPath, resolve(homedir(), ".agents", "skills"), resolve(here, "../../skills")].filter(Boolean)
   for (const p of candidates) { if (existsSync(p)) return p }
   return candidates[0]
 }
@@ -56,9 +57,10 @@ function sessionKey(input) {
   return typeof input?.sessionID === "string" && input.sessionID ? input.sessionID : "default"
 }
 
-// Clear parent review debt when a direct or delegated review reports completion.
-function isReviewCompletion(input, output) {
-  return hasReviewCompletionSignal(input) || hasReviewCompletionSignal(output)
+// Trust review completion only from a delegated task result, never user text.
+function isDelegatedReviewCompletion(toolID, input, output) {
+  const evidence = parseWorkflowEvidence(output)
+  return toolID === "task" && evidence?.status === "PASS" && evidence.phase === "REVIEW" && hasTerminalReviewCompletion(output)
 }
 
 let skillsCache = null
@@ -72,6 +74,7 @@ async function getSkills() {
 export const AgentSkillsRouter = async ({ client } = {}) => {
   const sessionState = new Map()
   const pendingPersistence = new Map()
+  const pendingStateChanges = new Map()
   // Persist only the router snapshot under its own metadata key so the TUI
   // face can read it through OpenCode's native session state. The snapshot is
   // rebuilt from the full merged state so review-flag changes are reflected
@@ -104,17 +107,25 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
     persistStatus(key, state)
     return state
   }
+
+  // Run stateful hooks in arrival order per session so a prompt completing
+  // alongside a skill load cannot restore an older current-skill snapshot.
+  function serializeStateChange(input, change) {
+    const key = sessionKey(input)
+    const previous = pendingStateChanges.get(key) || Promise.resolve()
+    const next = previous.catch(() => {}).then(change)
+    pendingStateChanges.set(key, next)
+    void next.finally(() => {
+      if (pendingStateChanges.get(key) === next) pendingStateChanges.delete(key)
+    })
+    return next
+  }
   // Route one user prompt, advance workflow state, and persist the canonical
   // status snapshot. Returns the decision-tree append section for the prompt.
   async function processPrompt(input, promptText) {
     let state = getSessionState(sessionState, sessionKey(input))
     const skills = await getSkills()
     const extraLines = []
-
-    // A delegated review returns through the parent prompt rather than a local skill tool result.
-    if (hasReviewCompletionSignal(promptText)) {
-      state = save(input, { needsCodeReview: false, shouldCaptureImprovement: true })
-    }
 
     const route = cascadeRoute(promptText, skills, state)
     const matchSkill = route?.matchedSkills?.[0]
@@ -124,12 +135,14 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
     }
 
     const workflow = buildWorkflowState(promptText, state)
+    // A route match only becomes active once its skill is actually loaded;
+    // until then it stays a hollow suggestion (and its pending nudge). The
+    // develop fallback must never displace the skill the agent already loaded.
     state = save(input, {
       matchedSkills: route?.matchedSkills || [],
       executionProfile: route?.executionProfile || null,
       interactionCountSinceSkillLoad: (state.interactionCountSinceSkillLoad || 0) + 1,
       workflow,
-      routing: buildRoutingStatus(route, { ...state, workflow }),
     })
 
     if (!state.hasDoneSessionAudit) {
@@ -142,10 +155,6 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
       const overview = buildSkillOverview(state)
       const section = [...extraLines, ...auditLines].join("\n")
       return `\n--- Agent Skills Kit ---\n${section}\n\n${overview}`
-    }
-
-    if ((state.needsCodeReview || state.needsDesignReview) && hasPhraseSignal(promptText, COMPLETION_PHRASES)) {
-      save(input, { needsCodeReview: false, needsDesignReview: false, shouldCaptureImprovement: true })
     }
 
     const lines = buildSkillOverview(state)
@@ -170,7 +179,7 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
       try {
         const promptText = promptTextFromMessage(output)
         if (!promptText) return
-        await processPrompt(input, promptText)
+        await serializeStateChange(input, () => processPrompt(input, promptText))
       } catch { /* plugin error, skip ask hints this prompt */ }
     },
     // Real server hook: initialize safe sidebar state when a session starts.
@@ -180,8 +189,10 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
         const sessionID = event?.properties?.info?.id
         await getSkills()
         const input = { sessionID }
-        const state = getSessionState(sessionState, sessionKey(input))
-        save(input, { routing: buildRoutingStatus(null, state) })
+        // Session IDs can be reused after host reconnects; discard any prior
+        // bucket before persisting the required neutral first-render snapshot.
+        sessionState.delete(sessionKey(input))
+        save(input, {})
       } catch { /* ok */ }
     },
     // Legacy TUI event hook kept for host compatibility; returns the prompt
@@ -190,7 +201,7 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
       try {
         const promptText = (input?.prompt || input?.text || "").trim()
         if (!promptText) return
-        const append = await processPrompt(input, promptText)
+        const append = await serializeStateChange(input, () => processPrompt(input, promptText))
         return append ? { append } : undefined
       } catch { /* plugin error, skip ask hints this prompt */ }
     },
@@ -211,47 +222,52 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
       }
     },
     "tool.execute.after": async (input, output) => {
-      const toolID = (typeof input?.tool === "string" ? input.tool : "").trim()
-      if (!toolID) return
-      const state = getSessionState(sessionState, sessionKey(input))
-      const recentToolIds = [...(state.recentToolIds || []), toolID].slice(-RECENT_TOOL_MAX)
-      const toolCallCount = (state.toolCallCount || 0) + 1
-      const skillsLoadedCount = toolID === "skill" ? (state.skillsLoadedCount || 0) + 1 : (state.skillsLoadedCount || 0)
-      const loadedSkills = toolID === "skill" ? unique([...(state.loadedSkills || []), resolveSkillName(input, output)]) : (state.loadedSkills || [])
-      const base = {
-        recentToolIds,
-        toolCallCount,
-        skillsLoadedCount,
-        loadedSkills,
-        interactionCountSinceSkillLoad: toolID === "skill"
-          ? 0
-          : (state.interactionCountSinceSkillLoad || 0),
-        workflow: state.workflow,
-      }
+      return serializeStateChange(input, () => {
+        const toolID = (typeof input?.tool === "string" ? input.tool : "").trim()
+        if (!toolID) return
+        const state = getSessionState(sessionState, sessionKey(input))
+        const recentToolIds = [...(state.recentToolIds || []), toolID].slice(-RECENT_TOOL_MAX)
+        const toolCallCount = (state.toolCallCount || 0) + 1
+        const skillsLoadedCount = toolID === "skill" ? (state.skillsLoadedCount || 0) + 1 : (state.skillsLoadedCount || 0)
+        const loadedSkills = toolID === "skill" ? unique([...(state.loadedSkills || []), resolveSkillName(input, output)]) : (state.loadedSkills || [])
+        const base = {
+          recentToolIds,
+          toolCallCount,
+          skillsLoadedCount,
+          loadedSkills,
+          currentSkill: state.currentSkill,
+          interactionCountSinceSkillLoad: toolID === "skill"
+            ? 0
+            : (state.interactionCountSinceSkillLoad || 0),
+          workflow: state.workflow,
+        }
 
-      const workflowEvidence = parseWorkflowEvidence(input) || parseWorkflowEvidence(output)
-      if (workflowEvidence) {
-        const workflow = recordWorkflowEvidence(state.workflow, workflowEvidence)
-        save(input, { ...base, workflow, routing: buildRoutingStatus(null, { ...state, workflow }) })
-        return
-      }
-      if (isReviewCompletion(input, output)) {
-        save(input, { ...base, needsCodeReview: false, shouldCaptureImprovement: true })
-        return
-      }
-      if (CODE_EDIT_TOOL_IDS.has(toolID)) { save(input, { ...base, needsCodeReview: true }); return }
-      if (toolID !== "skill") { save(input, base); return }
-      const skillName = resolveSkillName(input, output)
-      if (!skillName) { save(input, base); return }
-      const skillWorkflow = workflowForSkill(state.workflow, skillName)
-      const routing = buildRoutingStatus(null, { ...state, workflow: skillWorkflow }, skillName)
-      if (skillName === SKILL_CODE_REVIEW) { save(input, { ...base, needsCodeReview: false, shouldCaptureImprovement: true, workflow: skillWorkflow, routing }); return }
-      if (skillName === SKILL_VERIFICATION) { save(input, { ...base, shouldCaptureImprovement: true, workflow: skillWorkflow, routing }); return }
-      if (skillName === SKILL_WRITE_SKILL) { save(input, { ...base, shouldCaptureImprovement: false, routing }); return }
-      if (skillName === SKILL_SESSION_REVIEW) { save(input, { ...base, shouldCaptureImprovement: false, routing }); return }
-      if (skillName === SKILL_UI_UX) { save(input, { ...base, needsDesignReview: true, workflow: skillWorkflow, routing }); return }
-      if (skillName === SKILL_DESIGN_REVIEW) { save(input, { ...base, needsDesignReview: false, routing }); return }
-      save(input, { ...base, routing })
+        // Skill documentation contains workflow marker examples; only real work
+        // results may advance lifecycle gates or clear review obligations.
+        const completedReview = isDelegatedReviewCompletion(toolID, input, output)
+        const workflowEvidence = toolID === "task" ? parseWorkflowEvidence(output) : null
+        if (workflowEvidence || completedReview) {
+          const workflow = workflowEvidence ? recordWorkflowEvidence(state.workflow, workflowEvidence) : state.workflow
+          save(input, {
+            ...base,
+            workflow,
+            ...(completedReview ? { needsCodeReview: false, shouldCaptureImprovement: true } : {}),
+          })
+          return
+        }
+        if (CODE_EDIT_TOOL_IDS.has(toolID)) { save(input, { ...base, needsCodeReview: true }); return }
+        if (toolID !== "skill") { save(input, base); return }
+        const skillName = resolveSkillName(input, output)
+        if (!skillName) { save(input, base); return }
+        const skillWorkflow = workflowForSkill(state.workflow, skillName)
+        if (skillName === SKILL_CODE_REVIEW) { save(input, { ...base, currentSkill: skillName, needsCodeReview: false, shouldCaptureImprovement: true, workflow: skillWorkflow }); return }
+        if (skillName === SKILL_VERIFICATION) { save(input, { ...base, currentSkill: skillName, shouldCaptureImprovement: true, workflow: skillWorkflow }); return }
+        if (skillName === SKILL_WRITE_SKILL) { save(input, { ...base, currentSkill: skillName, shouldCaptureImprovement: false }); return }
+        if (skillName === SKILL_SESSION_REVIEW) { save(input, { ...base, currentSkill: skillName, shouldCaptureImprovement: false }); return }
+        if (skillName === SKILL_DESIGN) { save(input, { ...base, currentSkill: skillName, needsDesignReview: true, workflow: skillWorkflow }); return }
+        if (skillName === SKILL_DESIGN_REVIEW) { save(input, { ...base, currentSkill: skillName, needsDesignReview: false }); return }
+        save(input, { ...base, currentSkill: skillName })
+      })
     },
   }
 }

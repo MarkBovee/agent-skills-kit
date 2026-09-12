@@ -23,6 +23,7 @@ async function checkEvidenceAwareCommunication() {
   const inboxSkill = await readRepoFile("skills/ask-gh-inbox/SKILL.md")
   const sessionReviewSkill = await readRepoFile("skills/ask-session-review/SKILL.md")
   const workflowRules = await readRepoFile("rules/agent-skills-kit.md")
+  const workflowMandate = await readRepoFile("rules/workflow.md")
 
   for (const phrase of [
     "## Evidence-aware communication",
@@ -59,6 +60,15 @@ async function checkEvidenceAwareCommunication() {
     "Missing output, timeout, or tool failure is not a pass",
   ]) {
     assertIncludes(workflowRules, phrase, "rules/agent-skills-kit.md")
+  }
+
+  for (const phrase of [
+    "Load the most specific matching workflow skill",
+    "must, should, could",
+    "Delegate independent research",
+    "Never declare merge, release, or tag readiness from self-review alone",
+  ]) {
+    assertIncludes(workflowMandate, phrase, "rules/workflow.md")
   }
 }
 

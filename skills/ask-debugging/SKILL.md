@@ -61,6 +61,7 @@ Fix obvious one-line mistakes directly. For everything else, earn the fix by nar
 ## Use with
 
 - `verification` to prove the bug path is fixed with focused fresh evidence
+- `deep-research` when root cause spans local behavior, upstream history, protocol evidence, or conflicting sources; resume debugging from its handoff
 
 ## Avoid
 

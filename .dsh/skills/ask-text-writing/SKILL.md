@@ -71,7 +71,7 @@ For a specific person, match their voice: swearing, slang, sentence length, humo
 
 ## Use with
 
-- `ui-ux` for web copy inside a design, then `design-review` before showing it
+- `design` for web copy inside a design, then `design-review` before showing it
 - `design-review` to review existing copy for AI-default patterns
 - `write-skill` if writing quality reveals a reusable gap worth capturing
 - `session-review` to file follow-up improvements

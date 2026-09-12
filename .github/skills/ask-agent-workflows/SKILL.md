@@ -117,6 +117,10 @@ Emit periodic, rate-limited progress updates while the task runs:
 
 ### Concrete flows
 
+**Deep-research flow:** Coordinator writes the research brief and dynamic plan, delegates independent local, upstream, history, and external tracks, then reconciles citations, contradictions, hypotheses, confidence, and handoff. Track results carry evidence, scope, unknowns, and `ASK_WORKFLOW_* phase=RESEARCH`; coordinator owns conclusions and continuation state.
+
+**Parallel research sweep:** For a multi-source brief, create one read-only subagent per independent source class before serial analysis: local implementation and tests, fixtures/logs/captures, upstream source and documentation, history/issues/PRs, and external standards or community evidence. Each returns citations, observations, contradictions, confidence, and open questions. Coordinator compares results, resolves source authority, then assigns dependent follow-up work.
+
 **Review flow:** Main thread delegates a bounded review → subagent returns structured findings (1 line per issue, severity-tagged) → main thread applies or delegates fixes. Only the findings table stays in context, not the diff.
 
 **Locate→fix flow:** Investigator finds sites → main thread picks 1-2 → hands exact path:line to builder → builder returns diff receipt. Investigator's full output discarded after selection.
@@ -128,6 +132,7 @@ Emit periodic, rate-limited progress updates while the task runs:
 ## Use with
 
 - `develop` for the default steady-progress loop once ownership and scope are set
+- `deep-research` for autonomous multi-track evidence gathering before a downstream handoff
 - `verification` after delegated work completes, to match proof to the scope of what was delegated
 
 ## Avoid

@@ -32,6 +32,7 @@ $opencodeCoreTarget = Join-Path $OpencodeDir "core"
 $opencodeSkillsTarget = Join-Path $OpencodeDir "skills"
 $opencodePluginsTarget = Join-Path $OpencodeDir "plugins"
 $opencodeRulesTarget = Join-Path $OpencodeDir "rules"
+$opencodeAgentsFile = Join-Path $OpencodeDir "AGENTS.md"
 $claudeSkillsTarget = Join-Path $ClaudeDir "skills"
 $claudeRulesTarget = Join-Path $ClaudeDir "rules"
 $claudeRulesFile = Join-Path $claudeRulesTarget "agent-skills-kit.md"
@@ -56,6 +57,7 @@ $managedSkillsManifest = ".ask-managed-skills.txt"
 $managedCommandsManifest = ".ask-managed-commands.txt"
 $managedPromptsManifest = ".ask-managed-prompts.txt"
 $dshSectionMarker = "<!-- agent-skills-kit:dsh -->"
+$opencodeSectionMarker = "<!-- agent-skills-kit:opencode -->"
 
 # Show compact interactive installer identity without polluting scripted output.
 function Show-AskBanner {
@@ -124,10 +126,33 @@ function Write-ClaudeRulesFile {
 
 - Prefer workflow skills under `~/.claude/skills/` when the user's request clearly matches one of them instead of rewriting the workflow inline.
 - Treat `develop` as the default execution baseline for normal software work and combine it with a more specific skill when needed.
-- After code edits, bias toward `ask-code-review` before `ask-verification` when the user is moving toward done, ready, finished, handoff, or klaar wording.
+- For large, multi-issue, exhaustive, compatibility-sensitive, or release-sensitive work, load `intake`, write a plan, and complete plan-check before execution.
+- Record maximum-result scope as must/should/could; deferred evidence-backed work needs a reason and revisit trigger.
+- Delegate independent research, validation, review, and audit tracks. Never self-declare release readiness; require independent evidence.
+- After code edits, load `code-review` before claiming completion.
 - If review, verification, or wrap-up exposes a reusable workflow gap, capture it with `write-skill` before ending cold.
 - When editing code, add concise intent comments by default; place one short comment above each function unless the repo's local convention says otherwise.
 "@ | Set-Content -LiteralPath $claudeRulesFile -NoNewline
+}
+
+# Append managed workflow guidance without replacing user-owned OpenCode rules.
+function Write-OpencodeAgentsSection {
+    $workflowSource = Join-Path $opencodeRulesSource "workflow.md"
+    $section = @"
+$opencodeSectionMarker
+$(Get-Content -LiteralPath $workflowSource -Raw)
+<!-- /agent-skills-kit:opencode -->
+"@
+    New-Item -ItemType Directory -Force -Path $OpencodeDir | Out-Null
+    if (Test-Path -LiteralPath $opencodeAgentsFile) {
+        $existing = Get-Content -LiteralPath $opencodeAgentsFile -Raw
+        if ($existing.Contains($opencodeSectionMarker)) {
+            $updated = [regex]::Replace($existing, '(?s)<!-- agent-skills-kit:opencode -->.*?(<!-- /agent-skills-kit:opencode -->|$)', $section)
+            Set-Content -LiteralPath $opencodeAgentsFile -Value $updated -NoNewline
+            return
+        }
+    }
+    Add-Content -LiteralPath $opencodeAgentsFile -Value $section
 }
 
 # Append the always-on dsh routing guidance to $DSH_HOME/AGENTS.md exactly once.
@@ -141,6 +166,9 @@ $dshSectionMarker
 
 - Prefer the workflow skills in this kit when the user's request clearly matches one of them: load the skill via the `skill` tool using the exact name from the available-skills catalog before doing the work, then follow its instructions.
 - Treat `develop` as the default execution baseline for normal software work and combine it with a more specific skill when needed.
+- For large, multi-issue, exhaustive, compatibility-sensitive, or release-sensitive work, load `intake`, write a plan, and complete plan-check before execution.
+- Record maximum-result scope as must/should/could; deferred evidence-backed work needs a reason and revisit trigger.
+- Delegate independent research, validation, review, and audit tracks. Never self-declare release readiness; require independent evidence.
 - After meaningful, subtle, or risky code changes, load `code-review` before moving on. Skip review for trivial edits where the change is obvious and low-risk.
 - If review or verification exposes a reusable workflow gap, capture it with `write-skill` before ending cold.
 - When editing code, add concise intent comments by default; place one short comment above each function unless the repo's local convention says otherwise.
@@ -150,6 +178,8 @@ $dshSectionMarker
     if (Test-Path -LiteralPath $dshAgentsFile) {
         $existing = Get-Content -LiteralPath $dshAgentsFile -Raw -ErrorAction SilentlyContinue
         if ($existing -and $existing.Contains($dshSectionMarker)) {
+            $updated = [regex]::Replace($existing, '(?s)<!-- agent-skills-kit:dsh -->.*?(<!-- /agent-skills-kit:dsh -->|$)', $section)
+            Set-Content -LiteralPath $dshAgentsFile -Value $updated -NoNewline
             return
         }
     }
@@ -540,12 +570,13 @@ try {
 
     # Install rules for OpenCode.
     New-Item -ItemType Directory -Force -Path $opencodeRulesTarget | Out-Null
-    foreach ($rule in @("coding-standards.md", "agent-skills-kit.md")) {
+    foreach ($rule in @("coding-standards.md", "agent-skills-kit.md", "workflow.md")) {
         $src = Join-Path $opencodeRulesSource $rule
         if (Test-Path -LiteralPath $src) {
             Copy-Item -LiteralPath $src -Destination (Join-Path $opencodeRulesTarget $rule) -Force
         }
     }
+    Write-OpencodeAgentsSection
 
     # Patch opencode.json: add instructions, plugin entries, and permissions idempotently.
     $opencodeJsonPath = Join-Path $OpencodeDir "opencode.json"
@@ -558,7 +589,7 @@ try {
             $cfg | Add-Member -NotePropertyName instructions -NotePropertyValue @() -Force
             $changed = $true
         }
-        foreach ($ins in @("./rules/coding-standards.md", "./rules/agent-skills-kit.md")) {
+        foreach ($ins in @("./rules/coding-standards.md", "./rules/agent-skills-kit.md", "./rules/workflow.md")) {
             if ($ins -notin $cfg.instructions) { $cfg.instructions += $ins; $changed = $true }
         }
         if ($cfg.PSObject.Properties.Match("plugin").Count -eq 0 -or $null -eq $cfg.plugin -or $cfg.plugin -isnot [System.Array]) {
@@ -603,20 +634,20 @@ try {
         $tuiCfg | Add-Member -NotePropertyName plugin -NotePropertyValue @() -Force
         $tuiChanged = $true
     }
+    $tuiPluginSpec = "./plugins/agent-skills-router/tui.tsx"
     $legacyTuiPlugins = @("./plugins/agent-skills-sidebar.tsx")
-    $filteredTuiPlugins = @($tuiCfg.plugin | Where-Object { $_ -notin $legacyTuiPlugins })
-    if ($filteredTuiPlugins.Count -ne @($tuiCfg.plugin).Count) {
-        $tuiCfg.plugin = $filteredTuiPlugins
+    $normalizedTuiPlugins = @($tuiCfg.plugin | Where-Object { $_ -notin ($legacyTuiPlugins + $tuiPluginSpec) }) + $tuiPluginSpec
+    if ($normalizedTuiPlugins.Count -ne @($tuiCfg.plugin).Count -or @($tuiCfg.plugin | Where-Object { $_ -eq $tuiPluginSpec }).Count -ne 1) {
+        $tuiCfg.plugin = $normalizedTuiPlugins
         $tuiChanged = $true
     }
-    $tuiPluginSpec = "./plugins/agent-skills-router/tui.tsx"
-    if ($tuiPluginSpec -notin $tuiCfg.plugin) { $tuiCfg.plugin += $tuiPluginSpec; $tuiChanged = $true }
     if ($tuiChanged) { $tuiCfg | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $opencodeTuiJsonPath }
 
     if (Test-Path -LiteralPath $ClaudeDir) {
         New-Item -ItemType Directory -Force -Path $claudeRulesTarget | Out-Null
         Write-ClaudeRulesFile
         Copy-Item -LiteralPath (Join-Path $opencodeRulesSource "coding-standards.md") -Destination (Join-Path $claudeRulesTarget "coding-standards.md") -Force
+        Copy-Item -LiteralPath (Join-Path $opencodeRulesSource "workflow.md") -Destination (Join-Path $claudeRulesTarget "workflow.md") -Force
         Set-DirectoryLink -LinkPath $claudeSkillsTarget -TargetPath $sharedSkillsTarget
     }
 
@@ -662,6 +693,7 @@ try {
     "Installed OpenCode router package to $(Join-Path $opencodePluginsTarget 'agent-skills-router')"
     "Installed OpenCode rules to $(Join-Path $opencodeRulesTarget 'coding-standards.md')"
     "Installed OpenCode agent-skills-kit usage guide to $(Join-Path $opencodeRulesTarget 'agent-skills-kit.md')"
+    "Installed OpenCode workflow guidance to $opencodeAgentsFile"
     if (Test-Path -LiteralPath $ClaudeDir) {
         "Installed Claude Code rules to $claudeRulesFile"
         "Linked Claude skills at $claudeSkillsTarget -> $sharedSkillsTarget"

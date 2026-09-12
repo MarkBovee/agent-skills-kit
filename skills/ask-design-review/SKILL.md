@@ -87,7 +87,7 @@ The difference between a 40-year practitioner and a model generating defaults is
 
 ## Use with
 
-- `ui-ux` to produce the design, then run this filter before showing it
+- `design` to produce the design, then run this filter before showing it
 - `code-review` after meaningful frontend diffs
 - `verification` before claiming the design is done
 

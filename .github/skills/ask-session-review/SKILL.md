@@ -18,6 +18,10 @@ Use at session close to evaluate whether the skill ecosystem served the work wel
 6. Before filing, check for equivalent open issues with `gh issue list --search` against `MarkBovee/agent-skills-kit`.
 7. If improvement is confirmed, flag `shouldCaptureImprovement: true` in session state.
 
+### When session state is unavailable
+
+Reconstruct relevant skill use from the transcript: explicit `skill` calls, loaded `SKILL.md` files, router matches, and the work actually performed. Mark this reconstruction as best-effort. If state cannot be written, record the improvement in the review output or issue instead of claiming the session flag was updated.
+
 ## Evidence-aware issue communication
 
 When writing an issue, follow the shared evidence-aware policy:

@@ -1,20 +1,23 @@
 /** @jsxImportSource @opentui/solid */
 
-import { createMemo, For, Show } from "solid-js"
+import { createMemo, Show } from "solid-js"
 import type { TuiPluginApi, TuiPluginModule, TuiThemeCurrent } from "@opencode-ai/plugin/tui"
 
 // OpenCode TUI face for the ASK router package. It renders only the status
 // snapshot persisted by the server router in session metadata.
 
-type RouteEntry = {
-  phase?: unknown
+type ActiveSkillEntry = {
+  skill?: unknown
   label?: unknown
-  state?: unknown
+  current?: unknown
+}
+
+type PendingEntry = {
+  label?: unknown
 }
 
 type AskStatus = {
-  activeSkillLabel?: unknown
-  workflow?: { route?: unknown }
+  activeSkills?: unknown
   pending?: unknown
 }
 
@@ -24,62 +27,71 @@ function readStatus(value: unknown): AskStatus | null {
   return value as AskStatus
 }
 
-// Extract the router-owned route list without interpreting its semantics.
-function routeEntries(status: AskStatus | null): RouteEntry[] {
-  const route = status?.workflow?.route
-  return Array.isArray(route) ? (route as RouteEntry[]) : []
+// Read the router-owned status from OpenCode's reactive session store.
+function sessionStatus(api: TuiPluginApi, sessionID: string): AskStatus | null {
+  return readStatus(api.state.session.get(sessionID)?.metadata?.askKit)
 }
 
-// Extract the router-owned pending review obligations as display labels.
-function pendingLabels(status: AskStatus | null): string[] {
+// Extract router-owned active skills once, protecting the panel from repeated
+// records retained by a stale or duplicated session update.
+function activeSkillEntries(status: AskStatus | null): ActiveSkillEntry[] {
+  if (!Array.isArray(status?.activeSkills)) return []
+  const seen = new Set<string>()
+  return (status.activeSkills as ActiveSkillEntry[]).filter((entry) => {
+    const label = entry?.label
+    if (typeof label !== "string" || !label) return false
+    const skill = typeof entry.skill === "string" && entry.skill ? entry.skill : label
+    if (seen.has(skill)) return false
+    seen.add(skill)
+    return true
+  })
+}
+
+// Extract router-owned pending obligation labels for compact sidebar rendering.
+function pendingItems(status: AskStatus | null): string[] {
   if (!Array.isArray(status?.pending)) return []
-  return (status?.pending as Array<{ label?: unknown }>)
+  return (status?.pending as PendingEntry[])
     .map((entry) => entry?.label)
     .filter((label): label is string => typeof label === "string" && label.length > 0)
 }
 
-// Present one router-owned workflow entry using its already calculated state.
-function RouteLine(props: { entry: RouteEntry; muted: TuiThemeCurrent["textMuted"]; text: TuiThemeCurrent["text"] }) {
-  const state = props.entry.state
-  const label = typeof props.entry.label === "string" ? props.entry.label : props.entry.phase
-  if (typeof label !== "string" || !["completed", "active", "pending"].includes(String(state))) return null
-  return <text fg={state === "pending" ? props.muted : props.text}>{state === "pending" ? "○" : "●"} {label}</text>
+// Format all active entries into one text node so OpenTUI replaces the list
+// atomically when session metadata changes instead of retaining stale children.
+function activeSkillText(entries: ActiveSkillEntry[]): string {
+  return entries.map((entry) => `${entry.current === true ? "●" : "○"} ${entry.label}`).join("\n")
 }
 
-// Render ASK's compact sidebar panel from persisted session metadata. Reads run
-// through memos so the panel appears and updates as the router persists state.
+// Format pending obligations into one stable text node for the same update path.
+function pendingText(items: string[]): string {
+  return items.map((label) => `→ ${label}`).join("\n")
+}
+
+// Present a section header in one shared style so both blocks read as one system.
+function SectionHeader(props: { title: string; muted: TuiThemeCurrent["textMuted"] }) {
+  return <text fg={props.muted}><b>{props.title}</b></text>
+}
+
+// Render ASK's compact sidebar panel from reactive persisted session metadata.
 function StatusPanel(props: { api: TuiPluginApi; sessionID: string }) {
   const theme = () => props.api.theme.current
-  const status = createMemo(() => readStatus(props.api.state.session.get(props.sessionID)?.metadata?.askKit))
-  const route = createMemo(() => routeEntries(status()))
-  const pending = createMemo(() => pendingLabels(status()))
-  const activeSkill = createMemo(() => status()?.activeSkillLabel)
+  const status = createMemo(() => sessionStatus(props.api, props.sessionID))
+  const activeSkills = createMemo(() => activeSkillEntries(status()))
+  const pending = createMemo(() => pendingItems(status()))
 
   return (
     <Show when={status()}>
-      <box flexDirection="column" gap={1} paddingTop={1} paddingBottom={1} paddingLeft={1} paddingRight={1}>
+      <box flexDirection="column" gap={1} paddingTop={1} paddingBottom={1}>
         <text fg={theme().primary}><b>Agent Skills Kit</b></text>
-        {/* Group each header with its details so the section gap only opens between sections. */}
         <box flexDirection="column">
-          <text fg={theme().textMuted}>ACTIVE SKILL</text>
-          <text fg={theme().text}>{typeof activeSkill() === "string" && activeSkill() ? activeSkill() : "Not matched"}</text>
-        </box>
-        <box flexDirection="column">
-          <text fg={theme().textMuted}>ROUTING</text>
-          <text fg={theme().textMuted}>──────────────</text>
-          <box flexDirection="column">
-            <Show when={route().length > 0} fallback={<text fg={theme().textMuted}>No workflow</text>}>
-              <For each={route()}>{(entry) => <RouteLine entry={entry} muted={theme().textMuted} text={theme().text} />}</For>
-            </Show>
-          </box>
+          <SectionHeader title="ACTIVE SKILLS" muted={theme().textMuted} />
+          <Show when={activeSkills().length > 0} fallback={<text fg={theme().textMuted}>No skill loaded</text>}>
+            <text fg={theme().text}>{activeSkillText(activeSkills())}</text>
+          </Show>
         </box>
         <Show when={pending().length > 0}>
           <box flexDirection="column">
-            <text fg={theme().textMuted}>PENDING</text>
-            <text fg={theme().textMuted}>──────────────</text>
-            <box flexDirection="column">
-              <For each={pending()}>{(label) => <text fg={theme().text}>→ {label}</text>}</For>
-            </box>
+            <SectionHeader title="PENDING" muted={theme().textMuted} />
+            <text fg={theme().warning}>{pendingText(pending())}</text>
           </box>
         </Show>
       </box>

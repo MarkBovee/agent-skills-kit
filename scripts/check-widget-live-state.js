@@ -210,46 +210,92 @@ async function openCodeLifecycle() {
   await plugin.event({ event: { type: "session.created", properties: { info: { id: sessionID } } } })
   await flush()
   const neutral = snapshots.at(-1)
-  check("opencode starts neutral: no skill, no route, no obligations",
-    neutral.activeSkill === null && neutral.workflow === null && neutral.pending.length === 0)
+  check("opencode starts neutral: no active skills or obligations",
+    neutral.activeSkills.length === 0 && neutral.pending.length === 0 && !("workflow" in neutral))
   check("opencode exposes no confidence field", !("confidence" in neutral) && !("confidenceDisplay" in neutral))
 
-  await plugin["chat.message"]({ sessionID }, { parts: [{ type: "text", text: "fix this bug in the parser" }] })
+  // A reused session ID must receive the same neutral state as a new one.
+  await plugin["tool.execute.after"]({ tool: "skill", sessionID }, { args: { name: "code-review" } })
   await flush()
-  const routed = snapshots.at(-1)
-  check("opencode follows the routing decision to debugging", routed.activeSkill === "debugging" && routed.activeSkillLabel === "Debugging")
-  check("opencode route comes from the real workflow", Array.isArray(routed.workflow?.route)
-    && routed.workflow.route.some((entry) => entry.state === "active"))
-
-  await plugin["tool.execute.after"]({ tool: "task", sessionID }, { output: "ASK_WORKFLOW_PASS phase=PLAN" })
+  await plugin.event({ event: { type: "session.created", properties: { info: { id: sessionID } } } })
   await flush()
-  const progressed = snapshots.at(-1)
-  check("opencode follows workflow progression",
-    progressed.workflow.completedGates.includes("PLAN")
-    && progressed.workflow.route.some((entry) => entry.phase === "PLAN" && entry.state === "completed"))
+  const reset = snapshots.at(-1)
+  check("opencode clears reused session state on session creation",
+    reset.activeSkills.length === 0 && reset.pending.length === 0)
 
+  // Step 1: a loaded skill is current and starts the sidebar with no debt.
   await plugin["tool.execute.after"]({ tool: "skill", sessionID }, { args: { name: "spec" } })
   await flush()
-  const skillChanged = snapshots.at(-1)
-  check("opencode reflects the active-skill change", skillChanged.activeSkill === "spec" && skillChanged.activeSkillLabel === "Spec")
-  check("opencode active skill is not stale", skillChanged.activeSkill !== "debugging")
+  const specified = snapshots.at(-1)
+  check("step 1 shows Spec as the only current skill", JSON.stringify(specified) === JSON.stringify({
+    activeSkills: [{ skill: "spec", label: "Spec", current: true }],
+    pending: [],
+  }))
 
-  await plugin["tool.execute.after"]({ tool: "edit", sessionID }, {})
+  // Step 2: a real write creates code-review debt without changing Spec.
+  await plugin["tool.execute.before"]({ tool: "write", sessionID })
+  await plugin["tool.execute.after"]({ tool: "write", sessionID }, {})
   await flush()
-  check("opencode surfaces a code-review obligation", snapshots.at(-1).pending.some((entry) => entry.skill === "code-review"))
+  const codeReviewNeeded = snapshots.at(-1)
+  check("step 2 keeps Spec current and requests code review", JSON.stringify(codeReviewNeeded) === JSON.stringify({
+    activeSkills: [{ skill: "spec", label: "Spec", current: true }],
+    pending: [{ flag: "needsCodeReview", skill: "code-review", label: "Code review needed", action: "skill(name: 'code-review')" }],
+  }))
 
+  // Step 3: resolving code-review debt promotes its loaded skill first.
   await plugin["tool.execute.after"]({ tool: "skill", sessionID }, { args: { name: "code-review" } })
   await flush()
   const reviewed = snapshots.at(-1)
-  check("opencode clears the code-review obligation when its skill loads",
-    !reviewed.pending.some((entry) => entry.skill === "code-review"))
-  check("opencode arms improvement capture after review", reviewed.pending.some((entry) => entry.skill === "session-review"))
+  check("step 3 clears code review and retains newest-first skills", JSON.stringify(reviewed) === JSON.stringify({
+    activeSkills: [
+      { skill: "code-review", label: "Code Review", current: true },
+      { skill: "spec", label: "Spec", current: false },
+    ],
+    pending: [],
+  }))
 
-  await plugin["tool.execute.after"]({ tool: "skill", sessionID }, { args: { name: "session-review" } })
+  // Step 4: routing and loading design may overlap in a live host. The tool
+  // result must win as the newest state, retaining loaded-skill ordering.
+  const designRoute = plugin["chat.message"](
+    { sessionID },
+    { parts: [{ type: "text", text: "design a ui for the dashboard" }] },
+  )
+  const designLoad = plugin["tool.execute.after"]({ tool: "skill", sessionID }, { args: { name: "design" } })
+  await Promise.all([designRoute, designLoad])
   await flush()
-  check("opencode clears the last obligation", snapshots.at(-1).pending.length === 0)
+  const designReviewNeeded = snapshots.at(-1)
+  check("step 4 preserves the newest design skill load through concurrent routing", JSON.stringify(designReviewNeeded) === JSON.stringify({
+    activeSkills: [
+      { skill: "design", label: "Design", current: true },
+      { skill: "code-review", label: "Code Review", current: false },
+      { skill: "spec", label: "Spec", current: false },
+    ],
+    pending: [{ flag: "needsDesignReview", skill: "design-review", label: "Design review needed", action: "skill(name: 'design-review')" }],
+  }))
+
+  // Step 5: Design Review is current; prior loaded skills remain once, newest first.
+  await plugin["tool.execute.after"]({ tool: "skill", sessionID }, { args: { name: "design-review" } })
+  await flush()
+  const designReviewed = snapshots.at(-1)
+  check("step 5 clears design review and preserves one current skill", JSON.stringify(designReviewed) === JSON.stringify({
+    activeSkills: [
+      { skill: "design-review", label: "Design Review", current: true },
+      { skill: "design", label: "Design", current: false },
+      { skill: "code-review", label: "Code Review", current: false },
+      { skill: "spec", label: "Spec", current: false },
+    ],
+    pending: [],
+  }))
   check("every persisted snapshot is whole and self-contained",
-    snapshots.every((snapshot) => "activeSkill" in snapshot && "workflow" in snapshot && Array.isArray(snapshot.pending)))
+    snapshots.every((snapshot) => Array.isArray(snapshot.activeSkills) && Array.isArray(snapshot.pending) && !("workflow" in snapshot)))
+}
+
+// Check that the OpenCode TUI reads the native reactive session store directly.
+async function openCodeTuiLifecycle() {
+  const source = fs.readFileSync(path.join(repoRoot, "plugins", "agent-skills-router", "tui.tsx"), "utf8")
+  check("opencode TUI reads reactive session metadata", source.includes("createMemo(() => sessionStatus(props.api, props.sessionID))"))
+  check("opencode TUI replaces dynamic skill lists atomically", !source.includes("<For each="))
+  check("opencode TUI has no duplicate update subscription", !source.includes('api.event.on("session.updated"'))
 }
 
 // Wire the real dsh router row to a subscribable projection store, render the
@@ -298,41 +344,38 @@ async function dshWidgetLifecycle() {
   pump()
   const neutral = textOf(render())
   check("dsh widget renders a neutral panel before routing",
-    neutral.includes("Not matched") && neutral.includes("No workflow"))
+    neutral.includes("Not matched") && !neutral.includes("WORKFLOW"))
   check("dsh widget surfaces the real review obligation without a predicted route",
-    neutral.includes("PENDING") && neutral.includes("Code review"))
+    neutral.includes("PENDING") && neutral.includes("Code review needed"))
+  check("dsh widget surfaces the concrete pending action", neutral.includes("skill(name: 'code-review')"))
   check("dsh widget never renders a confidence meter", !neutral.includes("CONFIDENCE") && !neutral.includes("%"))
 
   inbox({ agent, message: { text: "fix this bug in the parser" } })
   pump()
   const routed = textOf(render())
-  check("dsh widget follows the routing decision", routed.includes("Bug") || routed.includes("Debugging"))
-  check("dsh widget renders the real route", routed.includes("●") && routed.includes("Plan"))
+  check("dsh widget keeps route matches out of active skills", routed.includes("Not matched") && !routed.includes("Debugging"))
+  check("dsh widget renders no workflow from a route match", routed.includes("ACTIVE SKILLS") && !routed.includes("WORKFLOW"))
 
   result({ name: "skill", agent, arguments: { name: "code-review" } }, { isError: false })
   pump()
   const reviewed = textOf(render())
-  check("dsh widget clears the review obligation", !reviewed.includes("Code review"))
-  check("dsh widget shows the next obligation", reviewed.includes("Capture improvement"))
+  check("dsh widget clears the review obligation", !reviewed.includes("Code review needed") && !reviewed.includes("PENDING"))
 
   result({ name: "skill", agent, arguments: { name: "session-review" } }, { isError: false })
   pump()
   const cleared = textOf(render())
   check("dsh widget hides the pending section when clear", !cleared.includes("PENDING"))
 
-  result({ name: "task", agent }, { isError: false, output: "ASK_WORKFLOW_PASS phase=PLAN" })
-  pump()
-  const progressed = textOf(render())
-  check("dsh widget follows workflow progression", progressed.includes("● Plan"))
-
+  result({ name: "skill", agent, arguments: { name: "design" } }, { isError: false })
   inbox({ agent, message: { text: "design a ui for the dashboard" } })
   pump()
   const skillChanged = textOf(render())
-  check("dsh widget follows the active-skill change", skillChanged.includes("Ui Ux") && !skillChanged.includes("Debugging"))
+  check("dsh widget follows the active-skill change", skillChanged.includes("Design") && !skillChanged.includes("Debugging"))
 }
 
 async function main() {
   await openCodeLifecycle()
+  await openCodeTuiLifecycle()
   await dshWidgetLifecycle()
 
   if (failures > 0) {

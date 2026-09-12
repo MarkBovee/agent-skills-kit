@@ -10,6 +10,7 @@ const {
   requiredWorkflowPhases,
   cascadeRoute,
   workflowHintLines,
+  workflowForSkill,
 } = require("../core/router-core")
 
 let failures = 0
@@ -31,6 +32,8 @@ function checkRiskProfiles() {
   check("normal prompt is normal risk", classifyWorkflowRisk("add a focused parser feature") === "normal")
   check("requirements prompt requires spec", classifyWorkflowRisk("write requirements specification") === "spec-required")
   check("architecture prompt is significant risk", classifyWorkflowRisk("change architecture ownership") === "significant")
+  check("deep research prompt is significant risk", classifyWorkflowRisk("perform exhaustive research") === "significant")
+  check("large multi-issue prompt is significant risk", classifyWorkflowRisk("multiple issues with maximum compatibility") === "significant")
   check("release prompt is release-sensitive", classifyWorkflowRisk("prepare release candidate") === "release-sensitive")
   check("small flow has execute and validate", JSON.stringify(requiredWorkflowPhases("small")) === JSON.stringify(["EXECUTE", "VALIDATE"]))
   check("release flow has audit and release gate", requiredWorkflowPhases("release-sensitive").includes("AUDIT") && requiredWorkflowPhases("release-sensitive").includes("RELEASE_GATE"))
@@ -42,26 +45,52 @@ function checkRiskProfiles() {
 // Verify explicit evidence markers produce pass, finding, and blocked states.
 function checkEvidenceContract() {
   check("pass marker parses phase", parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=VALIDATE")?.status === "PASS")
+  check("research marker parses phase", parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=RESEARCH")?.phase === "RESEARCH")
   check("finding marker parses phase", parseWorkflowEvidence("ASK_WORKFLOW_FINDINGS phase=AUDIT")?.phase === "AUDIT")
   check("missing marker is not evidence", parseWorkflowEvidence("tests passed") === null)
   check("marker without phase is not evidence", parseWorkflowEvidence("ASK_WORKFLOW_PASS") === null)
 
   const workflow = buildWorkflowState("prepare release candidate")
-  const passed = recordWorkflowEvidence(workflow, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=VALIDATE"), "validation")
+  const validationReady = { ...workflow, completedGates: ["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE"] }
+  const passed = recordWorkflowEvidence(validationReady, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=VALIDATE"), "validation")
   check("pass completes validate gate", passed.completedGates.includes("VALIDATE") && passed.releaseStatus === "PENDING")
 
-  const found = recordWorkflowEvidence(passed, parseWorkflowEvidence("ASK_WORKFLOW_FINDINGS phase=AUDIT"), "audit")
-  check("findings move workflow to iterate", found.phase === "ITERATE" && found.unresolvedFindings.length === 1)
+  const research = recordWorkflowEvidence(workflow, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=RESEARCH"), "research")
+  check("optional research evidence records without becoming a required gate", research.completedGates.includes("RESEARCH") && research.phase === "INTAKE")
+  check("research skills own research phase", workflowForSkill(workflow, "research")?.phase === "RESEARCH"
+    && workflowForSkill(workflow, "deep-research")?.phase === "RESEARCH")
 
-  const blocked = recordWorkflowEvidence(workflow, parseWorkflowEvidence("ASK_WORKFLOW_BLOCKED phase=AUDIT"), "audit")
+  const auditReady = { ...workflow, completedGates: workflow.requiredPhases.slice(0, workflow.requiredPhases.indexOf("AUDIT")) }
+  const found = recordWorkflowEvidence(auditReady, parseWorkflowEvidence("ASK_WORKFLOW_FINDINGS phase=AUDIT"), "audit")
+  check("findings move workflow to iterate", found.phase === "ITERATE" && found.unresolvedFindings.length === 1)
+  const unresolvedAudit = recordWorkflowEvidence(found, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=AUDIT"), "audit")
+  check("unresolved audit findings block audit completion", unresolvedAudit.phase === "ITERATE" && !unresolvedAudit.completedGates.includes("AUDIT"))
+  const iterated = recordWorkflowEvidence(found, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=ITERATE"), "implementation")
+  check("iterate evidence resolves findings before re-audit", iterated.unresolvedFindings.length === 0 && iterated.phase === "AUDIT")
+
+  const blocked = recordWorkflowEvidence(auditReady, parseWorkflowEvidence("ASK_WORKFLOW_BLOCKED phase=AUDIT"), "audit")
   check("blocked evidence blocks release", blocked.phase === "BLOCKED" && blocked.releaseStatus === "BLOCKED")
 
   const releaseReady = { ...workflow, completedGates: [...workflow.requiredPhases.filter((phase) => phase !== "RELEASE_GATE")] }
   const released = recordWorkflowEvidence(releaseReady, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=RELEASE_GATE"), "release-gate")
   check("release gate pass reaches done", released.phase === "DONE" && released.releaseStatus === "RELEASE")
+  const prematureRelease = recordWorkflowEvidence(workflow, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=RELEASE_GATE"), "release-gate")
+  check("premature release evidence cannot bypass required gates", prematureRelease.releaseStatus === "PENDING"
+    && !prematureRelease.completedGates.includes("RELEASE_GATE"))
+  const untrustedValidation = recordWorkflowEvidence(validationReady, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=VALIDATE"), "command")
+  check("workflow evidence remains explicit and phase-gated", untrustedValidation.completedGates.includes("VALIDATE"))
 
-  const changedRisk = buildWorkflowState("fix typo in docs", released)
-  check("risk change resets prior evidence", changedRisk.completedGates.length === 0 && changedRisk.releaseStatus === "NOT_REQUIRED")
+  const changedRisk = buildWorkflowState("fix typo in docs", { workflow: released })
+  check("lower-risk follow-up cannot downgrade a release workflow", changedRisk.risk === "release-sensitive"
+    && changedRisk.completedGates.includes("RELEASE_GATE"))
+
+  const normalWorkflow = buildWorkflowState("research this API behavior")
+  const escalatedResearch = buildWorkflowState("perform exhaustive research", { workflow: normalWorkflow })
+  check("deep research follow-up escalates workflow risk", escalatedResearch.risk === "significant"
+    && escalatedResearch.requiredPhases.includes("PLAN_CHECK") && escalatedResearch.requiredPhases.includes("AUDIT"))
+  const contractRelease = buildWorkflowState("prepare release candidate with new external contract")
+  const continuedContractRelease = buildWorkflowState("run validation", { workflow: contractRelease })
+  check("conditional spec gate survives follow-up prompts", continuedContractRelease.requiredPhases.includes("SPEC"))
 }
 
 // Verify the router-facing status contains risk, phase, gates, and evidence.
@@ -82,12 +111,19 @@ function checkRoutingStatus() {
   const ambiguous = buildRoutingStatus(ambiguousRoute, { ...state, workflow: ambiguousWorkflow })
   const noMatch = buildRoutingStatus(cascadeRoute("", [], state), state)
 
-  check("status exposes the cascade-selected active skill", ambiguous.activeSkill === "debugging" && ambiguous.activeSkillLabel === "Debugging")
-  check("no route exposes no fabricated skill or workflow", noMatch.activeSkill === null && noMatch.workflow === null)
+  check("route match stays out of sidebar skills", ambiguous.activeSkills.length === 0)
+  const explicit = buildRoutingStatus(null, state, "debugging")
+  const persisted = buildRoutingStatus(null, { ...state, currentSkill: "debugging", routing: explicit })
+  check("status keeps active skill across later state updates", persisted.activeSkills.some((entry) => entry.skill === "debugging" && entry.current))
+  const fallbackNoise = buildRoutingStatus(null, { ...state, currentSkill: "spec", matchedSkills: [{ name: "develop" }] })
+  check("develop fallback never displaces a loaded skill", fallbackNoise.activeSkills.some((entry) => entry.skill === "spec" && entry.current)
+    && !fallbackNoise.activeSkills.some((entry) => entry.skill === "develop"))
+  check("no route exposes no fabricated skill", noMatch.activeSkills.length === 0 && !("workflow" in noMatch))
   check("fresh status carries no pending obligations", noMatch.pending.length === 0)
 
   const reviewDebt = buildRoutingStatus(null, { ...state, needsCodeReview: true, needsDesignReview: true, shouldCaptureImprovement: true })
-  check("pending obligations expose code, design, and improvement skills", reviewDebt.pending.map((entry) => entry.skill).join(",") === "code-review,design-review,session-review")
+  check("pending obligations expose code and design review only", reviewDebt.pending.map((entry) => entry.skill).join(",") === "code-review,design-review")
+  check("pending obligations expose concrete load actions", reviewDebt.pending[0]?.action === "skill(name: 'code-review')" && reviewDebt.pending[1]?.action === "skill(name: 'design-review')")
   check("cleared flags leave no pending obligations", buildRoutingStatus(null, { ...state, needsCodeReview: false }).pending.length === 0)
 
   const workflowCases = [
@@ -100,24 +136,15 @@ function checkRoutingStatus() {
   for (const [prompt, risk] of workflowCases) {
     const workflow = buildWorkflowState(prompt)
     const status = buildRoutingStatus(null, { workflow })
-    check(`${risk} status exposes its required route`, status.workflow.route.length === workflow.requiredPhases.length
-      && status.workflow.route[0]?.state === "active")
+    check(`${risk} status omits workflow presentation`, !("workflow" in status))
   }
-
-  const workflow = buildWorkflowState("add a focused parser feature")
-  const completed = { ...workflow, phase: "EXECUTE", completedGates: ["PLAN"] }
-  const route = buildRoutingStatus(null, { workflow: completed }).workflow.route
-  check("workflow route preserves completed active and pending states", route[0]?.state === "completed"
-    && route[1]?.state === "active" && route[2]?.state === "pending")
 
   const release = buildWorkflowState("prepare release candidate")
   const continuedRelease = buildWorkflowState("run the checks", { workflow: { ...release, phase: "VALIDATE", completedGates: ["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE"] } })
   check("follow-up prompt preserves workflow risk and evidence", continuedRelease.risk === "release-sensitive"
     && continuedRelease.phase === "VALIDATE" && continuedRelease.completedGates.includes("EXECUTE"))
-  const blockedRoute = buildRoutingStatus(null, { workflow: { ...release, phase: "BLOCKED" } }).workflow.route
-  const doneRoute = buildRoutingStatus(null, { workflow: { ...release, phase: "DONE", completedGates: release.requiredPhases } }).workflow.route
-  check("terminal blocked workflow retains an active route marker", blockedRoute.at(-1)?.phase === "BLOCKED" && blockedRoute.at(-1)?.state === "active")
-  check("completed workflow retains an active done marker", doneRoute.at(-1)?.phase === "DONE" && doneRoute.at(-1)?.state === "active")
+  check("terminal workflow state remains internal", !("workflow" in buildRoutingStatus(null, { workflow: { ...release, phase: "BLOCKED" } }))
+    && !("workflow" in buildRoutingStatus(null, { workflow: { ...release, phase: "DONE", completedGates: release.requiredPhases } })))
 }
 
 // Run lifecycle checks and return a failing process status on drift.

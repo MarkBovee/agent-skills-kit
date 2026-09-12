@@ -14,21 +14,53 @@ const SKILL_CODE_REVIEW = "code-review"
 const SKILL_VERIFICATION = "verification"
 const SKILL_DEBUGGING = "debugging"
 const SKILL_IMPROVE = "improve"
-const SKILL_UI_UX = "ui-ux"
+const SKILL_DESIGN = "design"
 const SKILL_DESIGN_REVIEW = "design-review"
 const SKILL_SESSION_REVIEW = "session-review"
 const SKILL_AGENT_WORKFLOWS = "agent-workflows"
 const SKILL_WRITE_SKILL = "write-skill"
 const SKILL_TEXT_WRITING = "text-writing"
+const SKILL_RESEARCH = "research"
+const SKILL_DEEP_RESEARCH = "deep-research"
 const REVIEW_COMPLETION_MARKER = "ASK_REVIEW_COMPLETE"
 const VALID_EXECUTION_TIERS = new Set(["light", "standard", "heavy", "deep"])
 const VALID_DELEGATION_MODES = new Set(["auto", "prefer-subagent", "owner-only"])
-const WORKFLOW_PHASES = ["INTAKE", "SPEC", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "ITERATE", "AUDIT", "RELEASE_GATE", "DONE", "BLOCKED"]
+const WORKFLOW_PHASES = ["INTAKE", "RESEARCH", "SPEC", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "ITERATE", "AUDIT", "RELEASE_GATE", "DONE", "BLOCKED"]
 const WORKFLOW_RISK_LEVELS = new Set(["small", "normal", "spec-required", "significant", "release-sensitive"])
 const SPEC_REQUIRED_PHRASES = ["specify requirements", "requirements spec", "requirements specification", "design brief", "decision register", "requirements traceability", "spec before build", "behavior-changing", "behavior changing", "new external contract", "new external contracts", "acceptance criteria unclear", "unclear acceptance criteria"]
 const RELEASE_RISK_PHRASES = ["release candidate", "production readiness", "ready to ship", "ready to merge", "release-sensitive"]
 const SIGNIFICANT_RISK_PHRASES = ["architecture", "architectural", "migration", "ownership", "routing change", "multi-module", "backwards compatibility", "cross-cutting", "significant refactor"]
 const SMALL_RISK_PHRASES = ["typo", "documentation-only", "docs only", "rename variable", "version bump", "changelog tweak"]
+const LARGE_BRIEF_PHRASES = [
+  "large multi-issue brief", "multiple issues", "all issues", "maximum compatibility",
+  "end-to-end implementation", "merge and release", "release-sensitive brief",
+]
+const DEEP_RESEARCH_PHRASES = [
+  "deep research", "exhaustive research", "comprehensive investigation",
+  "complex technical investigation", "complex research", "contested research",
+  "high-stakes research", "high stakes research", "complex contested high-stakes question",
+  "complex compatibility question", "complex compatibility issue", "complex question", "multiple sources",
+  "multi-source research", "multi source research", "conflicting evidence",
+  "full compatibility investigation", "compare competing implementations",
+  "compare local and upstream implementations", "investigate protocol behavior",
+  "protocol behavior exhaustively",
+  "investigate historical changes", "determine protocol behaviour",
+  "research everything relevant", "investigate open issues", "open issues comprehensively", "compare against upstream",
+]
+const EXPLICIT_DEEP_RESEARCH_PHRASES = [
+  "deep research", "exhaustive research", "comprehensive investigation",
+  "complex technical investigation", "complex research", "contested research",
+  "high-stakes research", "high stakes research", "research everything relevant",
+  "open issues comprehensively", "multi-source research", "multi source research", "multiple sources", "complex question",
+  "conflicting evidence",
+]
+const COMPARATIVE_DEEP_RESEARCH_PHRASES = DEEP_RESEARCH_PHRASES.filter(
+  (phrase) => !EXPLICIT_DEEP_RESEARCH_PHRASES.includes(phrase),
+)
+const RESEARCH_PHRASES = [
+  "research this", "research question", "find evidence", "compare sources",
+  "investigate current state", "look into this technology", "research documentation",
+]
 
 const CODE_WORK_TOOL_IDS = new Set(["edit", "write", "apply_patch"])
 const RECENT_TOOL_MAX = 20
@@ -51,7 +83,7 @@ const BUG_PHRASES = [
   "slow startup", "timeout", "hanging", "hangt", "crash loop",
   "None", "target_temp", "malfunction", "storing",
 ]
-const UI_PHRASES = [
+const DESIGN_PHRASES = [
   "design a ui", "redesign this page", "improve ux", "polish the frontend",
   "landing page design", "dashboard design", "mobile app ui", "design system",
   "ui review", "redesign the frontend", "improve this page", "ux",
@@ -138,7 +170,6 @@ function createEmptySessionState() {
     toolCallCount: 0, interactionCountSinceSkillLoad: 0,
     recentToolIds: [], recentEditedPaths: [],
     hasDoneSessionAudit: false, skillsLoadedCount: 0,
-    routing: { activeSkill: null, activeSkillLabel: null },
     workflow: null,
   }
 }
@@ -155,6 +186,12 @@ function hasReviewCompletionSignal(value) {
   } catch {
     return false
   }
+}
+
+// Accept only a terminal delegated-review marker, not incidental documentation text.
+function hasTerminalReviewCompletion(value) {
+  const text = typeof value === "string" ? value : value?.output
+  return typeof text === "string" && /(?:^|\n)ASK_REVIEW_COMPLETE\s*$/.test(text.trim())
 }
 
 function hasPhraseSignal(query, phrases) {
@@ -246,6 +283,8 @@ function classifyWorkflowRisk(query) {
   const normalized = String(query || "").trim().toLowerCase()
   if (!normalized) return "normal"
   if (hasPhraseSignal(normalized, RELEASE_RISK_PHRASES)) return "release-sensitive"
+  if (hasPhraseSignal(normalized, LARGE_BRIEF_PHRASES)) return "significant"
+  if (hasPhraseSignal(normalized, DEEP_RESEARCH_PHRASES)) return "significant"
   if (hasPhraseSignal(normalized, SPEC_REQUIRED_PHRASES)) return "spec-required"
   if (hasPhraseSignal(normalized, SIGNIFICANT_RISK_PHRASES)) return "significant"
   if (hasPhraseSignal(normalized, SMALL_RISK_PHRASES)) return "small"
@@ -256,7 +295,12 @@ function classifyWorkflowRisk(query) {
 // follow-up prompts retain the current task's risk and accumulated evidence.
 function hasWorkflowRiskSignal(query) {
   const normalized = String(query || "").trim().toLowerCase()
-  return hasPhraseSignal(normalized, [...RELEASE_RISK_PHRASES, ...SPEC_REQUIRED_PHRASES, ...SIGNIFICANT_RISK_PHRASES, ...SMALL_RISK_PHRASES])
+  return hasPhraseSignal(normalized, [...RELEASE_RISK_PHRASES, ...LARGE_BRIEF_PHRASES, ...DEEP_RESEARCH_PHRASES, ...SPEC_REQUIRED_PHRASES, ...SIGNIFICANT_RISK_PHRASES, ...SMALL_RISK_PHRASES])
+}
+
+// Rank risk levels so a follow-up cannot silently weaken an active release flow.
+function workflowRiskRank(risk) {
+  return ["small", "normal", "spec-required", "significant", "release-sensitive"].indexOf(risk)
 }
 
 // Select lifecycle gates for a risk level while keeping release decisions
@@ -284,11 +328,14 @@ function buildWorkflowState(query, previous = null) {
   const normalizedQuery = String(query || "").trim()
   const previousWorkflow = previous?.workflow || null
   if (!normalizedQuery && !previousWorkflow) return null
-  const risk = previousWorkflow?.risk && !hasWorkflowRiskSignal(normalizedQuery)
+  const classifiedRisk = classifyWorkflowRisk(normalizedQuery)
+  const risk = previousWorkflow?.risk && (!hasWorkflowRiskSignal(normalizedQuery)
+    || workflowRiskRank(classifiedRisk) < workflowRiskRank(previousWorkflow.risk))
     ? previousWorkflow.risk
-    : classifyWorkflowRisk(normalizedQuery)
-  const requiredPhases = requiredWorkflowPhases(risk, normalizedQuery)
+    : classifiedRisk
   const sameRisk = previousWorkflow?.risk === risk
+  const previousRequiresSpec = sameRisk && previousWorkflow?.requiredPhases?.includes("SPEC")
+  const requiredPhases = requiredWorkflowPhases(risk, previousRequiresSpec ? "new external contract" : normalizedQuery)
   return {
     risk,
     phase: sameRisk ? (previousWorkflow.phase || requiredPhases[0]) : requiredPhases[0],
@@ -314,55 +361,42 @@ function workflowHintLines(workflow) {
   ]
 }
 
-// Describe each required gate from explicit workflow state. A gate is never
-// considered complete merely because it appears before the current phase.
-function workflowRoute(workflow) {
-  if (!workflow || !Array.isArray(workflow.requiredPhases)) return []
-  const completed = new Set(Array.isArray(workflow.completedGates) ? workflow.completedGates : [])
-  const route = workflow.requiredPhases.map((phase) => ({
-    phase,
-    label: phase.charAt(0) + phase.slice(1).toLowerCase().replace(/_/g, " "),
-    state: completed.has(phase) ? "completed" : (workflow.phase === phase ? "active" : "pending"),
-  }))
-  if (workflow.phase && !route.some((entry) => entry.state === "active") && ["ITERATE", "AUDIT", "RELEASE_GATE", "DONE", "BLOCKED"].includes(workflow.phase)) {
-    route.push({ phase: workflow.phase, label: workflow.phase.charAt(0) + workflow.phase.slice(1).toLowerCase().replace(/_/g, " "), state: "active" })
-  }
-  return route
-}
-
 // Format the canonical skill identity for compact human-facing status surfaces.
 function skillDisplayName(skillName) {
   if (typeof skillName !== "string" || !skillName.trim()) return null
   return skillName.trim().split("-").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ")
 }
 
-// Describe the router's currently outstanding review/capture obligations so a
-// panel can show what ASK still needs and hide each item once it is satisfied.
+// Describe the router's outstanding review obligations so a panel can show
+// what ASK still needs and hide each item once its skill loads. The action is
+// the exact tool call that satisfies the obligation; improvement capture is
+// steered through the prompt surface, not the panel.
 function pendingReviewRequirements(sessionState) {
   const pending = []
-  if (sessionState?.needsCodeReview) pending.push({ flag: "needsCodeReview", skill: SKILL_CODE_REVIEW, label: "Code review" })
-  if (sessionState?.needsDesignReview) pending.push({ flag: "needsDesignReview", skill: SKILL_DESIGN_REVIEW, label: "Design review" })
-  if (sessionState?.shouldCaptureImprovement) pending.push({ flag: "shouldCaptureImprovement", skill: SKILL_SESSION_REVIEW, label: "Capture improvement" })
+  if (sessionState?.needsCodeReview) pending.push({ flag: "needsCodeReview", skill: SKILL_CODE_REVIEW, label: "Code review needed", action: `skill(name: '${SKILL_CODE_REVIEW}')` })
+  if (sessionState?.needsDesignReview) pending.push({ flag: "needsDesignReview", skill: SKILL_DESIGN_REVIEW, label: "Design review needed", action: `skill(name: '${SKILL_DESIGN_REVIEW}')` })
   return pending
 }
 
+// Build ordered active-skill facts for compact panels from actual skill loads.
+// Route matches remain prompt-only guidance and never leak into the sidebar.
+function activeSkillEntries(sessionState, activeSkill) {
+  // Most recently loaded skills are closest context, so show them first after
+  // the current skill instead of burying the immediately previous workflow.
+  const loaded = [...(sessionState?.loadedSkills || [])].reverse().filter((skill) => typeof skill === "string" && skill.length > 0)
+  const names = unique([activeSkill, ...loaded])
+  return names.map((skill) => ({ skill, label: skillDisplayName(skill), current: skill === activeSkill }))
+}
+
 // Build the canonical status snapshot shared by prompt, event, and panel
-// surfaces. Presentation layers receive final facts and make no semantic calls.
+// surfaces. Only a skill the agent actually loaded (or an explicit caller
+// hand-off) appears here; route matches stay out of the sidebar entirely.
 function buildRoutingStatus(route, sessionState, explicitSkill = "") {
-  const previous = sessionState?.routing || {}
-  const activeSkill = explicitSkill || route?.matchedSkills?.[0]?.name || previous.activeSkill || null
-  const workflow = sessionState?.workflow
+  const activeSkill = explicitSkill
+    || sessionState?.currentSkill
+    || null
   return {
-    activeSkill,
-    activeSkillLabel: skillDisplayName(activeSkill),
-    workflow: workflow
-      ? {
-        phase: workflow.phase,
-        requiredPhases: [...(workflow.requiredPhases || [])],
-        completedGates: [...(workflow.completedGates || [])],
-        route: workflowRoute(workflow),
-      }
-      : null,
+    activeSkills: activeSkillEntries(sessionState, activeSkill),
     pending: pendingReviewRequirements(sessionState),
   }
 }
@@ -386,6 +420,8 @@ function parseWorkflowEvidence(value) {
 function workflowForSkill(workflow, skillName) {
   if (!workflow) return workflow
   const phaseBySkill = {
+    [SKILL_RESEARCH]: "RESEARCH",
+    [SKILL_DEEP_RESEARCH]: "RESEARCH",
     [SKILL_SPEC]: "SPEC",
     [SKILL_INTAKE]: "INTAKE",
     [SKILL_DEVELOP]: "EXECUTE",
@@ -403,13 +439,23 @@ function workflowForSkill(workflow, skillName) {
 function recordWorkflowEvidence(workflow, evidence, role = "subagent") {
   if (!workflow || !evidence || !WORKFLOW_PHASES.includes(evidence.phase || workflow.phase)) return workflow
   const phase = evidence.phase || workflow.phase
+  const requiredPhases = workflow.requiredPhases || []
+  const phaseIndex = requiredPhases.indexOf(phase)
   const completedGates = new Set(workflow.completedGates || [])
   const unresolvedFindings = [...(workflow.unresolvedFindings || [])]
+  // RESEARCH records optional evidence. Every mandatory gate needs its earlier
+  // gates first, so a copied marker cannot promote a release prematurely.
+  const resolvesFindings = phase === "ITERATE" && unresolvedFindings.length > 0
+  const predecessorsComplete = phase === "RESEARCH" || resolvesFindings || (phaseIndex >= 0
+    && requiredPhases.slice(0, phaseIndex).every((candidate) => completedGates.has(candidate)))
+  if (!predecessorsComplete) return workflow
   let nextPhase = workflow.phase
   let releaseStatus = workflow.releaseStatus
 
   if (evidence.status === "PASS") {
+    if (["AUDIT", "RELEASE_GATE"].includes(phase) && unresolvedFindings.length > 0) return workflow
     completedGates.add(phase)
+    if (phase === "ITERATE") unresolvedFindings.length = 0
     const nextRequired = (workflow.requiredPhases || []).find((candidate) => !completedGates.has(candidate))
     nextPhase = nextRequired || "DONE"
     if (phase === "RELEASE_GATE") releaseStatus = "RELEASE"
@@ -491,6 +537,8 @@ function buildExecutionProfile(matchedSkill, query) {
 }
 
 const OVERVIEW_ROWS = [
+  { label: "Deep research complex, contested, high-stakes questions", skill: SKILL_DEEP_RESEARCH },
+  { label: "Research facts, sources, or current state",          skill: SKILL_RESEARCH },
   { label: "Specify requirements, build design brief",   skill: SKILL_SPEC },
   { label: "Clarify scope, plan ambiguous work",       skill: SKILL_INTAKE },
   { label: "Debug bug, crash, failing test, error",    skill: SKILL_DEBUGGING },
@@ -500,7 +548,7 @@ const OVERVIEW_ROWS = [
   { label: "Reflect on session, file improvement",     skill: SKILL_SESSION_REVIEW },
   { label: "Coordinate multi-agent, parallel tasks",   skill: SKILL_AGENT_WORKFLOWS },
   { label: "Create or revise a skill",                 skill: SKILL_WRITE_SKILL },
-  { label: "Design or polish UI/UX",                   skill: SKILL_UI_UX },
+  { label: "Design or polish UI/UX",                   skill: SKILL_DESIGN },
   { label: "Write text that reads human, not AI",      skill: SKILL_TEXT_WRITING },
   { label: "Normal software work (default)",           skill: SKILL_DEVELOP },
 ]
@@ -562,10 +610,15 @@ function cascadeRoute(query, skills, sessionState) {
     return { matchedSkills: [skill], executionProfile: buildExecutionProfile(skill, q) }
   }
   return (
-    tryRoute(SPEC_PHRASES, SKILL_SPEC) ||                      // 1. Start (explicit spec)
-    tryRoute(AMBIGUITY_PHRASES, SKILL_INTAKE) ||               // 2. Start
-    tryRoute(BUG_PHRASES, SKILL_DEBUGGING) ||                  // 2. Execute
-    tryRoute(REVIEW_PHRASES, SKILL_CODE_REVIEW) ||             // 3. Validate
+    tryRoute(BUG_PHRASES, SKILL_DEBUGGING) ||                  // 1. Execute
+    tryRoute(IMPROVE_PHRASES, SKILL_IMPROVE) ||                // 2. Improve
+    tryRoute(LARGE_BRIEF_PHRASES, SKILL_INTAKE) ||             // 3. Start (large brief)
+    tryRoute(EXPLICIT_DEEP_RESEARCH_PHRASES, SKILL_DEEP_RESEARCH) || // 4. Research
+    tryRoute(SPEC_PHRASES, SKILL_SPEC) ||                      // 5. Start (explicit spec)
+    tryRoute(AMBIGUITY_PHRASES, SKILL_INTAKE) ||               // 6. Start
+    tryRoute(COMPARATIVE_DEEP_RESEARCH_PHRASES, SKILL_DEEP_RESEARCH) || // 7. Research
+    tryRoute(RESEARCH_PHRASES, SKILL_RESEARCH) ||              // 8. Research
+    tryRoute(REVIEW_PHRASES, SKILL_CODE_REVIEW) ||             // 9. Validate
     (sessionState.needsCodeReview && (() => {
       if (!hasPhraseSignal(q, COMPLETION_PHRASES)) return null
       const primary = findSkill(skills, SKILL_CODE_REVIEW)
@@ -576,14 +629,13 @@ function cascadeRoute(query, skills, sessionState) {
         executionProfile: buildExecutionProfile(primary, q),
       }
     })()) ||
-    tryRoute(COMPLETION_PHRASES, SKILL_VERIFICATION) ||        // 4. Validate
-    tryRoute(IMPROVE_PHRASES, SKILL_IMPROVE) ||                // 5. Improve
-    tryRoute(SESSION_REVIEW_PHRASES, SKILL_SESSION_REVIEW) ||  // 6. Improve
-    tryRoute(AGENT_PHRASES, SKILL_AGENT_WORKFLOWS) ||          // 7. Coordinate
-    tryRoute(WRITE_SKILL_PHRASES, SKILL_WRITE_SKILL) ||        // 8. Coordinate
-    tryRoute(UI_PHRASES, SKILL_UI_UX) ||                       // 9. Product
-    tryRoute(TEXT_WRITING_PHRASES, SKILL_TEXT_WRITING) ||      // 10. Product
-    (() => {                                                   // 11. Execute (default)
+    tryRoute(COMPLETION_PHRASES, SKILL_VERIFICATION) ||        // 10. Validate
+    tryRoute(SESSION_REVIEW_PHRASES, SKILL_SESSION_REVIEW) ||  // 11. Improve
+    tryRoute(AGENT_PHRASES, SKILL_AGENT_WORKFLOWS) ||          // 12. Coordinate
+    tryRoute(WRITE_SKILL_PHRASES, SKILL_WRITE_SKILL) ||        // 13. Coordinate
+    tryRoute(DESIGN_PHRASES, SKILL_DESIGN) ||                  // 14. Product
+    tryRoute(TEXT_WRITING_PHRASES, SKILL_TEXT_WRITING) ||      // 15. Product
+    (() => {                                                   // 16. Execute (default)
       const fallback = findSkill(skills, SKILL_DEVELOP)
       return { matchedSkills: fallback ? [fallback] : [], executionProfile: buildExecutionProfile(fallback, q) }
     })()
@@ -619,13 +671,13 @@ module.exports = {
   VALID_DELEGATION_MODES, VALID_EXECUTION_TIERS,
   WORKFLOW_PHASES, WORKFLOW_RISK_LEVELS,
   SKILL_AGENT_WORKFLOWS, SKILL_CODE_REVIEW, SKILL_DEBUGGING,
-  SKILL_SESSION_REVIEW, SKILL_IMPROVE, SKILL_DEVELOP, SKILL_INTAKE, SKILL_UI_UX,
+  SKILL_SESSION_REVIEW, SKILL_IMPROVE, SKILL_DEVELOP, SKILL_INTAKE, SKILL_DESIGN,
   SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SPEC, COMPLETION_PHRASES, SKILL_DESIGN_REVIEW,
-  SKILL_TEXT_WRITING, REVIEW_COMPLETION_MARKER, hasReviewCompletionSignal,
-  buildSkillOverview, cascadeRoute, buildExecutionProfile, buildRoutingStatus, pendingReviewRequirements, workflowRoute, skillDisplayName, loadSkills,
+   SKILL_TEXT_WRITING, SKILL_RESEARCH, SKILL_DEEP_RESEARCH, REVIEW_COMPLETION_MARKER, hasReviewCompletionSignal, hasTerminalReviewCompletion,
+  buildSkillOverview, cascadeRoute, buildExecutionProfile, buildRoutingStatus, pendingReviewRequirements, activeSkillEntries, skillDisplayName, loadSkills,
   createEmptySessionState, getSessionState, setSessionState,
-  findSkill, hasPhraseSignal, routingHintLines,
-  classifyWorkflowRisk, hasWorkflowRiskSignal, requiredWorkflowPhases, buildWorkflowState, workflowHintLines, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
+   findSkill, hasPhraseSignal, routingHintLines,
+   classifyWorkflowRisk, hasWorkflowRiskSignal, workflowRiskRank, requiredWorkflowPhases, buildWorkflowState, workflowHintLines, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
   stripFrontmatter, toSingleLine, normalizeStringList,
   parseBooleanField, parseFrontmatter, unique,
 }

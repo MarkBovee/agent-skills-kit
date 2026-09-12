@@ -13,6 +13,28 @@ const SKILLS_PATH = path.resolve(__dirname, "..", "skills")
 
 // Each entry asserts the cascade top match for the query is the expected skill.
 const ROUTING_CASES = [
+  // Research
+  ["research this API behavior", "research"],
+  ["compare sources for this technology", "research"],
+  ["perform an exhaustive research of protocol behavior", "deep-research"],
+  ["deep research: compare against upstream", "deep-research"],
+  ["investigate all open issues comprehensively", "deep-research"],
+  ["complex contested high-stakes research", "deep-research"],
+  ["research protocol behavior exhaustively", "deep-research"],
+  ["compare local and upstream implementations", "deep-research"],
+  ["debug a protocol behavior regression", "debugging"],
+  ["investigate current state of production crash", "debugging"],
+  ["deep research this production crash", "debugging"],
+  ["audit protocol behavior", "improve"],
+  ["audit open issues comprehensively", "improve"],
+  ["research this protocol behavior", "research"],
+  ["perform multi-source research across source code and standards", "deep-research"],
+  ["run multi-source research with conflicting evidence", "deep-research"],
+  ["deep research migration", "deep-research"],
+  ["complex contested high-stakes question", "deep-research"],
+  ["investigate this complex question", "deep-research"],
+  ["research this complex compatibility issue", "deep-research"],
+  ["research this compatibility issue using multiple sources, local code, upstream docs, and history", "deep-research"],
   // Start — spec
   ["specify requirements", "spec"],
   ["design brief", "spec"],
@@ -25,6 +47,8 @@ const ROUTING_CASES = [
   ["start planning", "intake"],
   ["what should we build", "intake"],
   ["ambiguous scope", "intake"],
+  ["multiple issues with maximum compatibility", "intake"],
+  ["plan an end-to-end implementation", "intake"],
   // Execute — debugging
   ["fix this bug", "debugging"],
   ["start debugging", "debugging"],
@@ -59,10 +83,10 @@ const ROUTING_CASES = [
   ["create skill", "write-skill"],
   ["skill gap", "write-skill"],
   ["write skills", "write-skill"],
-  // Product — ui-ux
-  ["design a ui", "ui-ux"],
-  ["redesign this page", "ui-ux"],
-  ["polish the frontend", "ui-ux"],
+  // Product — design
+  ["design a ui", "design"],
+  ["redesign this page", "design"],
+  ["polish the frontend", "design"],
   // Product — text-writing
   ["make this sound human", "text-writing"],
   ["write a tweet", "text-writing"],
