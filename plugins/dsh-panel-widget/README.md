@@ -1,8 +1,8 @@
 # ask-kit-panel (dsh dual-face widget)
 
 Compact Agent Skills Kit status panel under the DSH web composer. It shows only
-the router-owned active skill, the current workflow route, and any pending
-review obligations. It performs no routing or lifecycle inference.
+the router-owned active skills and pending review obligations with their
+concrete load actions. It performs no routing or lifecycle inference.
 
 This is the persistent successor of the `askkit-1` runtime demo
 (`../dsh-panel-prototype/`): a real dual-face package instead of a
@@ -22,8 +22,8 @@ This is the persistent successor of the `askkit-1` runtime demo
 
 ## State bridge
 
-`core/router-core.js` owns the canonical active skill, workflow route, and
-pending review obligations. The **ask-kit router row**
+`core/router-core.js` owns the canonical active skills and
+pending review obligations/actions. The **ask-kit router row**
 (`plugins/agent-skills-router.dsh.mjs`) appends it with its existing tracking
 state as a whole-value `ask-kit/state` event to the agent's session log
 (`agent.session.append`) — the whole-value rule keeps replay trivially cheap. It

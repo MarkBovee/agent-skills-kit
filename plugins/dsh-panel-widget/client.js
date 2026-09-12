@@ -14,7 +14,7 @@ window.__ModuleLoader__.load({
 		const SLOT_NAME = "conversation.composer.dock";
 		const SLOT_ID = "ask-kit-status";
 		const STYLE_TAG_ID = "ask-kit-panel/status.css";
-		const CSS = ".askk-panel{min-width:200px;padding:8px 4px;color:var(--dsw-alias-label-secondary);font-size:11px;line-height:1.45}" +
+		const CSS = ".askk-panel{min-width:200px;padding:8px 0;color:var(--dsw-alias-label-secondary);font-size:11px;line-height:1.45}" +
 			".askk-title{color:var(--dsw-alias-brand-primary);font-size:12px;font-weight:600;margin-bottom:9px}" +
 			".askk-label{color:var(--dsw-alias-label-tertiary);font-size:10px;font-weight:600;letter-spacing:.06em;margin-top:8px}" +
 			".askk-value{color:var(--dsw-alias-label-primary);font-size:12px;font-weight:600}" +
@@ -45,15 +45,14 @@ window.__ModuleLoader__.load({
 		*/
 		function normalizeView(value) {
 			if (!value || typeof value !== "object") return null;
-			const route = Array.isArray(value.workflow?.route)
-				? value.workflow.route.filter((entry) => entry && typeof entry.phase === "string" && ["completed", "active", "pending"].includes(entry.state))
+			const activeSkills = Array.isArray(value.activeSkills)
+				? value.activeSkills.filter((entry) => entry && typeof entry.label === "string" && entry.label.trim() && typeof entry.current === "boolean").map((entry) => ({ label: entry.label, current: entry.current }))
 				: [];
 			const pending = Array.isArray(value.pending)
-				? value.pending.filter((entry) => entry && typeof entry.label === "string" && entry.label.trim()).map((entry) => entry.label)
+				? value.pending.filter((entry) => entry && typeof entry.label === "string" && entry.label.trim() && typeof entry.action === "string" && entry.action.trim()).map((entry) => ({ label: entry.label, action: entry.action }))
 				: [];
 			return {
-				activeSkillLabel: typeof value.activeSkillLabel === "string" && value.activeSkillLabel ? value.activeSkillLabel : null,
-				route,
+				activeSkills,
 				pending,
 			};
 		}
@@ -126,23 +125,22 @@ window.__ModuleLoader__.load({
 			const raw = useProjectionValue(faceFactory);
 			const data = normalizeView(raw);
 			if (!data) return null;
-			const phases = data.route.length > 0
-				? data.route.map((entry) => react.createElement("div", { className: "askk-phase" + (entry.state === "active" ? " askk-phase-active" : ""), key: entry.phase },
-					entry.state === "pending" ? "○ " : "● ", entry.phase.charAt(0) + entry.phase.slice(1).toLowerCase().replace(/_/g, " ")))
-				: react.createElement("div", { className: "askk-empty" }, "No workflow");
+			const activeSkills = data.activeSkills.length > 0
+				? data.activeSkills.map((entry) => react.createElement("div", { className: "askk-phase" + (entry.current ? " askk-phase-active" : ""), key: entry.label }, entry.current ? "● " : "○ ", entry.label))
+				: react.createElement("div", { className: "askk-empty" }, "Not matched");
 			const pending = data.pending.length > 0
 				? [
 					react.createElement("div", { className: "askk-label", key: "pending-label" }, "PENDING"),
 					react.createElement("div", { className: "askk-route", key: "pending-list" },
-						data.pending.map((label) => react.createElement("div", { className: "askk-phase", key: label }, "→ " + label))),
+						data.pending.map((item) => react.createElement("div", { className: "askk-phase", key: item.label },
+							react.createElement("div", null, item.label),
+							react.createElement("div", { className: "askk-empty" }, item.action)))),
 				]
 				: null;
 			return react.createElement("section", { className: "askk-panel", "aria-label": "Agent Skills Kit status" },
 				react.createElement("div", { className: "askk-title" }, "Agent Skills Kit"),
-				react.createElement("div", { className: "askk-label" }, "ACTIVE SKILL"),
-				react.createElement("div", { className: data.activeSkillLabel ? "askk-value" : "askk-empty" }, data.activeSkillLabel || "Not matched"),
-				react.createElement("div", { className: "askk-label" }, "ROUTING"),
-				react.createElement("div", { className: "askk-route" }, phases),
+				react.createElement("div", { className: "askk-label" }, "ACTIVE SKILLS"),
+				react.createElement("div", { className: data.activeSkills.length > 0 ? "askk-value" : "askk-empty" }, activeSkills),
 				pending);
 		}
 		/**

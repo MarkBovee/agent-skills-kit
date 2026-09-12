@@ -25,6 +25,11 @@ Clarify enough to avoid wrong work, then move. One skill for the full pre-execut
 4. Focus on: what outcome matters, what is in/out of scope, what must not change, what proof counts as done.
 5. Once path is clear, move into execution without extra approval loops.
 
+**Research classification** (facts not yet known):
+1. Use `research` for bounded questions answerable through a few relevant local or external sources.
+2. Use `deep-research` for interacting unknowns, historical or protocol behavior, local/upstream comparison, competing implementations, conflicting evidence, open-issue investigations, or explicit comprehensive/exhaustive research.
+3. Research establishes facts and confidence; return to intake only when those facts affect scope, ownership, or an implementation decision.
+
 **Execution planning** (multi-file/phase):
 1. State goal in one or two sentences.
 2. List files or areas likely to change.
@@ -39,6 +44,12 @@ Clarify enough to avoid wrong work, then move. One skill for the full pre-execut
 6. Define validation needed before claiming done.
 7. Skip plan for one or two obvious edits. Use short bullets for normal multi-step work. Fuller plan only when sequencing or coordination risk is high.
 8. If repo already has a durable planning or spec system, update that record instead of creating parallel docs.
+
+**Aggressiveness contract** (maximum-result briefs):
+1. Classify each evidence-backed candidate as `must`, `should`, `could`, or `explicitly out`.
+2. For every deferred `could`, record why it is deferred and the event or evidence that should revisit it.
+3. Treat this scope record as definition of done. Do not silently reduce requested evidence-backed scope to the smallest safe patch.
+4. For large multi-issue, exhaustive, compatibility-sensitive, or release-sensitive briefs, write the plan artifact and complete plan-check before execution. Delegate independent research tracks through `agent-workflows`.
 
 For significant or release-sensitive work, add a plan-check gate: challenge scope, affected callers, compatibility, fallback behavior, ambiguity, determinism, and proof gaps before execution.
 
@@ -63,6 +74,8 @@ clear — the initial plan already covers the full scope.
 ## Use with
 
 - `develop` once the path is clear and execution can begin
+- `research` for bounded fact-finding before a decision
+- `deep-research` for autonomous multi-source investigation before scope or implementation
 - `session-review` when intake reveals missing skills or routing gaps worth tracking
 
 ## Avoid
@@ -72,3 +85,4 @@ clear — the initial plan already covers the full scope.
 - Creating parallel planning trees when the repo already has one
 - Turning assumptions into facts without saying so
 - Freezing a plan that is clearly wrong after investigation
+- Silently dropping evidence-backed scope requested by the brief

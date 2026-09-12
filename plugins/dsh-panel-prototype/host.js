@@ -27,7 +27,7 @@ const CODE_EDIT_TOOLS = new Set(['edit', 'write', 'apply_patch'])
 const REVIEW_SKILL = 'code-review'
 const VERIFICATION_SKILL = 'verification'
 const WRITE_SKILL_SKILL = 'write-skill'
-const UI_UX_SKILL = 'ui-ux'
+const DESIGN_SKILL = 'design'
 const DESIGN_REVIEW_SKILL = 'design-review'
 
 // Extract the requested skill name from skill-tool arguments.
@@ -70,7 +70,7 @@ return {
         if (loaded === REVIEW_SKILL) { st.needsCodeReview = false; st.shouldCaptureImprovement = true }
         else if (loaded === VERIFICATION_SKILL) { st.shouldCaptureImprovement = true }
         else if (loaded === WRITE_SKILL_SKILL) { st.shouldCaptureImprovement = false }
-        else if (loaded === UI_UX_SKILL) { st.needsDesignReview = true }
+        else if (loaded === DESIGN_SKILL) { st.needsDesignReview = true }
         else if (loaded === DESIGN_REVIEW_SKILL) { st.needsDesignReview = false }
       } catch { /* tracking must never break results */ }
     })

@@ -41,8 +41,19 @@ jobs:
         run: |
           node ./scripts/validate-plugin.js
           node ./scripts/check-release-readiness.js --require-version-entry
+          node ./scripts/check-trigger-overlap.js
+          node ./scripts/check-evidence-aware-communication.js
+          node ./scripts/check-model-agnostic-guidance.js
+          node ./scripts/check-router-nudges.js
+          node ./scripts/check-workflow-lifecycle.js
+          node ./scripts/check-research-workflow.js
+          node ./scripts/check-dsh-plugin.js
+          node ./scripts/check-panel-widget.js
+          node ./scripts/check-widget-live-state.js
           node ./scripts/export-platform-skills.js
-          git diff --exit-code -- .github/skills/*/SKILL.md .claude/skills/*/SKILL.md .dsh/skills/*/SKILL.md .opencode/commands/*.md .github/prompts/*.prompt.md CLAUDE.md .github/copilot-instructions.md
+          ./scripts/check-installed-artifacts.sh
+          git diff --exit-code -- .github/skills .claude/skills .dsh/skills .opencode/commands .github/prompts CLAUDE.md .github/copilot-instructions.md
+          test -z "$(git status --porcelain -- .github/skills .claude/skills .dsh/skills .opencode/commands .github/prompts CLAUDE.md .github/copilot-instructions.md)"
 
       - name: Read release version
         id: version
@@ -60,12 +71,8 @@ jobs:
           git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG" 2>/dev/null || true
           if git show-ref --tags --verify --quiet "refs/tags/$TAG"; then
             if [ "$(git rev-list -n 1 "$TAG")" != "$GITHUB_SHA" ]; then
-              if gh release view "$TAG" >/dev/null 2>&1; then
-                echo "Tag $TAG belongs to an existing published release; leaving it unchanged."
-              else
-                echo "Tag $TAG already exists on a different commit without a published release."
-                exit 1
-              fi
+              echo "Tag $TAG already exists on a different commit."
+              exit 1
             fi
             if [ "$(git rev-list -n 1 "$TAG")" = "$GITHUB_SHA" ]; then
               echo "Tag $TAG already points to this commit."

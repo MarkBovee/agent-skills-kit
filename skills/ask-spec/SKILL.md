@@ -77,6 +77,7 @@ For requirements and evidence, track source, status, and relationship. Assign ow
 
 ## Use with
 - `intake` for scope clarification and exploration when full formalization is overkill
+- `deep-research` for multi-source evidence before formalizing uncertain technical requirements
 - `develop` after validation, to build against the contract
 - `verification` to execute proof obligations
 - `code-review` to review implementation against the contract

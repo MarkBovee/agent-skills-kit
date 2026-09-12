@@ -23,7 +23,7 @@
 
 <p align="center">
   <code>ASK</code>
-  <code>14 skills</code>
+  <code>16 skills</code>
   <code>1 router</code>
   <code>5 agent hosts</code>
   <code>review + verification</code>
@@ -85,6 +85,7 @@ flowchart LR
     Agents --> RQ[User request]
     RQ --> RT[ASK workflow guidance]
 
+    RT --> RS[Research]
     RT --> PL[Plan]
     RT --> SP[Spec]
     RT --> DE[Develop]
@@ -94,7 +95,8 @@ flowchart LR
     RT --> WR[Write]
     RT --> OP[Operate]
 
-    PL --> SK[Canonical skills]
+    RS --> SK
+    PL --> SK
     SP --> SK
     DE --> SK
     VA --> SK
@@ -112,12 +114,13 @@ The routing groups map to the current skill pack:
 
 | Group          | Skills                           | Purpose                                                                          |
 | -------------- | -------------------------------- | -------------------------------------------------------------------------------- |
+| **Research**   | `research`, `deep-research`      | Establish bounded facts or run autonomous multi-source technical investigation.   |
 | **Plan**       | `intake`                         | Explore the problem, clarify scope, and shape multi-phase work before execution. |
 | **Spec**       | `spec`                           | Turn requirements into a validated, traceable specification.                     |
 | **Develop**    | `develop`, `debugging`           | Implement normal software changes and investigate failures.                      |
 | **Validate**   | `code-review`, `verification`    | Review changes and prove completion claims.                                      |
 | **Improve**    | `improve`, `session-review`      | Audit, refactor, and improve the workflow itself.                                |
-| **Product**    | `ui-ux`, `design-review`         | Design interfaces and filter them before shipping.                               |
+| **Product**    | `design`, `design-review`        | Design interfaces and filter them before shipping.                               |
 | **Write**      | `text-writing`                   | Produce human-first written output.                                              |
 | **Operate**    | `gh-inbox`                       | Triage and maintain the repository's GitHub workflow.                            |
 | **Coordinate** | `agent-workflows`, `write-skill` | Coordinate agents and maintain or extend the skill system.                       |
@@ -248,7 +251,7 @@ Installed paths (when dsh is present — a reachable `dsh` binary or an existing
 
 #### dsh router preset (optional)
 
-The `ask-kit` preset mounts `plugins/agent-skills-router.dsh.mjs` as a Cordis row. Per model step it appends an `--- Agent Skills Kit ---` section built from `routingHintLines()` in `core/router-core.js` (no decision-tree copy can drift), tracks which skills each session loaded, flags review debt after `edit`/`write`/`apply_patch`, and clears nudges on completion phrases — mirroring `plugins/agent-skills-router.mjs`. Its compact composer panel reads the same router-core status snapshot through `ask-kit/state`: active skill, pending review obligations, and completed/active/pending workflow route. The panel is presentation only; it does not route or infer workflow state. It also registers one slash command per skill (`/spec`, `/debugging`, …) through dsh's command registry: picking one steers the session with a load-the-skill prompt following the platform command-file pattern (per-workflow specifics stay in the skill body), with the typed remainder as focus. Row config: `blockUntilSkillLoaded: true` reproduces the OpenCode blocked-tool gate (bash/edit/write denied until a skill loads); it defaults to `false`.
+The `ask-kit` preset mounts `plugins/agent-skills-router.dsh.mjs` as a Cordis row. Per model step it appends an `--- Agent Skills Kit ---` section built from `routingHintLines()` in `core/router-core.js` (no decision-tree copy can drift), tracks which skills each session loaded, flags review debt after `edit`/`write`/`apply_patch`, and clears nudges on completion phrases — mirroring `plugins/agent-skills-router.mjs`. Its compact composer panel reads the same router-core status snapshot through `ask-kit/state`: the active skills and pending review obligations. The workflow route stays internal to the prompt surface, and the panel is presentation only; it does not route or infer workflow state. It also registers one slash command per skill (`/spec`, `/debugging`, …) through dsh's command registry: picking one steers the session with a load-the-skill prompt following the platform command-file pattern (per-workflow specifics stay in the skill body), with the typed remainder as focus. Row config: `blockUntilSkillLoaded: true` reproduces the OpenCode blocked-tool gate (bash/edit/write denied until a skill loads); it defaults to `false`.
 
 Reinstall refreshes only the managed files (`plugins/ask-kit-router.mjs`, `vendor/router-core.js`); the copied composition, the appended router row, and any edits you made are left alone — delete `~/.dsh/.agent-presets/ask-kit/` and reinstall to rebase on the current `standard` preset or re-add a removed row. Select the preset per session from dsh's picker; removing the directory removes it from the roster.
 
@@ -269,7 +272,7 @@ Everything dsh-related is `0.1.0-rc.x` developer preview and can change without 
 | Skill registry (`ctx.skills`) | `registerProvider`/`snapshot`/`list`/`get`, duplicate-name shadowing across layers                                                   | API churn in the registry contract                                                        |
 | MCP bridge (`dsh-mcp-client`) | Not used by the kit (tools only; skills are not MCP)                                                                                 | n/a                                                                                       |
 
-After a dsh update, the cheap check is a fresh session: the `<available_skills>` catalog should list all fourteen skills and `skill(name: '...')` should load a body; typing `/` in the composer should offer the kit's slash commands when the ask-kit preset is selected.
+After a dsh update, the cheap check is a fresh session: the `<available_skills>` catalog should list all sixteen skills and `skill(name: '...')` should load a body; typing `/` in the composer should offer the kit's slash commands when the ask-kit preset is selected.
 
 ### Shared Root Policy
 
@@ -294,12 +297,13 @@ Skills use short display names (e.g. `debugging`, `develop`) for easy reference.
 
 | Stage      | Skills                           | Purpose                                                                                                  |
 | ---------- | -------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Research   | `research`, `deep-research`      | answer bounded questions or run multi-track evidence, contradiction, and handoff work                   |
 | Start      | `spec`, `intake`                 | formalize requirements into a validated traceable spec; clarify fuzzy work before it gets expensive      |
 | Execute    | `develop`, `debugging`           | move code forward with small coherent loops                                                              |
 | Validate   | `code-review`, `verification`    | review the diff and prove the claim (includes workspace wrap-up)                                         |
 | Improve    | `improve`, `session-review`      | audit, refactor, session review, skill improvement                                                       |
 | Coordinate | `agent-workflows`, `write-skill` | route work, finish cleanly, keep the skill system healthy                                                |
-| Product    | `ui-ux`, `design-review`         | push interface work beyond bland default SaaS output, then filter it for AI-default slop before shipping |
+| Product    | `design`, `design-review`        | push interface work beyond bland default SaaS output, then filter it for AI-default slop before shipping |
 | Write      | `text-writing`                   | produce human-sounding text without detectable AI writing patterns                                       |
 | Operate    | `gh-inbox`                       | triage the current repository's GitHub issues and discussions, reply when clear, persist inbox state     |
 
@@ -310,12 +314,14 @@ Skills use short display names (e.g. `debugging`, `develop`) for easy reference.
 | `spec`            | standard | Requirements specification + validation gates (Capture → Structure → Validate → Transfer)           |
 | `develop`         | standard | Default baseline: small, safe iterative software work (includes implementation mode selection)      |
 | `intake`          | standard | Pre-execution: design exploration, scope clarification, and multi-phase planning                    |
+| `research`        | standard | Bounded evidence-first fact-finding with sources, confidence, and decision impact                    |
+| `deep-research`   | deep     | Autonomous multi-source research with contradictions, synthesis, and implementation handoff           |
 | `debugging`       | standard | Root-cause investigation                                                                            |
 | `code-review`     | standard | Engineering review passes                                                                           |
 | `verification`    | standard | Validation + workspace wrap-up before claiming completion                                           |
 | `improve`         | heavy    | Audit-driven improvement + focused refactoring                                                      |
 | `session-review`  | light    | Session self-review + GitHub issue filing                                                           |
-| `ui-ux`           | heavy    | UI and UX implementation support                                                                    |
+| `design`          | heavy    | UI and UX implementation support                                                                    |
 | `design-review`   | standard | Anti-default filter: reviews design, UI, or copy for AI-generated slop before shipping              |
 | `text-writing`    | standard | Human-first writing: avoids AI-detected vocabulary, structure, punctuation, and formatting patterns |
 | `agent-workflows` | light    | Multi-agent coordination + release chores                                                           |
@@ -355,13 +361,15 @@ The pack favors fast trustworthy checks, then proportional review and verificati
 
 ## Router
 
-`plugins/agent-skills-router/` presents a **decision tree** every prompt and renders its router-core status snapshot in OpenCode's TUI sidebar. The agent — not the router — evaluates the task against the tree and loads the matching skill via `skill(name: '...')`. No automated phrase matching, no scoring, no hidden routing.
+`plugins/agent-skills-router/` presents a **decision tree** every prompt and renders its router-core status snapshot in OpenCode's TUI sidebar. Advisory phrase matching proposes one specific skill; the agent still evaluates the task and explicitly loads it via `skill(name: '...')`. No scoring, hidden execution, or automatic skill loading.
 
 The decision tree injected every prompt:
 
 ```mermaid
 flowchart TD
     A[Agent evaluates task] --> B{Task matches?}
+    B -->|Complex, contested, high-stakes research| DR[deep-research]
+    B -->|Research facts, sources, current state| RS[research]
     B -->|Specify requirements, build design brief| S[spec]
     B -->|Clarify scope, plan ambiguous work| I[intake]
     B -->|Debug bug, crash, error| D[debugging]
@@ -371,10 +379,12 @@ flowchart TD
     B -->|Reflect on session, file issue| G[session-review]
     B -->|Multi-agent, parallel tasks| A2[agent-workflows]
     B -->|Create or revise a skill| W[write-skill]
-    B -->|Design or polish UI/UX| U[ui-ux]
+    B -->|Design or polish UI/UX| U[design]
     B -->|Write text that reads human, not AI| T[text-writing]
     B -->|Normal software work| DE[develop]
 
+    style DR fill:#153e52,stroke:#00bcd4,color:#fff
+    style RS fill:#153e52,stroke:#00bcd4,color:#fff
     style S fill:#2d1b69,stroke:#7C5CFF,color:#fff
     style I fill:#2d1b69,stroke:#7C5CFF,color:#fff
     style D fill:#1a1a2e,stroke:#e94560,color:#fff
@@ -391,12 +401,13 @@ flowchart TD
 
 | Stage          | Skills                           | Color            |
 | -------------- | -------------------------------- | ---------------- |
+| **Research**   | `research`, `deep-research`      | `#00bcd4` cyan   |
 | **Start**      | `spec`, `intake`                 | `#7C5CFF` purple |
 | **Execute**    | `debugging`, `develop`           | `#e94560` red    |
 | **Validate**   | `code-review`, `verification`    | `#2ecc71` green  |
 | **Improve**    | `improve`, `session-review`      | `#f39c12` orange |
 | **Coordinate** | `agent-workflows`, `write-skill` | `#1abc9c` teal   |
-| **Product**    | `ui-ux`, `design-review`         | `#e91e8c` pink   |
+| **Product**    | `design`, `design-review`        | `#e91e8c` pink   |
 | **Write**      | `text-writing`                   | `#8b5cf6` violet |
 | **Operate**    | `gh-inbox`                       | `#4c9aff` blue   |
 
@@ -418,6 +429,10 @@ Validation proves defined technical checks. Review challenges requirements, regr
 
 `SPEC` is conditional, not a mandatory ceremony: use it for explicit requirements/design-brief work, unclear acceptance criteria, behavior-changing work, and new external contracts. Ordinary bugs and small edits go directly through their proportional flow.
 
+`RESEARCH` is optional lifecycle evidence, not a mandatory development gate. `research` keeps a question bounded; `deep-research` coordinates 3-10 independent evidence tracks, iterative source expansion, contradiction testing, confidence, citations, continuation state, and a downstream handoff. `intake` classifies uncertainty and must route large or high-stakes investigation to deep research instead of absorbing it.
+
+For large, multi-issue, exhaustive, compatibility-sensitive, or release-sensitive work, start with `intake`, create a plan artifact, classify `must`/`should`/`could` scope, and complete plan-check before execution. Each deferred evidence-backed item needs a reason and revisit trigger. Independent research, validation, review, and audit tracks should be delegated; release readiness requires independent evidence, not self-review.
+
 ### Cost-aware execution profile
 
 Two optional frontmatter fields let a skill declare how expensive its default flow is, so hosts that support cheaper subagents or models can route mechanical work to them instead of the primary agent:
@@ -426,8 +441,8 @@ Two optional frontmatter fields let a skill declare how expensive its default fl
 | -------------------- | --------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `light`              | `mini`                | bounded, mechanical, single-pass work                                     | `session-review`                                                                                       |
 | `standard` (default) | `default`             | normal judgment-heavy work                                                | `develop`, `spec`, `intake`, `code-review`, `debugging`, `verification`, `write-skill`, `text-writing` |
-| `heavy`              | `high`                | broad or multi-part work, e.g. a full codebase audit or complex UI design | `improve`, `ui-ux`                                                                                     |
-| `deep`               | `xhigh`               | analysis-heavy or architectural work                                      | —                                                                                                      |
+| `heavy`              | `high`                | broad or multi-part work, e.g. a full codebase audit or complex UI design | `improve`, `design`                                                                                    |
+| `deep`               | `xhigh`               | autonomous multi-source or architectural investigation                    | `deep-research`                                                                                        |
 
 `delegation_default` (`auto` / `prefer-subagent` / `owner-only`) hints whether the work should default to a subagent when the host supports one. Both fields are read by `buildExecutionProfile` in `core/router-core.js`, which also upgrades the tier when the prompt itself signals light or heavy/deep work (e.g. "version bump" vs. "cross-repo migration"), regardless of which skill matched.
 
@@ -601,11 +616,12 @@ scripts/check-release-readiness.js
 * Restart OpenCode after install or update.
 * Bootstrap scripts store a managed checkout in `REPO_DIR` when set. Default path is `XDG_DATA_HOME/agent-skills-kit` when available, otherwise `LOCALAPPDATA\agent-skills-kit` on PowerShell, then `~/.local/share/agent-skills-kit`.
 * Stable updates use the newest SemVer tag available in the managed checkout.
-* `ui-ux` includes Python scripts and CSV data for design guidance and requires Python `3.8+`.
+* `design` includes Python scripts and CSV data for design guidance and requires Python `3.8+`.
 * Installers overwrite only `agent-skills-kit` managed assets and preserve unrelated user customizations.
 * Installers also remove stale managed skills during reinstall or update, including skills retired from the pack.
 * The unified installer writes `.agent-skills-kit-install.txt` metadata in the shared `~/.agents/` root.
 * Generated platform artifacts are derived output. Edit `skills/*/SKILL.md`, then re-export.
+* `rules/workflow.md` is the canonical cross-platform workflow mandate. Installers copy it to OpenCode and Claude, propagate its requirements to Copilot and dsh, and merge it into OpenCode `AGENTS.md` with an idempotent marker section.
 
 ---
 

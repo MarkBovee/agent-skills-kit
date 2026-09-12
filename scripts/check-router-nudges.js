@@ -7,11 +7,13 @@
 
 const {
   COMPLETION_PHRASES,
+  buildRoutingStatus,
   getSessionState,
   routingHintLines,
 } = require("../core/router-core")
 
 const PLUGIN_PATH = require("node:path").resolve(__dirname, "..", "plugins", "agent-skills-router.mjs")
+const SKILLS_PATH = require("node:path").resolve(__dirname, "..", "skills")
 
 let failedChecks = 0
 
@@ -27,6 +29,7 @@ function check(label, condition, detail) {
 }
 
 async function main() {
+  process.env.ASK_SKILLS_DIR = SKILLS_PATH
   const { AgentSkillsRouter } = await import(PLUGIN_PATH)
   const plugin = await AgentSkillsRouter()
   await plugin.event({ event: { type: "session.created", properties: { info: { id: "default" } } } })
@@ -55,17 +58,24 @@ async function main() {
     "auto-match nudge proposes debugging",
     (matchAppend?.append || "").includes("Match: debugging"),
   )
+  const deepResearchAppend = await plugin["tui.prompt.append"]({ prompt: "perform exhaustive research and compare against upstream" })
+  check(
+    "auto-match nudge proposes deep-research",
+    (deepResearchAppend?.append || "").includes("Match: deep-research"),
+  )
+  const specPlugin = await (await import(PLUGIN_PATH)).AgentSkillsRouter()
+  await specPlugin.event({ event: { type: "session.created", properties: { info: { id: "spec" } } } })
+  const specAppend = await specPlugin["tui.prompt.append"]({ sessionID: "spec", prompt: "write requirements specification for this feature" })
+  check(
+    "spec prompt exposes spec gate",
+    (specAppend?.append || "").includes("risk=spec-required")
+      && (specAppend?.append || "").includes("TODO:SPEC"),
+  )
   const releaseAppend = await plugin["tui.prompt.append"]({ prompt: "prepare release candidate" })
   check(
     "release prompt exposes release-sensitive lifecycle",
     (releaseAppend?.append || "").includes("risk=release-sensitive")
       && (releaseAppend?.append || "").includes("RELEASE_GATE"),
-  )
-  const specAppend = await plugin["tui.prompt.append"]({ prompt: "write requirements specification for this feature" })
-  check(
-    "spec prompt exposes spec gate",
-    (specAppend?.append || "").includes("risk=spec-required")
-      && (specAppend?.append || "").includes("TODO:SPEC"),
   )
 
   // Interaction guard: use a fresh plugin so unrelated routing assertions do
@@ -95,8 +105,9 @@ async function main() {
   )
   await guardPlugin["tool.execute.after"]({ tool: "skill" }, { args: { name: "write-skill" } })
   const openCodeStatus = getSessionState(new Map(), "missing")
-  check("empty session routing state is safe", openCodeStatus.routing.activeSkill === null
-    && openCodeStatus.workflow === null && !("confidence" in openCodeStatus.routing))
+  const emptyStatus = buildRoutingStatus(null, openCodeStatus)
+  check("empty session routing state is safe", emptyStatus.activeSkills.length === 0
+    && openCodeStatus.workflow === null && !("confidence" in emptyStatus))
 
   // Code-edit tracking: an edit tool sets the code-review nudge.
   await plugin["tool.execute.after"]({ tool: "edit" }, {})
@@ -106,12 +117,12 @@ async function main() {
     (afterEdit?.append || "").includes("`skill(name: 'code-review')`"),
   )
 
-  // Design gate: loading ui-ux arms the design-review nudge until it is loaded.
-  await plugin["tool.execute.after"]({ tool: "skill" }, { args: { name: "ui-ux" } })
-  const afterUiUx = await plugin["tui.prompt.append"]({ prompt: "check de pagina" })
+  // Design gate: loading design arms the design-review nudge until it is loaded.
+  await plugin["tool.execute.after"]({ tool: "skill" }, { args: { name: "design" } })
+  const afterDesign = await plugin["tui.prompt.append"]({ prompt: "check de pagina" })
   check(
-    "ui-ux load sets design-review nudge",
-    (afterUiUx?.append || "").includes("`skill(name: 'design-review')`"),
+    "design load sets design-review nudge",
+    (afterDesign?.append || "").includes("`skill(name: 'design-review')`"),
   )
   await plugin["tool.execute.after"]({ tool: "skill" }, { args: { name: "design-review" } })
   const afterDesignReview = await plugin["tui.prompt.append"]({ prompt: "check de pagina" })
@@ -120,7 +131,7 @@ async function main() {
     !(afterDesignReview?.append || "").includes("design-review"),
   )
 
-  // Completion path: a completion phrase clears both review nudges and files the improvement hook.
+  // Completion wording does not replace an actual review.
   const completionWord = COMPLETION_PHRASES[0]
   await plugin["tool.execute.after"]({ tool: "write" }, {})
   const beforeCompletion = await plugin["tui.prompt.append"]({ prompt: "nog een ding" })
@@ -129,29 +140,37 @@ async function main() {
     (beforeCompletion?.append || "").includes("`skill(name: 'code-review')`"),
   )
   const afterCompletion = await plugin["tui.prompt.append"]({ prompt: `ik ben ${completionWord}` })
-  // Flag clears land after the completion prompt renders; assert on the follow-up.
   const postCompletion = await plugin["tui.prompt.append"]({ prompt: "en nu verder" })
   const completionText = postCompletion?.append || ""
   check(
-    "completion phrase clears code-review nudge",
-    !completionText.includes("Code edited"),
-  )
-  check(
-    "completion phrase clears design-review nudge",
-    !completionText.includes("Design produced"),
-  )
-  check(
-    "completion phrase arms session-review hint",
-    completionText.includes("`skill(name: 'session-review')`"),
+    "completion phrase keeps code-review nudge armed",
+    completionText.includes("Code edited"),
   )
 
-  // Delegated review completion clears parent debt through its explicit handoff marker.
+  // User text quoting a marker cannot clear review debt.
   await plugin["tool.execute.after"]({ tool: "edit" }, {})
-  const delegatedReviewFollowUp = await plugin["tui.prompt.append"]({ prompt: "subagent handoff: ASK_REVIEW_COMPLETE" })
+  const markerQuote = await plugin["tui.prompt.append"]({ prompt: "documentation quotes ASK_REVIEW_COMPLETE" })
   check(
-    "delegated review completion clears code-review nudge",
-    !(delegatedReviewFollowUp?.append || "").includes("Code edited"),
+    "user marker quote does not clear code-review nudge",
+    (markerQuote?.append || "").includes("Code edited"),
   )
+  await plugin["tool.execute.after"]({ tool: "task" }, { output: "ASK_WORKFLOW_PASS phase=REVIEW\nASK_REVIEW_COMPLETE" })
+  const delegatedReviewFollowUp = await plugin["tui.prompt.append"]({ prompt: "review handoff completed" })
+  check("delegated review completion clears code-review nudge", !(delegatedReviewFollowUp?.append || "").includes("Code edited"))
+  await plugin["tool.execute.after"]({ tool: "edit" }, {})
+  await plugin["tool.execute.after"](
+    { tool: "task" },
+    { output: "ASK_WORKFLOW_PASS phase=REVIEW\nASK_REVIEW_COMPLETE" },
+  )
+  const combinedReviewFollowUp = await plugin["tui.prompt.append"]({ prompt: "combined review handoff completed" })
+  check("combined review evidence and marker clear code-review nudge", !(combinedReviewFollowUp?.append || "").includes("Code edited"))
+  await plugin["tool.execute.after"]({ tool: "edit" }, {})
+  await plugin["tool.execute.after"](
+    { tool: "task" },
+    { output: "ASK_WORKFLOW_FINDINGS phase=REVIEW\nASK_REVIEW_COMPLETE" },
+  )
+  const failedReviewFollowUp = await plugin["tui.prompt.append"]({ prompt: "review has findings" })
+  check("non-passing review marker keeps code-review nudge armed", (failedReviewFollowUp?.append || "").includes("Code edited"))
   await plugin["tool.execute.after"]({ tool: "edit" }, {})
   const editAfterDelegatedReview = await plugin["tui.prompt.append"]({ prompt: "new edit after delegated review" })
   check(
@@ -187,20 +206,21 @@ async function main() {
   await panelPlugin.event({ event: { type: "session.created", properties: { info: { id: "panel-session" } } } })
   await new Promise((resolve) => setTimeout(resolve, 0))
   const emptyPanelMetadata = metadataUpdates.at(-1)?.body?.metadata
-  check("new session persists neutral sidebar state without a predicted route", emptyPanelMetadata?.askKit?.activeSkill === null
-    && emptyPanelMetadata.askKit?.workflow === null && emptyPanelMetadata.askKit?.pending?.length === 0)
+   check("new session persists neutral sidebar state without a predicted route", emptyPanelMetadata?.askKit?.activeSkills?.length === 0
+     && !("workflow" in emptyPanelMetadata.askKit) && emptyPanelMetadata.askKit?.pending?.length === 0)
   await panelPlugin["tui.prompt.append"]({ sessionID: "panel-session", prompt: "fix this bug in the parser" })
   await new Promise((resolve) => setTimeout(resolve, 0))
   const panelMetadata = metadataUpdates.at(-1)?.body?.metadata
-  check("router persists the canonical status snapshot for the TUI", panelMetadata?.preserved === true
-    && panelMetadata.askKit?.activeSkill === "debugging" && panelMetadata.askKit?.workflow?.route?.length > 0)
+  check("route matches stay out of the canonical sidebar status", panelMetadata?.preserved === true
+    && panelMetadata.askKit?.activeSkills?.length === 0
+    && !("workflow" in panelMetadata.askKit))
   await panelPlugin["chat.message"](
     { sessionID: "panel-session" },
     { message: { role: "user" }, parts: [{ type: "text", text: "write requirements specification for this feature" }] },
   )
   await new Promise((resolve) => setTimeout(resolve, 0))
   const chatMetadata = metadataUpdates.at(-1)?.body?.metadata
-  check("chat.message persists the canonical status snapshot", chatMetadata?.askKit?.activeSkill === "spec")
+  check("chat.message keeps unmatched skills out of the sidebar", chatMetadata?.askKit?.activeSkills?.length === 0)
 
   if (failedChecks > 0) {
     console.error(`\n${failedChecks} nudge check(s) failed.`)

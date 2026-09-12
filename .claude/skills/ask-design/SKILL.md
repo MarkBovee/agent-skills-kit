@@ -1,31 +1,9 @@
 ---
-name: ui-ux
-description: Use when the request is to design, redesign, polish, review, or implement UI/UX for web or mobile interfaces, landing pages, dashboards, flows, or visual systems.
-triggers:
-  - design a ui
-  - redesign this page
-  - improve ux
-  - polish the frontend
-  - landing page design
-  - dashboard design
-  - mobile app ui
-  - design system
-  - ui review
-  - redesign the frontend
-  - improve this page
-  - landing page
-  - mobile ui
-  - color palette
-  - typography
-  - font pairing
-  - ui style
-  - accessibility
-  - animation design
-  - data visualization
-  - ux patterns
-  - design system generation
+name: "design"
+description: "Use when the request is to design, redesign, polish, review, or implement UI/UX for web or mobile interfaces, landing pages, dashboards, flows, or visual systems."
+when_to_use: "Common triggers: design a ui, redesign this page, improve ux, polish the frontend, landing page design, dashboard design, mobile app ui, design system, ui review, redesign the frontend, improve this page, landing page, mobile ui, color palette, typography, font pairing, ui style, accessibility, animation design, data visualization, ux patterns, design system generation."
 ---
-# ASK UI/UX
+# ASK Design
 
 Design intelligence powered by a searchable database of 84 UI styles, 192 color palettes, 74 font pairings, 192 product types with reasoning rules, 98 UX guidelines, and 16 GSAP motion presets across 22 technology stacks.
 
@@ -67,7 +45,7 @@ Extract product type, target audience, style keywords, and stack (check `package
 Start with `--design-system` to get comprehensive recommendations:
 
 ```bash
-python3 skills/ask-ui-ux/scripts/search.py "<product_type> <industry> <keywords>" --design-system [-p "Project Name"]
+python3 ${CLAUDE_SKILL_DIR}/scripts/search.py "<product_type> <industry> <keywords>" --design-system [-p "Project Name"]
 ```
 
 This searches product/style/color/landing/typography domains in parallel, applies reasoning rules from `ui-reasoning.csv`, and returns pattern, style, colors, typography, effects, and anti-patterns.
@@ -75,7 +53,7 @@ This searches product/style/color/landing/typography domains in parallel, applie
 **Design Dials** (optional 1-10 sliders that tune output):
 
 ```bash
-python3 skills/ask-ui-ux/scripts/search.py "<query>" --design-system --variance <1-10> --motion <1-10> --density <1-10>
+python3 ${CLAUDE_SKILL_DIR}/scripts/search.py "<query>" --design-system --variance <1-10> --motion <1-10> --density <1-10>
 ```
 
 | Dial | Low (1-3) | Mid (4-7) | High (8-10) |
@@ -87,7 +65,7 @@ python3 skills/ask-ui-ux/scripts/search.py "<query>" --design-system --variance 
 ### Step 2b: Persist design system (Master + Overrides pattern)
 
 ```bash
-python3 skills/ask-ui-ux/scripts/search.py "<query>" --design-system --persist -p "Project Name" --output-dir "<project-root>"
+python3 ${CLAUDE_SKILL_DIR}/scripts/search.py "<query>" --design-system --persist -p "Project Name" --output-dir "<project-root>"
 ```
 
 Creates `design-system/<slug>/MASTER.md` and optionally `pages/<page>.md`. When building a page, read MASTER.md first, then check for page override.
@@ -95,7 +73,7 @@ Creates `design-system/<slug>/MASTER.md` and optionally `pages/<page>.md`. When 
 ### Step 3: Supplement with detailed searches
 
 ```bash
-python3 skills/ask-ui-ux/scripts/search.py "<keyword>" --domain <domain> [-n <max_results>]
+python3 ${CLAUDE_SKILL_DIR}/scripts/search.py "<keyword>" --domain <domain> [-n <max_results>]
 ```
 
 | Need | Domain | Example |
@@ -120,7 +98,7 @@ Before presenting the design, run it through the `design-review` skill's anti-de
 ### Step 5: Stack guidelines
 
 ```bash
-python3 skills/ask-ui-ux/scripts/search.py "<keyword>" --stack <stack>
+python3 ${CLAUDE_SKILL_DIR}/scripts/search.py "<keyword>" --stack <stack>
 ```
 
 Stacks: `react`, `nextjs`, `vue`, `svelte`, `astro`, `nuxtjs`, `nuxt-ui`, `angular`, `laravel`, `swiftui`, `react-native`, `flutter`, `jetpack-compose`, `html-tailwind`, `shadcn`, `threejs`, `javafx`, `wpf`, `winui`, `avalonia`, `uno`, `uwp`.
@@ -177,7 +155,7 @@ Reference anchors for intentional direction when no existing system exists:
 
 Use screenshot review as part of the default UI loop, not as a final optional pass.
 
-Default capture: `1440x900` desktop, `390x844` mobile, `device_scale_factor=1`, store in `/tmp/opencode/ask-ui-ux-review/<run-id>/`. Use `npx playwright screenshot` or a tiny Playwright script waiting for `networkidle`. Delete temp screenshots after review unless explicitly needed.
+Default capture: `1440x900` desktop, `390x844` mobile, `device_scale_factor=1`, store in `/tmp/opencode/ask-design-review/<run-id>/`. Use `npx playwright screenshot` or a tiny Playwright script waiting for `networkidle`. Delete temp screenshots after review unless explicitly needed.
 
 Vision review prompt:
 

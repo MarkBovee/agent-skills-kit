@@ -43,9 +43,9 @@ export const inject = ["systemPrompt"]
 
 const {
   SKILL_CODE_REVIEW, SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SESSION_REVIEW,
-  SKILL_UI_UX, SKILL_DESIGN_REVIEW,
+  SKILL_DESIGN, SKILL_DESIGN_REVIEW,
   routingHintLines, cascadeRoute, hasPhraseSignal, COMPLETION_PHRASES,
-  hasReviewCompletionSignal, INTERACTION_GUARD_THRESHOLD, buildWorkflowState, workflowHintLines,
+  hasTerminalReviewCompletion, INTERACTION_GUARD_THRESHOLD, buildWorkflowState, workflowHintLines,
   workflowForSkill, parseWorkflowEvidence, recordWorkflowEvidence, buildRoutingStatus,
 } = routerCore
 
@@ -120,9 +120,7 @@ function panelViewOf(st) {
     shouldCaptureImprovement: st.shouldCaptureImprovement === true,
     skillsLoadedCount: st.skillsLoadedCount,
     interactionCountSinceSkillLoad: st.interactionCountSinceSkillLoad,
-    activeSkill: status.activeSkill,
-    activeSkillLabel: status.activeSkillLabel,
-    workflow: status.workflow,
+    activeSkills: status.activeSkills,
     pending: status.pending,
   }
 }
@@ -140,17 +138,19 @@ function normalizePanelView(data) {
     needsDesignReview: data.needsDesignReview === true,
     shouldCaptureImprovement: data.shouldCaptureImprovement === true,
     skillsLoadedCount: Number.isFinite(data.skillsLoadedCount) ? data.skillsLoadedCount : 0,
+    currentSkill: typeof data.currentSkill === "string" ? data.currentSkill : "",
     interactionCountSinceSkillLoad: Number.isFinite(data.interactionCountSinceSkillLoad)
       ? data.interactionCountSinceSkillLoad
       : 0,
-    activeSkill: typeof data.activeSkill === "string" ? data.activeSkill : null,
-    activeSkillLabel: typeof data.activeSkillLabel === "string" ? data.activeSkillLabel : null,
-    // No route yet must stay null; a generic default is never fabricated here.
-    workflow: data.workflow && typeof data.workflow === "object" ? data.workflow : null,
+    activeSkills: Array.isArray(data.activeSkills)
+      ? data.activeSkills
+        .filter((entry) => entry && typeof entry.label === "string" && typeof entry.current === "boolean")
+        .map((entry) => ({ skill: typeof entry.skill === "string" ? entry.skill : null, label: entry.label, current: entry.current }))
+      : [],
     pending: Array.isArray(data.pending)
       ? data.pending
-        .filter((entry) => entry && typeof entry.flag === "string" && typeof entry.label === "string")
-        .map((entry) => ({ flag: entry.flag, skill: typeof entry.skill === "string" ? entry.skill : null, label: entry.label }))
+        .filter((entry) => entry && typeof entry.flag === "string" && typeof entry.label === "string" && typeof entry.action === "string")
+        .map((entry) => ({ flag: entry.flag, skill: typeof entry.skill === "string" ? entry.skill : null, label: entry.label, action: entry.action }))
       : [],
   }
 }
@@ -170,6 +170,7 @@ function emptyState() {
   return {
     lastMatch: "", matchedAt: 0, needsCodeReview: false, needsDesignReview: false,
     shouldCaptureImprovement: false, skillsLoadedCount: 0, loadedSkills: [],
+    currentSkill: "",
     interactionCountSinceSkillLoad: 0,
     steeredSkills: [],
     workflow: null,
@@ -312,7 +313,7 @@ export function apply(ctx, config) {
       st.shouldCaptureImprovement = false
       st.steeredSkills = st.steeredSkills.filter((s) => s !== SKILL_SESSION_REVIEW); return
     }
-    if (loaded === SKILL_UI_UX) { st.needsDesignReview = true; return }
+    if (loaded === SKILL_DESIGN) { st.needsDesignReview = true; return }
     if (loaded === SKILL_DESIGN_REVIEW) {
       st.needsDesignReview = false
       st.steeredSkills = st.steeredSkills.filter((s) => s !== SKILL_DESIGN_REVIEW)
@@ -329,13 +330,6 @@ export function apply(ctx, config) {
       const text = messageText(payload?.message)
       if (!text.trim()) return
       const st = stateFor(payload?.agent?.id)
-      if (hasReviewCompletionSignal(text)) {
-        st.needsCodeReview = false
-        st.shouldCaptureImprovement = true
-        st.steeredSkills = st.steeredSkills.filter((s) => s !== SKILL_CODE_REVIEW)
-        publishPanelState(payload?.agent, st)
-        return
-      }
       st.interactionCountSinceSkillLoad += 1
       const route = cascadeRoute(text, SKILL_STUBS, st)
       st.lastMatch = route?.matchedSkills?.[0]?.name || "develop"
@@ -387,22 +381,27 @@ export function apply(ctx, config) {
     try {
       if (!result || result.isError) return
       const st = stateFor(exec.agent?.id)
-      const workflowEvidence = parseWorkflowEvidence(exec) || parseWorkflowEvidence(result)
-      if (workflowEvidence) {
-        st.workflow = recordWorkflowEvidence(st.workflow, workflowEvidence)
+      // Loaded skill bodies may show marker examples; only work results may
+      // advance lifecycle state or clear obligations.
+      const reviewEvidence = parseWorkflowEvidence(result)
+      const completedReview = exec?.name === "task" && reviewEvidence?.status === "PASS"
+        && reviewEvidence.phase === "REVIEW" && hasTerminalReviewCompletion(result)
+      const workflowEvidence = exec?.name === "task" ? parseWorkflowEvidence(result) : null
+      if (workflowEvidence || completedReview) {
+        if (workflowEvidence) st.workflow = recordWorkflowEvidence(st.workflow, workflowEvidence)
+        if (completedReview) {
+          st.needsCodeReview = false
+          st.shouldCaptureImprovement = true
+          st.steeredSkills = st.steeredSkills.filter((s) => s !== SKILL_CODE_REVIEW)
+        }
         st.routing = buildRoutingStatus(null, st)
-        publishPanelState(exec?.agent, st)
-        return
-      }
-      if (hasReviewCompletionSignal(result)) {
-        st.needsCodeReview = false
-        st.shouldCaptureImprovement = true
-        st.steeredSkills = st.steeredSkills.filter((s) => s !== SKILL_CODE_REVIEW)
         publishPanelState(exec?.agent, st)
         return
       }
       if (exec?.name !== "skill") return
       const loadedSkill = skillNameOf(exec.arguments)
+      st.lastMatch = loadedSkill
+      st.currentSkill = loadedSkill
       st.workflow = workflowForSkill(st.workflow, loadedSkill)
       applySkillFlips(st, loadedSkill)
       st.routing = buildRoutingStatus(null, st, loadedSkill)

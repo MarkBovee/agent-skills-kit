@@ -31,6 +31,7 @@ OPENCODE_CORE_TARGET="$OPENCODE_DIR/core"
 OPENCODE_SKILLS_TARGET="$OPENCODE_DIR/skills"
 OPENCODE_PLUGINS_TARGET="$OPENCODE_DIR/plugins"
 OPENCODE_RULES_TARGET="$OPENCODE_DIR/rules"
+OPENCODE_AGENTS_FILE="$OPENCODE_DIR/AGENTS.md"
 CLAUDE_SKILLS_TARGET="$CLAUDE_DIR/skills"
 CLAUDE_RULES_TARGET="$CLAUDE_DIR/rules"
 CLAUDE_RULES_FILE="$CLAUDE_RULES_TARGET/agent-skills-kit.md"
@@ -55,6 +56,7 @@ MANAGED_SKILLS_MANIFEST=".ask-managed-skills.txt"
 MANAGED_COMMANDS_MANIFEST=".ask-managed-commands.txt"
 MANAGED_PROMPTS_MANIFEST=".ask-managed-prompts.txt"
 DSH_SECTION_MARKER="<!-- agent-skills-kit:dsh -->"
+OPENCODE_SECTION_MARKER="<!-- agent-skills-kit:opencode -->"
 CURRENT_MANAGED_SKILLS=""
 CURRENT_MANAGED_COMMANDS=""
 CURRENT_MANAGED_PROMPTS=""
@@ -143,10 +145,31 @@ write_claude_rules_file() {
 
 - Prefer workflow skills under `~/.claude/skills/` when the user's request clearly matches one of them instead of rewriting the workflow inline.
 - Treat `develop` as the default execution baseline for normal software work and combine it with a more specific skill when needed.
-- After code edits, bias toward `ask-code-review` before `ask-verification` when the user is moving toward done, ready, finished, handoff, or klaar wording.
+- For large, multi-issue, exhaustive, compatibility-sensitive, or release-sensitive work, load `intake`, write a plan, and complete plan-check before execution.
+- Record maximum-result scope as must/should/could; deferred evidence-backed work needs a reason and revisit trigger.
+- Delegate independent research, validation, review, and audit tracks. Never self-declare release readiness; require independent evidence.
+- After code edits, load `code-review` before claiming completion.
 - If review, verification, or wrap-up exposes a reusable workflow gap, capture it with `write-skill` before ending cold.
 - When editing code, add concise intent comments by default; place one short comment above each function unless the repo's local convention says otherwise.
 EOF
+}
+
+# Append managed workflow guidance without replacing user-owned OpenCode rules.
+write_opencode_agents_section() {
+  local section
+  section="$(printf '%s\n%s\n%s\n' "$OPENCODE_SECTION_MARKER" "$(cat "$OPENCODE_RULES_SOURCE/workflow.md")" "<!-- /agent-skills-kit:opencode -->")"
+  mkdir -p "$OPENCODE_DIR"
+  if grep -qF "$OPENCODE_SECTION_MARKER" "$OPENCODE_AGENTS_FILE" 2>/dev/null; then
+    node -e '
+      const fs = require("node:fs")
+      const [filePath, sectionText] = process.argv.slice(1)
+      const content = fs.readFileSync(filePath, "utf8")
+      const updated = content.replace(/<!-- agent-skills-kit:opencode -->[\s\S]*?(?:<!-- \/agent-skills-kit:opencode -->|$)/, sectionText)
+      fs.writeFileSync(filePath, updated)
+    ' "$OPENCODE_AGENTS_FILE" "$section"
+    return 0
+  fi
+  printf '\n%s\n' "$section" >> "$OPENCODE_AGENTS_FILE"
 }
 
 # Append the always-on dsh routing guidance to $DSH_HOME/AGENTS.md exactly once.
@@ -161,6 +184,9 @@ write_dsh_agents_section() {
 
 - Prefer the workflow skills in this kit when the user's request clearly matches one of them: load the skill via the `skill` tool using the exact name from the available-skills catalog before doing the work, then follow its instructions.
 - Treat `develop` as the default execution baseline for normal software work and combine it with a more specific skill when needed.
+- For large, multi-issue, exhaustive, compatibility-sensitive, or release-sensitive work, load `intake`, write a plan, and complete plan-check before execution.
+- Record maximum-result scope as must/should/could; deferred evidence-backed work needs a reason and revisit trigger.
+- Delegate independent research, validation, review, and audit tracks. Never self-declare release readiness; require independent evidence.
 - After meaningful, subtle, or risky code changes, load `code-review` before moving on. Skip review for trivial edits where the change is obvious and low-risk.
 - If review or verification exposes a reusable workflow gap, capture it with `write-skill` before ending cold.
 - When editing code, add concise intent comments by default; place one short comment above each function unless the repo's local convention says otherwise.
@@ -169,6 +195,13 @@ EOF
 )"
 
   if [ -f "$DSH_AGENTS_FILE" ] && grep -qF "$DSH_SECTION_MARKER" "$DSH_AGENTS_FILE"; then
+    node -e '
+      const fs = require("node:fs")
+      const [filePath, sectionText] = process.argv.slice(1)
+      const content = fs.readFileSync(filePath, "utf8")
+      const updated = content.replace(/<!-- agent-skills-kit:dsh -->[\s\S]*?(?:<!-- \/agent-skills-kit:dsh -->|$)/, sectionText)
+      fs.writeFileSync(filePath, updated)
+    ' "$DSH_AGENTS_FILE" "$section"
     return 0
   fi
 
@@ -518,12 +551,13 @@ cp -R "$OPENCODE_PLUGINS_SOURCE/agent-skills-router" "$OPENCODE_PLUGINS_TARGET/a
 
 # Install rules for OpenCode.
 mkdir -p "$OPENCODE_RULES_TARGET"
-for rule in coding-standards.md agent-skills-kit.md; do
+for rule in coding-standards.md agent-skills-kit.md workflow.md; do
   rm -f "$OPENCODE_RULES_TARGET/$rule"
   if [ -f "$OPENCODE_RULES_SOURCE/$rule" ]; then
     cp "$OPENCODE_RULES_SOURCE/$rule" "$OPENCODE_RULES_TARGET/$rule"
   fi
 done
+write_opencode_agents_section
 OPENCODE_JSON="$OPENCODE_DIR/opencode.json"
 if [ ! -f "$OPENCODE_JSON" ]; then
   printf '{}\n' > "$OPENCODE_JSON"
@@ -532,7 +566,7 @@ node -e "
     var fs=require('fs'), f='$OPENCODE_JSON';
     var c=JSON.parse(fs.readFileSync(f,'utf-8'));
     c.instructions=c.instructions||[];
-    var rules=['./rules/coding-standards.md','./rules/agent-skills-kit.md'];
+    var rules=['./rules/coding-standards.md','./rules/agent-skills-kit.md','./rules/workflow.md'];
     for(var i=0;i<rules.length;i++){if(!c.instructions.includes(rules[i])){c.instructions.push(rules[i]);}}
     c.plugin=c.plugin||[];
     c.plugin=c.plugin.filter(function(p){return p!=='./plugins/nebu-skills-router.mjs'&&p!=='./plugins/nebu-skills-router.js'&&p!=='./plugins/agent-skills-router.mjs';});
@@ -556,10 +590,10 @@ node -e "
     var fs=require('fs'), f='$OPENCODE_TUI_JSON';
     var c=JSON.parse(fs.readFileSync(f,'utf-8'));
     c.plugin=Array.isArray(c.plugin)?c.plugin:[];
-    var legacy='./plugins/agent-skills-sidebar.tsx';
-    c.plugin=c.plugin.filter(function(p){return p!==legacy;});
     var p='./plugins/agent-skills-router/tui.tsx';
-    if(!c.plugin.includes(p)){c.plugin.push(p);}
+    var legacy='./plugins/agent-skills-sidebar.tsx';
+    c.plugin=c.plugin.filter(function(entry){return entry!==legacy&&entry!==p;});
+    c.plugin.push(p);
     fs.writeFileSync(f,JSON.stringify(c,null,2)+'\n');
   "
 
@@ -567,6 +601,7 @@ if [ -d "$CLAUDE_DIR" ]; then
   mkdir -p "$CLAUDE_RULES_TARGET"
   write_claude_rules_file
   cp "$OPENCODE_RULES_SOURCE/coding-standards.md" "$CLAUDE_RULES_TARGET/coding-standards.md"
+  cp "$OPENCODE_RULES_SOURCE/workflow.md" "$CLAUDE_RULES_TARGET/workflow.md"
   ensure_directory_symlink "$CLAUDE_SKILLS_TARGET" "$SHARED_SKILLS_TARGET"
 fi
 
@@ -608,6 +643,7 @@ echo "Installed OpenCode router core to $OPENCODE_PLUGINS_TARGET/core"
 echo "Installed OpenCode router package to $OPENCODE_PLUGINS_TARGET/agent-skills-router"
 echo "Installed OpenCode rules to $OPENCODE_RULES_TARGET/coding-standards.md"
 echo "Installed OpenCode agent-skills-kit usage guide to $OPENCODE_RULES_TARGET/agent-skills-kit.md"
+echo "Installed OpenCode workflow guidance to $OPENCODE_AGENTS_FILE"
 if [ -d "$CLAUDE_DIR" ]; then
   echo "Installed Claude Code rules to $CLAUDE_RULES_FILE"
   echo "Linked Claude skills at $CLAUDE_SKILLS_TARGET -> $SHARED_SKILLS_TARGET"

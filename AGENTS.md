@@ -8,7 +8,7 @@ Multi-platform skill-pack for OpenCode, Codex, GitHub Copilot, Claude Code, and 
 
 - `skills/<name>/SKILL.md` — one skill per directory
 - `commands/<name>.md` — one slash command per skill, referencing its skill
-- `plugins/agent-skills-router/` — OpenCode dual-entrypoint package: cascade routing plus a TUI status sidebar that renders the router-core snapshot (active skill, workflow route, pending review obligations)
+- `plugins/agent-skills-router/` — OpenCode dual-entrypoint package: cascade routing plus a TUI status sidebar that renders the router-core snapshot (active skills, pending review obligations)
 - `plugins/agent-skills-router.dsh.mjs` — dsh (DeepSeek Harness) Cordis plugin: same router behavior as a preset row; requires `core/router-core.js` via a vendored copy in the installed preset
 - `core/router-core.js` — shared router helpers (cascade routing, lifecycle risk/state, session state, frontmatter parsing)
 - `scripts/` — install/update/bootstrap scripts (bash + PowerShell parity)
@@ -79,9 +79,9 @@ Export targets (via `export-platform-skills.js`): OpenCode → `.opencode/comman
 
 ## Router plugin
 
-`plugins/agent-skills-router/` injects a decision tree every prompt and renders its canonical status snapshot in OpenCode's TUI sidebar. The server entry is `server.mjs`; the TUI entry is `tui.tsx`. Agent self-selects skills via `skill(name: '...')`. No automatic phrase matching. A fresh session renders neutral — no active skill, no workflow route, no obligations — and the panel only shows a route once a real prompt has established one. The snapshot fields are `activeSkill`/`activeSkillLabel`, `workflow` (`phase`, `requiredPhases`, `completedGates`, `route`), and `pending` (the review/capture obligations ASK still needs). When changing:
+`plugins/agent-skills-router/` injects a decision tree every prompt and renders its canonical status snapshot in OpenCode's TUI sidebar. The server entry is `server.mjs`; the TUI entry is `tui.tsx`. Advisory phrase matching proposes a specific skill, but agent self-selects via `skill(name: '...')`; the router never loads skills or executes tools. A fresh session renders neutral — no active skills, no obligations — and the panel only shows entries once a real prompt or skill load has established them. The snapshot fields are `activeSkills` (the loaded skill first, then any matched or previously loaded skill; only a loaded skill carries `current: true`, so a route match stays a hollow suggestion) and `pending` (the review skills ASK still needs — `code-review` and `design-review`, each with a concrete `skill(name: '<skill>')` action; improvement capture is steered through the prompt surface, not the panel). The workflow route stays internal to the prompt surface. When changing:
 
-- The decision tree has 12 routing rows. `design-review` is a companion skill, not a routing row: it fires when the `ui-ux` skill is loaded (plugin sets `needsDesignReview` and nudges `skill(name: 'design-review')` until it is loaded), mirroring `needsCodeReview`. `text-writing` is a routing row, matching text that must read human rather than AI. The blocked-tool hint and the rules-file decision tree are derived from `routingHintLines()` in `core/router-core.js` — never hand-edit either copy; `validate-plugin.js` fails on drift.
+- The decision tree has 14 routing rows. `research` handles bounded fact-finding; `deep-research` handles autonomous multi-source research and must precede it. `design-review` is a companion skill, not a routing row: it fires when the `design` skill is loaded (plugin sets `needsDesignReview` and nudges `skill(name: 'design-review')` until it is loaded), mirroring `needsCodeReview`. `text-writing` is a routing row, matching text that must read human rather than AI. The blocked-tool hint and the rules-file decision tree are derived from `routingHintLines()` in `core/router-core.js` — never hand-edit either copy; `validate-plugin.js` fails on drift.
 
 - `node --input-type=module -e "import('./plugins/agent-skills-router/server.mjs')"` — verify server entry loads
 - `node -e "const {buildSkillOverview,createEmptySessionState}=require('./core/router-core'); const s=createEmptySessionState(); s.matchedSkills=[{name:'develop'}]; console.log(buildSkillOverview(s))"` — test decision-tree output
@@ -100,13 +100,14 @@ Before claiming a fix ships:
 
 1. `node -e "import('./plugins/agent-skills-router/server.mjs')"` — server plugin loads without error
 2. `node ./scripts/export-platform-skills.js` — exports regenerate
-3. Decision-tree check: `node -e "const {buildSkillOverview,createEmptySessionState}=require('./core/router-core'); console.log(buildSkillOverview(createEmptySessionState()))"` — output contains `╌ Agent Skills Kit ╌` and all 12 skills
+3. Decision-tree check: `node -e "const {buildSkillOverview,createEmptySessionState}=require('./core/router-core'); console.log(buildSkillOverview(createEmptySessionState()))"` — output contains `╌ Agent Skills Kit ╌` and all 14 routing skills
 4. `node ./scripts/check-router-nudges.js` — nudge behavior (audit, blocked-tool guard, auto-match, review nudges) passes
 5. `node ./scripts/check-workflow-lifecycle.js` — risk profiles, lifecycle gates, evidence contract, and status output pass
 6. `node ./scripts/check-dsh-plugin.js` — dsh router variant passes (exports, config defaults, event wiring, strict gate, decision-tree drift)
 7. `node ./scripts/check-widget-live-state.js` — the widget starts neutral and follows real routing decisions, workflow progression, active-skill changes, and obligation set/clear transitions with no stale state
 8. OpenCode plugin check: in a test session, verify `╌ Agent Skills Kit ╌` appears in the system prompt and status panel appears in sidebar. If missing, check `opencode.json` `plugins` array includes `./plugins/agent-skills-router` (server) **and** `tui.json` lists `./plugins/agent-skills-router/tui.tsx` (TUI), since TUI plugins are not auto-discovered. The package needs `server.mjs` plus `tui.tsx`.
 9. `./scripts/check-installed-artifacts.sh` — installs into isolated homes (fake dsh shim on PATH) and asserts the deployed user-visible strings — preset.yml description, router prompt header, widget status bar — match the repo, including refresh migration of a stale pre-English preset
+10. `node ./scripts/check-research-workflow.js` — validates research/deep-research routing, evidence model, contradiction handling, continuation, and handoff contract
 
 ## Install scripts
 

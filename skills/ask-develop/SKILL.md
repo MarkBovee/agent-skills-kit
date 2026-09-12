@@ -146,7 +146,8 @@ Same flow as release: fix branch → PR → merge → tag. No feature iteration.
 ## Use with
 
 - `intake` for ambiguity that could change the implementation — intake can also identify stages during planning
-- `ui-ux` for interface work that needs visual direction and screenshot-based review
+- `research` or `deep-research` when implementation depends on facts not yet established; consume their handoff instead of repeating investigation
+- `design` for interface work that needs visual direction and screenshot-based review
 - `code-review` after meaningful code edits and before handoff
 - `debugging` for bugs, failing tests, and broken builds
 - `verification` before claiming success

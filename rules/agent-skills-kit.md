@@ -5,6 +5,8 @@ The `agent-skills-router` plugin injects a decision tree into every prompt under
 ## Decision tree
 
 ```
+Deep research complex, contested, high-stakes questions → deep-research
+Research facts, sources, or current state              → research
 Specify requirements, build design brief → spec
 Clarify scope, plan ambiguous work       → intake
 Debug bug, crash, failing test, error    → debugging
@@ -14,7 +16,7 @@ Audit, refactor, reduce tech debt        → improve
 Reflect on session, file improvement     → session-review
 Coordinate multi-agent, parallel tasks   → agent-workflows
 Create or revise a skill                 → write-skill
-Design or polish UI/UX                   → ui-ux
+Design or polish UI/UX                   → design
 Write text that reads human, not AI      → text-writing
 Normal software work (default)           → develop
 ```
@@ -24,7 +26,7 @@ Normal software work (default)           → develop
 | Nudge | Meaning |
 |-------|---------|
 | `→ Code edited — skill(name: 'code-review')` | A code edit tool ran. Load code-review before claiming done. |
-| `→ Design produced — skill(name: 'design-review')` | The `ui-ux` skill was loaded. Filter the UI for AI-default slop before showing it. |
+| `→ Design produced — skill(name: 'design-review')` | The `design` skill was loaded. Filter the UI for AI-default slop before showing it. |
 | `→ Working without loaded skill` | 5+ interactions without loading any skill. Load one now. |
 | `→ Improvement found? skill(name: 'session-review')` | Session uncovered a reusable workflow gap worth filing. |
 
@@ -40,15 +42,17 @@ Risk determines workflow depth:
 
 `SPEC` is required for explicit requirements/design-brief intent, unclear acceptance criteria, behavior-changing work, and new external contracts. It is not required for ordinary bugs, small edits, or known implementation work.
 
+`RESEARCH` is an optional evidence phase, not a mandatory gate. `research` answers bounded fact questions; `deep-research` coordinates multi-source investigation, contradiction analysis, confidence, and a portable handoff before another skill owns scope, debugging, specification, or implementation.
+
 Router status reports current phase, risk, required gates, subagent evidence count, unresolved findings, and release status. Validation proves defined checks; review challenges requirements and regressions; audit independently searches for counterexamples and bypasses; release-gate decides from evidence and never edits source.
 
 Subagent results must use explicit `ASK_WORKFLOW_PASS`, `ASK_WORKFLOW_FINDINGS`, `ASK_WORKFLOW_BLOCKED`, or `ASK_WORKFLOW_FAILED` markers with a phase. Missing output, timeout, or tool failure is not a pass.
 
 ## Status panel
 
-The compact ASK panel shows the active routed skill, the current workflow route, and any pending review obligations. `core/router-core.js` produces this snapshot. DSH emits it through `ask-kit/state`; OpenCode persists it under `askKit` session metadata. Both widgets only render it.
+The compact ASK panel shows the active skills and any pending review obligations. `core/router-core.js` produces this snapshot. DSH emits it through `ask-kit/state`; OpenCode persists it under `askKit` session metadata. Both widgets only render it.
 
-Workflow markers retain `completed`, `active`, and `pending` state internally. Solid markers are reached gates, hollow markers are pending. Pending obligations are the review/capture skills ASK still needs (`code-review`, `design-review`, `session-review`); each disappears from the panel as soon as its skill is loaded.
+`activeSkills` lists the loaded skill first, then any matched or previously loaded skill; only an actually loaded skill carries `current: true`, so a route match stays a hollow suggestion and never looks active while its pending obligation still asks to load it. The cascade's `develop` fallback is never presented as an active skill and never displaces a loaded skill. The workflow route stays internal to the prompt surface and is not rendered in the panel. Pending obligations are the review skills ASK still needs (`code-review`, `design-review`); each carries a concrete `skill(name: '<skill>')` action and disappears as soon as its skill is loaded. Improvement capture is steered through the prompt surface, not the panel.
 
 ## Evidence-aware communication
 

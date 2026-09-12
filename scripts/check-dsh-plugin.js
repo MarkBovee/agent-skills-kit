@@ -100,6 +100,8 @@ async function main() {
       `got ${commands.length}, want ${expectedNames.length}`)
     check("command names match kit skills", expectedNames.every((n) => commands.some((c) => c.name === n))
       && new Set(commands.map((c) => c.name)).size === commands.length)
+    check("command surface includes research workflows", commands.some((c) => c.name === "research")
+      && commands.some((c) => c.name === "deep-research"))
     check("command names are lowercase grammar-clean",
       commands.every((c) => /^[a-z0-9][a-z0-9_-]*$/.test(c.name)))
     for (const [skill] of COMMAND_DRIFT_SOURCES) {
@@ -150,13 +152,19 @@ async function main() {
     const agent = { id: "gate-check" }
     const denied = await pre({ name: "bash", agent }, async () => ({ kind: "allow" }))
     check("strict gate denies before skill load", denied && denied.kind === "deny")
-    listeners.get("tools/result")[0]({ name: "skill", agent, arguments: { name: "develop" } }, { isError: false })
+    listeners.get("tools/result")[0](
+      { name: "skill", agent, arguments: { name: "deep-research" } },
+      { isError: false, output: "ASK_WORKFLOW_PASS phase=RESEARCH" },
+    )
     const allowed = await pre({ name: "bash", agent }, async () => ({ kind: "allow" }))
-    check("strict gate allows after skill load", allowed && allowed.kind === "allow")
+    check("strict gate allows after marker-bearing skill load", allowed && allowed.kind === "allow")
 
     // Beslisboom drift: every canonical router-core row appears verbatim.
     const inbox = listeners.get("agent/inbox/inserted")[0]
     const assemble = listeners.get("system-prompt/assemble")[0]
+    const deepResearchState = await assemble({ sections: [] }, { agent }, async () => ({ sections: [] }))
+    const deepResearchText = deepResearchState.sections.find((entry) => entry.name === "ask-kit:router")?.text || ""
+    check("skill marker example does not bypass deep-research load tracking", deepResearchText.includes("Active: deep-research"))
     inbox({ agent, message: { text: "er is een bug, crash bij start" } })
     const assembly = await assemble({ sections: [] }, { agent }, async () => ({ sections: [] }))
     const section = assembly.sections.find((entry) => entry.name === "ask-kit:router")
@@ -223,9 +231,29 @@ async function main() {
     await pre({ name: "edit", agent: delegatedAgent }, async () => ({ kind: "allow" }))
     const delegatedBefore = await assemble({ sections: [] }, { agent: delegatedAgent }, async () => ({ sections: [] }))
     check("delegated review starts with code-review nudge", delegatedBefore.sections.find((entry) => entry.name === "ask-kit:router").text.includes("→ Code edited"))
-    listeners.get("tools/result")[0]({ name: "task", agent: delegatedAgent }, { isError: false, output: "ASK_REVIEW_COMPLETE" })
+    inbox({ agent: delegatedAgent, message: { text: "quoted marker ASK_REVIEW_COMPLETE" } })
+    const quotedMarker = await assemble({ sections: [] }, { agent: delegatedAgent }, async () => ({ sections: [] }))
+    check("user marker quote does not clear parent nudge", quotedMarker.sections.find((entry) => entry.name === "ask-kit:router").text.includes("→ Code edited"))
+    listeners.get("tools/result")[0](
+      { name: "task", agent: delegatedAgent },
+      { isError: false, output: "ASK_WORKFLOW_PASS phase=REVIEW\nASK_REVIEW_COMPLETE" },
+    )
     const delegatedAfter = await assemble({ sections: [] }, { agent: delegatedAgent }, async () => ({ sections: [] }))
     check("delegated review completion clears parent nudge", !delegatedAfter.sections.find((entry) => entry.name === "ask-kit:router").text.includes("→ Code edited"))
+    await pre({ name: "edit", agent: delegatedAgent }, async () => ({ kind: "allow" }))
+    listeners.get("tools/result")[0](
+      { name: "task", agent: delegatedAgent },
+      { isError: false, output: "ASK_WORKFLOW_PASS phase=REVIEW\nASK_REVIEW_COMPLETE" },
+    )
+    const combinedDelegatedAfter = await assemble({ sections: [] }, { agent: delegatedAgent }, async () => ({ sections: [] }))
+    check("combined review evidence and marker clear parent nudge", !combinedDelegatedAfter.sections.find((entry) => entry.name === "ask-kit:router").text.includes("→ Code edited"))
+    await pre({ name: "edit", agent: delegatedAgent }, async () => ({ kind: "allow" }))
+    listeners.get("tools/result")[0](
+      { name: "task", agent: delegatedAgent },
+      { isError: false, output: "ASK_WORKFLOW_FINDINGS phase=REVIEW\nASK_REVIEW_COMPLETE" },
+    )
+    const failedReviewAfter = await assemble({ sections: [] }, { agent: delegatedAgent }, async () => ({ sections: [] }))
+    check("non-passing review marker keeps parent nudge", failedReviewAfter.sections.find((entry) => entry.name === "ask-kit:router").text.includes("→ Code edited"))
     await pre({ name: "edit", agent: delegatedAgent }, async () => ({ kind: "allow" }))
     const delegatedRearmed = await assemble({ sections: [] }, { agent: delegatedAgent }, async () => ({ sections: [] }))
     check("edit after delegated review re-arms nudge", delegatedRearmed.sections.find((entry) => entry.name === "ask-kit:router").text.includes("→ Code edited"))
@@ -263,10 +291,10 @@ async function main() {
     listeners.get("tools/result")[0]({ name: "skill", agent: writeAgent, arguments: { name: "verification" } }, { isError: false })
     inbox({ agent: writeAgent, message: { text: "klaar" } })
     check("write-skill resets session-review steer guard", steeredWrite.length === 2)
-    // Design debt: loading ui-ux arms design-review, completion steers it.
+    // Design debt: loading design arms design-review, completion steers it.
     const designSteered = []
     const designAgent = { id: "steer-check2", steer: (msg) => designSteered.push(msg) }
-    listeners.get("tools/result")[0]({ name: "skill", agent: designAgent, arguments: { name: "ui-ux" } }, { isError: false })
+    listeners.get("tools/result")[0]({ name: "skill", agent: designAgent, arguments: { name: "design" } }, { isError: false })
     inbox({ agent: designAgent, message: { text: "done" } })
     const designSteerText = designSteered[0]?.content?.[0]?.text ?? ""
     check("completion steers design-review once", designSteered.length === 1 && designSteerText.includes("'design-review'"))
@@ -284,30 +312,30 @@ async function main() {
       // review obligation is real state and may already be pending.
       await pre({ name: "edit", agent: bridgeAgent }, async () => ({ kind: "allow" }))
       const neutralView = appended.at(-1)?.data
-      check("pre-route panel view carries no predicted workflow", Boolean(neutralView)
-        && neutralView.activeSkill === null && neutralView.workflow === null)
+       check("pre-route panel view carries no predicted workflow", Boolean(neutralView)
+         && neutralView.activeSkills.length === 0 && !("workflow" in neutralView))
       // A real prompt establishes the route, then the skill load updates it.
       inbox({ agent: bridgeAgent, message: { text: "design a ui for the dashboard" } })
-      listeners.get("tools/result")[0]({ name: "skill", agent: bridgeAgent, arguments: { name: "ui-ux" } }, { isError: false })
+      listeners.get("tools/result")[0]({ name: "skill", agent: bridgeAgent, arguments: { name: "design" } }, { isError: false })
       check("mutations append whole-value panel events", appended.length >= 3
         && appended.every((event) => event.type === "ask-kit/state"))
       let state = unit.init()
       for (const event of appended) state = unit.apply(state, event)
       check("fold lands on the last whole value", state !== null && state.needsDesignReview === true
-        && Array.isArray(state.loadedSkills) && state.loadedSkills.includes("ui-ux"))
-      check("panel event exposes router-owned active skill", state.activeSkill === "ui-ux" && state.activeSkillLabel === "Ui Ux")
-      check("panel event exposes pending obligations", Array.isArray(state.pending)
-        && state.pending.some((entry) => entry.skill === "design-review") && state.pending.some((entry) => entry.skill === "code-review"))
-      check("panel event exposes workflow route states", Array.isArray(state.workflow?.route)
-        && state.workflow.route.some((entry) => entry.state === "active"))
+        && Array.isArray(state.loadedSkills) && state.loadedSkills.includes("design"))
+       check("panel event exposes router-owned active skill", state.activeSkills.some((entry) => entry.skill === "design" && entry.current))
+       check("panel event exposes both review obligations", Array.isArray(state.pending)
+         && state.pending.some((entry) => entry.skill === "code-review")
+         && state.pending.some((entry) => entry.skill === "design-review"))
+       check("panel event exposes active skills without workflow", state.activeSkills.some((entry) => entry.skill === "design" && entry.current)
+         && !("workflow" in state))
       // Loading the obligation's skill clears it from the live snapshot.
       listeners.get("tools/result")[0]({ name: "skill", agent: bridgeAgent, arguments: { name: "design-review" } }, { isError: false })
       state = unit.apply(state, appended.at(-1))
       check("completed design review clears its pending obligation", !state.pending.some((entry) => entry.skill === "design-review"))
       listeners.get("tools/result")[0]({ name: "skill", agent: bridgeAgent, arguments: { name: "code-review" } }, { isError: false })
       state = unit.apply(state, appended.at(-1))
-      check("completed code review clears review debt and arms capture", !state.pending.some((entry) => entry.skill === "code-review")
-        && state.pending.some((entry) => entry.skill === "session-review"))
+       check("completed code review clears review debt", !state.pending.some((entry) => entry.skill === "code-review"))
       listeners.get("tools/result")[0]({ name: "skill", agent: bridgeAgent, arguments: { name: "session-review" } }, { isError: false })
       state = unit.apply(state, appended.at(-1))
       check("capturing the improvement leaves no pending obligations", state.pending.length === 0)

@@ -39,6 +39,9 @@ jobs:
       - name: Validate workflow lifecycle
         run: node ./scripts/check-workflow-lifecycle.js
 
+      - name: Validate research workflows
+        run: node ./scripts/check-research-workflow.js
+
       - name: Validate ASK panel widget
         run: node ./scripts/check-panel-widget.js
 
@@ -55,4 +58,6 @@ jobs:
         run: ./scripts/check-installed-artifacts.sh
 
       - name: Ensure generated exports are committed
-        run: git diff --exit-code -- .github/skills/*/SKILL.md .claude/skills/*/SKILL.md .dsh/skills/*/SKILL.md .opencode/commands/*.md .github/prompts/*.prompt.md CLAUDE.md .github/copilot-instructions.md
+        run: |
+          git diff --exit-code -- .github/skills .claude/skills .dsh/skills .opencode/commands .github/prompts CLAUDE.md .github/copilot-instructions.md
+          test -z "$(git status --porcelain -- .github/skills .claude/skills .dsh/skills .opencode/commands .github/prompts CLAUDE.md .github/copilot-instructions.md)"

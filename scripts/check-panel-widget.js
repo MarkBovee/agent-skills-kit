@@ -65,22 +65,18 @@ function loadWidget(snapshot, secondSnapshot) {
 function main() {
   const source = fs.readFileSync(widgetPath, "utf8")
   const renderer = loadWidget({
-    activeSkill: "develop",
-    activeSkillLabel: "Develop",
-    workflow: { route: [{ phase: "PLAN", state: "completed" }, { phase: "EXECUTE", state: "active" }, { phase: "VALIDATE", state: "pending" }] },
-    pending: [{ flag: "needsCodeReview", skill: "code-review", label: "Code review" }],
+    activeSkills: [{ skill: "develop", label: "Develop", current: true }, { skill: "debugging", label: "Debugging", current: false }],
+    pending: [{ flag: "needsCodeReview", skill: "code-review", label: "Code review needed", action: "skill(name: 'code-review')" }],
   })
   const visible = textOf(renderer({ session: { sessionId: "test" } }))
-  check("renders active skill", visible.includes("ACTIVE SKILL") && visible.includes("Develop"))
+  check("renders active skills", visible.includes("ACTIVE SKILLS") && visible.includes("Develop") && visible.includes("Debugging"))
   check("no longer renders a confidence meter", !visible.includes("CONFIDENCE") && !visible.includes("%"))
-  check("renders workflow route", visible.includes("● Plan") && visible.includes("● Execute") && visible.includes("○ Validate"))
-  check("renders pending review obligations", visible.includes("PENDING") && visible.includes("Code review"))
+  check("does not render workflow", !visible.includes("WORKFLOW") && !visible.includes("Plan"))
+  check("renders review pending", visible.includes("PENDING") && visible.includes("Code review needed") && visible.includes("skill(name: 'code-review')"))
   const emptyVisible = textOf(loadWidget({})({ session: { sessionId: "empty" } }))
   check("renders safe empty state", emptyVisible.includes("Not matched"))
   check("hides pending section when no obligations", !emptyVisible.includes("PENDING"))
-  const terminal = textOf(loadWidget({ activeSkillLabel: "Develop", workflow: { route: [{ phase: "BLOCKED", state: "active" }] } })({ session: { sessionId: "terminal" } }))
-  check("renders terminal workflow state", terminal.includes("● Blocked"))
-  const sessionRenderer = loadWidget({ activeSkillLabel: "Develop" }, { activeSkillLabel: "Debugging" })
+  const sessionRenderer = loadWidget({ activeSkills: [{ label: "Develop", current: true }] }, { activeSkills: [{ label: "Debugging", current: true }] })
   textOf(sessionRenderer({ session: { sessionId: "first" } }))
   check("missing session projection does not retain prior state", textOf(sessionRenderer({ session: { sessionId: "missing" } })) === "")
   check("does not perform routing", !["cascadeRoute", "buildWorkflowState", "pendingReviewRequirements", "matchingPhrases", "confidence"].some((name) => source.includes(name)))
