@@ -6,6 +6,8 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.2.3] - 2026-09-12
+
 ### Changed
 
 - **Execution tiers reduced to three (`light`, `standard`, `deep`).** Dropped the `heavy` tier and its `high` agent-tier mapping; `improve` and `design` now default to `standard`. `core/router-core.js` validates only `light`/`standard`/`deep`, and README's cost-aware profile table and skill roster reflect the reality that only `light`, `standard`, and `deep` are in use.
