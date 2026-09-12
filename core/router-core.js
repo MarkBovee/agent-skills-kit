@@ -22,6 +22,7 @@ const SKILL_WRITE_SKILL = "write-skill"
 const SKILL_TEXT_WRITING = "text-writing"
 const SKILL_RESEARCH = "research"
 const SKILL_DEEP_RESEARCH = "deep-research"
+const SKILL_OBSERVABILITY = "observability"
 const REVIEW_COMPLETION_MARKER = "ASK_REVIEW_COMPLETE"
 const VALID_EXECUTION_TIERS = new Set(["light", "standard", "heavy", "deep"])
 const VALID_DELEGATION_MODES = new Set(["auto", "prefer-subagent", "owner-only"])
@@ -60,6 +61,16 @@ const COMPARATIVE_DEEP_RESEARCH_PHRASES = DEEP_RESEARCH_PHRASES.filter(
 const RESEARCH_PHRASES = [
   "research this", "research question", "find evidence", "compare sources",
   "investigate current state", "look into this technology", "research documentation",
+]
+
+const OBSERVABILITY_PHRASES = [
+  "observability", "instrumentation", "add logging", "structured logging",
+  "log levels", "add metrics", "adding metrics", "metrics dashboard", "set up metrics",
+  "set up tracing", "distributed tracing", "opentelemetry",
+  "set up alerting", "alerting on", "alert rule", "runbook",
+  "telemetry setup", "app telemetry", "monitor this feature",
+  "production visibility", "how do we observe", "what is working in production",
+  "monitoring alerts", "instrument this",
 ]
 
 const CODE_WORK_TOOL_IDS = new Set(["edit", "write", "apply_patch"])
@@ -550,6 +561,7 @@ const OVERVIEW_ROWS = [
   { label: "Create or revise a skill",                 skill: SKILL_WRITE_SKILL },
   { label: "Design or polish UI/UX",                   skill: SKILL_DESIGN },
   { label: "Write text that reads human, not AI",      skill: SKILL_TEXT_WRITING },
+  { label: "Instrument logging, metrics, tracing, alerting", skill: SKILL_OBSERVABILITY },
   { label: "Normal software work (default)",           skill: SKILL_DEVELOP },
 ]
 
@@ -635,7 +647,8 @@ function cascadeRoute(query, skills, sessionState) {
     tryRoute(WRITE_SKILL_PHRASES, SKILL_WRITE_SKILL) ||        // 13. Coordinate
     tryRoute(DESIGN_PHRASES, SKILL_DESIGN) ||                  // 14. Product
     tryRoute(TEXT_WRITING_PHRASES, SKILL_TEXT_WRITING) ||      // 15. Product
-    (() => {                                                   // 16. Execute (default)
+    tryRoute(OBSERVABILITY_PHRASES, SKILL_OBSERVABILITY) ||    // 16. Operate
+    (() => {                                                   // 17. Execute (default)
       const fallback = findSkill(skills, SKILL_DEVELOP)
       return { matchedSkills: fallback ? [fallback] : [], executionProfile: buildExecutionProfile(fallback, q) }
     })()
@@ -673,7 +686,7 @@ module.exports = {
   SKILL_AGENT_WORKFLOWS, SKILL_CODE_REVIEW, SKILL_DEBUGGING,
   SKILL_SESSION_REVIEW, SKILL_IMPROVE, SKILL_DEVELOP, SKILL_INTAKE, SKILL_DESIGN,
   SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SPEC, COMPLETION_PHRASES, SKILL_DESIGN_REVIEW,
-   SKILL_TEXT_WRITING, SKILL_RESEARCH, SKILL_DEEP_RESEARCH, REVIEW_COMPLETION_MARKER, hasReviewCompletionSignal, hasTerminalReviewCompletion,
+   SKILL_TEXT_WRITING, SKILL_RESEARCH, SKILL_DEEP_RESEARCH, SKILL_OBSERVABILITY, REVIEW_COMPLETION_MARKER, hasReviewCompletionSignal, hasTerminalReviewCompletion,
   buildSkillOverview, cascadeRoute, buildExecutionProfile, buildRoutingStatus, pendingReviewRequirements, activeSkillEntries, skillDisplayName, loadSkills,
   createEmptySessionState, getSessionState, setSessionState,
    findSkill, hasPhraseSignal, routingHintLines,

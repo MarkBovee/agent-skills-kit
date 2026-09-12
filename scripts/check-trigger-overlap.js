@@ -92,6 +92,23 @@ const ROUTING_CASES = [
   ["write a tweet", "text-writing"],
   ["draft email", "text-writing"],
   ["anti-slop", "text-writing"],
+  // Operate — observability
+  ["add metrics to the payment service", "observability"],
+  ["set up monitoring alerts", "observability"],
+  ["instrument this feature", "observability"],
+  ["add logging to the handler", "observability"],
+  ["how do we observe our service", "observability"],
+  ["alert rule for high p95", "observability"],
+  // Operate — observability: generic operational terms must NOT hijack the route
+  ["rename the metrics variable", "develop"],
+  ["add a metrics column to the report", "develop"],
+  ["watch this service", "develop"],
+  ["tracing the user journey", "develop"],
+  ["dashboard for the store", "develop"],
+  ["logging library choice", "develop"],
+  ["telemetry consent checkbox", "develop"],
+  ["alert the user with a toast", "develop"],
+  ["plan our observability", "intake"],
   // Default
   ["hello world", "develop"],
   ["bump version", "develop"],

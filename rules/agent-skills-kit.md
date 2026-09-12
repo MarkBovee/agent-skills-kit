@@ -18,6 +18,7 @@ Coordinate multi-agent, parallel tasks   → agent-workflows
 Create or revise a skill                 → write-skill
 Design or polish UI/UX                   → design
 Write text that reads human, not AI      → text-writing
+Instrument logging, metrics, tracing, alerting → observability
 Normal software work (default)           → develop
 ```
 
