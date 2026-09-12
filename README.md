@@ -23,7 +23,7 @@
 
 <p align="center">
   <code>ASK</code>
-  <code>16 skills</code>
+  <code>17 skills</code>
   <code>1 router</code>
   <code>5 agent hosts</code>
   <code>review + verification</code>
@@ -137,7 +137,7 @@ The routing groups map to the current skill pack:
 | **Improve**    | `improve`, `session-review`      | Audit, refactor, and improve the workflow itself.                                |
 | **Product**    | `design`, `design-review`        | Design interfaces and filter them before shipping.                               |
 | **Write**      | `text-writing`                   | Produce human-first written output.                                              |
-| **Operate**    | `gh-inbox`                       | Triage and maintain the repository's GitHub workflow.                            |
+| **Operate**    | `gh-inbox`, `observability`      | Triage and maintain the repository's GitHub workflow; instrument production visibility. |
 | **Coordinate** | `agent-workflows`, `write-skill` | Coordinate agents and maintain or extend the skill system.                       |
 
 The important boundary is:
@@ -320,7 +320,7 @@ Skills use short display names (e.g. `debugging`, `develop`) for easy reference.
 | Coordinate | `agent-workflows`, `write-skill` | route work, finish cleanly, keep the skill system healthy                                                |
 | Product    | `design`, `design-review`        | push interface work beyond bland default SaaS output, then filter it for AI-default slop before shipping |
 | Write      | `text-writing`                   | produce human-sounding text without detectable AI writing patterns                                       |
-| Operate    | `gh-inbox`                       | triage the current repository's GitHub issues and discussions, reply when clear, persist inbox state     |
+| Operate    | `gh-inbox`, `observability`      | triage the current repository's GitHub issues and discussions, reply when clear, persist inbox state; instrument production visibility with logging, metrics, tracing, and alerting |
 
 ### Full Roster
 
@@ -342,6 +342,7 @@ Skills use short display names (e.g. `debugging`, `develop`) for easy reference.
 | `agent-workflows` | light    | Multi-agent coordination + release chores                                                           |
 | `write-skill`     | standard | Skill authoring + workflow improvement tracking                                                     |
 | `gh-inbox`        | standard | GitHub issue/discussion triage: fetch, diff against stored state, reply when clear, persist         |
+| `observability`   | standard | Instrument production visibility: on-call questions, structured logging, metrics, tracing, alerting  |
 
 ## Commands
 
@@ -396,6 +397,7 @@ flowchart TD
     B -->|Create or revise a skill| W[write-skill]
     B -->|Design or polish UI/UX| U[design]
     B -->|Write text that reads human, not AI| T[text-writing]
+    B -->|Instrument logging, metrics, tracing, alerting| OB[observability]
     B -->|Normal software work| DE[develop]
 
     style DR fill:#153e52,stroke:#00bcd4,color:#fff
@@ -412,6 +414,7 @@ flowchart TD
     style W fill:#1a1a2e,stroke:#1abc9c,color:#fff
     style U fill:#1a1a2e,stroke:#e91e8c,color:#fff
     style T fill:#1a1a2e,stroke:#8b5cf6,color:#fff
+    style OB fill:#1a1a2e,stroke:#4c9aff,color:#fff
 ```
 
 | Stage          | Skills                           | Color            |
@@ -424,7 +427,7 @@ flowchart TD
 | **Coordinate** | `agent-workflows`, `write-skill` | `#1abc9c` teal   |
 | **Product**    | `design`, `design-review`        | `#e91e8c` pink   |
 | **Write**      | `text-writing`                   | `#8b5cf6` violet |
-| **Operate**    | `gh-inbox`                       | `#4c9aff` blue   |
+| **Operate**    | `gh-inbox`, `observability`      | `#4c9aff` blue   |
 
 Session state tracks code edits, tool usage, and skill-load events. The router nudges when code was edited without review, when a UI was produced (load `design-review`), or when many tools ran without loading any skill — always hint, never force.
 
@@ -455,7 +458,7 @@ Two optional frontmatter fields let a skill declare how expensive its default fl
 | `execution_tier`     | Suggested `agentTier` | When to use                                                               | Example                                                                                                |
 | -------------------- | --------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `light`              | `mini`                | bounded, mechanical, single-pass work                                     | `session-review`                                                                                       |
-| `standard` (default) | `default`             | normal judgment-heavy work                                                | `develop`, `spec`, `intake`, `code-review`, `debugging`, `verification`, `write-skill`, `text-writing` |
+| `standard` (default) | `default`             | normal judgment-heavy work                                                | `develop`, `spec`, `intake`, `code-review`, `debugging`, `verification`, `write-skill`, `text-writing`, `observability` |
 | `heavy`              | `high`                | broad or multi-part work, e.g. a full codebase audit or complex UI design | `improve`, `design`                                                                                    |
 | `deep`               | `xhigh`               | autonomous multi-source or architectural investigation                    | `deep-research`                                                                                        |
 

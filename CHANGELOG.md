@@ -6,6 +6,13 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.2.2] - 2026-09-12
+
+### Added
+
+- **`observability` skill.** New workflow for instrumenting a feature for production: define "working" via 2-4 on-call questions before adding any signal, pick structured logs / metrics (RED, USE) / traces by question, keep metric cardinality bounded, alert on user-visible symptoms with a runbook, never log secrets or full PII, and verify the instrumentation end-to-end in a real run. Ships as a command and is a new decision-tree row (`Instrument logging, metrics, tracing, alerting → observability`), so the decision tree now has 15 rows and the pack 17 skills.
+- **Routing now recognizes observability intent.** Contextual phrases (`add logging`, `add metrics`, `set up tracing`, `alert rule`, `how do we observe`, `what is working in production`, `monitoring alerts`) route to `observability` while generic operational terms (`watch`, `dashboard`, `logging library`, `metric query`) keep falling through to `develop`. Trigger/description routing is regression-cased in `check-trigger-overlap.js` (85 checks).
+
 ## [2.2.1] - 2026-09-12
 
 ### Added
