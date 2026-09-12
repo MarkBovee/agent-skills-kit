@@ -24,7 +24,7 @@ const SKILL_RESEARCH = "research"
 const SKILL_DEEP_RESEARCH = "deep-research"
 const SKILL_OBSERVABILITY = "observability"
 const REVIEW_COMPLETION_MARKER = "ASK_REVIEW_COMPLETE"
-const VALID_EXECUTION_TIERS = new Set(["light", "standard", "heavy", "deep"])
+const VALID_EXECUTION_TIERS = new Set(["light", "standard", "deep"])
 const VALID_DELEGATION_MODES = new Set(["auto", "prefer-subagent", "owner-only"])
 const WORKFLOW_PHASES = ["INTAKE", "RESEARCH", "SPEC", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "ITERATE", "AUDIT", "RELEASE_GATE", "DONE", "BLOCKED"]
 const WORKFLOW_RISK_LEVELS = new Set(["small", "normal", "spec-required", "significant", "release-sensitive"])
@@ -532,7 +532,6 @@ function findSkill(skills, name) {
 function agentTierForExecutionTier(executionTier) {
   switch (executionTier) {
     case "light": return "mini"
-    case "heavy": return "high"
     case "deep": return "xhigh"
     default: return "default"
   }

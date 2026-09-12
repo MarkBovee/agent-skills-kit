@@ -6,6 +6,11 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+### Changed
+
+- **Execution tiers reduced to three (`light`, `standard`, `deep`).** Dropped the `heavy` tier and its `high` agent-tier mapping; `improve` and `design` now default to `standard`. `core/router-core.js` validates only `light`/`standard`/`deep`, and README's cost-aware profile table and skill roster reflect the reality that only `light`, `standard`, and `deep` are in use.
+- **README corrected to match the repository reality.** Decision-tree mermaid labels now match `routingHintLines()` exactly, the architecture diagram gains the missing Coordinate stage, the fabricated `Suggested execution profile: …anchor=…` injection line is replaced with the actual `Active: <skill> (<tier>/<delegation>)` hint, the nonexistent `.agents/skills/` entry is gone from the Repo Map, and the dsh catalog check reads seventeen skills instead of sixteen.
+
 ## [2.2.2] - 2026-09-12
 
 ### Added

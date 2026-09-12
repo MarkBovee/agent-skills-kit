@@ -109,6 +109,7 @@ flowchart LR
     RT --> PR[Product]
     RT --> WR[Write]
     RT --> OP[Operate]
+    RT --> CO[Coordinate]
 
     RS --> SK
     PL --> SK
@@ -119,6 +120,7 @@ flowchart LR
     PR --> SK
     WR --> SK
     OP --> SK
+    CO --> SK
 
     SK --> TOOLS[Agent tools / workspace]
 ```
@@ -287,7 +289,7 @@ Everything dsh-related is `0.1.0-rc.x` developer preview and can change without 
 | Skill registry (`ctx.skills`) | `registerProvider`/`snapshot`/`list`/`get`, duplicate-name shadowing across layers                                                   | API churn in the registry contract                                                        |
 | MCP bridge (`dsh-mcp-client`) | Not used by the kit (tools only; skills are not MCP)                                                                                 | n/a                                                                                       |
 
-After a dsh update, the cheap check is a fresh session: the `<available_skills>` catalog should list all sixteen skills and `skill(name: '...')` should load a body; typing `/` in the composer should offer the kit's slash commands when the ask-kit preset is selected.
+After a dsh update, the cheap check is a fresh session: the `<available_skills>` catalog should list all seventeen skills and `skill(name: '...')` should load a body; typing `/` in the composer should offer the kit's slash commands when the ask-kit preset is selected.
 
 ### Shared Root Policy
 
@@ -334,9 +336,9 @@ Skills use short display names (e.g. `debugging`, `develop`) for easy reference.
 | `debugging`       | standard | Root-cause investigation                                                                            |
 | `code-review`     | standard | Engineering review passes                                                                           |
 | `verification`    | standard | Validation + workspace wrap-up before claiming completion                                           |
-| `improve`         | heavy    | Audit-driven improvement + focused refactoring                                                      |
+| `improve`         | standard | Audit-driven improvement + focused refactoring                                                      |
 | `session-review`  | light    | Session self-review + GitHub issue filing                                                           |
-| `design`          | heavy    | UI and UX implementation support                                                                    |
+| `design`          | standard | UI and UX implementation support                                                                    |
 | `design-review`   | standard | Anti-default filter: reviews design, UI, or copy for AI-generated slop before shipping              |
 | `text-writing`    | standard | Human-first writing: avoids AI-detected vocabulary, structure, punctuation, and formatting patterns |
 | `agent-workflows` | light    | Multi-agent coordination + release chores                                                           |
@@ -384,21 +386,21 @@ The decision tree injected every prompt:
 ```mermaid
 flowchart TD
     A[Agent evaluates task] --> B{Task matches?}
-    B -->|Complex, contested, high-stakes research| DR[deep-research]
-    B -->|Research facts, sources, current state| RS[research]
+    B -->|Deep research complex, contested, high-stakes questions| DR[deep-research]
+    B -->|Research facts, sources, or current state| RS[research]
     B -->|Specify requirements, build design brief| S[spec]
     B -->|Clarify scope, plan ambiguous work| I[intake]
-    B -->|Debug bug, crash, error| D[debugging]
-    B -->|Review code changes| CR[code-review]
+    B -->|Debug bug, crash, failing test, error| D[debugging]
+    B -->|Review code changes before handoff| CR[code-review]
     B -->|Verify claim, prove it works| V[verification]
-    B -->|Audit, refactor, tech debt| R[improve]
-    B -->|Reflect on session, file issue| G[session-review]
-    B -->|Multi-agent, parallel tasks| A2[agent-workflows]
+    B -->|Audit, refactor, reduce tech debt| R[improve]
+    B -->|Reflect on session, file improvement| G[session-review]
+    B -->|Coordinate multi-agent, parallel tasks| A2[agent-workflows]
     B -->|Create or revise a skill| W[write-skill]
     B -->|Design or polish UI/UX| U[design]
     B -->|Write text that reads human, not AI| T[text-writing]
     B -->|Instrument logging, metrics, tracing, alerting| OB[observability]
-    B -->|Normal software work| DE[develop]
+    B -->|Normal software work (default)| DE[develop]
 
     style DR fill:#153e52,stroke:#00bcd4,color:#fff
     style RS fill:#153e52,stroke:#00bcd4,color:#fff
@@ -457,14 +459,13 @@ Two optional frontmatter fields let a skill declare how expensive its default fl
 
 | `execution_tier`     | Suggested `agentTier` | When to use                                                               | Example                                                                                                |
 | -------------------- | --------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `light`              | `mini`                | bounded, mechanical, single-pass work                                     | `session-review`                                                                                       |
-| `standard` (default) | `default`             | normal judgment-heavy work                                                | `develop`, `spec`, `intake`, `code-review`, `debugging`, `verification`, `write-skill`, `text-writing`, `observability` |
-| `heavy`              | `high`                | broad or multi-part work, e.g. a full codebase audit or complex UI design | `improve`, `design`                                                                                    |
+| `light`              | `mini`                | bounded, mechanical, single-pass work                                     | `agent-workflows`, `session-review`                                                                     |
+| `standard` (default) | `default`             | normal judgment-heavy work                                                | `develop`, `spec`, `intake`, `code-review`, `debugging`, `verification`, `write-skill`, `text-writing`, `observability`, `research`, `design`, `design-review`, `gh-inbox`, `improve` |
 | `deep`               | `xhigh`               | autonomous multi-source or architectural investigation                    | `deep-research`                                                                                        |
 
-`delegation_default` (`auto` / `prefer-subagent` / `owner-only`) hints whether the work should default to a subagent when the host supports one. Both fields are read by `buildExecutionProfile` in `core/router-core.js`, which also upgrades the tier when the prompt itself signals light or heavy/deep work (e.g. "version bump" vs. "cross-repo migration"), regardless of which skill matched.
+`delegation_default` (`auto` / `prefer-subagent` / `owner-only`) hints whether the work should default to a subagent when the host supports one. Both fields are read by `buildExecutionProfile` in `core/router-core.js`, which maps `light` → `mini`, `standard` → `default`, and `deep` → `xhigh`, and defaults `delegation_default` to `prefer-subagent` for `light` skills and `owner-only` for `deep` skills.
 
-The result is injected as a single line, e.g. `Suggested execution profile: task=light, agent=mini, delegation=prefer-subagent, anchor=session-review.` Treat it as a hint: pick the smallest/cheapest model or subagent class the host offers for `mini`, and escalate to `default`/`high`/`xhigh` only when scope grows or a cheap-first attempt fails. This only nudges routing — it never blocks a tool or forces delegation.
+The result surfaces as a compact routing hint, not a standalone command line. OpenCode and dsh fold it into the status snapshot as `Active: <skill> (<tier>/<delegation>)` (e.g. `research (standard/auto)`), and the VS Code hook prints `Agent Skills Kit routing suggests: research. Execution profile: standard/auto.` Treat it as a hint: pick the smallest/cheapest model or subagent class the host offers for `mini`, and escalate to `default`/`xhigh` only when scope grows or a cheap-first attempt fails. This only nudges routing — it never blocks a tool or forces delegation.
 
 Hard boundaries:
 
@@ -605,7 +606,6 @@ GitHub Actions runs the same validation on every push and pull request. A push t
 
 ```text
 skills/                     Canonical workflow skills
-.agents/skills/              Optional repository-scoped Codex skill discovery root
 .github/skills/             Generated GitHub Copilot export
 .claude/skills/             Generated Claude Code export
 
