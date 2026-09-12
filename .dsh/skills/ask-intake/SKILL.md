@@ -13,10 +13,11 @@ Clarify enough to avoid wrong work, then move. One skill for the full pre-execut
 
 **Design exploration** (fuzzy/exploratory):
 1. Read existing code, docs, plans, and constraints first.
-2. Ask one focused question at a time; prefer multiple choice when it fits.
-3. Make assumptions explicit, especially around non-goals, scale, security, and ownership.
-4. Propose 2-3 viable approaches with a recommendation and clear tradeoffs.
-5. Once direction is chosen, stop exploring and move toward execution.
+2. Ask one focused question at a time; prefer multiple choice when it fits. Attach your current guess to each question ("I think X because Y — is that right?") so the user can react faster than generating an answer.
+3. Probe for what the user actually wants, not what they think they should want; "whatever you think" or "sounds good" is not a yes — confirm the intent explicitly.
+4. Make assumptions explicit, especially around non-goals, scale, security, and ownership.
+5. Propose 2-3 viable approaches with a recommendation and clear tradeoffs.
+6. Once direction is chosen, stop exploring and move toward execution.
 
 **Scope clarification** (ambiguous/behavior-changing):
 1. Inspect relevant code, docs, or current behavior first.
