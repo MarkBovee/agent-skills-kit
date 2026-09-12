@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.1.1] - 2026-09-12
+
+### Changed
+
+- **Host-neutral discovery documentation.** README and generated Copilot instructions now describe the current canonical skill discovery contract, direct companion handoffs, and the advisory-only role of OpenCode and dsh routing. The documentation uses the current `design`, `research`, and `deep-research` names rather than retired router and skill terminology.
+
 ## [2.1.0] - 2026-09-12
 
 ### Added

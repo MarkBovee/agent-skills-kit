@@ -66,6 +66,21 @@ Project changes are tracked in [CHANGELOG.md](./CHANGELOG.md).
 
 Stable installs resolve the latest `vX.Y.Z` tag before copying managed assets. The bootstrap entrypoints are fetched from `main`, but the managed checkout prefers the newest stable tag and only falls back to the current checkout when no stable tag exists yet.
 
+### Host-Neutral Discovery
+
+Every supported host follows one contract:
+
+```text
+user request
+  → discover the host-preferred skill root
+  → compare name, description, and triggers
+  → load the most specific matching skill before substantial work
+  → add only a directly implied companion skill
+  → follow the skill with host-native tools
+```
+
+Canonical skills are the directories under `skills/`. Commands, generated platform copies, router files, and instruction files expose skills but are not additional skills. Use the host-preferred skill root: source `skills/` in a checkout, shared `~/.agents/skills/` for Codex and common installs, OpenCode's managed `~/.config/opencode/skills/` links, GitHub Copilot's `.github/skills/` export, Claude's linked `~/.claude/skills/`, and dsh's project or user `.dsh/skills/` export before the shared root. Use `develop` only when no more-specific workflow applies. Common handoffs are `design` → `design-review`, `code-review` → `verification`, bounded `research` → a decision, and `deep-research` → `intake`, `debugging`, `spec`, or `develop`. Native discovery remains sufficient on every host; OpenCode and optional dsh add advisory routing and session state but never load skills or execute tools.
+
 ---
 
 ## Architecture

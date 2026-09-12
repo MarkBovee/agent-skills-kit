@@ -50,7 +50,7 @@ bootstrap_pull_managed_checkout() {
       path="${path##* -> }"
     fi
     case "$path" in
-      CLAUDE.md|.claude/*|.github/*|.dsh/*) ;;
+      CLAUDE.md|.claude/*|.dsh/*|.github/skills/*|.github/prompts/*|.github/copilot-instructions.md) ;;
       *)
         only_generated=0
         break
@@ -65,12 +65,12 @@ EOF
     return 1
   fi
 
-  git -C "$repo_root" restore --source=HEAD --staged --worktree -- .claude .github .dsh CLAUDE.md || {
+  git -C "$repo_root" restore --source=HEAD --staged --worktree -- .claude .dsh .github/skills .github/prompts .github/copilot-instructions.md CLAUDE.md || {
     echo "Failed to restore generated platform artifacts in managed checkout $repo_root." >&2
     return 1
   }
 
-  git -C "$repo_root" clean -fd -- .claude .github .dsh CLAUDE.md >/dev/null 2>&1 || {
+  git -C "$repo_root" clean -fd -- .claude .dsh .github/skills .github/prompts .github/copilot-instructions.md CLAUDE.md >/dev/null 2>&1 || {
     echo "Failed to clean generated platform artifacts in managed checkout $repo_root." >&2
     return 1
   }

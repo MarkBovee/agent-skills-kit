@@ -55,6 +55,25 @@ if [ -n "$(git -C "$REPO_ROOT" status --porcelain)" ]; then
   exit 1
 fi
 
+if [ "$(git -C "$REPO_ROOT" symbolic-ref --quiet --short HEAD 2>/dev/null || true)" != "main" ]; then
+  printf 'Releases must be tagged from main.\n' >&2
+  exit 1
+fi
+
+git -C "$REPO_ROOT" fetch origin main >/dev/null
+if [ "$(git -C "$REPO_ROOT" rev-parse HEAD)" != "$(git -C "$REPO_ROOT" rev-parse origin/main)" ]; then
+  printf 'Local main must match origin/main before tagging.\n' >&2
+  exit 1
+fi
+
+# Regenerate after proving no user changes can be overwritten. A stale or broken
+# export leaves a dirty tree and blocks the tag at the second clean-tree check.
+node "$REPO_ROOT/scripts/export-platform-skills.js"
+if [ -n "$(git -C "$REPO_ROOT" status --porcelain)" ]; then
+  printf 'Generated platform exports are stale. Commit them before tagging %s.\n' "$RELEASE_TAG" >&2
+  exit 1
+fi
+
 node "$REPO_ROOT/scripts/validate-plugin.js"
 node "$REPO_ROOT/scripts/check-release-readiness.js" --require-version-entry
 
@@ -63,13 +82,7 @@ if git -C "$REPO_ROOT" rev-parse -q --verify "refs/tags/$RELEASE_TAG" >/dev/null
   exit 1
 fi
 
-CURRENT_BRANCH=""
-if [ "$PUSH" -eq 1 ]; then
-  if ! CURRENT_BRANCH="$(git -C "$REPO_ROOT" symbolic-ref --quiet --short HEAD)"; then
-    printf 'Cannot push from detached HEAD. Check out branch first.\n' >&2
-    exit 1
-  fi
-fi
+CURRENT_BRANCH="main"
 
 printf 'Prepared release %s from VERSION %s.\n' "$RELEASE_TAG" "$VERSION"
 

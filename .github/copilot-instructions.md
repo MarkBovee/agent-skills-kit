@@ -13,6 +13,13 @@ This repository ships portable workflow skills under [.github/skills](./skills).
 - When editing code, add concise intent comments by default; place one short comment above each function unless the repo's local convention says otherwise.
 - Keep always-on instructions compact; put reusable procedures in skills so Copilot can load them on demand.
 
+## Host-neutral discovery
+
+1. Follow the host's preferred discovered skill root. Canonical source is `skills/*/SKILL.md`; installs use `~/.agents/skills/*/SKILL.md`, except OpenCode links its managed skills under its config root and dsh prefers its generated skill root.
+2. Read candidate frontmatter and load the most specific matching `SKILL.md` before substantial work. Use `develop` only when no more specific workflow applies.
+3. Add only directly implied companion skills: `design` → `design-review`, `code-review` → `verification`; use `research` for bounded evidence and `deep-research` for autonomous multi-source investigation.
+4. Native host discovery is sufficient. OpenCode and optional dsh routers add advisory matches and session state, but do not load skills or execute tools.
+
 ## Coding standards
 
 The `ask-code-review` skill enforces hard coding standards. Key rules enforced during review:
