@@ -23,7 +23,7 @@ Before any formatting or refactoring, inspect the active file, nearby user-autho
 1. Start bounded mechanical chores on the smallest viable agent or subagent.
 2. Validate the result before widening context.
 3. Escalate to default agent only if scope grows beyond the original bounded task.
-4. Escalate to high or xhigh only for cross-cutting, analysis-heavy, or repeatedly failing work.
+4. Escalate to `default` or xhigh only for cross-cutting, analysis-heavy, or repeatedly failing work, and only when a cheaper-tier attempt already produced evidence it cannot solve.
 
 ### Execution tiers by task reasoning
 
@@ -31,14 +31,16 @@ Before any formatting or refactoring, inspect the active file, nearby user-autho
 |---|---|---|
 | Mechanical, boilerplate, bounded parsing | light | EbusService, RegisterService, EntityFactoryService |
 | Nuanced but contained | standard | — |
-| Cross-cutting, implicit reasoning, error handling | heavy | DiscoveryService, CoordinatorService |
+| Cross-cutting, implicit reasoning, error handling | deep | DiscoveryService, CoordinatorService |
+
+Choose the lowest tier that fits; escalate only when evidence demands it. A delta fix or follow-up after a broader change is standard work, not a repeat of the original deep pass.
 
 ## Staged delegation
 
 Use when refactoring splits into dependent steps with mixed complexity (e.g. service-by-service refactor). Not for parallel work — use plain `Delegate` for that.
 
 1. **Break work into ordered stages.** Each stage builds on the previous one. No parallelism.
-2. **Tag each stage with a complexity tier** (light/standard/heavy). See model tiering above.
+2. **Tag each stage with a complexity tier** (light/standard/deep). See model tiering above.
 3. **Dispatch stage N** with the right execution tier. Output must contain the dependency for stage N+1.
 4. **Validate.** Does the output match scope? Tests green? If not: re-dispatch with a narrower scope instead of taking over yourself.
 5. **Commit per stage** on the work branch. Only proceed to stage N+1 on green.
@@ -95,6 +97,7 @@ Same flow as release: fix branch → PR → merge → tag. No feature iteration.
 12. **Discover the repository's own test/build/lint commands** from manifests, CI workflows, and documented commands; never assume a default runner.
 13. **Push back when an approach has clear problems**: name the concrete downside (quantified when possible), propose an alternative, and only accept the override when the user decides with full information.
 14. **Verify framework and library decisions against official documentation.** Detect the exact versions from dependency files, follow the documented patterns, and cite the source. When no authoritative source is found, flag the approach as `UNVERIFIED` instead of improvising confidently; never treat training data, tutorials, or forum answers as authoritative.
+15. **Classify scope drift mid-release.** When a new (non-issue, non-blocker) request lands while a release gate is open, do not silently absorb it: name it out-of-scope-with-note or fit it into must/should/could with a decision gate before spending research or implementation time on it.
 
 ## Use with
 

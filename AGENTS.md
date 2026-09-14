@@ -108,6 +108,7 @@ Before claiming a fix ships:
 8. OpenCode plugin check: in a test session, verify `╌ Agent Skills Kit ╌` appears in the system prompt and status panel appears in sidebar. If missing, check `opencode.json` `plugins` array includes `./plugins/agent-skills-router` (server) **and** `tui.json` lists `./plugins/agent-skills-router/tui.tsx` (TUI), since TUI plugins are not auto-discovered. The package needs `server.mjs` plus `tui.tsx`.
 9. `./scripts/check-installed-artifacts.sh` — installs into isolated homes (fake dsh shim on PATH) and asserts the deployed user-visible strings — preset.yml description, router prompt header, widget status bar — match the repo, including refresh migration of a stale pre-English preset
 10. `node ./scripts/check-research-workflow.js` — validates research/deep-research routing, evidence model, contradiction handling, continuation, and handoff contract
+11. `node ./scripts/check-tier-vocabulary.js` — shipped guidance uses only `light`/`standard`/`deep` (and `mini`/`default`/`xhigh`) tier vocabulary, with no stale `heavy`/`high` tier references
 
 ## Install scripts
 
@@ -138,3 +139,4 @@ After changes:
 5. No hardcoded workspace-specific paths in generic skills
 6. Widget live-state checks pass: `node ./scripts/check-widget-live-state.js`
 7. Installers deploy current user-visible strings: `./scripts/check-installed-artifacts.sh`
+8. Tier vocabulary stays current: `node ./scripts/check-tier-vocabulary.js`

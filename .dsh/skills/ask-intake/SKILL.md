@@ -41,7 +41,7 @@ Clarify enough to avoid wrong work, then move. One skill for the full pre-execut
    - Zijn er dependency chains (stap B heeft output A nodig)?
    - Lopen complexiteit en benodigd redeneervermogen uiteen tussen stappen?
      (sommige mechanisch/boilerplate, andere cross-cutting/reasoning)
-   - Zo ja: plan stages met volgorde, tier per stage (light/standard/heavy), en validatie-gates.
+   - Zo ja: plan stages met volgorde, tier per stage (light/standard/deep), en validatie-gates.
 6. Define validation needed before claiming done.
 7. Skip plan for one or two obvious edits. Use short bullets for normal multi-step work. Fuller plan only when sequencing or coordination risk is high.
 8. If repo already has a durable planning or spec system, update that record instead of creating parallel docs.
@@ -51,6 +51,8 @@ Clarify enough to avoid wrong work, then move. One skill for the full pre-execut
 2. For every deferred `could`, record why it is deferred and the event or evidence that should revisit it.
 3. Treat this scope record as definition of done. Do not silently reduce requested evidence-backed scope to the smallest safe patch.
 4. For large multi-issue, exhaustive, compatibility-sensitive, or release-sensitive briefs, write the plan artifact and complete plan-check before execution. Delegate independent research tracks through `agent-workflows`.
+
+**Release-gate cost decision** — when planning a release-sensitive change, make the validation and audit cost a stated decision before executing, not a default. Choose the **tier** of the independent audit (a `standard`/general re-audit is enough for a tiny delta; escalate to `deep` only on open cross-cutting invariants or counter-evidence). This decision never waives the audit itself: release-sensitive work still requires an independent audit and release-gate with evidence from a context separate from the implementer — owner-thread verification never substitutes for it. Record the tier choice and its outcome so the next release does not re-pay the same cost.
 
 For significant or release-sensitive work, add a plan-check gate: challenge scope, affected callers, compatibility, fallback behavior, ambiguity, determinism, and proof gaps before execution.
 

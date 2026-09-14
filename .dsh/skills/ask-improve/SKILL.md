@@ -31,7 +31,7 @@ For significant or release-sensitive work, act as the independent audit role: in
 ## Modes
 
 - (bare): Full audit + plans (recon → audit → plan)
-- `quick` / `deep`: Audit depth modifier; `quick` keeps smell scanning focused on the relevant changed surface, while `deep` expands it across affected modules or the repository
+- `quick` / `deep`: Audit depth modifier; `quick` keeps smell scanning focused on the relevant changed surface, while `deep` expands it across affected modules or the repository. Default to `quick`; escalate to `deep` only when the changed surface is unknown, cross-cutting, or a quick scan already surfaced evidence a bounded scan cannot reconcile.
 - `security` / `perf` / `tests` / `deps` / `dx` / `docs` / `direction` / `tech-debt` / `text`: Focus on one category. The `perf` and `security` modes carry standing behavior rules (below), not just a scan.
 - `refactor`: Focused simplification pass — not full audit
 - `execute <plan>`: Dispatch executor, review, verdict (APPROVE/REVISE/BLOCK)
