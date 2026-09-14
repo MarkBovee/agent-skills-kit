@@ -77,6 +77,16 @@ Default to delegate. Only keep in main when the reasoning must survive — struc
 6. Hand off explicitly when ownership changes.
 7. Clear pending messages before claiming done.
 
+## Subagent tier & budget
+
+Pick the smallest capable tier for the actual job; escalate only when evidence demands it, never by default.
+
+- **Start low.** Begin on `light`/`standard` (smallest capable subagent or model). Reserve `deep`/xhigh for broad, cross-cutting, release-critical analysis — and only with a stated time budget agreed with the owner thread up front.
+- **Delta re-checks are cheap.** A re-audit or follow-up check after fixes does not repeat the original deep pass: re-verify the touched surface on `standard`/general. Escalate to `deep` only if new counter-evidence or an open cross-cutting invariant demands it.
+- **Interrupt, then downgrade.** If a long-running subagent is slow without producing evidence, interrupt and restart narrower on a cheaper tier rather than waiting on the deep run. Start small; escalate on proof, not assumption.
+- **Heartbeat.** Long background subagents send periodic status (running/milestone/blocked) so the owner thread is never silent (see progress updates below). A subagent that runs silently past its budget is interrupted, not waited on.
+- **Owner thread owns cost.** The primary agent decides tier, budget, and when to interrupt. A subagent never self-justifies expansion.
+
 ## Cheap-first defaults
 
 - Pick the smallest capable model for mechanical work; reserve top model for judgment-heavy work.

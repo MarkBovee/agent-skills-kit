@@ -22,6 +22,10 @@ Use at session close to evaluate whether the skill ecosystem served the work wel
 
 Reconstruct relevant skill use from the transcript: explicit `skill` calls, loaded `SKILL.md` files, router matches, and the work actually performed. Mark this reconstruction as best-effort. If state cannot be written, record the improvement in the review output or issue instead of claiming the session flag was updated.
 
+### Record release-gate cost
+
+When the session ran a release gate, record what the validation/audit actually cost versus what was planned (see `intake`'s release-gate cost decision). Note the outcome: a delta re-check that a `standard` tier closed in seconds, or an over-scoped `deep` run that wasted minutes and was aborted. Feed that back as `skill:` guidance so the next release starts at the right tier instead of repeating the expensive default.
+
 ## Evidence-aware issue communication
 
 When writing an issue, follow the shared evidence-aware policy:

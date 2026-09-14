@@ -6,6 +6,17 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.2.4] - 2026-09-14
+
+### Added
+
+- **Cheaper-by-default subagent guidance (issue #74).** New "Subagent tier & budget" section in `agent-workflows`: start on the smallest capable tier (`light`/`standard`), reserve `deep`/xhigh for broad, cross-cutting, release-critical analysis with a stated budget, treat delta re-checks after fixes as cheap `standard`/general re-verification, interrupt-then-downgrade slow subagents, and let the owner thread own cost. `develop` escalates to `default`/xhigh only after a cheaper tier produced evidence it cannot solve, and now classifies mid-release scope drift (out-of-scope-with-note or must/should/could with a gate). `improve` defaults to `quick` audits and escalates to `deep` only on evidence.
+- **Release-gate cost decision.** `intake` makes the independent-audit tier a stated decision for release-sensitive work (a tiny delta gets a `standard` re-audit, never owner-thread verification — the independent audit gate stays mandatory), and `session-review` records what the gate actually cost so the next release starts at the right tier. `verification` bundles long-poll/deploy→restart→verify loops into one cycle plus a single verification pass.
+
+### Changed
+
+- **Stale tier vocabulary gone.** Removed the last references to the dropped `heavy` execution tier and `high` agent tier from the skill prose (`agent-workflows`, `develop`, `intake`, `session-review`); added `scripts/check-tier-vocabulary.js` and wired it into CI and release so shipped guidance stays limited to `light`/`standard`/`deep` and `mini`/`default`/`xhigh`.
+
 ## [2.2.3] - 2026-09-12
 
 ### Changed
