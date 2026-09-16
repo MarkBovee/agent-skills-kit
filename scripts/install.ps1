@@ -567,7 +567,7 @@ try {
         Remove-Item -LiteralPath $opencodeRouterTarget -Recurse -Force
     }
     New-Item -ItemType Directory -Force -Path $opencodeRouterTarget | Out-Null
-    foreach ($pluginFile in @("package.json", "server.mjs", "tui.tsx")) {
+    foreach ($pluginFile in @("package.json", "server.mjs", "tui.tsx", "sidebar-status.js")) {
         Copy-Item -LiteralPath (Join-Path $opencodePluginsSource "agent-skills-router" $pluginFile) -Destination (Join-Path $opencodeRouterTarget $pluginFile) -Force
     }
 

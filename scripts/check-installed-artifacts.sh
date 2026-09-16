@@ -138,6 +138,8 @@ assert_installed_strings() {
     "$OPENCODE_DIR/plugins/agent-skills-router/tui.tsx" 'sidebar.content' present
   assert_grep "installed OpenCode TUI panel hides pending prompt actions" \
     "$OPENCODE_DIR/plugins/agent-skills-router/tui.tsx" "props.item.action" absent
+  assert_grep "installed OpenCode TUI panel includes its live V2 skill-state helper" \
+    "$OPENCODE_DIR/plugins/agent-skills-router/sidebar-status.js" "completed native skill calls" present
   check "installed OpenCode SDK version matches the V2 baseline" \
     "$(node -e "const p=require(process.argv[1]); process.stdout.write(p.version==='2.0.3'?'true':'false')" "$OPENCODE_DIR/node_modules/@opencode/plugin/package.json")"
   check "installed OpenCode router has no source node_modules" \
