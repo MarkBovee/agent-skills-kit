@@ -268,6 +268,7 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
 // retaining the named factory for isolated regression tests.
 async function setupV2(context) {
   const router = await AgentSkillsRouter({ client: context })
+  const promptContext = new Map()
 
   // Flatten V2 tool input into the legacy state-machine shape so skill names,
   // review references, and other router fields survive the adapter boundary.
@@ -281,8 +282,15 @@ async function setupV2(context) {
       sessionID: event.sessionID,
       prompt: event.prompt.text,
     })
-    if (append?.append) event.prompt.text += append.append
+    if (append?.append) promptContext.set(event.sessionID, append.append)
     event.metadata = { ...(event.metadata || {}), askKit: router.status({ sessionID: event.sessionID }) }
+  })
+
+  await context.session.hook("context", async (event) => {
+    const append = promptContext.get(event.sessionID)
+    if (!append) return
+    promptContext.delete(event.sessionID)
+    event.system.push({ type: "text", text: append })
   })
 
   await context.tool.hook("execute.before", async (event) => {

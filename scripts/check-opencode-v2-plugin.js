@@ -27,9 +27,14 @@ if (typeof hooks.session.prompt !== "function"
 
 const prompt = { sessionID: "test", prompt: { text: "test" } }
 await hooks.session.prompt(prompt)
-if (!prompt.prompt.text.includes("Agent Skills Kit")) throw new Error("prompt hook did not inject router")
+if (prompt.prompt.text !== "test") throw new Error("prompt hook made router guidance visible in prompt text")
 if (!prompt.metadata?.askKit || !Array.isArray(prompt.metadata.askKit.activeSkills)) {
   throw new Error("prompt hook did not publish router status through supported metadata")
+}
+const contextEvent = { sessionID: "test", system: [] }
+await hooks.session.context(contextEvent)
+if (!contextEvent.system.some((part) => part.text?.includes("Agent Skills Kit"))) {
+  throw new Error("context hook did not inject router guidance into the hidden system context")
 }
 
 await hooks.tool["execute.after"]({
@@ -41,6 +46,7 @@ await hooks.tool["execute.after"]({
 })
 const followUp = { sessionID: "test", prompt: { text: "follow up" } }
 await hooks.session.prompt(followUp)
+if (followUp.prompt.text !== "follow up") throw new Error("follow-up router guidance leaked into prompt text")
 if (!followUp.metadata?.askKit?.activeSkills?.some((entry) => entry.skill === "spec" && entry.current === true)) {
   throw new Error("V2 tool adapter dropped skill input before publishing router status")
 }

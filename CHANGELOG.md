@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.2.7] - 2026-09-16
+
+### Fixed
+
+- **OpenCode V2 router guidance is hidden from prompt text.** Router guidance now uses the supported session context system channel, while prompt metadata remains dedicated to TUI status. The regression test verifies that guidance remains available to the model without appearing in the visible prompt.
+
 ## [2.2.6] - 2026-09-16
 
 ### Fixed
