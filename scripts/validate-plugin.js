@@ -15,6 +15,7 @@ const README_PATH = path.join(REPO_ROOT, "README.md")
 const ROUTER_RULES_PATH = path.join(REPO_ROOT, "rules", "agent-skills-kit.md")
 const COMMANDS_PATH = path.join(REPO_ROOT, "commands")
 const OPENCODE_ROUTER_PACKAGE_PATH = path.join(REPO_ROOT, "plugins", "agent-skills-router", "package.json")
+const RELEASE_WORKFLOW_PATH = path.join(REPO_ROOT, ".github", "workflows", "release.yml")
 const REFERENCE_PATTERN = /`([^`]+)`/g
 const NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
@@ -68,6 +69,23 @@ async function validateOpenCodeRouterPackage(errors) {
     } catch {
       errors.push(`plugins/agent-skills-router/${file} is missing`)
     }
+  }
+}
+
+// Require releases to install the OpenCode V2 contract before checks import the router.
+async function validateReleaseOpenCodeContract(errors) {
+  let workflow
+  try {
+    workflow = await fs.readFile(RELEASE_WORKFLOW_PATH, "utf8")
+  } catch (error) {
+    errors.push(`.github/workflows/release.yml is not readable: ${error.message}`)
+    return
+  }
+
+  const dependencyInstall = 'npm install --prefix "$RUNNER_TEMP/ask-opencode-v2" --ignore-scripts --no-save @opencode/plugin@2.0.3'
+  const dependencyLink = 'ln -s "$RUNNER_TEMP/ask-opencode-v2/node_modules" node_modules'
+  if (!workflow.includes(dependencyInstall) || !workflow.includes(dependencyLink)) {
+    errors.push(".github/workflows/release.yml must install the OpenCode V2 contract before importing the router")
   }
 }
 
@@ -208,6 +226,7 @@ async function main() {
   const errors = []
   await validatePluginManifest(errors)
   await validateOpenCodeRouterPackage(errors)
+  await validateReleaseOpenCodeContract(errors)
   await validateHooks(errors)
   const skillNames = await validateSkills(errors)
   await validateSkillReferences(errors)

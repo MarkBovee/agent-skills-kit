@@ -17,6 +17,7 @@ Release-sensitive. The TUI is a separately loaded OpenCode runtime, and the pend
 - Preserve the existing reactive sidebar status behavior and both installer paths.
 - Retain the pending 2.2.9 version and add the color fix to its changelog entry; `v2.2.9` is not published yet and `v2.2.8` is the latest stable tag.
 - Create a `fix/` branch, commit, push, open and merge a PR after `validate` passes, then confirm the release workflow creates `v2.2.9` and its GitHub release.
+- Repair the release-workflow dependency bootstrap when the release gate identifies it as a blocking defect, with a regression validation in the existing plugin validator.
 
 ### Should
 
@@ -34,12 +35,13 @@ Deferred: a branded, explicit palette is deliberate here because the exact theme
 2. Restore the explicit palette in the OpenCode TUI and record the fix in 2.2.9's changelog entry.
 3. Run the focused check, full repository release checks, export generation, and isolated-install verification.
 4. Commit and push `fix/sidebar-theme-colors`, open a PR, wait for the required `validate` check, merge it, then verify the automated release workflow, `v2.2.9` tag, and GitHub release.
+5. Release-gate finding: the first main release failed because `release.yml` omitted the `@opencode/plugin@2.0.3` bootstrap required before `check-router-nudges.js` imports the server router. Add the same bootstrap CI uses, prove it with `validate-plugin.js`, and deliver it through a second protected-main fix PR.
 
 ## Plan check
 
-- Affected callers: OpenCode TUI entry and static regression checks; installers continue deploying the same TUI entry unchanged.
+- Affected callers: OpenCode TUI entry, static regression checks, and the release workflow; installers continue deploying the same TUI entry unchanged.
 - Compatibility: use the known-supported literal color input rather than an undocumented or incorrectly shaped theme object.
 - Fallback: no host token lookup is required, so a partial or monochrome host theme cannot erase the sidebar's hierarchy.
 - Determinism: the check asserts all five palette roles and rejects the old invalid token source.
-- Proof: focused regression check, release validation suite, generated-export cleanliness, isolated-install test, required GitHub CI, merged-main release workflow, tag, and release record.
+- Proof: focused regression check, release validation suite, generated-export cleanliness, isolated-install test, required GitHub CI, merged-main release workflow, tag, and release record. The first main release supplied the regression evidence for the missing dependency; the second must complete successfully.
 - Independent audit: `standard` cost tier is sufficient for this one-file presentation delta; a separate reviewer/auditor is required before the release gate, but this harness's developer instruction forbids spawning subagents unless explicitly requested. The CI and protected-branch review remain mandatory external gates.
