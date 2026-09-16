@@ -12,7 +12,7 @@ This is a mandatory second pass after **every** code edit. Review depth scales w
 
 ## Completion handoff
 
-When review is fully complete, include the exact marker `ASK_REVIEW_COMPLETE` in the final handoff. This is required when a review runs in a subagent so the parent session can clear its pending review flag. Do not emit the marker for blocked, partial, or still-actionable reviews.
+When review is fully complete, include `review-generation`, `review-scope: REVIEW`, `review-reference`, `review-completed-at`, and `review-result: PASS` metadata, followed by terminal `ASK_REVIEW_COMPLETE`. Generation must match current session state; stale evidence must not clear newer review debt. Do not emit the marker for blocked, partial, or still-actionable reviews.
 
 For delegated review, return `ASK_WORKFLOW_PASS phase=REVIEW` only when requirements, regressions, local conventions, and relevant callers were checked. Use `ASK_WORKFLOW_FINDINGS phase=REVIEW` for concrete issues, `ASK_WORKFLOW_BLOCKED phase=REVIEW` when required evidence is unavailable, and `ASK_WORKFLOW_FAILED phase=REVIEW` when the review could not execute. A review is not an audit: do not claim independent counterexample analysis unless that is the assigned audit role.
 

@@ -26,7 +26,7 @@ const {
   SKILL_DEVELOP,
   buildSkillOverview, cascadeRoute, getSessionState, loadSkills,
   setSessionState, hasPhraseSignal, toSingleLine, unique,
-  hasTerminalReviewCompletion, routingHintLines, buildWorkflowState, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
+  hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, routingHintLines, buildWorkflowState, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
   buildRoutingStatus,
 } = resolveRouterCore()
 
@@ -58,9 +58,12 @@ function sessionKey(input) {
 }
 
 // Trust review completion only from a delegated task result, never user text.
-function isDelegatedReviewCompletion(toolID, input, output) {
+// Trust only passing review evidence for current edit generation.
+function isDelegatedReviewCompletion(toolID, generation, output, currentReference) {
   const evidence = parseWorkflowEvidence(output)
-  return toolID === "task" && evidence?.status === "PASS" && evidence.phase === "REVIEW" && hasTerminalReviewCompletion(output)
+  return toolID === "task" && evidence?.status === "PASS"
+    && (evidence.phase === "REVIEW" || evidence.phase === "AUDIT")
+    && reviewCompletionMatches(output, generation, evidence.phase, currentReference)
 }
 
 let skillsCache = null
@@ -209,7 +212,13 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
       const toolID = (typeof input?.tool === "string" ? input.tool : "").trim()
       if (!toolID) return
       if (CODE_EDIT_TOOL_IDS.has(toolID)) {
-        save(input, { needsCodeReview: true })
+        const state = getSessionState(sessionState, sessionKey(input))
+        save(input, {
+          needsCodeReview: true,
+          reviewGeneration: (state.reviewGeneration || 0) + 1,
+          reviewReference: input?.diffIdentity || input?.commit || `generation-${(state.reviewGeneration || 0) + 1}`,
+          reviewEvidence: null, reviewFollowUp: null,
+        })
       }
       if (BLOCKED_BEFORE_SKILL.has(toolID)) {
         const state = getSessionState(sessionState, sessionKey(input))
@@ -244,23 +253,28 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
 
         // Skill documentation contains workflow marker examples; only real work
         // results may advance lifecycle gates or clear review obligations.
-        const completedReview = isDelegatedReviewCompletion(toolID, input, output)
+        const completedReview = isDelegatedReviewCompletion(toolID, state.reviewGeneration, output, state.reviewReference)
+        const reviewHandoff = toolID === "task" ? parseReviewCompletion(output) : null
         const workflowEvidence = toolID === "task" ? parseWorkflowEvidence(output) : null
-        if (workflowEvidence || completedReview) {
+        if (workflowEvidence || reviewHandoff) {
           const workflow = workflowEvidence ? recordWorkflowEvidence(state.workflow, workflowEvidence) : state.workflow
           save(input, {
             ...base,
             workflow,
-            ...(completedReview ? { needsCodeReview: false, shouldCaptureImprovement: true } : {}),
+             ...(reviewHandoff ? { reviewEvidence: reviewHandoff, reviewFollowUp: completedReview ? null : { status: workflowEvidence?.status || "PENDING", evidence: reviewHandoff } } : {}),
+             ...(completedReview ? { needsCodeReview: false, shouldCaptureImprovement: true } : {}),
           })
           return
         }
-        if (CODE_EDIT_TOOL_IDS.has(toolID)) { save(input, { ...base, needsCodeReview: true }); return }
+        if (CODE_EDIT_TOOL_IDS.has(toolID)) {
+          save(input, { ...base, needsCodeReview: true, reviewReference: input?.diffIdentity || input?.commit || state.reviewReference || "" })
+          return
+        }
         if (toolID !== "skill") { save(input, base); return }
         const skillName = resolveSkillName(input, output)
         if (!skillName) { save(input, base); return }
         const skillWorkflow = workflowForSkill(state.workflow, skillName)
-        if (skillName === SKILL_CODE_REVIEW) { save(input, { ...base, currentSkill: skillName, needsCodeReview: false, shouldCaptureImprovement: true, workflow: skillWorkflow }); return }
+        if (skillName === SKILL_CODE_REVIEW) { save(input, { ...base, currentSkill: skillName, shouldCaptureImprovement: true, workflow: skillWorkflow }); return }
         if (skillName === SKILL_VERIFICATION) { save(input, { ...base, currentSkill: skillName, shouldCaptureImprovement: true, workflow: skillWorkflow }); return }
         if (skillName === SKILL_WRITE_SKILL) { save(input, { ...base, currentSkill: skillName, shouldCaptureImprovement: false }); return }
         if (skillName === SKILL_SESSION_REVIEW) { save(input, { ...base, currentSkill: skillName, shouldCaptureImprovement: false }); return }

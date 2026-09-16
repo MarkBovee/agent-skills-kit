@@ -177,6 +177,7 @@ function createEmptySessionState() {
   return {
     matchedSkills: [], needsCodeReview: false, shouldCaptureImprovement: false,
     needsDesignReview: false,
+    reviewGeneration: 0, reviewReference: "", reviewEvidence: null, reviewFollowUp: null,
     executionProfile: null,
     toolCallCount: 0, interactionCountSinceSkillLoad: 0,
     recentToolIds: [], recentEditedPaths: [],
@@ -203,6 +204,24 @@ function hasReviewCompletionSignal(value) {
 function hasTerminalReviewCompletion(value) {
   const text = typeof value === "string" ? value : value?.output
   return typeof text === "string" && /(?:^|\n)ASK_REVIEW_COMPLETE\s*$/.test(text.trim())
+}
+
+// Parse structured metadata from a delegated review handoff.
+function parseReviewCompletion(value) {
+  const text = typeof value === "string" ? value : value?.output
+  if (typeof text !== "string" || !hasTerminalReviewCompletion(text)) return null
+  const metadata = Object.fromEntries([...text.matchAll(/^review-(generation|scope|reference|result|completed-at):\s*(.+)$/gm)].map((match) => [match[1], match[2].trim()]))
+  const generation = Number.parseInt(metadata.generation, 10)
+  if (!Number.isInteger(generation) || !metadata.scope || !metadata.reference || !metadata.result || !metadata["completed-at"]) return null
+  return { generation, scope: metadata.scope, reference: metadata.reference, result: metadata.result, completedAt: metadata["completed-at"] }
+}
+
+// Accept review evidence only when it covers current edit generation.
+function reviewCompletionMatches(value, generation, phase = "REVIEW", currentReference = "") {
+  const evidence = parseReviewCompletion(value)
+  return evidence !== null && evidence.generation === generation && evidence.result === "PASS"
+    && Boolean(currentReference) && evidence.reference === currentReference
+    && (phase === "REVIEW" ? evidence.scope === "REVIEW" : phase === "AUDIT" && evidence.scope === "final-diff")
 }
 
 function hasPhraseSignal(query, phrases) {
@@ -685,7 +704,7 @@ module.exports = {
   SKILL_AGENT_WORKFLOWS, SKILL_CODE_REVIEW, SKILL_DEBUGGING,
   SKILL_SESSION_REVIEW, SKILL_IMPROVE, SKILL_DEVELOP, SKILL_INTAKE, SKILL_DESIGN,
   SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SPEC, COMPLETION_PHRASES, SKILL_DESIGN_REVIEW,
-   SKILL_TEXT_WRITING, SKILL_RESEARCH, SKILL_DEEP_RESEARCH, SKILL_OBSERVABILITY, REVIEW_COMPLETION_MARKER, hasReviewCompletionSignal, hasTerminalReviewCompletion,
+   SKILL_TEXT_WRITING, SKILL_RESEARCH, SKILL_DEEP_RESEARCH, SKILL_OBSERVABILITY, REVIEW_COMPLETION_MARKER, hasReviewCompletionSignal, hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches,
   buildSkillOverview, cascadeRoute, buildExecutionProfile, buildRoutingStatus, pendingReviewRequirements, activeSkillEntries, skillDisplayName, loadSkills,
   createEmptySessionState, getSessionState, setSessionState,
    findSkill, hasPhraseSignal, routingHintLines,
