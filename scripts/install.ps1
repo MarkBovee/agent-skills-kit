@@ -566,11 +566,19 @@ try {
     if (Test-Path -LiteralPath $opencodeRouterTarget) {
         Remove-Item -LiteralPath $opencodeRouterTarget -Recurse -Force
     }
-    Copy-Item -LiteralPath (Join-Path $opencodePluginsSource "agent-skills-router") -Destination $opencodeRouterTarget -Recurse -Force
+    New-Item -ItemType Directory -Force -Path $opencodeRouterTarget | Out-Null
+    foreach ($pluginFile in @("package.json", "server.mjs", "tui.tsx")) {
+        Copy-Item -LiteralPath (Join-Path $opencodePluginsSource "agent-skills-router" $pluginFile) -Destination (Join-Path $opencodeRouterTarget $pluginFile) -Force
+    }
 
     # V2 plugins import their host API from the global OpenCode package root.
     $opencodePluginDependency = Join-Path $OpencodeDir "node_modules/@opencode/plugin"
-    if (-not (Test-Path -LiteralPath $opencodePluginDependency) -or -not (Test-Path -LiteralPath (Join-Path $OpencodeDir "package-lock.json"))) {
+    $installedPluginVersion = $null
+    $pluginPackageJson = Join-Path $opencodePluginDependency "package.json"
+    if (Test-Path -LiteralPath $pluginPackageJson) {
+        try { $installedPluginVersion = (Get-Content -LiteralPath $pluginPackageJson -Raw | ConvertFrom-Json).version } catch { $installedPluginVersion = $null }
+    }
+    if ($installedPluginVersion -ne "2.0.3" -or -not (Test-Path -LiteralPath (Join-Path $OpencodeDir "package-lock.json"))) {
         if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
             throw "npm is required to install @opencode/plugin"
         }
@@ -630,7 +638,8 @@ try {
             $cfg.permission | Add-Member -NotePropertyName external_directory -NotePropertyValue ([pscustomobject]@{}) -Force
             $changed = $true
         }
-        $ocPath = Join-Path $HOME ".config" "opencode" "*"
+        $ocRoot = [System.IO.Path]::GetFullPath($OpencodeDir).TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+        $ocPath = "$ocRoot/**"
         $currentPermission = $cfg.permission.external_directory.PSObject.Properties[$ocPath]
         if (-not $currentPermission -or $currentPermission.Value -ne "allow") {
             $cfg.permission.external_directory | Add-Member -NotePropertyName $ocPath -NotePropertyValue "allow" -Force

@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.2.8] - 2026-09-16
+
+### Fixed
+
+- **OpenCode V2 installer compatibility audit follow-up.** Bash and PowerShell installers now honor custom OpenCode roots, normalize an existing incompatible `@opencode/plugin` installation to the pinned V2 baseline, deploy only managed runtime files, and verify deployed-module resolution. CI now runs the V2 contract check.
+
 ## [2.2.7] - 2026-09-16
 
 ### Fixed
