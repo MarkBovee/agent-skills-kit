@@ -134,17 +134,19 @@ assert_installed_strings() {
     "$OPENCODE_DIR/plugins/agent-skills-router/package.json" '"./tui": "./tui.tsx"' present
   assert_grep "installed OpenCode TUI panel shows the ASK title" \
     "$OPENCODE_DIR/plugins/agent-skills-router/tui.tsx" "Agent Skills Kit" present
-  assert_grep "installed OpenCode TUI panel uses sidebar content" \
-    "$OPENCODE_DIR/plugins/agent-skills-router/tui.tsx" "sidebar_content" present
+  assert_grep "installed OpenCode TUI panel uses V2 sidebar content" \
+    "$OPENCODE_DIR/plugins/agent-skills-router/tui.tsx" 'sidebar.content' present
   assert_grep "installed OpenCode TUI panel hides pending prompt actions" \
     "$OPENCODE_DIR/plugins/agent-skills-router/tui.tsx" "props.item.action" absent
-  assert_grep "installer configures the OpenCode router package" \
-    "$OPENCODE_DIR/opencode.json" "./plugins/agent-skills-router" present
-  if node -e "const c=require(process.argv[1]); if(!Array.isArray(c.plugins)||!c.plugins.includes('./plugins/agent-skills-router')||Object.hasOwn(c,'plugin')) process.exit(1)" "$OPENCODE_DIR/opencode.json"; then
+  if node -e "const c=require(process.argv[1]); if(!Array.isArray(c.plugins)||c.plugins.includes('./plugins/agent-skills-router')||Object.hasOwn(c,'plugin')) process.exit(1)" "$OPENCODE_DIR/opencode.json"; then
     check "installer uses OpenCode V2 plugins key" true
   else
     check "installer uses OpenCode V2 plugins key" false
   fi
+  check "installer leaves local OpenCode router to automatic discovery" \
+    "$([ ! -f "$OPENCODE_DIR/opencode.json" ] || ! grep -qF './plugins/agent-skills-router' "$OPENCODE_DIR/opencode.json" && printf true || printf false)"
+  check "installer writes reproducible OpenCode dependency lock" \
+    "$([ -f "$OPENCODE_DIR/package-lock.json" ] && printf true || printf false)"
   assert_grep "installer writes managed OpenCode workflow guidance" \
     "$OPENCODE_DIR/AGENTS.md" "agent-skills-kit:opencode" present
   assert_grep "installed OpenCode workflow guidance uses shared source" \

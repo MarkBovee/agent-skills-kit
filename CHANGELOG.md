@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.2.6] - 2026-09-16
+
+### Fixed
+
+- **OpenCode V2 router migration completed.** The server uses supported V2 prompt metadata, the TUI uses the V2 reactive data and sidebar APIs, and installers avoid duplicate local-plugin registration. Fresh and existing installs generate a reproducible dependency lock, while incompatible third-party plugins remain explicitly deferred.
+
 ## [2.2.5] - 2026-09-16
 
 ### Fixed

@@ -570,11 +570,11 @@ try {
 
     # V2 plugins import their host API from the global OpenCode package root.
     $opencodePluginDependency = Join-Path $OpencodeDir "node_modules/@opencode/plugin"
-    if (-not (Test-Path -LiteralPath $opencodePluginDependency)) {
+    if (-not (Test-Path -LiteralPath $opencodePluginDependency) -or -not (Test-Path -LiteralPath (Join-Path $OpencodeDir "package-lock.json"))) {
         if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
             throw "npm is required to install @opencode/plugin"
         }
-        npm install --prefix $OpencodeDir --no-package-lock --ignore-scripts --save-exact @opencode/plugin@2.0.3 | Out-Null
+        npm install --prefix $OpencodeDir --package-lock=true --ignore-scripts --save-exact @opencode/plugin@2.0.3 | Out-Null
         if ($LASTEXITCODE -ne 0) { throw "Failed to install @opencode/plugin" }
     }
 
@@ -613,7 +613,10 @@ try {
             $changed = $true
         }
         $pl = "./plugins/agent-skills-router"
-        if ($pl -notin $cfg.plugins) { $cfg.plugins += $pl; $changed = $true }
+        if ($pl -in $cfg.plugins) {
+            $cfg.plugins = @($cfg.plugins | Where-Object { $_ -ne $pl })
+            $changed = $true
+        }
         if ($cfg.PSObject.Properties.Match("plugin").Count -gt 0) {
             $cfg.PSObject.Properties.Remove("plugin")
             $changed = $true

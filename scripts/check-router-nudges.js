@@ -202,31 +202,13 @@ async function main() {
     !(afterSessionReview?.append || "").includes("`skill(name: 'session-review')`"),
   )
 
-  const metadataUpdates = []
-  const metadata = { preserved: true }
-  const panelPlugin = await AgentSkillsRouter({
-    client: {
-      session: {
-        get: async (input) => {
-          if (input?.path?.id !== "panel-session") throw new Error("invalid session get arguments")
-          return { data: { metadata } }
-        },
-        update: async (input) => {
-          if (input?.path?.id !== "panel-session" || !input.body?.metadata?.askKit) throw new Error("invalid session update arguments")
-          Object.assign(metadata, input.body.metadata)
-          metadataUpdates.push(input)
-        },
-      },
-    },
-  })
+  const panelPlugin = await AgentSkillsRouter()
   await panelPlugin.event({ event: { type: "session.created", properties: { info: { id: "panel-session" } } } })
-  await new Promise((resolve) => setTimeout(resolve, 0))
-  const emptyPanelMetadata = metadataUpdates.at(-1)?.body?.metadata
+  const emptyPanelMetadata = { askKit: panelPlugin.status({ sessionID: "panel-session" }) }
    check("new session persists neutral sidebar state without a predicted route", emptyPanelMetadata?.askKit?.activeSkills?.length === 0
-     && !("workflow" in emptyPanelMetadata.askKit) && emptyPanelMetadata.askKit?.pending?.length === 0)
+      && !("workflow" in emptyPanelMetadata.askKit) && emptyPanelMetadata.askKit?.pending?.length === 0)
   await panelPlugin["tui.prompt.append"]({ sessionID: "panel-session", prompt: "fix this bug in the parser" })
-  await new Promise((resolve) => setTimeout(resolve, 0))
-  const panelMetadata = metadataUpdates.at(-1)?.body?.metadata
+  const panelMetadata = { preserved: true, askKit: panelPlugin.status({ sessionID: "panel-session" }) }
   check("route matches stay out of the canonical sidebar status", panelMetadata?.preserved === true
     && panelMetadata.askKit?.activeSkills?.length === 0
     && !("workflow" in panelMetadata.askKit))
@@ -234,8 +216,7 @@ async function main() {
     { sessionID: "panel-session" },
     { message: { role: "user" }, parts: [{ type: "text", text: "write requirements specification for this feature" }] },
   )
-  await new Promise((resolve) => setTimeout(resolve, 0))
-  const chatMetadata = metadataUpdates.at(-1)?.body?.metadata
+  const chatMetadata = { askKit: panelPlugin.status({ sessionID: "panel-session" }) }
   check("chat.message keeps unmatched skills out of the sidebar", chatMetadata?.askKit?.activeSkills?.length === 0)
 
   if (failedChecks > 0) {

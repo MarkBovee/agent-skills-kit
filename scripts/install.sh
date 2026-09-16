@@ -550,9 +550,9 @@ rm -f "$OPENCODE_PLUGINS_TARGET/agent-skills-sidebar.tsx"
 cp -R "$OPENCODE_PLUGINS_SOURCE/agent-skills-router" "$OPENCODE_PLUGINS_TARGET/agent-skills-router"
 
 # V2 plugins import their host API from the global OpenCode package root.
-if [ ! -d "$OPENCODE_DIR/node_modules/@opencode/plugin" ]; then
+if [ ! -d "$OPENCODE_DIR/node_modules/@opencode/plugin" ] || [ ! -f "$OPENCODE_DIR/package-lock.json" ]; then
   command -v npm >/dev/null 2>&1 || { echo "npm is required to install @opencode/plugin" >&2; exit 1; }
-  npm install --prefix "$OPENCODE_DIR" --no-package-lock --ignore-scripts --save-exact @opencode/plugin@2.0.3 >/dev/null
+  npm install --prefix "$OPENCODE_DIR" --package-lock=true --ignore-scripts --save-exact @opencode/plugin@2.0.3 >/dev/null
 fi
 
 # Install rules for OpenCode.
@@ -577,7 +577,7 @@ node -e "
     c.plugins=c.plugins||[];
     c.plugins=c.plugins.filter(function(p){return p!=='./plugins/nebu-skills-router.mjs'&&p!=='./plugins/nebu-skills-router.js'&&p!=='./plugins/agent-skills-router.mjs';});
     var p='./plugins/agent-skills-router';
-    if(!c.plugins.includes(p)){c.plugins.push(p);}
+    c.plugins=c.plugins.filter(function(value){return value!==p;});
     delete c.plugin;
     c.permission=c.permission||{};
     c.permission.external_directory=c.permission.external_directory||{};

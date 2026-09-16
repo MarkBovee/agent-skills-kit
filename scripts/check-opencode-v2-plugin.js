@@ -28,6 +28,22 @@ if (typeof hooks.session.prompt !== "function"
 const prompt = { sessionID: "test", prompt: { text: "test" } }
 await hooks.session.prompt(prompt)
 if (!prompt.prompt.text.includes("Agent Skills Kit")) throw new Error("prompt hook did not inject router")
+if (!prompt.metadata?.askKit || !Array.isArray(prompt.metadata.askKit.activeSkills)) {
+  throw new Error("prompt hook did not publish router status through supported metadata")
+}
+
+await hooks.tool["execute.after"]({
+  sessionID: "test",
+  tool: "skill",
+  input: { name: "spec" },
+  status: "completed",
+  result: { args: { name: "spec" } },
+})
+const followUp = { sessionID: "test", prompt: { text: "follow up" } }
+await hooks.session.prompt(followUp)
+if (!followUp.metadata?.askKit?.activeSkills?.some((entry) => entry.skill === "spec" && entry.current === true)) {
+  throw new Error("V2 tool adapter dropped skill input before publishing router status")
+}
 
 stopped = true
 await cleanup()
