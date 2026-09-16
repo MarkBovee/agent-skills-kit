@@ -39,14 +39,21 @@ function pendingText(items: string[]): string {
   return items.map((label) => `→ ${label}`).join("\n")
 }
 
+const COLORS = {
+  title: "#7dd3fc",
+  section: "#fbbf24",
+  active: "#86efac",
+  muted: "#a8a29e",
+  pending: "#fbbf24",
+}
+
 // Present a section header in one shared style so both blocks read as one system.
-function SectionHeader(props: { title: string; muted: unknown }) {
-  return <text fg={props.muted}><b>{props.title}</b></text>
+function SectionHeader(props: { title: string; color: unknown }) {
+  return <text fg={props.color}><b>{props.title}</b></text>
 }
 
 // Render ASK's compact sidebar panel from reactive session metadata.
 function StatusPanel(props: { api: Context; sessionID: string }) {
-  const theme = () => props.api.theme
   const status = createMemo(() => sessionStatus(props.api, props.sessionID))
   const messages = createMemo(() => props.api.data.session.message.list(props.sessionID))
   const activeSkills = createMemo(() => mergeActiveSkills(status(), messages()) as ActiveSkillEntry[])
@@ -55,17 +62,17 @@ function StatusPanel(props: { api: Context; sessionID: string }) {
   return (
     <Show when={status()}>
       <box flexDirection="column" gap={1} paddingTop={1} paddingBottom={1}>
-        <text fg={theme().primary}><b>Agent Skills Kit</b></text>
+        <text fg={COLORS.title}><b>Agent Skills Kit</b></text>
         <box flexDirection="column">
-          <SectionHeader title="ACTIVE SKILLS" muted={theme().textMuted} />
-          <Show when={activeSkills().length > 0} fallback={<text fg={theme().textMuted}>No skill loaded</text>}>
-            <text fg={theme().text}>{activeSkillText(activeSkills())}</text>
+          <SectionHeader title="ACTIVE SKILLS" color={COLORS.section} />
+          <Show when={activeSkills().length > 0} fallback={<text fg={COLORS.muted}>No skill loaded</text>}>
+            <text fg={COLORS.active}>{activeSkillText(activeSkills())}</text>
           </Show>
         </box>
         <Show when={pending().length > 0}>
           <box flexDirection="column">
-            <SectionHeader title="PENDING" muted={theme().textMuted} />
-            <text fg={theme().warning}>{pendingText(pending())}</text>
+            <SectionHeader title="PENDING" color={COLORS.section} />
+            <text fg={COLORS.pending}>{pendingText(pending())}</text>
           </box>
         </Show>
       </box>

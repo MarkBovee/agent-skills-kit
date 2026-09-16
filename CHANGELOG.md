@@ -11,6 +11,7 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 ### Fixed
 
 - **OpenCode V2 sidebar now reflects skills immediately.** The TUI observes completed native `skill` tool parts after prompt admission and the router canonicalizes native `ask-*` skill IDs, so `ACTIVE SKILLS` updates without waiting for the next user prompt. Both installers now ship the live-status helper and the V2 regression check exercises the native tool-part shape.
+- **OpenCode sidebar colors remain visible.** The TUI keeps its explicit title, section, active-skill, muted-state, and pending-item palette instead of reading unsupported theme-token properties that silently fall back to white.
 
 ## [2.2.8] - 2026-09-16
 

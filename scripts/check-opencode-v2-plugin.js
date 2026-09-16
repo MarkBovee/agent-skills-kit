@@ -1,4 +1,6 @@
 // Verify the exported router definition and its OpenCode V2 hook registrations.
+import { readFile } from "node:fs/promises"
+
 const { default: plugin } = await import("../plugins/agent-skills-router/server.mjs")
 const { mergeActiveSkills } = await import("../plugins/agent-skills-router/sidebar-status.js")
 
@@ -88,6 +90,21 @@ if (JSON.stringify(mergedSkills) !== JSON.stringify([
   { skill: "spec", label: "Spec", current: false },
 ])) {
   throw new Error("V2 TUI did not keep exactly one current skill after a live tool call")
+}
+
+const tuiSource = await readFile(new URL("../plugins/agent-skills-router/tui.tsx", import.meta.url), "utf8")
+const sidebarColors = [
+  'title: "#7dd3fc"',
+  'section: "#fbbf24"',
+  'active: "#86efac"',
+  'muted: "#a8a29e"',
+  'pending: "#fbbf24"',
+]
+if (!tuiSource.includes("const COLORS = {") || sidebarColors.some((color) => !tuiSource.includes(color))) {
+  throw new Error("OpenCode TUI sidebar does not define its stable color palette")
+}
+if (tuiSource.includes("props.api.theme")) {
+  throw new Error("OpenCode TUI sidebar uses an invalid theme token source that falls back to white")
 }
 
 stopped = true
