@@ -233,7 +233,7 @@ async function openCodeLifecycle() {
   }))
 
   // Step 2: a real write creates code-review debt without changing Spec.
-  await plugin["tool.execute.before"]({ tool: "write", sessionID })
+  await plugin["tool.execute.before"]({ tool: "write", sessionID, diffIdentity: "HEAD" })
   await plugin["tool.execute.after"]({ tool: "write", sessionID }, {})
   await flush()
   const codeReviewNeeded = snapshots.at(-1)
@@ -242,17 +242,20 @@ async function openCodeLifecycle() {
     pending: [{ flag: "needsCodeReview", skill: "code-review", label: "Code review needed", action: "skill(name: 'code-review')" }],
   }))
 
-  // Step 3: resolving code-review debt promotes its loaded skill first.
+  // Step 3: loading code-review records context but does not prove review completion.
   await plugin["tool.execute.after"]({ tool: "skill", sessionID }, { args: { name: "code-review" } })
   await flush()
   const reviewed = snapshots.at(-1)
-  check("step 3 clears code review and retains newest-first skills", JSON.stringify(reviewed) === JSON.stringify({
+  check("step 3 keeps code review pending until evidence", JSON.stringify(reviewed) === JSON.stringify({
     activeSkills: [
       { skill: "code-review", label: "Code Review", current: true },
       { skill: "spec", label: "Spec", current: false },
     ],
-    pending: [],
+    pending: [{ flag: "needsCodeReview", skill: "code-review", label: "Code review needed", action: "skill(name: 'code-review')" }],
   }))
+
+  await plugin["tool.execute.after"]({ tool: "task", sessionID }, { output: "ASK_WORKFLOW_PASS phase=REVIEW\nreview-generation: 1\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" })
+  await flush()
 
   // Step 4: routing and loading design may overlap in a live host. The tool
   // result must win as the newest state, retaining loaded-skill ordering.
@@ -340,7 +343,7 @@ async function dshWidgetLifecycle() {
     store.set(state)
   }
 
-  await pre({ name: "edit", agent }, async () => ({ kind: "allow" }))
+  await pre({ name: "edit", agent, diffIdentity: "HEAD" }, async () => ({ kind: "allow" }))
   pump()
   const neutral = textOf(render())
   check("dsh widget renders a neutral panel before routing",
@@ -359,7 +362,12 @@ async function dshWidgetLifecycle() {
   result({ name: "skill", agent, arguments: { name: "code-review" } }, { isError: false })
   pump()
   const reviewed = textOf(render())
-  check("dsh widget clears the review obligation", !reviewed.includes("Code review needed") && !reviewed.includes("PENDING"))
+  check("dsh widget keeps review obligation after skill load", reviewed.includes("Code review needed"))
+
+  result({ name: "task", agent, arguments: {} }, { isError: false, output: "ASK_WORKFLOW_PASS phase=REVIEW\nreview-generation: 1\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" })
+  pump()
+  const completedReview = textOf(render())
+  check("dsh widget clears review obligation after evidence", !completedReview.includes("Code review needed") && !completedReview.includes("PENDING"))
 
   result({ name: "skill", agent, arguments: { name: "session-review" } }, { isError: false })
   pump()

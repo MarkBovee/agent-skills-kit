@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.2.5] - 2026-09-16
+
+### Fixed
+
+- **Review debt now tracks final-diff evidence (issue #76).** Code edits create a review generation and diff identity. Matching passing `REVIEW` evidence, or a passing `AUDIT` covering `final-diff`, clears the obligation; stale, incomplete, or unrelated evidence remains pending across OpenCode and dsh.
+
 ## [2.2.4] - 2026-09-14
 
 ### Added

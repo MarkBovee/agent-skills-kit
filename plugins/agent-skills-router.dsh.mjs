@@ -45,7 +45,7 @@ const {
   SKILL_CODE_REVIEW, SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SESSION_REVIEW,
   SKILL_DESIGN, SKILL_DESIGN_REVIEW,
   routingHintLines, cascadeRoute, hasPhraseSignal, COMPLETION_PHRASES,
-  hasTerminalReviewCompletion, INTERACTION_GUARD_THRESHOLD, buildWorkflowState, workflowHintLines,
+  hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, INTERACTION_GUARD_THRESHOLD, buildWorkflowState, workflowHintLines,
   workflowForSkill, parseWorkflowEvidence, recordWorkflowEvidence, buildRoutingStatus,
 } = routerCore
 
@@ -116,6 +116,10 @@ function panelViewOf(st) {
     loadedSkills: [...st.loadedSkills],
     lastMatch: st.lastMatch,
     needsCodeReview: st.needsCodeReview === true,
+    reviewReference: st.reviewReference,
+    reviewGeneration: st.reviewGeneration,
+    reviewEvidence: st.reviewEvidence,
+    reviewFollowUp: st.reviewFollowUp,
     needsDesignReview: st.needsDesignReview === true,
     shouldCaptureImprovement: st.shouldCaptureImprovement === true,
     skillsLoadedCount: st.skillsLoadedCount,
@@ -135,6 +139,10 @@ function normalizePanelView(data) {
     loadedSkills: data.loadedSkills.filter((s) => typeof s === "string" && s.trim()),
     lastMatch: typeof data.lastMatch === "string" ? data.lastMatch : "",
     needsCodeReview: data.needsCodeReview === true,
+    reviewReference: typeof data.reviewReference === "string" ? data.reviewReference : "",
+    reviewGeneration: Number.isInteger(data.reviewGeneration) ? data.reviewGeneration : 0,
+    reviewEvidence: data.reviewEvidence && typeof data.reviewEvidence === "object" ? data.reviewEvidence : null,
+    reviewFollowUp: data.reviewFollowUp && typeof data.reviewFollowUp === "object" ? data.reviewFollowUp : null,
     needsDesignReview: data.needsDesignReview === true,
     shouldCaptureImprovement: data.shouldCaptureImprovement === true,
     skillsLoadedCount: Number.isFinite(data.skillsLoadedCount) ? data.skillsLoadedCount : 0,
@@ -168,7 +176,7 @@ const SKILL_STUBS = [...routingHintLines()]
 // is no workflow until a real prompt routes one, so the panel stays neutral.
 function emptyState() {
   return {
-    lastMatch: "", matchedAt: 0, needsCodeReview: false, needsDesignReview: false,
+    lastMatch: "", matchedAt: 0, needsCodeReview: false, reviewGeneration: 0, reviewReference: "", reviewEvidence: null, reviewFollowUp: null, needsDesignReview: false,
     shouldCaptureImprovement: false, skillsLoadedCount: 0, loadedSkills: [],
     currentSkill: "",
     interactionCountSinceSkillLoad: 0,
@@ -301,7 +309,7 @@ export function apply(ctx, config) {
       st.interactionCountSinceSkillLoad = 0
     }
     if (loaded === SKILL_CODE_REVIEW) {
-      st.needsCodeReview = false; st.shouldCaptureImprovement = true
+      st.shouldCaptureImprovement = true
       st.steeredSkills = st.steeredSkills.filter((s) => s !== SKILL_CODE_REVIEW); return
     }
     if (loaded === SKILL_VERIFICATION) { st.shouldCaptureImprovement = true; return }
@@ -359,13 +367,14 @@ export function apply(ctx, config) {
       const toolID = typeof exec?.name === "string" ? exec.name : ""
       if (!toolID) return next()
       if (CODE_EDIT_TOOL_IDS.has(toolID)) {
-        // Publish only on the false→true flip so repeated code edits do not
-        // spam the session log with identical whole-value events.
+        // Publish each edit because each edit creates a distinct review generation.
         const st = stateFor(exec.agent?.id)
-        if (!st.needsCodeReview) {
-          st.needsCodeReview = true
-          publishPanelState(exec.agent, st)
-        }
+        st.needsCodeReview = true
+         st.reviewGeneration += 1
+        st.reviewReference = exec?.diffIdentity || exec?.commit || `generation-${st.reviewGeneration}`
+        st.reviewEvidence = null
+        st.reviewFollowUp = null
+        publishPanelState(exec.agent, st)
       }
       if (blockUntilSkillLoaded && GATED_TOOLS.has(toolID) && stateFor(exec.agent?.id).skillsLoadedCount === 0) {
         return { kind: "deny", reason: "Load a skill first via `skill(name: '...')`.\n" + routingHintLines().join("\n") }
@@ -383,17 +392,22 @@ export function apply(ctx, config) {
       const st = stateFor(exec.agent?.id)
       // Loaded skill bodies may show marker examples; only work results may
       // advance lifecycle state or clear obligations.
-      const reviewEvidence = parseWorkflowEvidence(result)
-      const completedReview = exec?.name === "task" && reviewEvidence?.status === "PASS"
-        && reviewEvidence.phase === "REVIEW" && hasTerminalReviewCompletion(result)
-      const workflowEvidence = exec?.name === "task" ? parseWorkflowEvidence(result) : null
-      if (workflowEvidence || completedReview) {
+       const workflowEvidence = exec?.name === "task" ? parseWorkflowEvidence(result) : null
+       const reviewHandoff = exec?.name === "task" ? parseReviewCompletion(result) : null
+       const completedReview = exec?.name === "task" && workflowEvidence?.status === "PASS"
+         && (workflowEvidence.phase === "REVIEW" || workflowEvidence.phase === "AUDIT")
+         && reviewCompletionMatches(result, st.reviewGeneration, workflowEvidence.phase, st.reviewReference)
+       if (workflowEvidence || reviewHandoff) {
         if (workflowEvidence) st.workflow = recordWorkflowEvidence(st.workflow, workflowEvidence)
-        if (completedReview) {
-          st.needsCodeReview = false
-          st.shouldCaptureImprovement = true
-          st.steeredSkills = st.steeredSkills.filter((s) => s !== SKILL_CODE_REVIEW)
-        }
+         if (completedReview) {
+           st.needsCodeReview = false
+            st.reviewEvidence = reviewHandoff
+           st.reviewFollowUp = null
+           st.shouldCaptureImprovement = true
+           st.steeredSkills = st.steeredSkills.filter((s) => s !== SKILL_CODE_REVIEW)
+         } else if (reviewHandoff) {
+           st.reviewFollowUp = { status: workflowEvidence?.status || "PENDING", evidence: reviewHandoff }
+         }
         st.routing = buildRoutingStatus(null, st)
         publishPanelState(exec?.agent, st)
         return

@@ -204,7 +204,7 @@ async function main() {
 
     // Review-debt machinery mirrors router-core's own nudge wording.
     const agent3 = { id: "flip-check" }
-    await pre({ name: "edit", agent: agent3 }, async () => ({ kind: "allow" }))
+    await pre({ name: "edit", agent: agent3, diffIdentity: "HEAD" }, async () => ({ kind: "allow" }))
     const flagged = await assemble({ sections: [] }, { agent: agent3 }, async () => ({ sections: [] }))
     const flaggedText = flagged.sections.find((entry) => entry.name === "ask-kit:router").text
     const coreDebtOverview = routerCore.buildSkillOverview({
@@ -219,7 +219,7 @@ async function main() {
     listeners.get("tools/result")[0]({ name: "skill", agent: agent3, arguments: { name: "code-review" } }, { isError: false })
     const cleared = await assemble({ sections: [] }, { agent: agent3 }, async () => ({ sections: [] }))
     const clearedText = cleared.sections.find((entry) => entry.name === "ask-kit:router").text
-    check("code-review load clears review nudge", !clearedText.includes("→ Code edited"))
+      check("code-review load preserves review nudge", clearedText.includes("→ Code edited"))
     check("code-review load arms improvement capture", clearedText.includes("→ Improvement found?"))
     listeners.get("tools/result")[0]({ name: "skill", agent: agent3, arguments: { name: "session-review" } }, { isError: false })
     const improvementCleared = await assemble({ sections: [] }, { agent: agent3 }, async () => ({ sections: [] }))
@@ -228,7 +228,7 @@ async function main() {
 
     // Delegated review completion clears parent debt through its explicit handoff marker.
     const delegatedAgent = { id: "delegated-review-check" }
-    await pre({ name: "edit", agent: delegatedAgent }, async () => ({ kind: "allow" }))
+    await pre({ name: "edit", agent: delegatedAgent, diffIdentity: "HEAD" }, async () => ({ kind: "allow" }))
     const delegatedBefore = await assemble({ sections: [] }, { agent: delegatedAgent }, async () => ({ sections: [] }))
     check("delegated review starts with code-review nudge", delegatedBefore.sections.find((entry) => entry.name === "ask-kit:router").text.includes("→ Code edited"))
     inbox({ agent: delegatedAgent, message: { text: "quoted marker ASK_REVIEW_COMPLETE" } })
@@ -236,25 +236,31 @@ async function main() {
     check("user marker quote does not clear parent nudge", quotedMarker.sections.find((entry) => entry.name === "ask-kit:router").text.includes("→ Code edited"))
     listeners.get("tools/result")[0](
       { name: "task", agent: delegatedAgent },
-      { isError: false, output: "ASK_WORKFLOW_PASS phase=REVIEW\nASK_REVIEW_COMPLETE" },
+      { isError: false, output: "ASK_WORKFLOW_PASS phase=REVIEW\nreview-generation: 1\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" },
     )
     const delegatedAfter = await assemble({ sections: [] }, { agent: delegatedAgent }, async () => ({ sections: [] }))
     check("delegated review completion clears parent nudge", !delegatedAfter.sections.find((entry) => entry.name === "ask-kit:router").text.includes("→ Code edited"))
-    await pre({ name: "edit", agent: delegatedAgent }, async () => ({ kind: "allow" }))
+    await pre({ name: "edit", agent: delegatedAgent, diffIdentity: "HEAD" }, async () => ({ kind: "allow" }))
     listeners.get("tools/result")[0](
       { name: "task", agent: delegatedAgent },
-      { isError: false, output: "ASK_WORKFLOW_PASS phase=REVIEW\nASK_REVIEW_COMPLETE" },
+      { isError: false, output: "ASK_WORKFLOW_PASS phase=REVIEW\nreview-generation: 2\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" },
     )
     const combinedDelegatedAfter = await assemble({ sections: [] }, { agent: delegatedAgent }, async () => ({ sections: [] }))
     check("combined review evidence and marker clear parent nudge", !combinedDelegatedAfter.sections.find((entry) => entry.name === "ask-kit:router").text.includes("→ Code edited"))
-    await pre({ name: "edit", agent: delegatedAgent }, async () => ({ kind: "allow" }))
+    await pre({ name: "edit", agent: delegatedAgent, diffIdentity: "HEAD" }, async () => ({ kind: "allow" }))
     listeners.get("tools/result")[0](
       { name: "task", agent: delegatedAgent },
-      { isError: false, output: "ASK_WORKFLOW_FINDINGS phase=REVIEW\nASK_REVIEW_COMPLETE" },
+      { isError: false, output: "ASK_WORKFLOW_FINDINGS phase=REVIEW\nreview-generation: 3\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" },
     )
     const failedReviewAfter = await assemble({ sections: [] }, { agent: delegatedAgent }, async () => ({ sections: [] }))
-    check("non-passing review marker keeps parent nudge", failedReviewAfter.sections.find((entry) => entry.name === "ask-kit:router").text.includes("→ Code edited"))
-    await pre({ name: "edit", agent: delegatedAgent }, async () => ({ kind: "allow" }))
+      check("non-passing review marker keeps parent nudge", failedReviewAfter.sections.find((entry) => entry.name === "ask-kit:router").text.includes("→ Code edited"))
+      listeners.get("tools/result")[0](
+        { name: "task", agent: delegatedAgent },
+        { isError: false, output: "ASK_WORKFLOW_PASS phase=AUDIT\nreview-generation: 3\nreview-scope: final-diff\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" },
+      )
+      const finalDiffAuditAfter = await assemble({ sections: [] }, { agent: delegatedAgent }, async () => ({ sections: [] }))
+      check("audit of final diff clears parent nudge", !finalDiffAuditAfter.sections.find((entry) => entry.name === "ask-kit:router").text.includes("→ Code edited"))
+      await pre({ name: "edit", agent: delegatedAgent, diffIdentity: "HEAD" }, async () => ({ kind: "allow" }))
     const delegatedRearmed = await assemble({ sections: [] }, { agent: delegatedAgent }, async () => ({ sections: [] }))
     check("edit after delegated review re-arms nudge", delegatedRearmed.sections.find((entry) => entry.name === "ask-kit:router").text.includes("→ Code edited"))
 
@@ -263,7 +269,7 @@ async function main() {
     // of silently clearing the nudge — the chip stays until the review loads.
     const steered = []
     const steerAgent = { id: "steer-check", steer: (msg) => steered.push(msg) }
-    await pre({ name: "edit", agent: steerAgent }, async () => ({ kind: "allow" }))
+    await pre({ name: "edit", agent: steerAgent, diffIdentity: "HEAD" }, async () => ({ kind: "allow" }))
     inbox({ agent: steerAgent, message: { text: "ik ben klaar" } })
     const firstSteerText = steered[0]?.content?.[0]?.text ?? ""
     check("completion steers code-review once", steered.length === 1 && firstSteerText.includes("'code-review'"))
@@ -275,9 +281,10 @@ async function main() {
     listeners.get("tools/result")[0]({ name: "skill", agent: steerAgent, arguments: { name: "code-review" } }, { isError: false })
     const afterSteerReview = await assemble({ sections: [] }, { agent: steerAgent }, async () => ({ sections: [] }))
     const afterSteerReviewText = afterSteerReview.sections.find((entry) => entry.name === "ask-kit:router").text
-    check("code-review load clears steer debt", !afterSteerReviewText.includes("→ Code edited"))
+     check("code-review load preserves review debt", afterSteerReviewText.includes("→ Code edited"))
     check("code-review load arms improvement after steer", afterSteerReviewText.includes("→ Improvement found?"))
-    inbox({ agent: steerAgent, message: { text: "klaar" } })
+     listeners.get("tools/result")[0]({ name: "task", agent: steerAgent }, { isError: false, output: "ASK_WORKFLOW_PASS phase=REVIEW\nreview-generation: 1\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" })
+     inbox({ agent: steerAgent, message: { text: "klaar" } })
     const secondSteerText = steered[1]?.content?.[0]?.text ?? ""
     check("completion steers session-review once", steered.length === 2 && secondSteerText.includes("'session-review'"))
     // write-skill resolves improvement intent, so a fresh improvement episode
@@ -310,7 +317,7 @@ async function main() {
       // Before any real routing decision a mutation must still publish a neutral
       // view: no active skill and no predicted workflow route. The edit's
       // review obligation is real state and may already be pending.
-      await pre({ name: "edit", agent: bridgeAgent }, async () => ({ kind: "allow" }))
+      await pre({ name: "edit", agent: bridgeAgent, diffIdentity: "HEAD" }, async () => ({ kind: "allow" }))
       const neutralView = appended.at(-1)?.data
        check("pre-route panel view carries no predicted workflow", Boolean(neutralView)
          && neutralView.activeSkills.length === 0 && !("workflow" in neutralView))
@@ -333,8 +340,14 @@ async function main() {
       listeners.get("tools/result")[0]({ name: "skill", agent: bridgeAgent, arguments: { name: "design-review" } }, { isError: false })
       state = unit.apply(state, appended.at(-1))
       check("completed design review clears its pending obligation", !state.pending.some((entry) => entry.skill === "design-review"))
-      listeners.get("tools/result")[0]({ name: "skill", agent: bridgeAgent, arguments: { name: "code-review" } }, { isError: false })
-      state = unit.apply(state, appended.at(-1))
+       listeners.get("tools/result")[0]({ name: "skill", agent: bridgeAgent, arguments: { name: "code-review" } }, { isError: false })
+       state = unit.apply(state, appended.at(-1))
+       check("code-review load preserves review debt", state.pending.some((entry) => entry.skill === "code-review"))
+       listeners.get("tools/result")[0](
+         { name: "task", agent: bridgeAgent },
+         { isError: false, output: "ASK_WORKFLOW_PASS phase=REVIEW\nreview-generation: 1\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" },
+       )
+       state = unit.apply(state, appended.at(-1))
        check("completed code review clears review debt", !state.pending.some((entry) => entry.skill === "code-review"))
       listeners.get("tools/result")[0]({ name: "skill", agent: bridgeAgent, arguments: { name: "session-review" } }, { isError: false })
       state = unit.apply(state, appended.at(-1))
@@ -349,10 +362,10 @@ async function main() {
       // The edit flip publishes only on false→true so repeat edits stay quiet.
       const dedupeAppended = []
       const dedupeAgent = { id: "dedupe-check", session: { append: (type, data) => dedupeAppended.push({ type, data }) } }
-      await pre({ name: "edit", agent: dedupeAgent }, async () => ({ kind: "allow" }))
+      await pre({ name: "edit", agent: dedupeAgent, diffIdentity: "HEAD" }, async () => ({ kind: "allow" }))
       const afterFirstEdit = dedupeAppended.length
-      await pre({ name: "edit", agent: dedupeAgent }, async () => ({ kind: "allow" }))
-      check("repeat code edit does not re-publish", dedupeAppended.length === afterFirstEdit)
+      await pre({ name: "edit", agent: dedupeAgent, diffIdentity: "HEAD" }, async () => ({ kind: "allow" }))
+      check("repeat code edit publishes new review generation", dedupeAppended.length === afterFirstEdit + 1)
     }
   } finally {
     fs.rmSync(workDir, { recursive: true, force: true })
