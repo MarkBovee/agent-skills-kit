@@ -140,6 +140,11 @@ assert_installed_strings() {
     "$OPENCODE_DIR/plugins/agent-skills-router/tui.tsx" "props.item.action" absent
   assert_grep "installer configures the OpenCode router package" \
     "$OPENCODE_DIR/opencode.json" "./plugins/agent-skills-router" present
+  if node -e "const c=require(process.argv[1]); if(!Array.isArray(c.plugins)||!c.plugins.includes('./plugins/agent-skills-router')||Object.hasOwn(c,'plugin')) process.exit(1)" "$OPENCODE_DIR/opencode.json"; then
+    check "installer uses OpenCode V2 plugins key" true
+  else
+    check "installer uses OpenCode V2 plugins key" false
+  fi
   assert_grep "installer writes managed OpenCode workflow guidance" \
     "$OPENCODE_DIR/AGENTS.md" "agent-skills-kit:opencode" present
   assert_grep "installed OpenCode workflow guidance uses shared source" \

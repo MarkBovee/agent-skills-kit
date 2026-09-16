@@ -568,6 +568,16 @@ try {
     }
     Copy-Item -LiteralPath (Join-Path $opencodePluginsSource "agent-skills-router") -Destination $opencodeRouterTarget -Recurse -Force
 
+    # V2 plugins import their host API from the global OpenCode package root.
+    $opencodePluginDependency = Join-Path $OpencodeDir "node_modules/@opencode/plugin"
+    if (-not (Test-Path -LiteralPath $opencodePluginDependency)) {
+        if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
+            throw "npm is required to install @opencode/plugin"
+        }
+        npm install --prefix $OpencodeDir --no-package-lock --ignore-scripts --save-exact @opencode/plugin@2.0.3 | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "Failed to install @opencode/plugin" }
+    }
+
     # Install rules for OpenCode.
     New-Item -ItemType Directory -Force -Path $opencodeRulesTarget | Out-Null
     foreach ($rule in @("coding-standards.md", "agent-skills-kit.md", "workflow.md")) {
@@ -592,18 +602,22 @@ try {
         foreach ($ins in @("./rules/coding-standards.md", "./rules/agent-skills-kit.md", "./rules/workflow.md")) {
             if ($ins -notin $cfg.instructions) { $cfg.instructions += $ins; $changed = $true }
         }
-        if ($cfg.PSObject.Properties.Match("plugin").Count -eq 0 -or $null -eq $cfg.plugin -or $cfg.plugin -isnot [System.Array]) {
-            $cfg | Add-Member -NotePropertyName plugin -NotePropertyValue @() -Force
+        if ($cfg.PSObject.Properties.Match("plugins").Count -eq 0 -or $null -eq $cfg.plugins -or $cfg.plugins -isnot [System.Array]) {
+            $cfg | Add-Member -NotePropertyName plugins -NotePropertyValue @() -Force
             $changed = $true
         }
         $legacyPlugins = @("./plugins/nebu-skills-router.mjs", "./plugins/nebu-skills-router.js", "./plugins/agent-skills-router.mjs")
-        $filteredPlugins = @($cfg.plugin | Where-Object { $_ -notin $legacyPlugins })
-        if ($filteredPlugins.Count -ne @($cfg.plugin).Count) {
-            $cfg.plugin = $filteredPlugins
+        $filteredPlugins = @($cfg.plugins | Where-Object { $_ -notin $legacyPlugins })
+        if ($filteredPlugins.Count -ne @($cfg.plugins).Count) {
+            $cfg.plugins = $filteredPlugins
             $changed = $true
         }
         $pl = "./plugins/agent-skills-router"
-        if ($pl -notin $cfg.plugin) { $cfg.plugin += $pl; $changed = $true }
+        if ($pl -notin $cfg.plugins) { $cfg.plugins += $pl; $changed = $true }
+        if ($cfg.PSObject.Properties.Match("plugin").Count -gt 0) {
+            $cfg.PSObject.Properties.Remove("plugin")
+            $changed = $true
+        }
         # Grant OpenCode access to its own config directory (needed for plugin/core/rules)
         if ($cfg.PSObject.Properties.Match("permission").Count -eq 0 -or $null -eq $cfg.permission -or $cfg.permission -isnot [System.Management.Automation.PSCustomObject]) {
             $cfg | Add-Member -NotePropertyName permission -NotePropertyValue ([pscustomobject]@{}) -Force

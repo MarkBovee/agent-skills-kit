@@ -2,6 +2,9 @@
   "name": "agent-skills-router",
   "private": true,
   "type": "module",
+  "dependencies": {
+    "@opencode/plugin": "2.0.3"
+  },
   "main": "./server.mjs",
   "exports": {
     "./server": "./server.mjs",
