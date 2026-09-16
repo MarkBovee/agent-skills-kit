@@ -40,13 +40,17 @@ function resolveSkillPath() {
 
 function resolveSkillName(input, output) {
   const candidates = [
-    input?.name, input?.skill, input?.args?.name, input?.args?.skill,
-    input?.arguments?.name, input?.arguments?.skill,
-    output?.args?.name, output?.args?.skill,
-    output?.arguments?.name, output?.arguments?.skill,
-    output?.name, output?.skill,
+    input?.name, input?.skill, input?.id, input?.args?.name, input?.args?.skill, input?.args?.id,
+    input?.arguments?.name, input?.arguments?.skill, input?.arguments?.id,
+    output?.args?.name, output?.args?.skill, output?.args?.id,
+    output?.arguments?.name, output?.arguments?.skill, output?.arguments?.id,
+    output?.name, output?.skill, output?.id,
   ]
-  for (const c of candidates) { if (typeof c === "string" && c.trim()) return c.trim() }
+  for (const c of candidates) {
+    if (typeof c !== "string" || !c.trim()) continue
+    const skill = c.trim()
+    return skill.startsWith("ask-") ? skill.slice(4) : skill
+  }
   return ""
 }
 

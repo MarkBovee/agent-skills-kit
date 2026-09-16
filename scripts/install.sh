@@ -548,7 +548,7 @@ rm -f "$OPENCODE_PLUGINS_TARGET/agent-skills-router.mjs"
 rm -rf "$OPENCODE_PLUGINS_TARGET/agent-skills-router"
 rm -f "$OPENCODE_PLUGINS_TARGET/agent-skills-sidebar.tsx"
 mkdir -p "$OPENCODE_PLUGINS_TARGET/agent-skills-router"
-for plugin_file in package.json server.mjs tui.tsx; do
+for plugin_file in package.json server.mjs tui.tsx sidebar-status.js; do
   cp "$OPENCODE_PLUGINS_SOURCE/agent-skills-router/$plugin_file" "$OPENCODE_PLUGINS_TARGET/agent-skills-router/$plugin_file"
 done
 
