@@ -6,6 +6,24 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.2.8] - 2026-09-16
+
+### Fixed
+
+- **OpenCode V2 installer compatibility audit follow-up.** Bash and PowerShell installers now honor custom OpenCode roots, normalize an existing incompatible `@opencode/plugin` installation to the pinned V2 baseline, deploy only managed runtime files, and verify deployed-module resolution. CI now runs the V2 contract check.
+
+## [2.2.7] - 2026-09-16
+
+### Fixed
+
+- **OpenCode V2 router guidance is hidden from prompt text.** Router guidance now uses the supported session context system channel, while prompt metadata remains dedicated to TUI status. The regression test verifies that guidance remains available to the model without appearing in the visible prompt.
+
+## [2.2.6] - 2026-09-16
+
+### Fixed
+
+- **OpenCode V2 router migration completed.** The server uses supported V2 prompt metadata, the TUI uses the V2 reactive data and sidebar APIs, and installers avoid duplicate local-plugin registration. Fresh and existing installs generate a reproducible dependency lock, while incompatible third-party plugins remain explicitly deferred.
+
 ## [2.2.5] - 2026-09-16
 
 ### Fixed

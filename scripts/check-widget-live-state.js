@@ -192,24 +192,12 @@ function loadWidget(runtime, sessionsService) {
 // snapshot it persists, proving the snapshot tracks live router-core state.
 async function openCodeLifecycle() {
   const { AgentSkillsRouter } = await import(pathToFileURL(serverPath).href)
-  const snapshots = []
-  let metadata = {}
-  const plugin = await AgentSkillsRouter({
-    client: {
-      session: {
-        get: async () => ({ data: { metadata } }),
-        update: async (input) => {
-          metadata = input.body.metadata
-          snapshots.push(input.body.metadata.askKit)
-        },
-      },
-    },
-  })
+  const plugin = await AgentSkillsRouter()
   const sessionID = "live-session"
 
   await plugin.event({ event: { type: "session.created", properties: { info: { id: sessionID } } } })
   await flush()
-  const neutral = snapshots.at(-1)
+  const neutral = plugin.status({ sessionID })
   check("opencode starts neutral: no active skills or obligations",
     neutral.activeSkills.length === 0 && neutral.pending.length === 0 && !("workflow" in neutral))
   check("opencode exposes no confidence field", !("confidence" in neutral) && !("confidenceDisplay" in neutral))
@@ -219,14 +207,14 @@ async function openCodeLifecycle() {
   await flush()
   await plugin.event({ event: { type: "session.created", properties: { info: { id: sessionID } } } })
   await flush()
-  const reset = snapshots.at(-1)
+  const reset = plugin.status({ sessionID })
   check("opencode clears reused session state on session creation",
     reset.activeSkills.length === 0 && reset.pending.length === 0)
 
   // Step 1: a loaded skill is current and starts the sidebar with no debt.
   await plugin["tool.execute.after"]({ tool: "skill", sessionID }, { args: { name: "spec" } })
   await flush()
-  const specified = snapshots.at(-1)
+  const specified = plugin.status({ sessionID })
   check("step 1 shows Spec as the only current skill", JSON.stringify(specified) === JSON.stringify({
     activeSkills: [{ skill: "spec", label: "Spec", current: true }],
     pending: [],
@@ -236,7 +224,7 @@ async function openCodeLifecycle() {
   await plugin["tool.execute.before"]({ tool: "write", sessionID, diffIdentity: "HEAD" })
   await plugin["tool.execute.after"]({ tool: "write", sessionID }, {})
   await flush()
-  const codeReviewNeeded = snapshots.at(-1)
+  const codeReviewNeeded = plugin.status({ sessionID })
   check("step 2 keeps Spec current and requests code review", JSON.stringify(codeReviewNeeded) === JSON.stringify({
     activeSkills: [{ skill: "spec", label: "Spec", current: true }],
     pending: [{ flag: "needsCodeReview", skill: "code-review", label: "Code review needed", action: "skill(name: 'code-review')" }],
@@ -245,7 +233,7 @@ async function openCodeLifecycle() {
   // Step 3: loading code-review records context but does not prove review completion.
   await plugin["tool.execute.after"]({ tool: "skill", sessionID }, { args: { name: "code-review" } })
   await flush()
-  const reviewed = snapshots.at(-1)
+  const reviewed = plugin.status({ sessionID })
   check("step 3 keeps code review pending until evidence", JSON.stringify(reviewed) === JSON.stringify({
     activeSkills: [
       { skill: "code-review", label: "Code Review", current: true },
@@ -266,7 +254,7 @@ async function openCodeLifecycle() {
   const designLoad = plugin["tool.execute.after"]({ tool: "skill", sessionID }, { args: { name: "design" } })
   await Promise.all([designRoute, designLoad])
   await flush()
-  const designReviewNeeded = snapshots.at(-1)
+  const designReviewNeeded = plugin.status({ sessionID })
   check("step 4 preserves the newest design skill load through concurrent routing", JSON.stringify(designReviewNeeded) === JSON.stringify({
     activeSkills: [
       { skill: "design", label: "Design", current: true },
@@ -279,7 +267,7 @@ async function openCodeLifecycle() {
   // Step 5: Design Review is current; prior loaded skills remain once, newest first.
   await plugin["tool.execute.after"]({ tool: "skill", sessionID }, { args: { name: "design-review" } })
   await flush()
-  const designReviewed = snapshots.at(-1)
+  const designReviewed = plugin.status({ sessionID })
   check("step 5 clears design review and preserves one current skill", JSON.stringify(designReviewed) === JSON.stringify({
     activeSkills: [
       { skill: "design-review", label: "Design Review", current: true },
@@ -289,8 +277,9 @@ async function openCodeLifecycle() {
     ],
     pending: [],
   }))
-  check("every persisted snapshot is whole and self-contained",
-    snapshots.every((snapshot) => Array.isArray(snapshot.activeSkills) && Array.isArray(snapshot.pending) && !("workflow" in snapshot)))
+  check("every router snapshot is whole and self-contained",
+    [neutral, reset, specified, codeReviewNeeded, reviewed, designReviewNeeded, designReviewed]
+      .every((snapshot) => Array.isArray(snapshot.activeSkills) && Array.isArray(snapshot.pending) && !("workflow" in snapshot)))
 }
 
 // Check that the OpenCode TUI reads the native reactive session store directly.

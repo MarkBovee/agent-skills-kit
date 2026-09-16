@@ -134,12 +134,33 @@ assert_installed_strings() {
     "$OPENCODE_DIR/plugins/agent-skills-router/package.json" '"./tui": "./tui.tsx"' present
   assert_grep "installed OpenCode TUI panel shows the ASK title" \
     "$OPENCODE_DIR/plugins/agent-skills-router/tui.tsx" "Agent Skills Kit" present
-  assert_grep "installed OpenCode TUI panel uses sidebar content" \
-    "$OPENCODE_DIR/plugins/agent-skills-router/tui.tsx" "sidebar_content" present
+  assert_grep "installed OpenCode TUI panel uses V2 sidebar content" \
+    "$OPENCODE_DIR/plugins/agent-skills-router/tui.tsx" 'sidebar.content' present
   assert_grep "installed OpenCode TUI panel hides pending prompt actions" \
     "$OPENCODE_DIR/plugins/agent-skills-router/tui.tsx" "props.item.action" absent
-  assert_grep "installer configures the OpenCode router package" \
-    "$OPENCODE_DIR/opencode.json" "./plugins/agent-skills-router" present
+  check "installed OpenCode SDK version matches the V2 baseline" \
+    "$(node -e "const p=require(process.argv[1]); process.stdout.write(p.version==='2.0.3'?'true':'false')" "$OPENCODE_DIR/node_modules/@opencode/plugin/package.json")"
+  check "installed OpenCode router has no source node_modules" \
+    "$([ ! -d "$OPENCODE_DIR/plugins/agent-skills-router/node_modules" ] && printf true || printf false)"
+  if node --input-type=module -e "import(process.argv[1]).then((m)=>{if(m.default?.id!=='agent-skills-router')process.exit(1)}).catch(()=>process.exit(1))" "$OPENCODE_DIR/plugins/agent-skills-router/server.mjs"; then
+    check "installed OpenCode router imports from the target root" true
+  else
+    check "installed OpenCode router imports from the target root" false
+  fi
+  if node -e "const c=require(process.argv[1]); if(!Array.isArray(c.plugins)||c.plugins.includes('./plugins/agent-skills-router')||Object.hasOwn(c,'plugin')) process.exit(1)" "$OPENCODE_DIR/opencode.json"; then
+    check "installer uses OpenCode V2 plugins key" true
+  else
+    check "installer uses OpenCode V2 plugins key" false
+  fi
+  check "installer leaves local OpenCode router to automatic discovery" \
+    "$([ ! -f "$OPENCODE_DIR/opencode.json" ] || ! grep -qF './plugins/agent-skills-router' "$OPENCODE_DIR/opencode.json" && printf true || printf false)"
+  if node -e "const c=require(process.argv[1]), path=require('path'); const key=path.resolve(process.argv[2])+'/**'; if(c.permission?.external_directory?.[key]!=='allow') process.exit(1)" "$OPENCODE_DIR/opencode.json" "$OPENCODE_DIR"; then
+    check "installer grants permission to the effective OpenCode root" true
+  else
+    check "installer grants permission to the effective OpenCode root" false
+  fi
+  check "installer writes reproducible OpenCode dependency lock" \
+    "$([ -f "$OPENCODE_DIR/package-lock.json" ] && printf true || printf false)"
   assert_grep "installer writes managed OpenCode workflow guidance" \
     "$OPENCODE_DIR/AGENTS.md" "agent-skills-kit:opencode" present
   assert_grep "installed OpenCode workflow guidance uses shared source" \
@@ -228,6 +249,7 @@ main() {
   assert_no_stale_strings
 
   if command -v pwsh >/dev/null 2>&1; then
+    rm -f "$OPENCODE_DIR/opencode.json" "$OPENCODE_DIR/tui.json"
     if run_powershell_installer "$SANDBOX/install-powershell.log"; then
       check "PowerShell installer succeeds in an isolated home" true
     else
@@ -259,6 +281,7 @@ main() {
     printf 'legacy\n' > "$COPILOT_DIR/prompts/ui-ux.prompt.md"
     printf 'user instruction\n<!-- agent-skills-kit:opencode -->\nold guidance\n' > "$OPENCODE_DIR/AGENTS.md"
     printf 'user instruction\n<!-- agent-skills-kit:dsh -->\nold guidance\n' > "$DSH_HOME/AGENTS.md"
+    node -e "const fs=require('fs'), p=process.argv[1]; const f=JSON.parse(fs.readFileSync(p)); f.version='0.0.0'; fs.writeFileSync(p,JSON.stringify(f)+'\\n')" "$OPENCODE_DIR/node_modules/@opencode/plugin/package.json"
     if run_installer "$SANDBOX/install-run-2.log"; then
       check "installer refresh succeeds over a stale install" true
     else

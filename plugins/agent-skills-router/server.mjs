@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url"
 import { dirname, resolve } from "node:path"
 import { existsSync } from "node:fs"
 import { homedir } from "node:os"
+import { Plugin } from "@opencode/plugin"
 
 const require = createRequire(import.meta.url)
 const here = dirname(fileURLToPath(import.meta.url))
@@ -76,39 +77,15 @@ async function getSkills() {
 
 export const AgentSkillsRouter = async ({ client } = {}) => {
   const sessionState = new Map()
-  const pendingPersistence = new Map()
   const pendingStateChanges = new Map()
-  // Persist only the router snapshot under its own metadata key so the TUI
-  // face can read it through OpenCode's native session state. The snapshot is
-  // rebuilt from the full merged state so review-flag changes are reflected
-  // even when no routing field changed.
-  function persistStatus(sessionID, state) {
-    if (!client || !sessionID || sessionID === "default") return
-    const askKit = buildRoutingStatus(null, state)
-    const previous = pendingPersistence.get(sessionID) || Promise.resolve()
-    const next = previous
-      .catch(() => {})
-      .then(async () => {
-        try {
-          // The plugin client is the v1 SDK: path params live under `path` and
-          // the body under `body`. Flattened shapes build a literal `{id}` URL.
-          const current = await client.session.get({ path: { id: sessionID } })
-          const metadata = current?.data?.metadata || {}
-          await client.session.update({ path: { id: sessionID }, body: { metadata: { ...metadata, askKit } } })
-        } catch { /* sidebar state is best-effort and must never block routing */ }
-      })
-    pendingPersistence.set(sessionID, next)
-    void next.then(
-      () => { if (pendingPersistence.get(sessionID) === next) pendingPersistence.delete(sessionID) },
-      () => { if (pendingPersistence.get(sessionID) === next) pendingPersistence.delete(sessionID) },
-    )
-  }
-
   function save(input, updates) {
     const key = sessionKey(input)
-    const state = setSessionState(sessionState, key, updates)
-    persistStatus(key, state)
-    return state
+    return setSessionState(sessionState, key, updates)
+  }
+
+  // Return the canonical snapshot for the supported V2 prompt metadata path.
+  function status(input) {
+    return buildRoutingStatus(null, getSessionState(sessionState, sessionKey(input)))
   }
 
   // Run stateful hooks in arrival order per session so a prompt completing
@@ -176,6 +153,7 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
   }
 
   return {
+    status,
     // Real server hook: a user message arrived. Analyze and persist status so
     // the TUI sidebar reflects the current route before the model responds.
     "chat.message": async (input, output) => {
@@ -286,4 +264,59 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
   }
 }
 
-export default AgentSkillsRouter
+// Bridge the router's state machine to OpenCode V2's typed hook domains while
+// retaining the named factory for isolated regression tests.
+async function setupV2(context) {
+  const router = await AgentSkillsRouter({ client: context })
+  const promptContext = new Map()
+
+  // Flatten V2 tool input into the legacy state-machine shape so skill names,
+  // review references, and other router fields survive the adapter boundary.
+  function routerToolInput(event) {
+    const toolInput = event?.input && typeof event.input === "object" ? event.input : {}
+    return { sessionID: event.sessionID, tool: event.tool, ...toolInput }
+  }
+
+  await context.session.hook("prompt", async (event) => {
+    const append = await router["tui.prompt.append"]({
+      sessionID: event.sessionID,
+      prompt: event.prompt.text,
+    })
+    if (append?.append) promptContext.set(event.sessionID, append.append)
+    event.metadata = { ...(event.metadata || {}), askKit: router.status({ sessionID: event.sessionID }) }
+  })
+
+  await context.session.hook("context", async (event) => {
+    const append = promptContext.get(event.sessionID)
+    if (!append) return
+    promptContext.delete(event.sessionID)
+    event.system.push({ type: "text", text: append })
+  })
+
+  await context.tool.hook("execute.before", async (event) => {
+    const result = await router["tool.execute.before"](routerToolInput(event))
+    if (result?.tool_error) throw new Error(result.tool_error)
+  })
+
+  await context.tool.hook("execute.after", async (event) => {
+    const output = event.status === "completed" ? event.result : { output: event.error }
+    await router["tool.execute.after"](routerToolInput(event), output)
+  })
+
+  const controller = new AbortController()
+  void (async () => {
+    try {
+      for await (const event of context.event.subscribe({ signal: controller.signal })) {
+        await router.event({ event })
+      }
+    } catch (error) {
+      if (!controller.signal.aborted) console.error("agent-skills-router event subscription failed", error)
+    }
+  })()
+  return () => controller.abort()
+}
+
+export default Plugin.define({
+  id: "agent-skills-router",
+  setup: setupV2,
+})

@@ -566,7 +566,25 @@ try {
     if (Test-Path -LiteralPath $opencodeRouterTarget) {
         Remove-Item -LiteralPath $opencodeRouterTarget -Recurse -Force
     }
-    Copy-Item -LiteralPath (Join-Path $opencodePluginsSource "agent-skills-router") -Destination $opencodeRouterTarget -Recurse -Force
+    New-Item -ItemType Directory -Force -Path $opencodeRouterTarget | Out-Null
+    foreach ($pluginFile in @("package.json", "server.mjs", "tui.tsx")) {
+        Copy-Item -LiteralPath (Join-Path $opencodePluginsSource "agent-skills-router" $pluginFile) -Destination (Join-Path $opencodeRouterTarget $pluginFile) -Force
+    }
+
+    # V2 plugins import their host API from the global OpenCode package root.
+    $opencodePluginDependency = Join-Path $OpencodeDir "node_modules/@opencode/plugin"
+    $installedPluginVersion = $null
+    $pluginPackageJson = Join-Path $opencodePluginDependency "package.json"
+    if (Test-Path -LiteralPath $pluginPackageJson) {
+        try { $installedPluginVersion = (Get-Content -LiteralPath $pluginPackageJson -Raw | ConvertFrom-Json).version } catch { $installedPluginVersion = $null }
+    }
+    if ($installedPluginVersion -ne "2.0.3" -or -not (Test-Path -LiteralPath (Join-Path $OpencodeDir "package-lock.json"))) {
+        if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
+            throw "npm is required to install @opencode/plugin"
+        }
+        npm install --prefix $OpencodeDir --package-lock=true --ignore-scripts --save-exact @opencode/plugin@2.0.3 | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "Failed to install @opencode/plugin" }
+    }
 
     # Install rules for OpenCode.
     New-Item -ItemType Directory -Force -Path $opencodeRulesTarget | Out-Null
@@ -592,18 +610,25 @@ try {
         foreach ($ins in @("./rules/coding-standards.md", "./rules/agent-skills-kit.md", "./rules/workflow.md")) {
             if ($ins -notin $cfg.instructions) { $cfg.instructions += $ins; $changed = $true }
         }
-        if ($cfg.PSObject.Properties.Match("plugin").Count -eq 0 -or $null -eq $cfg.plugin -or $cfg.plugin -isnot [System.Array]) {
-            $cfg | Add-Member -NotePropertyName plugin -NotePropertyValue @() -Force
+        if ($cfg.PSObject.Properties.Match("plugins").Count -eq 0 -or $null -eq $cfg.plugins -or $cfg.plugins -isnot [System.Array]) {
+            $cfg | Add-Member -NotePropertyName plugins -NotePropertyValue @() -Force
             $changed = $true
         }
         $legacyPlugins = @("./plugins/nebu-skills-router.mjs", "./plugins/nebu-skills-router.js", "./plugins/agent-skills-router.mjs")
-        $filteredPlugins = @($cfg.plugin | Where-Object { $_ -notin $legacyPlugins })
-        if ($filteredPlugins.Count -ne @($cfg.plugin).Count) {
-            $cfg.plugin = $filteredPlugins
+        $filteredPlugins = @($cfg.plugins | Where-Object { $_ -notin $legacyPlugins })
+        if ($filteredPlugins.Count -ne @($cfg.plugins).Count) {
+            $cfg.plugins = $filteredPlugins
             $changed = $true
         }
         $pl = "./plugins/agent-skills-router"
-        if ($pl -notin $cfg.plugin) { $cfg.plugin += $pl; $changed = $true }
+        if ($pl -in $cfg.plugins) {
+            $cfg.plugins = @($cfg.plugins | Where-Object { $_ -ne $pl })
+            $changed = $true
+        }
+        if ($cfg.PSObject.Properties.Match("plugin").Count -gt 0) {
+            $cfg.PSObject.Properties.Remove("plugin")
+            $changed = $true
+        }
         # Grant OpenCode access to its own config directory (needed for plugin/core/rules)
         if ($cfg.PSObject.Properties.Match("permission").Count -eq 0 -or $null -eq $cfg.permission -or $cfg.permission -isnot [System.Management.Automation.PSCustomObject]) {
             $cfg | Add-Member -NotePropertyName permission -NotePropertyValue ([pscustomobject]@{}) -Force
@@ -613,7 +638,8 @@ try {
             $cfg.permission | Add-Member -NotePropertyName external_directory -NotePropertyValue ([pscustomobject]@{}) -Force
             $changed = $true
         }
-        $ocPath = Join-Path $HOME ".config" "opencode" "*"
+        $ocRoot = [System.IO.Path]::GetFullPath($OpencodeDir).TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+        $ocPath = "$ocRoot/**"
         $currentPermission = $cfg.permission.external_directory.PSObject.Properties[$ocPath]
         if (-not $currentPermission -or $currentPermission.Value -ne "allow") {
             $cfg.permission.external_directory | Add-Member -NotePropertyName $ocPath -NotePropertyValue "allow" -Force

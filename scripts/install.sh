@@ -547,7 +547,20 @@ cp -R "$OPENCODE_CORE_SOURCE" "$OPENCODE_PLUGINS_TARGET/core"
 rm -f "$OPENCODE_PLUGINS_TARGET/agent-skills-router.mjs"
 rm -rf "$OPENCODE_PLUGINS_TARGET/agent-skills-router"
 rm -f "$OPENCODE_PLUGINS_TARGET/agent-skills-sidebar.tsx"
-cp -R "$OPENCODE_PLUGINS_SOURCE/agent-skills-router" "$OPENCODE_PLUGINS_TARGET/agent-skills-router"
+mkdir -p "$OPENCODE_PLUGINS_TARGET/agent-skills-router"
+for plugin_file in package.json server.mjs tui.tsx; do
+  cp "$OPENCODE_PLUGINS_SOURCE/agent-skills-router/$plugin_file" "$OPENCODE_PLUGINS_TARGET/agent-skills-router/$plugin_file"
+done
+
+# V2 plugins import their host API from the global OpenCode package root.
+installed_plugin_version=""
+if [ -f "$OPENCODE_DIR/node_modules/@opencode/plugin/package.json" ]; then
+  installed_plugin_version="$(node -p "require('$OPENCODE_DIR/node_modules/@opencode/plugin/package.json').version" 2>/dev/null || true)"
+fi
+if [ "$installed_plugin_version" != "2.0.3" ] || [ ! -f "$OPENCODE_DIR/package-lock.json" ]; then
+  command -v npm >/dev/null 2>&1 || { echo "npm is required to install @opencode/plugin" >&2; exit 1; }
+  npm install --prefix "$OPENCODE_DIR" --package-lock=true --ignore-scripts --save-exact @opencode/plugin@2.0.3 >/dev/null
+fi
 
 # Install rules for OpenCode.
 mkdir -p "$OPENCODE_RULES_TARGET"
@@ -563,21 +576,22 @@ if [ ! -f "$OPENCODE_JSON" ]; then
   printf '{}\n' > "$OPENCODE_JSON"
 fi
 node -e "
-    var fs=require('fs'), f='$OPENCODE_JSON';
+    var fs=require('fs'), path=require('path'), f='$OPENCODE_JSON';
     var c=JSON.parse(fs.readFileSync(f,'utf-8'));
     c.instructions=c.instructions||[];
     var rules=['./rules/coding-standards.md','./rules/agent-skills-kit.md','./rules/workflow.md'];
     for(var i=0;i<rules.length;i++){if(!c.instructions.includes(rules[i])){c.instructions.push(rules[i]);}}
-    c.plugin=c.plugin||[];
-    c.plugin=c.plugin.filter(function(p){return p!=='./plugins/nebu-skills-router.mjs'&&p!=='./plugins/nebu-skills-router.js'&&p!=='./plugins/agent-skills-router.mjs';});
+    c.plugins=c.plugins||[];
+    c.plugins=c.plugins.filter(function(p){return p!=='./plugins/nebu-skills-router.mjs'&&p!=='./plugins/nebu-skills-router.js'&&p!=='./plugins/agent-skills-router.mjs';});
     var p='./plugins/agent-skills-router';
-    if(!c.plugin.includes(p)){c.plugin.push(p);}
+    c.plugins=c.plugins.filter(function(value){return value!==p;});
+    delete c.plugin;
     c.permission=c.permission||{};
     c.permission.external_directory=c.permission.external_directory||{};
-    var ocPath=require('path').resolve(require('os').homedir(),'.config','opencode')+'/**';
+    var ocPath=path.resolve(process.argv[1])+'/**';
     if(c.permission.external_directory[ocPath]!=='allow'){c.permission.external_directory[ocPath]='allow';}
     fs.writeFileSync(f,JSON.stringify(c,null,2)+'\n');
-  "
+  " "$OPENCODE_DIR"
 
 # TUI plugins have no directory auto-discovery: OpenCode only loads TUI entries
 # listed in tui.json. Register the router's sidebar entry here and retire the

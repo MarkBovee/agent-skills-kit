@@ -1,10 +1,10 @@
 /** @jsxImportSource @opentui/solid */
 
 import { createMemo, Show } from "solid-js"
-import type { TuiPluginApi, TuiPluginModule, TuiThemeCurrent } from "@opencode-ai/plugin/tui"
+import { Plugin, type Context } from "@opencode/plugin/tui"
 
 // OpenCode TUI face for the ASK router package. It renders only the status
-// snapshot persisted by the server router in session metadata.
+// snapshot published by the server router through supported prompt metadata.
 
 type ActiveSkillEntry = {
   skill?: unknown
@@ -28,8 +28,8 @@ function readStatus(value: unknown): AskStatus | null {
 }
 
 // Read the router-owned status from OpenCode's reactive session store.
-function sessionStatus(api: TuiPluginApi, sessionID: string): AskStatus | null {
-  return readStatus(api.state.session.get(sessionID)?.metadata?.askKit)
+function sessionStatus(api: Context, sessionID: string): AskStatus | null {
+  return readStatus(api.data.session.get(sessionID)?.metadata?.askKit)
 }
 
 // Extract router-owned active skills once, protecting the panel from repeated
@@ -67,13 +67,13 @@ function pendingText(items: string[]): string {
 }
 
 // Present a section header in one shared style so both blocks read as one system.
-function SectionHeader(props: { title: string; muted: TuiThemeCurrent["textMuted"] }) {
+function SectionHeader(props: { title: string; muted: unknown }) {
   return <text fg={props.muted}><b>{props.title}</b></text>
 }
 
-// Render ASK's compact sidebar panel from reactive persisted session metadata.
-function StatusPanel(props: { api: TuiPluginApi; sessionID: string }) {
-  const theme = () => props.api.theme.current
+// Render ASK's compact sidebar panel from reactive session metadata.
+function StatusPanel(props: { api: Context; sessionID: string }) {
+  const theme = () => props.api.theme
   const status = createMemo(() => sessionStatus(props.api, props.sessionID))
   const activeSkills = createMemo(() => activeSkillEntries(status()))
   const pending = createMemo(() => pendingItems(status()))
@@ -99,18 +99,13 @@ function StatusPanel(props: { api: TuiPluginApi; sessionID: string }) {
   )
 }
 
-// Register the sidebar slot for every session in the running OpenCode TUI.
-export async function tui(api: TuiPluginApi) {
-  api.slots.register({
-    order: 150,
-    slots: {
-      sidebar_content(_context: unknown, props: { session_id: string }) {
-        return <StatusPanel api={api} sessionID={props.session_id} />
-      },
-    },
-  })
-}
-
-const plugin: TuiPluginModule & { id: string } = { id: "agent-skills-router", tui }
-
-export default plugin
+// Register the sidebar slot using OpenCode V2's reactive TUI API.
+export default Plugin.define({
+  id: "agent-skills-router",
+  setup(api) {
+    api.ui.slot({
+      append: "sidebar.content",
+      render: ({ sessionID }) => <StatusPanel api={api} sessionID={sessionID} />,
+    })
+  },
+})

@@ -51,7 +51,7 @@ Subagent results must use explicit `ASK_WORKFLOW_PASS`, `ASK_WORKFLOW_FINDINGS`,
 
 ## Status panel
 
-The compact ASK panel shows the active skills and any pending review obligations. `core/router-core.js` produces this snapshot. DSH emits it through `ask-kit/state`; OpenCode persists it under `askKit` session metadata. Both widgets only render it.
+The compact ASK panel shows active skills and pending review obligations. `core/router-core.js` produces this snapshot. DSH emits it through `ask-kit/state`; OpenCode publishes it through supported `session.prompt` metadata and the TUI reads reactive `api.data.session` state. Both widgets only render it. OpenCode V2 has no server-plugin session-metadata mutation API, so tool-hook changes appear on next prompt.
 
 `activeSkills` lists the loaded skill first, then any matched or previously loaded skill; only an actually loaded skill carries `current: true`, so a route match stays a hollow suggestion and never looks active while its pending obligation still asks to load it. The cascade's `develop` fallback is never presented as an active skill and never displaces a loaded skill. The workflow route stays internal to the prompt surface and is not rendered in the panel. Pending obligations are the review skills ASK still needs (`code-review`, `design-review`); each carries a concrete `skill(name: '<skill>')` action and disappears as soon as its skill is loaded. Improvement capture is steered through the prompt surface, not the panel.
 

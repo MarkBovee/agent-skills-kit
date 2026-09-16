@@ -21,6 +21,11 @@ jobs:
         with:
           node-version: 22
 
+      - name: Install OpenCode V2 contract dependency
+        run: |
+          npm install --prefix "$RUNNER_TEMP/ask-opencode-v2" --ignore-scripts --no-save @opencode/plugin@2.0.3
+          ln -s "$RUNNER_TEMP/ask-opencode-v2/node_modules" node_modules
+
       - name: Validate plugin, hooks, and skills
         run: node ./scripts/validate-plugin.js
 
@@ -59,6 +64,9 @@ jobs:
 
       - name: Check installed artifacts match repo strings
         run: ./scripts/check-installed-artifacts.sh
+
+      - name: Validate OpenCode V2 contract
+        run: node ./scripts/check-opencode-v2-plugin.js
 
       - name: Ensure generated exports are committed
         run: |
