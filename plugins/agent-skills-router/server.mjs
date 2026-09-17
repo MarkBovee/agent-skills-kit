@@ -10,6 +10,7 @@ import { Plugin } from "@opencode/plugin"
 const require = createRequire(import.meta.url)
 const here = dirname(fileURLToPath(import.meta.url))
 
+// Execute the resolve router core helper.
 function resolveRouterCore() {
   const candidates = [
     resolve(here, "../core/router-core.js"),
@@ -25,12 +26,13 @@ const {
   CODE_EDIT_TOOL_IDS, CODE_WORK_TOOL_IDS, RECENT_TOOL_MAX, COMPLETION_PHRASES,
   SKILL_CODE_REVIEW, SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SESSION_REVIEW, SKILL_DESIGN_REVIEW, SKILL_DESIGN,
   SKILL_DEVELOP,
-  buildSkillOverview, cascadeRoute, getSessionState, loadSkills,
+  buildSkillOverview, cascadeRoute, getSessionState, isAskSkill, isAskSkillName, loadSkills,
   setSessionState, hasPhraseSignal, toSingleLine, unique,
   hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, routingHintLines, buildWorkflowState, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
   buildRoutingStatus,
 } = resolveRouterCore()
 
+// Execute the resolve skill path helper.
 function resolveSkillPath() {
   const configuredSkillsPath = process.env.ASK_SKILLS_DIR
   const candidates = [configuredSkillsPath, resolve(homedir(), ".agents", "skills"), resolve(here, "../../skills")].filter(Boolean)
@@ -38,6 +40,7 @@ function resolveSkillPath() {
   return candidates[0]
 }
 
+// Execute the resolve skill name helper.
 function resolveSkillName(input, output) {
   const candidates = [
     input?.name, input?.skill, input?.id, input?.args?.name, input?.args?.skill, input?.args?.id,
@@ -49,7 +52,8 @@ function resolveSkillName(input, output) {
   for (const c of candidates) {
     if (typeof c !== "string" || !c.trim()) continue
     const skill = c.trim()
-    return skill.startsWith("ask-") ? skill.slice(4) : skill
+    const canonicalName = skill.startsWith("ask-") ? skill.slice(4) : skill
+    return isAskSkillName(canonicalName) ? canonicalName : ""
   }
   return ""
 }
@@ -72,16 +76,19 @@ function isDelegatedReviewCompletion(toolID, generation, output, currentReferenc
 }
 
 let skillsCache = null
+// Execute the get skills helper.
 async function getSkills() {
   if (skillsCache) return skillsCache
   const skillPath = resolveSkillPath()
-  skillsCache = await loadSkills([skillPath])
+  skillsCache = (await loadSkills([skillPath])).filter(isAskSkill)
   return skillsCache
 }
 
+// Execute the agent skills router callback.
 export const AgentSkillsRouter = async ({ client } = {}) => {
   const sessionState = new Map()
   const pendingStateChanges = new Map()
+  // Execute the save helper.
   function save(input, updates) {
     const key = sessionKey(input)
     return setSessionState(sessionState, key, updates)
@@ -97,8 +104,10 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
   function serializeStateChange(input, change) {
     const key = sessionKey(input)
     const previous = pendingStateChanges.get(key) || Promise.resolve()
+    // Handle the fulfilled asynchronous result.
     const next = previous.catch(() => {}).then(change)
     pendingStateChanges.set(key, next)
+    // Execute this callback within the surrounding workflow.
     void next.finally(() => {
       if (pendingStateChanges.get(key) === next) pendingStateChanges.delete(key)
     })
@@ -150,7 +159,9 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
   function promptTextFromMessage(output) {
     const parts = Array.isArray(output?.parts) ? output.parts : []
     return parts
+      // Keep items that satisfy the local predicate.
       .filter((part) => part?.type === "text" && typeof part.text === "string")
+      // Map each item through the local transformation.
       .map((part) => part.text)
       .join(" ")
       .trim()
@@ -164,6 +175,7 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
       try {
         const promptText = promptTextFromMessage(output)
         if (!promptText) return
+        // Execute this callback within the surrounding workflow.
         await serializeStateChange(input, () => processPrompt(input, promptText))
       } catch { /* plugin error, skip ask hints this prompt */ }
     },
@@ -186,10 +198,12 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
       try {
         const promptText = (input?.prompt || input?.text || "").trim()
         if (!promptText) return
+        // Execute the append callback.
         const append = await serializeStateChange(input, () => processPrompt(input, promptText))
         return append ? { append } : undefined
       } catch { /* plugin error, skip ask hints this prompt */ }
     },
+    // Execute this callback within the surrounding workflow.
     "tool.execute.before": async (input) => {
       const toolID = (typeof input?.tool === "string" ? input.tool : "").trim()
       if (!toolID) return
@@ -212,15 +226,19 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
         }
       }
     },
+    // Execute this callback within the surrounding workflow.
     "tool.execute.after": async (input, output) => {
+      // Execute this callback within the surrounding workflow.
       return serializeStateChange(input, () => {
         const toolID = (typeof input?.tool === "string" ? input.tool : "").trim()
         if (!toolID) return
         const state = getSessionState(sessionState, sessionKey(input))
         const recentToolIds = [...(state.recentToolIds || []), toolID].slice(-RECENT_TOOL_MAX)
         const toolCallCount = (state.toolCallCount || 0) + 1
-        const skillsLoadedCount = toolID === "skill" ? (state.skillsLoadedCount || 0) + 1 : (state.skillsLoadedCount || 0)
-        const loadedSkills = toolID === "skill" ? unique([...(state.loadedSkills || []), resolveSkillName(input, output)]) : (state.loadedSkills || [])
+        const skillName = toolID === "skill" ? resolveSkillName(input, output) : ""
+        const didLoadAskSkill = Boolean(skillName)
+        const skillsLoadedCount = didLoadAskSkill ? (state.skillsLoadedCount || 0) + 1 : (state.skillsLoadedCount || 0)
+        const loadedSkills = didLoadAskSkill ? unique([...(state.loadedSkills || []), skillName]) : (state.loadedSkills || [])
         const base = {
           recentToolIds,
           toolCallCount,
@@ -253,7 +271,6 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
           return
         }
         if (toolID !== "skill") { save(input, base); return }
-        const skillName = resolveSkillName(input, output)
         if (!skillName) { save(input, base); return }
         const skillWorkflow = workflowForSkill(state.workflow, skillName)
         if (skillName === SKILL_CODE_REVIEW) { save(input, { ...base, currentSkill: skillName, shouldCaptureImprovement: true, workflow: skillWorkflow }); return }
@@ -281,6 +298,7 @@ async function setupV2(context) {
     return { sessionID: event.sessionID, tool: event.tool, ...toolInput }
   }
 
+  // Execute this callback within the surrounding workflow.
   await context.session.hook("prompt", async (event) => {
     const append = await router["tui.prompt.append"]({
       sessionID: event.sessionID,
@@ -290,6 +308,7 @@ async function setupV2(context) {
     event.metadata = { ...(event.metadata || {}), askKit: router.status({ sessionID: event.sessionID }) }
   })
 
+  // Execute this callback within the surrounding workflow.
   await context.session.hook("context", async (event) => {
     const append = promptContext.get(event.sessionID)
     if (!append) return
@@ -297,17 +316,20 @@ async function setupV2(context) {
     event.system.push({ type: "text", text: append })
   })
 
+  // Execute this callback within the surrounding workflow.
   await context.tool.hook("execute.before", async (event) => {
     const result = await router["tool.execute.before"](routerToolInput(event))
     if (result?.tool_error) throw new Error(result.tool_error)
   })
 
+  // Execute this callback within the surrounding workflow.
   await context.tool.hook("execute.after", async (event) => {
     const output = event.status === "completed" ? event.result : { output: event.error }
     await router["tool.execute.after"](routerToolInput(event), output)
   })
 
   const controller = new AbortController()
+  // Execute this callback within the surrounding workflow.
   void (async () => {
     try {
       for await (const event of context.event.subscribe({ signal: controller.signal })) {
@@ -317,6 +339,7 @@ async function setupV2(context) {
       if (!controller.signal.aborted) console.error("agent-skills-router event subscription failed", error)
     }
   })()
+  // Execute this callback within the surrounding workflow.
   return () => controller.abort()
 }
 

@@ -18,6 +18,7 @@ async function collectMarkdownFiles(relativeRoot) {
   const absoluteRoot = path.join(REPO_ROOT, relativeRoot)
   const files = []
 
+  // Execute the walk helper.
   async function walk(directory) {
     const entries = await fs.readdir(directory, { withFileTypes: true })
     for (const entry of entries) {
@@ -41,6 +42,7 @@ async function checkModelAgnosticGuidance() {
 
   for (const filePath of files) {
     const lines = (await fs.readFile(filePath, "utf8")).split(/\r?\n/)
+    // Visit every item in the local collection.
     lines.forEach((line, index) => {
       if (MODEL_SPECIFIC_PATTERN.test(line)) {
         violations.push(`${path.relative(REPO_ROOT, filePath)}:${index + 1}: ${line.trim()}`)
@@ -55,7 +57,9 @@ async function checkModelAgnosticGuidance() {
 
 // Run the compatibility guard and emit a concise CI result.
 checkModelAgnosticGuidance()
+  // Handle the fulfilled asynchronous result.
   .then(() => console.log("Guidance is model- and provider-agnostic."))
+  // Handle the local asynchronous failure.
   .catch((error) => {
     console.error(error.message)
     process.exitCode = 1

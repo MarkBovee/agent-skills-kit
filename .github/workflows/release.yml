@@ -45,6 +45,7 @@ jobs:
       - name: Validate release contents
         run: |
           node ./scripts/validate-plugin.js
+          node ./scripts/check-code-comments.js
           node ./scripts/check-release-readiness.js --require-version-entry
           node ./scripts/check-trigger-overlap.js
           node ./scripts/check-evidence-aware-communication.js

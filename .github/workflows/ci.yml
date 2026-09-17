@@ -32,6 +32,9 @@ jobs:
       - name: Validate trigger routing
         run: node ./scripts/check-trigger-overlap.js
 
+      - name: Validate source intent comments
+        run: node ./scripts/check-code-comments.js
+
       - name: Validate evidence-aware communication guidance
         run: node ./scripts/check-evidence-aware-communication.js
 

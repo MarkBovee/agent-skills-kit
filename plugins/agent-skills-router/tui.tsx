@@ -31,20 +31,14 @@ function sessionStatus(api: Context, sessionID: string): AskStatus | null {
 // Format all active entries into one text node so OpenTUI replaces the list
 // atomically when session metadata changes instead of retaining stale children.
 function activeSkillText(entries: ActiveSkillEntry[]): string {
+  // Map each item through the local transformation.
   return entries.map((entry) => `${entry.current === true ? "●" : "○"} ${entry.label}`).join("\n")
 }
 
 // Format pending obligations into one stable text node for the same update path.
 function pendingText(items: string[]): string {
+  // Map each item through the local transformation.
   return items.map((label) => `→ ${label}`).join("\n")
-}
-
-const COLORS = {
-  title: "#7dd3fc",
-  section: "#fbbf24",
-  active: "#86efac",
-  muted: "#a8a29e",
-  pending: "#fbbf24",
 }
 
 // Present a section header in one shared style so both blocks read as one system.
@@ -54,25 +48,29 @@ function SectionHeader(props: { title: string; color: unknown }) {
 
 // Render ASK's compact sidebar panel from reactive session metadata.
 function StatusPanel(props: { api: Context; sessionID: string }) {
+  // Execute the status callback.
   const status = createMemo(() => sessionStatus(props.api, props.sessionID))
+  // Execute the messages callback.
   const messages = createMemo(() => props.api.data.session.message.list(props.sessionID))
+  // Execute the active skills callback.
   const activeSkills = createMemo(() => mergeActiveSkills(status(), messages()) as ActiveSkillEntry[])
+  // Execute the pending callback.
   const pending = createMemo(() => pendingItems(status()))
 
   return (
     <Show when={status()}>
       <box flexDirection="column" gap={1} paddingTop={1} paddingBottom={1}>
-        <text fg={COLORS.title}><b>Agent Skills Kit</b></text>
+        <text fg={props.api.theme.text.action.primary.default}><b>Agent Skills Kit</b></text>
         <box flexDirection="column">
-          <SectionHeader title="ACTIVE SKILLS" color={COLORS.section} />
-          <Show when={activeSkills().length > 0} fallback={<text fg={COLORS.muted}>No skill loaded</text>}>
-            <text fg={COLORS.active}>{activeSkillText(activeSkills())}</text>
+          <SectionHeader title="ACTIVE SKILLS" color={props.api.theme.text.default} />
+          <Show when={activeSkills().length > 0} fallback={<text fg={props.api.theme.text.subdued}>No skill loaded</text>}>
+            <text fg={props.api.theme.text.feedback.success.default}>{activeSkillText(activeSkills())}</text>
           </Show>
         </box>
         <Show when={pending().length > 0}>
           <box flexDirection="column">
-            <SectionHeader title="PENDING" color={COLORS.section} />
-            <text fg={COLORS.pending}>{pendingText(pending())}</text>
+            <SectionHeader title="PENDING" color={props.api.theme.text.default} />
+            <text fg={props.api.theme.text.feedback.warning.default}>{pendingText(pending())}</text>
           </box>
         </Show>
       </box>
@@ -83,9 +81,11 @@ function StatusPanel(props: { api: Context; sessionID: string }) {
 // Register the sidebar slot using OpenCode V2's reactive TUI API.
 export default Plugin.define({
   id: "agent-skills-router",
+  // Execute this callback within the surrounding workflow.
   setup(api) {
     api.ui.slot({
       append: "sidebar.content",
+      // Handle the render callback.
       render: ({ sessionID }) => <StatusPanel api={api} sessionID={sessionID} />,
     })
   },

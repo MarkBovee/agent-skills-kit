@@ -22,7 +22,7 @@ Skip when:
 ## Audit flow
 
 1. **Recon**: detect repo layout, conventions, commands, existing docs/ADRs, intent signals (TODOs, flags, stubs, PRDs, roadmap)
-2. **Audit**: run category audits, including code-smell scanning — each finding is evidence-grounded (`file:line`)
+2. **Audit**: run category audits, including code-smell scanning and applicable hard coding/style rules. Inspect every function-like construct in scope for required intent comments and run the repository's source-comment check when available; each finding is evidence-grounded (`file:line`)
 3. **Plan**: convert findings into self-contained, executor-ready plans with drift checks, verification gates, hard boundaries, and escape hatches
 4. **Follow-through**: `execute <plan>`, `reconcile`, `next`, `branch`
 
@@ -59,6 +59,7 @@ When an audit satisfies code-review debt, include `review-generation`, `review-s
 
 - Every finding cites evidence (`file:line`). "Probably has N+1" is not a finding; `orders/api.ts:142 issues one query per item` is.
 - Smell-scan findings must state concrete impact, severity, and false-positive validation. Separate defects, maintainability risks, test gaps, and intentional trade-offs.
+- Hard coding and styling rules are pass/fail gates. Do not report a missing required comment as a low-priority nit, and do not mark an audit complete until the applicable automated checks passed.
 - Plans are self-contained: executor has zero context beyond the plan file. Every step ends with a verification command and expected result.
 - STOP conditions are explicit. Plans stamp the commit SHA they were written against for drift detection.
 - Never copy secrets into plans or issues.

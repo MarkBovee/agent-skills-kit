@@ -9,16 +9,20 @@ function StatusPanel(props, timerCtx) {
   const sessionId = props && props.session ? props.session.sessionId : undefined
   const [data, setData] = React.useState(null)
 
+  // Execute this callback within the surrounding workflow.
   React.useEffect(() => {
     let alive = true
     // Poll the package RPC; the host owns all routing state.
     const tick = () => {
       host.call('ask-kit/state', { sessionId: sessionId || null })
+        // Handle the fulfilled asynchronous result.
         .then((v) => { if (alive) setData(v) })
+        // Handle the local asynchronous failure.
         .catch(() => { /* host half not ready yet */ })
     }
     tick()
     const stop = timerCtx.interval(tick, 2000)
+    // Execute this callback within the surrounding workflow.
     return () => { alive = false; stop() }
   }, [sessionId])
 
@@ -43,12 +47,15 @@ function StatusPanel(props, timerCtx) {
 
 return {
   inject: ['timer'],
+  // Execute this callback within the surrounding workflow.
   apply(ctx) {
     styles.insert(CSS)
     const slots = ctx.get('slots')
     if (slots === undefined) return
+    // Execute this callback within the surrounding workflow.
     slots.inject('conversation.composer.dock', () => slots.register(
       { name: 'conversation.composer.dock', id: 'ask-kit-status', order: 50 },
+      // Execute this callback within the surrounding workflow.
       (props) => StatusPanel(props, ctx),
     ))
   },

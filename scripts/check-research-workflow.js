@@ -72,6 +72,7 @@ async function main() {
   else console.log("Research workflow checks passed.")
 }
 
+// Handle the local asynchronous failure.
 main().catch((error) => {
   console.error(error)
   process.exitCode = 1

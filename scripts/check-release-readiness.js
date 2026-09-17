@@ -42,6 +42,7 @@ async function readGitStdout(args) {
 
 // Parse one SemVer string into comparable numeric parts.
 function parseSemVer(version) {
+  // Map each item through the local transformation.
   return version.split(".").map((part) => Number(part))
 }
 
@@ -92,6 +93,7 @@ async function readChangedPathsSinceVersion(version) {
 
 // Detect whether one changed path affects shipped install or managed assets.
 function isReleaseSensitivePath(filePath) {
+  // Test whether any item satisfies the local predicate.
   return RELEASE_SENSITIVE_PATH_PATTERNS.some((pattern) => pattern.test(filePath))
 }
 
@@ -122,6 +124,7 @@ function validateVersionAheadOfLatestStable(version, latestStableVersion, change
   }
 
   const isExplicitPublishedReleaseUpdate = version === latestStableVersion && changedPaths.length > 0
+    // Verify every item satisfies the local condition.
     && changedPaths.every((filePath) => filePath === "CHANGELOG.md")
   if (compareSemVer(version, latestStableVersion) <= 0 && !isExplicitPublishedReleaseUpdate) {
     const samplePaths = releaseSensitivePaths.slice(0, 5).join(", ")
@@ -188,6 +191,7 @@ async function main() {
   console.log(`Release readiness OK for ${version}.`)
 }
 
+// Handle the local asynchronous failure.
 main().catch((error) => {
   console.error(error)
   process.exitCode = 1

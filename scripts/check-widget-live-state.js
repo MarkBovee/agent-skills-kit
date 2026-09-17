@@ -33,6 +33,7 @@ function check(label, ok, detail) {
 
 // Wait one macrotask round so the OpenCode plugin's queued persistence lands.
 function flush() {
+  // Resolve the promise for the scheduled local operation.
   return new Promise((resolve) => setTimeout(resolve, 5))
 }
 
@@ -56,7 +57,9 @@ function createRuntime() {
   let component = null
   let tree = null
 
+  // Execute the same deps callback.
   const sameDeps = (left, right) =>
+    // Verify every item satisfies the local condition.
     Array.isArray(left) && Array.isArray(right) && left.length === right.length && left.every((v, i) => Object.is(v, right[i]))
 
   // Read or initialize one hook slot by position across renders.
@@ -70,6 +73,7 @@ function createRuntime() {
   function useState(initial) {
     const hook = slot()
     if (!("value" in hook)) hook.value = typeof initial === "function" ? initial() : initial
+    // Execute the set value callback.
     const setValue = (next) => {
       hook.value = typeof next === "function" ? next(hook.value) : next
       requestRender()
@@ -143,6 +147,7 @@ function createRuntime() {
     renderNow()
   }
 
+  // Execute this callback within the surrounding workflow.
   return { runtime: { useState, useEffect, useRef, useCallback, createElement }, mount: (fn) => { component = fn; return renderNow } }
 }
 
@@ -152,12 +157,16 @@ function createStore(initial) {
   const subscribers = new Set()
   return {
     face: {
+      // Handle the getSnapshot callback.
       getSnapshot: () => value,
+      // Handle the subscribe callback.
       subscribe: (notify) => {
         subscribers.add(notify)
+        // Execute this callback within the surrounding workflow.
         return () => subscribers.delete(notify)
       },
     },
+    // Execute this callback within the surrounding workflow.
     set(next) {
       value = next
       for (const notify of subscribers) notify()
@@ -170,17 +179,24 @@ function loadWidget(runtime, sessionsService) {
   let moduleDefinition
   let registered
   const context = {
+    // Handle the window callback.
     window: { __ModuleLoader__: { load: (definition) => { moduleDefinition = definition } } },
     document: {
+      // Handle the head callback.
       head: { appendChild: () => {} },
+      // Handle the querySelector callback.
       querySelector: () => null,
+      // Handle the createElement callback.
       createElement: () => ({ dataset: {} }),
     },
   }
   vm.runInNewContext(fs.readFileSync(widgetPath, "utf8"), context, { filename: widgetPath })
+  // Execute this callback within the surrounding workflow.
   moduleDefinition.factory((name) => (name === "react" ? runtime : undefined)).apply({
     slots: {
+      // Handle the inject callback.
       inject: (_slot, register) => register(),
+      // Handle the register callback.
       register: (_definition, render) => { registered = render },
     },
     sessions: sessionsService,
@@ -279,6 +295,7 @@ async function openCodeLifecycle() {
   }))
   check("every router snapshot is whole and self-contained",
     [neutral, reset, specified, codeReviewNeeded, reviewed, designReviewNeeded, designReviewed]
+      // Verify every item satisfies the local condition.
       .every((snapshot) => Array.isArray(snapshot.activeSkills) && Array.isArray(snapshot.pending) && !("workflow" in snapshot)))
 }
 
@@ -297,12 +314,16 @@ async function dshWidgetLifecycle() {
   const listeners = new Map()
   let projectionUnit
   const ctx = {
+    // Handle the on callback.
     on: (name, fn) => { if (!listeners.has(name)) listeners.set(name, []); listeners.get(name).push(fn) },
+    // Handle the inject callback.
     inject: (services, fn) => {
       if (services.length === 1 && services[0] === "sessionProjections") {
+        // Execute this callback within the surrounding workflow.
         fn({ sessionProjections: { register: (definition) => { projectionUnit = definition } } })
       }
       if (services.length === 1 && services[0] === "commands") {
+        // Execute this callback within the surrounding workflow.
         fn({ commands: { register: () => {} } })
       }
     },
@@ -315,15 +336,19 @@ async function dshWidgetLifecycle() {
   const store = createStore(undefined)
   const { runtime, mount } = createRuntime()
   const sessionsService = {
+    // Handle the binding callback.
     binding: (sessionId) => (sessionId === "live"
+      // Execute this callback within the surrounding workflow.
       ? { session: { projections: { faceOf: (key) => (key === "askKit" ? store.face : undefined) } } }
       : undefined),
   }
   const renderer = loadWidget(runtime, sessionsService)
+  // Execute the render callback.
   const render = mount(() => renderer({ session: { sessionId: "live" } }))
   check("dsh widget hides before any routing event", textOf(render()) === "")
 
   const appended = []
+  // Execute the agent callback.
   const agent = { id: "live", session: { append: (type, data) => appended.push({ type, data }) } }
   // Fold every whole-value event through the real projection unit.
   function pump() {
@@ -332,6 +357,7 @@ async function dshWidgetLifecycle() {
     store.set(state)
   }
 
+  // Execute this callback within the surrounding workflow.
   await pre({ name: "edit", agent, diffIdentity: "HEAD" }, async () => ({ kind: "allow" }))
   pump()
   const neutral = textOf(render())
@@ -370,6 +396,7 @@ async function dshWidgetLifecycle() {
   check("dsh widget follows the active-skill change", skillChanged.includes("Design") && !skillChanged.includes("Debugging"))
 }
 
+// Run this script's complete validation workflow.
 async function main() {
   await openCodeLifecycle()
   await openCodeTuiLifecycle()
@@ -383,6 +410,7 @@ async function main() {
   console.log("\ncheck-widget-live-state: all checks passed.")
 }
 
+// Handle the local asynchronous failure.
 main().catch((error) => {
   console.error(`check-widget-live-state crashed: ${error && error.stack || error}`)
   process.exit(1)

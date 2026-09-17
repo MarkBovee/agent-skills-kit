@@ -126,6 +126,7 @@ function findDuplicateTriggers(skills) {
       owners.get(key).push(skill.name)
     }
   }
+  // Keep items that satisfy the local predicate.
   return [...owners.entries()].filter(([, list]) => list.length > 1)
 }
 
@@ -148,6 +149,7 @@ function runRoutingChecks(skills) {
   return failures
 }
 
+// Run this script's complete validation workflow.
 async function main() {
   const skills = await loadSkills([SKILLS_PATH])
   const duplicates = findDuplicateTriggers(skills)
@@ -174,6 +176,7 @@ async function main() {
     }
   }
 
+  // Map each item through the local transformation.
   const defaults = skills.filter((skill) => skill.isDefault).map((skill) => skill.name)
   if (defaults.length !== 1) {
     hasError = true
@@ -190,6 +193,7 @@ async function main() {
   )
 }
 
+// Handle the local asynchronous failure.
 main().catch((error) => {
   console.error(error)
   process.exit(1)

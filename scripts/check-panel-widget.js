@@ -33,28 +33,41 @@ function loadWidget(snapshot, secondSnapshot) {
   let moduleDefinition
   let registered
   const react = {
+    // Handle the useState callback.
     useState: (initial) => [typeof initial === "function" ? initial() : initial, () => {}],
+    // Handle the useEffect callback.
     useEffect: (effect) => { effect() },
+    // Handle the useRef callback.
     useRef: (current) => ({ current }),
+    // Handle the useCallback callback.
     useCallback: (fn) => fn,
+    // Handle the createElement callback.
     createElement: (type, props, ...children) => ({ type, props: props || {}, children }),
   }
   const context = {
+    // Handle the window callback.
     window: { __ModuleLoader__: { load: (definition) => { moduleDefinition = definition } } },
     document: {
+      // Handle the head callback.
       head: { appendChild: () => {} },
+      // Handle the querySelector callback.
       querySelector: () => null,
+      // Handle the createElement callback.
       createElement: () => ({ dataset: {} }),
     },
   }
   vm.runInNewContext(fs.readFileSync(widgetPath, "utf8"), context, { filename: widgetPath })
+  // Execute the plugin callback.
   const plugin = moduleDefinition.factory((name) => name === "react" ? react : undefined)
   plugin.apply({
     slots: {
+      // Handle the inject callback.
       inject: (_slot, register) => register(),
+      // Handle the register callback.
       register: (_definition, render) => { registered = render },
     },
     sessions: {
+      // Handle the binding callback.
       binding: (sessionId) => sessionId === "missing" ? undefined : ({ session: { projections: { faceOf: () => ({ getSnapshot: () => sessionId === "second" ? secondSnapshot : snapshot, subscribe: () => () => {} }) } } }),
     },
   })
@@ -79,6 +92,7 @@ function main() {
   const sessionRenderer = loadWidget({ activeSkills: [{ label: "Develop", current: true }] }, { activeSkills: [{ label: "Debugging", current: true }] })
   textOf(sessionRenderer({ session: { sessionId: "first" } }))
   check("missing session projection does not retain prior state", textOf(sessionRenderer({ session: { sessionId: "missing" } })) === "")
+  // Test whether any item satisfies the local predicate.
   check("does not perform routing", !["cascadeRoute", "buildWorkflowState", "pendingReviewRequirements", "matchingPhrases", "confidence"].some((name) => source.includes(name)))
 
   if (failures > 0) {

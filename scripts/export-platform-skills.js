@@ -100,6 +100,7 @@ function buildDshSkill(skillName, description, triggers, disableModelInvocation,
 // Normalize the source trigger list into a clean string array.
 function getSkillTriggers(frontmatter) {
   if (!Array.isArray(frontmatter.triggers)) return []
+  // Map each item through the local transformation.
   return frontmatter.triggers.map((entry) => String(entry).trim()).filter(Boolean)
 }
 
@@ -135,6 +136,7 @@ function buildCopilotPrompt(skillName, description, body) {
 // List canonical source command files in stable name order.
 async function listCommandFiles() {
   const entries = await fs.readdir(SOURCE_COMMANDS_DIR)
+  // Keep items that satisfy the local predicate.
   return entries.filter((name) => name.endsWith(".md")).sort((a, b) => a.localeCompare(b))
 }
 
@@ -226,8 +228,11 @@ async function resetDirectory(targetDir) {
 async function listSkillDirectories() {
   const entries = await fs.readdir(SOURCE_SKILLS_DIR, { withFileTypes: true })
   return entries
+    // Keep items that satisfy the local predicate.
     .filter((entry) => entry.isDirectory())
+    // Map each item through the local transformation.
     .map((entry) => entry.name)
+    // Execute this callback within the surrounding workflow.
     .sort((left, right) => left.localeCompare(right))
 }
 
@@ -235,6 +240,7 @@ async function listSkillDirectories() {
 function buildCopilotInstructions(skills) {
   const preview = skills
     .slice(0, 8)
+    // Map each item through the local transformation.
     .map((skill) => `- ${skill.name}: ${toSingleLine(skill.description, 100)}`)
     .join("\n")
 
@@ -361,10 +367,12 @@ async function exportSkills() {
 }
 
 exportSkills()
+  // Handle the fulfilled asynchronous result.
   .then(async (count) => {
     const commandCount = await exportCommands()
     console.log(`Exported ${count} skills and ${commandCount} commands for GitHub Copilot, Claude Code, and DeepSeek Harness (dsh); Codex uses the canonical shared skill root.`)
   })
+  // Handle the local asynchronous failure.
   .catch((error) => {
     console.error(error)
     process.exitCode = 1
