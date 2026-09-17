@@ -17,7 +17,11 @@ function resolveRouterCore() {
     resolve(here, "../../core/router-core.js"),
   ]
   for (const candidate of candidates) {
-    if (existsSync(candidate)) return require(candidate)
+    if (!existsSync(candidate)) continue
+    // Reload the shared core when OpenCode hot-reloads this ESM plugin in place.
+    const resolvedCandidate = require.resolve(candidate)
+    delete require.cache[resolvedCandidate]
+    return require(resolvedCandidate)
   }
   throw new Error(`agent-skills-router: cannot find router-core.js (tried ${candidates.join(", ")})`)
 }

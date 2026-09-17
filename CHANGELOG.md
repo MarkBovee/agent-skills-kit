@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.2.12] - 2026-09-17
+
+### Fixed
+
+- **OpenCode router survives plugin reload cache skew.** A freshly loaded router now reloads its shared core, preventing a stale CommonJS module cache from leaving it without its required skill helper.
+
 ## [2.2.11] - 2026-09-17
 
 ### Added
