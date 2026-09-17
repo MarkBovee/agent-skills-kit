@@ -24,13 +24,18 @@ if (plugin.id !== "agent-skills-router" || typeof plugin.setup !== "function") {
 const hooks = { session: {}, tool: {} }
 let stopped = false
 const context = {
+  // Handle the session callback.
   session: { hook: async (name, callback) => { hooks.session[name] = callback } },
+  // Handle the tool callback.
   tool: { hook: async (name, callback) => { hooks.tool[name] = callback } },
   event: {
+    // Handle the subscribe callback.
     subscribe: async function* ({ signal }) {
+      // Resolve the promise for the scheduled local operation.
       while (!signal.aborted && !stopped) await new Promise((resolve) => setTimeout(resolve, 1))
     },
   },
+  // Handle the storage callback.
   storage: { set: async () => {} },
 }
 
@@ -49,6 +54,7 @@ if (!prompt.metadata?.askKit || !Array.isArray(prompt.metadata.askKit.activeSkil
 }
 const contextEvent = { sessionID: "test", system: [] }
 await hooks.session.context(contextEvent)
+// Map each item through the local transformation.
 const injectedContext = contextEvent.system.map((part) => part.text || "").join("\n")
 if (!injectedContext.includes("Agent Skills Kit")) {
   throw new Error("context hook did not inject router guidance into the hidden system context")
@@ -84,6 +90,7 @@ await hooks.tool["execute.after"]({
 const followUp = { sessionID: "test", prompt: { text: "follow up" } }
 await hooks.session.prompt(followUp)
 if (followUp.prompt.text !== "follow up") throw new Error("follow-up router guidance leaked into prompt text")
+// Test whether any item satisfies the local predicate.
 if (!followUp.metadata?.askKit?.activeSkills?.some((entry) => entry.skill === "spec" && entry.current === true)) {
   throw new Error("V2 tool adapter dropped skill input before publishing router status")
 }
@@ -97,6 +104,7 @@ await hooks.tool["execute.after"]({
 })
 const skillIDFollowUp = { sessionID: "test", prompt: { text: "show status" } }
 await hooks.session.prompt(skillIDFollowUp)
+// Test whether any item satisfies the local predicate.
 if (!skillIDFollowUp.metadata?.askKit?.activeSkills?.some((entry) => entry.skill === "code-review" && entry.current === true)) {
   throw new Error("V2 tool adapter did not normalize the native ASK skill ID")
 }
@@ -145,6 +153,7 @@ const sidebarThemeTokens = [
   "props.api.theme.text.feedback.success.default",
   "props.api.theme.text.feedback.warning.default",
 ]
+// Test whether any item satisfies the local predicate.
 if (sidebarThemeTokens.some((token) => !tuiSource.includes(token))) {
   throw new Error("OpenCode TUI sidebar does not use the semantic theme colors")
 }

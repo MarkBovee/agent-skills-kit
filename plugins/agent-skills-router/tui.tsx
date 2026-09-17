@@ -31,11 +31,13 @@ function sessionStatus(api: Context, sessionID: string): AskStatus | null {
 // Format all active entries into one text node so OpenTUI replaces the list
 // atomically when session metadata changes instead of retaining stale children.
 function activeSkillText(entries: ActiveSkillEntry[]): string {
+  // Map each item through the local transformation.
   return entries.map((entry) => `${entry.current === true ? "●" : "○"} ${entry.label}`).join("\n")
 }
 
 // Format pending obligations into one stable text node for the same update path.
 function pendingText(items: string[]): string {
+  // Map each item through the local transformation.
   return items.map((label) => `→ ${label}`).join("\n")
 }
 
@@ -46,9 +48,13 @@ function SectionHeader(props: { title: string; color: unknown }) {
 
 // Render ASK's compact sidebar panel from reactive session metadata.
 function StatusPanel(props: { api: Context; sessionID: string }) {
+  // Execute the status callback.
   const status = createMemo(() => sessionStatus(props.api, props.sessionID))
+  // Execute the messages callback.
   const messages = createMemo(() => props.api.data.session.message.list(props.sessionID))
+  // Execute the active skills callback.
   const activeSkills = createMemo(() => mergeActiveSkills(status(), messages()) as ActiveSkillEntry[])
+  // Execute the pending callback.
   const pending = createMemo(() => pendingItems(status()))
 
   return (
@@ -75,9 +81,11 @@ function StatusPanel(props: { api: Context; sessionID: string }) {
 // Register the sidebar slot using OpenCode V2's reactive TUI API.
 export default Plugin.define({
   id: "agent-skills-router",
+  // Execute this callback within the surrounding workflow.
   setup(api) {
     api.ui.slot({
       append: "sidebar.content",
+      // Handle the render callback.
       render: ({ sessionID }) => <StatusPanel api={api} sessionID={sessionID} />,
     })
   },

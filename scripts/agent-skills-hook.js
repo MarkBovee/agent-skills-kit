@@ -70,6 +70,7 @@ function routePrompt(prompt, skills, state) {
 function buildSessionContext(skills) {
   const preview = skills
     .slice(0, 8)
+    // Map each item through the local transformation.
     .map((skill) => `${skill.name}: ${toSingleLine(skill.description, 90)}`)
     .join("; ")
 
@@ -89,6 +90,7 @@ function buildPromptMessage(prompt, skills, state) {
   const { matches, executionProfile } = routePrompt(prompt, skills, state)
   if (matches.length === 0) return ""
 
+  // Map each item through the local transformation.
   const names = unique(matches.map((skill) => skill.name)).slice(0, MAX_SESSION_HINTS)
   return `Agent Skills Kit routing suggests: ${names.join(", ")}. Execution profile: ${executionProfile.executionTier}/${executionProfile.delegationMode}.`
 }
@@ -121,6 +123,7 @@ async function main() {
   }
 }
 
+// Handle the local asynchronous failure.
 main().catch((error) => {
   console.error(`agent-skills-kit hook ignored an unexpected error: ${error.message}`)
   process.exitCode = 0

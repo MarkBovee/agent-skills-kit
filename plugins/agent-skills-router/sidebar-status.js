@@ -19,6 +19,7 @@ function canonicalSkillName(value) {
 
 // Format canonical skill names consistently with the server snapshot labels.
 function skillLabel(skill) {
+  // Map each item through the local transformation.
   return skill.split("-").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")
 }
 
@@ -46,6 +47,7 @@ function loadedSkillEntries(messages) {
 function activeSkillEntries(status) {
   if (!Array.isArray(status?.activeSkills)) return []
   const seen = new Set()
+  // Keep items that satisfy the local predicate.
   return status.activeSkills.filter((entry) => {
     const label = entry?.label
     if (typeof label !== "string" || !label) return false
@@ -59,8 +61,11 @@ function activeSkillEntries(status) {
 // Combine the prompt-time snapshot with newer, completed V2 skill tool calls.
 export function mergeActiveSkills(status, messages) {
   const observed = loadedSkillEntries(messages)
+  // Map each item through the local transformation.
   const snapshot = activeSkillEntries(status).map((entry) => observed.length > 0 ? { ...entry, current: false } : entry)
+  // Execute the seen callback.
   const seen = new Set(observed.flatMap((entry) => typeof entry.skill === "string" ? [entry.skill] : []))
+  // Keep items that satisfy the local predicate.
   return [...observed, ...snapshot.filter((entry) => typeof entry.skill !== "string" || !seen.has(entry.skill))]
 }
 
@@ -68,6 +73,8 @@ export function mergeActiveSkills(status, messages) {
 export function pendingItems(status) {
   if (!Array.isArray(status?.pending)) return []
   return status.pending
+    // Map each item through the local transformation.
     .map((entry) => entry?.label)
+    // Keep items that satisfy the local predicate.
     .filter((label) => typeof label === "string" && label.length > 0)
 }

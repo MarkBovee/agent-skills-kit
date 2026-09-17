@@ -64,6 +64,7 @@ const EXPLICIT_DEEP_RESEARCH_PHRASES = [
   "conflicting evidence",
 ]
 const COMPARATIVE_DEEP_RESEARCH_PHRASES = DEEP_RESEARCH_PHRASES.filter(
+  // Execute this callback within the surrounding workflow.
   (phrase) => !EXPLICIT_DEEP_RESEARCH_PHRASES.includes(phrase),
 )
 const RESEARCH_PHRASES = [
@@ -194,6 +195,7 @@ function createEmptySessionState() {
   }
 }
 
+// Execute the unique helper.
 function unique(values) {
   return [...new Set(values.filter(Boolean))]
 }
@@ -218,6 +220,7 @@ function hasTerminalReviewCompletion(value) {
 function parseReviewCompletion(value) {
   const text = typeof value === "string" ? value : value?.output
   if (typeof text !== "string" || !hasTerminalReviewCompletion(text)) return null
+  // Map each item through the local transformation.
   const metadata = Object.fromEntries([...text.matchAll(/^review-(generation|scope|reference|result|completed-at):\s*(.+)$/gm)].map((match) => [match[1], match[2].trim()]))
   const generation = Number.parseInt(metadata.generation, 10)
   if (!Number.isInteger(generation) || !metadata.scope || !metadata.reference || !metadata.result || !metadata["completed-at"]) return null
@@ -232,9 +235,11 @@ function reviewCompletionMatches(value, generation, phase = "REVIEW", currentRef
     && (phase === "REVIEW" ? evidence.scope === "REVIEW" : phase === "AUDIT" && evidence.scope === "final-diff")
 }
 
+// Execute the has phrase signal helper.
 function hasPhraseSignal(query, phrases) {
   const normalized = query.trim().toLowerCase()
   if (!normalized) return false
+  // Test whether any item satisfies the local predicate.
   return phrases.some((phrase) => {
     const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
     try {
@@ -250,9 +255,11 @@ function hasPhraseSignal(query, phrases) {
 function matchingPhrases(query, phrases) {
   const normalized = String(query || "").trim().toLowerCase()
   if (!normalized) return []
+  // Keep items that satisfy the local predicate.
   return phrases.filter((phrase) => hasPhraseSignal(normalized, [phrase]))
 }
 
+// Execute the strip quotes helper.
 function stripQuotes(value) {
   return value.replace(/^['"]|['"]$/g, "").trim()
 }

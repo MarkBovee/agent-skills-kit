@@ -2,6 +2,7 @@ window.__ModuleLoader__.load({
 	// client-modules bundles do not execute with a stable currentScript URL.
 	// Keep this equal to package.json.name and the managed roster row id.
 	id: "ask-kit-panel",
+	// Handle the factory callback.
 	factory: (require) => {
 		var module = { exports: {} };
 		var exports = module.exports;
@@ -46,9 +47,11 @@ window.__ModuleLoader__.load({
 		function normalizeView(value) {
 			if (!value || typeof value !== "object") return null;
 			const activeSkills = Array.isArray(value.activeSkills)
+				// Map each item through the local transformation.
 				? value.activeSkills.filter((entry) => entry && typeof entry.label === "string" && entry.label.trim() && typeof entry.current === "boolean").map((entry) => ({ label: entry.label, current: entry.current }))
 				: [];
 			const pending = Array.isArray(value.pending)
+				// Map each item through the local transformation.
 				? value.pending.filter((entry) => entry && typeof entry.label === "string" && entry.label.trim() && typeof entry.action === "string" && entry.action.trim()).map((entry) => ({ label: entry.label, action: entry.action }))
 				: [];
 			return {
@@ -82,12 +85,14 @@ window.__ModuleLoader__.load({
 		* @returns the latest snapshot value (undefined while absent).
 		*/
 		function useProjectionValue(faceFactory) {
+			// Execute this callback within the surrounding workflow.
 			const [value, setValue] = react.useState(() => {
 				try {
 					const face = faceFactory();
 					return face ? face.getSnapshot() : undefined;
 				} catch { return undefined }
 			});
+			// Execute this callback within the surrounding workflow.
 			react.useEffect(() => {
 				let alive = true;
 				let unsubscribe;
@@ -97,6 +102,7 @@ window.__ModuleLoader__.load({
 					if (face) {
 						setValue(face.getSnapshot());
 						if (typeof face.subscribe === "function") {
+							// Execute this callback within the surrounding workflow.
 							unsubscribe = face.subscribe(() => {
 								if (!alive) return;
 								try { setValue(face.getSnapshot()) } catch { /* next frame retries */ }
@@ -104,6 +110,7 @@ window.__ModuleLoader__.load({
 						}
 					}
 				} catch { /* capability absent: stay hidden */ }
+				// Execute this callback within the surrounding workflow.
 				return () => {
 					alive = false;
 					try { if (typeof unsubscribe === "function") unsubscribe() } catch { /* already gone */ }
@@ -121,17 +128,20 @@ window.__ModuleLoader__.load({
 			const sessionId = props?.session?.sessionId;
 			const sessionsRef = react.useRef(sessions);
 			sessionsRef.current = sessions;
+			// Execute the face factory callback.
 			const faceFactory = react.useCallback(() => faceFor(sessionsRef.current, sessionId), [sessionId]);
 			const raw = useProjectionValue(faceFactory);
 			const data = normalizeView(raw);
 			if (!data) return null;
 			const activeSkills = data.activeSkills.length > 0
+				// Map each item through the local transformation.
 				? data.activeSkills.map((entry) => react.createElement("div", { className: "askk-phase" + (entry.current ? " askk-phase-active" : ""), key: entry.label }, entry.current ? "● " : "○ ", entry.label))
 				: react.createElement("div", { className: "askk-empty" }, "Not matched");
 			const pending = data.pending.length > 0
 				? [
 					react.createElement("div", { className: "askk-label", key: "pending-label" }, "PENDING"),
 					react.createElement("div", { className: "askk-route", key: "pending-list" },
+						// Map each item through the local transformation.
 						data.pending.map((item) => react.createElement("div", { className: "askk-phase", key: item.label },
 							react.createElement("div", null, item.label),
 							react.createElement("div", { className: "askk-empty" }, item.action)))),
@@ -156,8 +166,10 @@ window.__ModuleLoader__.load({
 				sessions = ctx.sessions;
 			} catch { return }
 			if (slots === undefined || sessions === undefined) return;
+			// Execute this callback within the surrounding workflow.
 			slots.inject(SLOT_NAME, () => slots.register(
 				{ name: SLOT_NAME, id: SLOT_ID, order: 50 },
+				// Execute this callback within the surrounding workflow.
 				(props) => StatusPanel(props, sessions),
 			));
 		}

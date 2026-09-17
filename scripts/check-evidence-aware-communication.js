@@ -74,7 +74,9 @@ async function checkEvidenceAwareCommunication() {
 
 // Run the policy regression check and report a concise success signal for CI.
 checkEvidenceAwareCommunication()
+  // Handle the fulfilled asynchronous result.
   .then(() => console.log("Evidence-aware communication guidance is present and applied."))
+  // Handle the local asynchronous failure.
   .catch((error) => {
     console.error(error.message)
     process.exitCode = 1

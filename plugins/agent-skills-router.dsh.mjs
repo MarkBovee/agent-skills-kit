@@ -74,6 +74,7 @@ const COMPANION_COMMANDS = [
 // parsed first-segment-label / last-segment-skill so both derivations agree
 // even if a future label ever contained an arrow.
 const COMMAND_ROWS = [
+  // Map each item through the local transformation.
   ...[...routingHintLines()].map((line) => {
     const segments = line.split("→")
     return [(segments[segments.length - 1] ?? "").trim(), (segments[0] ?? "").trim()]
@@ -136,6 +137,7 @@ function normalizePanelView(data) {
   if (!data || typeof data !== "object" || Array.isArray(data)) return null
   if (!Array.isArray(data.loadedSkills)) return null
   return {
+    // Keep items that satisfy the local predicate.
     loadedSkills: data.loadedSkills.filter((s) => typeof s === "string" && s.trim()),
     lastMatch: typeof data.lastMatch === "string" ? data.lastMatch : "",
     needsCodeReview: data.needsCodeReview === true,
@@ -152,12 +154,16 @@ function normalizePanelView(data) {
       : 0,
     activeSkills: Array.isArray(data.activeSkills)
       ? data.activeSkills
+        // Keep items that satisfy the local predicate.
         .filter((entry) => entry && typeof entry.label === "string" && typeof entry.current === "boolean")
+        // Map each item through the local transformation.
         .map((entry) => ({ skill: typeof entry.skill === "string" ? entry.skill : null, label: entry.label, current: entry.current }))
       : [],
     pending: Array.isArray(data.pending)
       ? data.pending
+        // Keep items that satisfy the local predicate.
         .filter((entry) => entry && typeof entry.flag === "string" && typeof entry.label === "string" && typeof entry.action === "string")
+        // Map each item through the local transformation.
         .map((entry) => ({ flag: entry.flag, skill: typeof entry.skill === "string" ? entry.skill : null, label: entry.label, action: entry.action }))
       : [],
   }
@@ -166,8 +172,10 @@ function normalizePanelView(data) {
 // Minimal skill stubs so router-core's cascadeRoute can match names without
 // touching a filesystem catalog; only skill names surface in hints anyway.
 const SKILL_STUBS = [...routingHintLines()]
+  // Map each item through the local transformation.
   .map((line) => line.split("→").pop()?.trim())
   .filter(Boolean)
+  // Map each item through the local transformation.
   .map((skill) => ({ name: skill, description: "", triggers: [] }))
 
 // Fresh per-agent tracking state, mirroring the OpenCode plugin's fields.
@@ -224,6 +232,7 @@ export function apply(ctx, config) {
       if (serialized === st._panelPublished) return
       st._panelPublished = serialized
       const appended = session.append.call(session, PANEL_EVENT_TYPE, view)
+      // Handle the local asynchronous failure.
       if (appended && typeof appended.catch === "function") appended.catch(() => {})
     } catch { /* panel state is best-effort */ }
   }
@@ -242,12 +251,15 @@ export function apply(ctx, config) {
           return value
         },
       },
+      // Handle the init callback.
       init: () => null,
+      // Handle the apply callback.
       apply: (state, event) => {
         if (event?.type !== PANEL_EVENT_TYPE) return state
         const next = normalizePanelView(event.data)
         return next === null ? state : next
       },
+      // Handle the view callback.
       view: (state) => state,
       stateVersion: PANEL_STATE_VERSION,
     })
@@ -263,6 +275,7 @@ export function apply(ctx, config) {
     lines.push("")
     const hasSpecificMatch = st.lastMatch && st.lastMatch !== "develop"
     const showDevelopFallback = !hasSpecificMatch && st.skillsLoadedCount === 0
+    // Keep items that satisfy the local predicate.
     lines.push(...routingHintLines().filter((line) => showDevelopFallback || !line.endsWith("→ develop")))
     if (st.lastMatch) { lines.push(""); lines.push(`Active: ${st.lastMatch}`) }
     lines.push("", ...workflowHintLines(st.workflow))
@@ -283,6 +296,7 @@ export function apply(ctx, config) {
       const content = message?.content
       if (Array.isArray(content)) {
         if (content[0]?.type === "tool-result") return ""
+        // Map each item through the local transformation.
         return content.filter((b) => b?.type === "text" && typeof b.text === "string").map((b) => b.text).join(" ")
       }
       if (typeof content === "string") return content
@@ -314,20 +328,24 @@ export function apply(ctx, config) {
     }
     if (loaded === SKILL_CODE_REVIEW) {
       st.shouldCaptureImprovement = true
+      // Keep items that satisfy the local predicate.
       st.steeredSkills = st.steeredSkills.filter((s) => s !== SKILL_CODE_REVIEW); return
     }
     if (loaded === SKILL_VERIFICATION) { st.shouldCaptureImprovement = true; return }
     if (loaded === SKILL_WRITE_SKILL) {
       st.shouldCaptureImprovement = false
+      // Keep items that satisfy the local predicate.
       st.steeredSkills = st.steeredSkills.filter((s) => s !== SKILL_SESSION_REVIEW); return
     }
     if (loaded === SKILL_SESSION_REVIEW) {
       st.shouldCaptureImprovement = false
+      // Keep items that satisfy the local predicate.
       st.steeredSkills = st.steeredSkills.filter((s) => s !== SKILL_SESSION_REVIEW); return
     }
     if (loaded === SKILL_DESIGN) { st.needsDesignReview = true; return }
     if (loaded === SKILL_DESIGN_REVIEW) {
       st.needsDesignReview = false
+      // Keep items that satisfy the local predicate.
       st.steeredSkills = st.steeredSkills.filter((s) => s !== SKILL_DESIGN_REVIEW)
     }
   }
@@ -408,6 +426,7 @@ export function apply(ctx, config) {
             st.reviewEvidence = reviewHandoff
            st.reviewFollowUp = null
            st.shouldCaptureImprovement = true
+           // Keep items that satisfy the local predicate.
            st.steeredSkills = st.steeredSkills.filter((s) => s !== SKILL_CODE_REVIEW)
          } else if (reviewHandoff) {
            st.reviewFollowUp = { status: workflowEvidence?.status || "PENDING", evidence: reviewHandoff }
@@ -463,6 +482,7 @@ export function apply(ctx, config) {
     try {
       const st = stateFor(context?.agent?.id ?? context?.scope)
       const text = "--- Agent Skills Kit ---\n" + buildOverview(st)
+      // Keep items that satisfy the local predicate.
       const sections = (result.sections || []).filter((s) => s?.name !== SECTION_NAME)
       sections.push({ name: SECTION_NAME, text })
       result.sections = sections

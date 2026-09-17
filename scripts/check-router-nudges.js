@@ -28,6 +28,7 @@ function check(label, condition, detail) {
   console.error(`FAIL: ${label}${detail ? ` — ${detail}` : ""}`)
 }
 
+// Run this script's complete validation workflow.
 async function main() {
   process.env.ASK_SKILLS_DIR = SKILLS_PATH
   const { AgentSkillsRouter } = await import(PLUGIN_PATH)
@@ -228,6 +229,7 @@ async function main() {
   console.log("\nAll router nudge checks passed.")
 }
 
+// Handle the local asynchronous failure.
 main().catch((error) => {
   console.error(error)
   process.exitCode = 1

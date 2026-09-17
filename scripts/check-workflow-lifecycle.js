@@ -71,6 +71,7 @@ function checkEvidenceContract() {
   const blocked = recordWorkflowEvidence(auditReady, parseWorkflowEvidence("ASK_WORKFLOW_BLOCKED phase=AUDIT"), "audit")
   check("blocked evidence blocks release", blocked.phase === "BLOCKED" && blocked.releaseStatus === "BLOCKED")
 
+  // Keep items that satisfy the local predicate.
   const releaseReady = { ...workflow, completedGates: [...workflow.requiredPhases.filter((phase) => phase !== "RELEASE_GATE")] }
   const released = recordWorkflowEvidence(releaseReady, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=RELEASE_GATE"), "release-gate")
   check("release gate pass reaches done", released.phase === "DONE" && released.releaseStatus === "RELEASE")
@@ -104,6 +105,7 @@ function checkStatusHints() {
 // obligations, and explicit workflow states without asking consumers to
 // recreate router logic.
 function checkRoutingStatus() {
+  // Map each item through the local transformation.
   const skills = ["develop", "debugging", "code-review", "verification", "spec", "intake"].map((name) => ({ name }))
   const state = createEmptySessionState()
   const ambiguousRoute = cascadeRoute("debug this bug and review the diff", skills, state)
@@ -114,14 +116,18 @@ function checkRoutingStatus() {
   check("route match stays out of sidebar skills", ambiguous.activeSkills.length === 0)
   const explicit = buildRoutingStatus(null, state, "debugging")
   const persisted = buildRoutingStatus(null, { ...state, currentSkill: "debugging", routing: explicit })
+  // Test whether any item satisfies the local predicate.
   check("status keeps active skill across later state updates", persisted.activeSkills.some((entry) => entry.skill === "debugging" && entry.current))
   const fallbackNoise = buildRoutingStatus(null, { ...state, currentSkill: "spec", matchedSkills: [{ name: "develop" }] })
+  // Test whether any item satisfies the local predicate.
   check("develop fallback never displaces a loaded skill", fallbackNoise.activeSkills.some((entry) => entry.skill === "spec" && entry.current)
+    // Test whether any item satisfies the local predicate.
     && !fallbackNoise.activeSkills.some((entry) => entry.skill === "develop"))
   check("no route exposes no fabricated skill", noMatch.activeSkills.length === 0 && !("workflow" in noMatch))
   check("fresh status carries no pending obligations", noMatch.pending.length === 0)
 
   const reviewDebt = buildRoutingStatus(null, { ...state, needsCodeReview: true, needsDesignReview: true, shouldCaptureImprovement: true })
+  // Map each item through the local transformation.
   check("pending obligations expose code and design review only", reviewDebt.pending.map((entry) => entry.skill).join(",") === "code-review,design-review")
   check("pending obligations expose concrete load actions", reviewDebt.pending[0]?.action === "skill(name: 'code-review')" && reviewDebt.pending[1]?.action === "skill(name: 'design-review')")
   check("cleared flags leave no pending obligations", buildRoutingStatus(null, { ...state, needsCodeReview: false }).pending.length === 0)

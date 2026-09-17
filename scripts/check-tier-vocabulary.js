@@ -28,6 +28,7 @@ async function collectMarkdownFiles(relativeRoot) {
   const absoluteRoot = path.join(REPO_ROOT, relativeRoot)
   const files = []
 
+  // Execute the walk helper.
   async function walk(directory) {
     const entries = await fs.readdir(directory, { withFileTypes: true })
     for (const entry of entries) {
@@ -53,7 +54,9 @@ async function checkTierVocabulary() {
 
   for (const filePath of files) {
     const lines = (await fs.readFile(filePath, "utf8")).split(/\r?\n/)
+    // Visit every item in the local collection.
     lines.forEach((line, index) => {
+      // Test whether any item satisfies the local predicate.
       if (STALE_TIER_PATTERNS.some((pattern) => pattern.test(line))) {
         violations.push(`${path.relative(REPO_ROOT, filePath)}:${index + 1}: ${line.trim()}`)
       }
@@ -67,7 +70,9 @@ async function checkTierVocabulary() {
 
 // Run the tier-vocabulary guard and emit a concise CI result.
 checkTierVocabulary()
+  // Handle the fulfilled asynchronous result.
   .then(() => console.log("Tier vocabulary is limited to light/standard/deep and mini/default/xhigh."))
+  // Handle the local asynchronous failure.
   .catch((error) => {
     console.error(error.message)
     process.exitCode = 1

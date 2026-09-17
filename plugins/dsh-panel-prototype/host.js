@@ -37,6 +37,7 @@ function skillNameOf(args) {
 }
 
 return {
+  // Execute this callback within the surrounding workflow.
   apply(ctx) {
     // Remove disposed sessions so review debt cannot leak into a later session.
     ctx.on('agent/disposed', (payload) => {
