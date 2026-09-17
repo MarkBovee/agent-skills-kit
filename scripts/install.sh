@@ -541,9 +541,11 @@ if [ -d "$COPILOT_PROMPTS_SOURCE" ]; then
 fi
 
 mkdir -p "$OPENCODE_PLUGINS_TARGET"
-rm -rf "$OPENCODE_CORE_TARGET"
-rm -rf "$OPENCODE_PLUGINS_TARGET/core"
-cp -R "$OPENCODE_CORE_SOURCE" "$OPENCODE_PLUGINS_TARGET/core"
+mkdir -p "$OPENCODE_CORE_TARGET"
+# Migrate only the managed core file, preserving unrelated user plugin files.
+rm -f "$OPENCODE_CORE_TARGET/router-core.js" "$OPENCODE_PLUGINS_TARGET/core/router-core.js"
+rmdir "$OPENCODE_PLUGINS_TARGET/core" 2>/dev/null || true
+cp "$OPENCODE_CORE_SOURCE/router-core.js" "$OPENCODE_CORE_TARGET/router-core.js"
 rm -f "$OPENCODE_PLUGINS_TARGET/agent-skills-router.mjs"
 rm -rf "$OPENCODE_PLUGINS_TARGET/agent-skills-router"
 rm -f "$OPENCODE_PLUGINS_TARGET/agent-skills-sidebar.tsx"
@@ -653,7 +655,7 @@ fi
 echo "Installed Copilot instructions to $COPILOT_INSTRUCTIONS_FILE"
 echo "Installed OpenCode commands to $OPENCODE_COMMANDS_TARGET"
 echo "Installed Copilot/VS Code prompt files to $COPILOT_PROMPTS_TARGET"
-echo "Installed OpenCode router core to $OPENCODE_PLUGINS_TARGET/core"
+echo "Installed OpenCode router core to $OPENCODE_CORE_TARGET"
 echo "Installed OpenCode router package to $OPENCODE_PLUGINS_TARGET/agent-skills-router"
 echo "Installed OpenCode rules to $OPENCODE_RULES_TARGET/coding-standards.md"
 echo "Installed OpenCode agent-skills-kit usage guide to $OPENCODE_RULES_TARGET/agent-skills-kit.md"

@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.2.13] - 2026-09-17
+
+### Fixed
+
+- **OpenCode TUI sidebar resolves its shared router core after install.** The installers now place the managed core file at the OpenCode config root, matching both plugin entrypoints, remove the obsolete managed copy from `plugins/core`, preserve user-owned neighboring files, and import the deployed TUI helper during installer checks to catch future path-layout drift.
+
 ## [2.2.12] - 2026-09-17
 
 ### Fixed

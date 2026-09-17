@@ -149,6 +149,11 @@ assert_installed_strings() {
   else
     check "installed OpenCode router imports from the target root" false
   fi
+  if node --input-type=module -e "import(process.argv[1]).then((m)=>{if(typeof m.mergeActiveSkills!=='function')process.exit(1)}).catch(()=>process.exit(1))" "$OPENCODE_DIR/plugins/agent-skills-router/sidebar-status.js"; then
+    check "installed OpenCode TUI helper imports from the target root" true
+  else
+    check "installed OpenCode TUI helper imports from the target root" false
+  fi
   if node -e "const c=require(process.argv[1]); if(!Array.isArray(c.plugins)||c.plugins.includes('./plugins/agent-skills-router')||Object.hasOwn(c,'plugin')) process.exit(1)" "$OPENCODE_DIR/opencode.json"; then
     check "installer uses OpenCode V2 plugins key" true
   else
@@ -181,8 +186,10 @@ assert_installed_strings() {
     "$OPENCODE_DIR/tui.json" "./plugins/agent-skills-sidebar.tsx" absent
   assert_grep "installer removes the legacy OpenCode sidebar plugin file" \
     "$OPENCODE_DIR/plugins/agent-skills-sidebar.tsx" "agent-skills-sidebar" absent
-  assert_grep "installed opencode core carries the English header" \
-    "$OPENCODE_DIR/plugins/core/router-core.js" "╌ Agent Skills Kit ╌" present
+  assert_grep "installed OpenCode core carries the English header" \
+    "$OPENCODE_DIR/core/router-core.js" "╌ Agent Skills Kit ╌" present
+  check "installer removes the obsolete OpenCode plugin core directory" \
+    "$([ ! -e "$OPENCODE_DIR/plugins/core" ] && printf true || printf false)"
   assert_grep "shared root contains Codex-discoverable skills" \
     "$AGENTS_DIR/skills/.ask-managed-skills.txt" "ask-develop" present
   check "shared root installs renamed design skill" \
@@ -281,6 +288,10 @@ main() {
     printf 'legacy\n' > "$OPENCODE_DIR/commands/ui-ux.md"
     printf 'ui-ux.prompt.md\n' > "$COPILOT_DIR/prompts/.ask-managed-prompts.txt"
     printf 'legacy\n' > "$COPILOT_DIR/prompts/ui-ux.prompt.md"
+    mkdir -p "$OPENCODE_DIR/plugins/core"
+    printf 'stale router core\n' > "$OPENCODE_DIR/plugins/core/router-core.js"
+    printf 'user-owned plugin core\n' > "$OPENCODE_DIR/plugins/core/user-owned.js"
+    printf 'user-owned config core\n' > "$OPENCODE_DIR/core/user-owned.js"
     printf 'user instruction\n<!-- agent-skills-kit:opencode -->\nold guidance\n' > "$OPENCODE_DIR/AGENTS.md"
     printf 'user instruction\n<!-- agent-skills-kit:dsh -->\nold guidance\n' > "$DSH_HOME/AGENTS.md"
     node -e "const fs=require('fs'), p=process.argv[1]; const f=JSON.parse(fs.readFileSync(p)); f.version='0.0.0'; fs.writeFileSync(p,JSON.stringify(f)+'\\n')" "$OPENCODE_DIR/node_modules/@opencode/plugin/package.json"
@@ -295,6 +306,12 @@ main() {
       "$preset" "$STALE_PRESET_DESCRIPTION" absent
     assert_count "refresh removes duplicate OpenCode TUI sidebar entries" \
       "$OPENCODE_DIR/tui.json" "./plugins/agent-skills-router/tui.tsx" 1
+    check "refresh removes the obsolete OpenCode plugin core file" \
+      "$([ ! -e "$OPENCODE_DIR/plugins/core/router-core.js" ] && printf true || printf false)"
+    check "refresh preserves user-owned OpenCode plugin core files" \
+      "$([ -f "$OPENCODE_DIR/plugins/core/user-owned.js" ] && printf true || printf false)"
+    check "refresh preserves user-owned OpenCode config core files" \
+      "$([ -f "$OPENCODE_DIR/core/user-owned.js" ] && printf true || printf false)"
     check "refresh removes legacy shared ui-ux skill" \
       "$([ ! -d "$AGENTS_DIR/skills/ask-ui-ux" ] && printf true || printf false)"
     check "refresh installs renamed shared design skill" \
