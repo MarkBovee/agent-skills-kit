@@ -552,14 +552,15 @@ try {
 
     New-Item -ItemType Directory -Force -Path $opencodePluginsTarget | Out-Null
     $opencodePluginCoreTarget = Join-Path $opencodePluginsTarget "core"
-    if (Test-Path -LiteralPath $opencodeCoreTarget) {
-        Remove-Item -LiteralPath $opencodeCoreTarget -Recurse -Force
-    }
-    if (Test-Path -LiteralPath $opencodePluginCoreTarget) {
-        Remove-Item -LiteralPath $opencodePluginCoreTarget -Recurse -Force
+    New-Item -ItemType Directory -Force -Path $opencodeCoreTarget | Out-Null
+    # Migrate only the managed core file, preserving unrelated user plugin files.
+    Remove-Item -LiteralPath (Join-Path $opencodeCoreTarget "router-core.js") -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath (Join-Path $opencodePluginCoreTarget "router-core.js") -Force -ErrorAction SilentlyContinue
+    if ((Test-Path -LiteralPath $opencodePluginCoreTarget) -and -not (Get-ChildItem -LiteralPath $opencodePluginCoreTarget -Force)) {
+        Remove-Item -LiteralPath $opencodePluginCoreTarget -Force
     }
 
-    Copy-Item -LiteralPath $opencodeCoreSource -Destination $opencodePluginCoreTarget -Recurse
+    Copy-Item -LiteralPath (Join-Path $opencodeCoreSource "router-core.js") -Destination (Join-Path $opencodeCoreTarget "router-core.js") -Force
     Remove-Item -LiteralPath (Join-Path $opencodePluginsTarget "agent-skills-router.mjs") -Force -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath (Join-Path $opencodePluginsTarget "agent-skills-sidebar.tsx") -Force -ErrorAction SilentlyContinue
     $opencodeRouterTarget = Join-Path $opencodePluginsTarget "agent-skills-router"
@@ -715,7 +716,7 @@ try {
     "Installed Copilot instructions to $copilotInstructionsFile"
     "Installed OpenCode commands to $opencodeCommandsTarget"
     "Installed Copilot/VS Code prompt files to $copilotPromptsTarget"
-    "Installed OpenCode router core to $(Join-Path $opencodePluginsTarget 'core')"
+    "Installed OpenCode router core to $opencodeCoreTarget"
     "Installed OpenCode router package to $(Join-Path $opencodePluginsTarget 'agent-skills-router')"
     "Installed OpenCode rules to $(Join-Path $opencodeRulesTarget 'coding-standards.md')"
     "Installed OpenCode agent-skills-kit usage guide to $(Join-Path $opencodeRulesTarget 'agent-skills-kit.md')"
