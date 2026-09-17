@@ -55,7 +55,7 @@ function StatusPanel(props: { api: Context; sessionID: string }) {
   // Execute the active skills callback.
   const activeSkills = createMemo(() => mergeActiveSkills(status(), messages()) as ActiveSkillEntry[])
   // Execute the pending callback.
-  const pending = createMemo(() => pendingItems(status()))
+  const pending = createMemo(() => pendingItems(status(), messages()))
 
   return (
     <Show when={status()}>

@@ -20,7 +20,7 @@ await Promise.all([
 process.env.ASK_SKILLS_DIR = skillRoot
 
 const { default: plugin } = await import("../plugins/agent-skills-router/server.mjs")
-const { ASK_SKILL_NAMES: sidebarAskSkillNames, mergeActiveSkills } = await import("../plugins/agent-skills-router/sidebar-status.js")
+const { ASK_SKILL_NAMES: sidebarAskSkillNames, mergeActiveSkills, pendingItems } = await import("../plugins/agent-skills-router/sidebar-status.js")
 const sidebarStatusSource = await readFile(new URL("../plugins/agent-skills-router/sidebar-status.js", import.meta.url), "utf8")
 const { ASK_SKILL_NAMES: coreAskSkillNames } = require("../core/router-core.js")
 
@@ -210,6 +210,43 @@ if (JSON.stringify(mergedSkills) !== JSON.stringify([
   { skill: "spec", label: "Spec", current: false },
 ])) {
   throw new Error("V2 TUI did not keep exactly one current skill after a live tool call")
+}
+
+const orderedSkills = mergeActiveSkills(
+  { activeSkills: [], pending: [] },
+  [
+    { type: "assistant", content: [{ type: "tool", name: "skill", state: { status: "completed", input: { name: "ask-design" } } }] },
+    { type: "assistant", content: [{ type: "tool", name: "skill", state: { status: "completed", input: { name: "ask-code-review" } } }] },
+  ],
+)
+if (orderedSkills[0]?.skill !== "code-review" || orderedSkills[0]?.current !== true || orderedSkills[1]?.skill !== "design") {
+  throw new Error("V2 TUI did not place the most recently used skill first")
+}
+
+const editMessage = {
+  type: "assistant",
+  content: [{ type: "tool", name: "write", state: { status: "completed", input: {}, output: "written" } }],
+}
+if (JSON.stringify(pendingItems({ pending: [] }, [editMessage])) !== JSON.stringify(["Code review needed"])) {
+  throw new Error("V2 TUI did not surface code-review debt from a completed edit")
+}
+
+const reviewMessage = {
+  type: "assistant",
+  content: [{ type: "tool", name: "task", state: {
+    status: "completed",
+    output: "ASK_WORKFLOW_PASS phase=REVIEW\nreview-generation: 1\nreview-result: PASS\nASK_REVIEW_COMPLETE",
+  } }],
+}
+if (pendingItems({ pending: [{ label: "Code review needed" }] }, [editMessage, reviewMessage]).length !== 0) {
+  throw new Error("V2 TUI did not clear code-review debt from passing review evidence")
+}
+
+const designHistory = [
+  { type: "assistant", content: [{ type: "tool", name: "skill", state: { status: "completed", input: JSON.stringify({ name: "ask-design" }) } }] },
+]
+if (JSON.stringify(pendingItems({ pending: [] }, designHistory)) !== JSON.stringify(["Design review needed"])) {
+  throw new Error("V2 TUI did not surface design-review debt from a completed design skill")
 }
 
 const tuiSource = await readFile(new URL("../plugins/agent-skills-router/tui.tsx", import.meta.url), "utf8")

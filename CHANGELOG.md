@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.2.18] - 2026-09-17
+
+### Fixed
+
+- **OpenCode sidebar review state now updates from live tool history.** Code and design review obligations appear immediately after the relevant tool calls, passing review evidence clears code-review debt, and the most recently loaded skill remains at the top of the sidebar.
+
 ## [2.2.17] - 2026-09-17
 
 ### Fixed
