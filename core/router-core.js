@@ -654,6 +654,29 @@ function buildSkillOverview(sessionState) {
   return lines.join("\n")
 }
 
+// Render only live routing state after OpenCode has completed its first-prompt audit.
+function buildCompactSkillOverview(sessionState) {
+  const interactionsSinceLoad = sessionState.interactionCountSinceSkillLoad || 0
+  const lines = ["╌ Agent Skills Kit ╌", ...workflowHintLines(sessionState.workflow)]
+  const matched = sessionState.matchedSkills || []
+  if (matched.length > 0) {
+    lines.push(`Active: ${matched.map((skill) => skill.name).join("+")}${sessionState.executionProfile ? ` (${sessionState.executionProfile.executionTier}/${sessionState.executionProfile.delegationMode})` : ""}`)
+  }
+  if (sessionState.needsCodeReview) {
+    lines.push("→ Code edited — `skill(name: 'code-review')` before claiming done")
+  }
+  if (sessionState.needsDesignReview) {
+    lines.push("→ Design produced — `skill(name: 'design-review')` filters AI defaults before showing")
+  }
+  if (interactionsSinceLoad >= INTERACTION_GUARD_THRESHOLD && (sessionState.skillsLoadedCount || 0) === 0) {
+    lines.push("→ Working through 5 actions without a loaded skill — `skill(name: 'develop')` sets workflow guardrails")
+  }
+  if (sessionState.shouldCaptureImprovement) {
+    lines.push("→ Improvement found? `skill(name: 'session-review')` to file issue")
+  }
+  return lines.join("\n")
+}
+
 function cascadeRoute(query, skills, sessionState) {
   const q = query.trim().toLowerCase()
   if (!q) {
@@ -732,7 +755,7 @@ module.exports = {
   SKILL_SESSION_REVIEW, SKILL_IMPROVE, SKILL_DEVELOP, SKILL_INTAKE, SKILL_DESIGN,
   SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SPEC, COMPLETION_PHRASES, SKILL_DESIGN_REVIEW,
     SKILL_TEXT_WRITING, SKILL_RESEARCH, SKILL_DEEP_RESEARCH, SKILL_OBSERVABILITY, REVIEW_COMPLETION_MARKER, hasReviewCompletionSignal, hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches,
-  buildSkillOverview, cascadeRoute, buildExecutionProfile, buildRoutingStatus, pendingReviewRequirements, activeSkillEntries, skillDisplayName, loadSkills,
+  buildSkillOverview, buildCompactSkillOverview, cascadeRoute, buildExecutionProfile, buildRoutingStatus, pendingReviewRequirements, activeSkillEntries, skillDisplayName, loadSkills,
   createEmptySessionState, getSessionState, setSessionState,
     findSkill, isAskSkill, isAskSkillName, ASK_SKILL_NAMES, hasPhraseSignal, routingHintLines,
    classifyWorkflowRisk, hasWorkflowRiskSignal, workflowRiskRank, requiredWorkflowPhases, buildWorkflowState, workflowHintLines, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,

@@ -379,9 +379,9 @@ The pack favors fast trustworthy checks, then proportional review and verificati
 
 ## Router
 
-`plugins/agent-skills-router/` presents a **decision tree** every prompt and renders its router-core status snapshot in OpenCode's TUI sidebar. Advisory phrase matching proposes one specific skill; the agent still evaluates the task and explicitly loads it via `skill(name: '...')`. No scoring, hidden execution, or automatic skill loading.
+`plugins/agent-skills-router/` presents a **decision tree** on the first OpenCode prompt, then compact live status on later prompts; its TUI sidebar renders the router-core status snapshot. Advisory phrase matching proposes one specific skill; the agent still evaluates the task and explicitly loads it via `skill(name: '...')`. No scoring, hidden execution, or automatic skill loading.
 
-The decision tree injected every prompt:
+The decision tree injected on the first OpenCode prompt:
 
 ```mermaid
 flowchart TD

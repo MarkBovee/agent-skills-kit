@@ -608,8 +608,12 @@ try {
             $cfg | Add-Member -NotePropertyName instructions -NotePropertyValue @() -Force
             $changed = $true
         }
-        foreach ($ins in @("./rules/coding-standards.md", "./rules/agent-skills-kit.md", "./rules/workflow.md")) {
+        foreach ($ins in @("./rules/coding-standards.md", "./rules/agent-skills-kit.md")) {
             if ($ins -notin $cfg.instructions) { $cfg.instructions += $ins; $changed = $true }
+        }
+        if ("./rules/workflow.md" -in $cfg.instructions) {
+            $cfg.instructions = @($cfg.instructions | Where-Object { $_ -ne "./rules/workflow.md" })
+            $changed = $true
         }
         if ($cfg.PSObject.Properties.Match("plugins").Count -eq 0 -or $null -eq $cfg.plugins -or $cfg.plugins -isnot [System.Array]) {
             $cfg | Add-Member -NotePropertyName plugins -NotePropertyValue @() -Force
