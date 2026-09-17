@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.2.15] - 2026-09-17
+
+### Fixed
+
+- **OpenCode's TUI no longer imports the CommonJS router core.** The TUI loader does not synthesize CommonJS named exports, so the sidebar now uses an ESM-local ASK skill roster; its regression check rejects a router-core import.
+
 ## [2.2.14] - 2026-09-17
 
 ### Fixed
