@@ -10,7 +10,7 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ### Added
 
-- **Intent comments are now a verified source rule.** Development, review, audit, and verification skills treat missing required function comments as blocking findings, while CI checks every first-party JavaScript and TypeScript function-like construct.
+- **Intent comments are now a verified source rule.** Development, review, audit, and verification skills treat missing required function comments as blocking findings, while CI and release gates check every first-party JavaScript and TypeScript function-like construct.
 
 ## [2.2.10] - 2026-09-17
 
