@@ -1,7 +1,12 @@
 // Verify the exported router definition and its OpenCode V2 hook registrations.
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
+import { existsSync } from "node:fs"
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises"
+import { createRequire } from "node:module"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { pathToFileURL } from "node:url"
+
+const require = createRequire(import.meta.url)
 
 const skillRoot = await mkdtemp(join(tmpdir(), "ask-opencode-v2-plugin-"))
 await Promise.all([
@@ -16,6 +21,59 @@ process.env.ASK_SKILLS_DIR = skillRoot
 
 const { default: plugin } = await import("../plugins/agent-skills-router/server.mjs")
 const { mergeActiveSkills } = await import("../plugins/agent-skills-router/sidebar-status.js")
+
+const hotReloadRoot = await mkdtemp(join(tmpdir(), "ask-router-hot-reload-"))
+const hotReloadCorePath = join(hotReloadRoot, "core", "router-core.js")
+const hotReloadServerPath = join(hotReloadRoot, "agent-skills-router", "server.mjs")
+const contractNodeModules = existsSync(join(process.cwd(), "node_modules", "@opencode", "plugin"))
+  ? join(process.cwd(), "node_modules")
+  : join(process.cwd(), "plugins", "agent-skills-router", "node_modules")
+try {
+  await Promise.all([
+    mkdir(join(hotReloadRoot, "core")),
+    mkdir(join(hotReloadRoot, "agent-skills-router")),
+  ])
+  await symlink(contractNodeModules, join(hotReloadRoot, "agent-skills-router", "node_modules"))
+  await writeFile(hotReloadCorePath, "module.exports = {}\n")
+  // Prime CommonJS with the pre-update core that lacks the new export.
+  require(hotReloadCorePath)
+  await Promise.all([
+    writeFile(hotReloadCorePath, await readFile(new URL("../core/router-core.js", import.meta.url), "utf8")),
+    writeFile(hotReloadServerPath, await readFile(new URL("../plugins/agent-skills-router/server.mjs", import.meta.url), "utf8")),
+  ])
+  const { default: hotReloadPlugin } = await import(`${pathToFileURL(hotReloadServerPath).href}?reload=${Date.now()}`)
+
+  const hotReloadHooks = { session: {}, tool: {} }
+  const hotReloadContext = {
+    // Capture session hooks for the isolated hot-reload regression case.
+    session: { hook: async (name, callback) => { hotReloadHooks.session[name] = callback } },
+    // Capture tool hooks for the isolated hot-reload regression case.
+    tool: { hook: async (name, callback) => { hotReloadHooks.tool[name] = callback } },
+    event: {
+      // End the event stream because this isolated regression does not need host events.
+      subscribe: async function* () {},
+    },
+    // Accept status persistence while exercising only the V2 hook contract.
+    storage: { set: async () => {} },
+  }
+  const cleanupHotReload = await hotReloadPlugin.setup(hotReloadContext)
+  await hotReloadHooks.tool["execute.after"]({
+    sessionID: "hot-reload",
+    tool: "skill",
+    input: { id: "ask-develop" },
+    status: "completed",
+    result: {},
+  })
+  const hotReloadPrompt = { sessionID: "hot-reload", prompt: { text: "continue" } }
+  await hotReloadHooks.session.prompt(hotReloadPrompt)
+  // Confirm the reloaded server receives the current helper from the replaced core.
+  if (!hotReloadPrompt.metadata?.askKit?.activeSkills?.some((entry) => entry.skill === "develop" && entry.current === true)) {
+    throw new Error("router did not reload a stale CommonJS core during OpenCode plugin hot reload")
+  }
+  await cleanupHotReload()
+} finally {
+  await rm(hotReloadRoot, { recursive: true, force: true })
+}
 
 if (plugin.id !== "agent-skills-router" || typeof plugin.setup !== "function") {
   throw new Error("router does not export an OpenCode V2 definition")
