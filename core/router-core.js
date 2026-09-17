@@ -734,7 +734,7 @@ module.exports = {
     SKILL_TEXT_WRITING, SKILL_RESEARCH, SKILL_DEEP_RESEARCH, SKILL_OBSERVABILITY, REVIEW_COMPLETION_MARKER, hasReviewCompletionSignal, hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches,
   buildSkillOverview, cascadeRoute, buildExecutionProfile, buildRoutingStatus, pendingReviewRequirements, activeSkillEntries, skillDisplayName, loadSkills,
   createEmptySessionState, getSessionState, setSessionState,
-    findSkill, isAskSkill, isAskSkillName, hasPhraseSignal, routingHintLines,
+    findSkill, isAskSkill, isAskSkillName, ASK_SKILL_NAMES, hasPhraseSignal, routingHintLines,
    classifyWorkflowRisk, hasWorkflowRiskSignal, workflowRiskRank, requiredWorkflowPhases, buildWorkflowState, workflowHintLines, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
   stripFrontmatter, toSingleLine, normalizeStringList,
   parseBooleanField, parseFrontmatter, unique,

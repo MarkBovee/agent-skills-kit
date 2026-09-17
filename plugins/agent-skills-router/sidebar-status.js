@@ -1,6 +1,12 @@
 // Normalize the live OpenCode V2 tool history into the sidebar's compact status shape.
 
-import { isAskSkillName } from "../../core/router-core.js"
+// Keep this ESM-only runtime boundary independent from the router's CommonJS core.
+// OpenCode's TUI loader does not synthesize CommonJS named exports.
+export const ASK_SKILL_NAMES = new Set([
+  "agent-workflows", "code-review", "debugging", "deep-research", "design",
+  "design-review", "develop", "gh-inbox", "improve", "intake", "observability",
+  "research", "session-review", "spec", "text-writing", "verification", "write-skill",
+])
 
 // Accept only router status records that are safe for presentation.
 export function readStatus(value) {
@@ -12,7 +18,7 @@ export function readStatus(value) {
 function canonicalSkillName(value) {
   if (typeof value !== "string" || !value) return null
   const skill = value.startsWith("ask-") ? value.slice(4) : value
-  return isAskSkillName(skill) ? skill : null
+  return ASK_SKILL_NAMES.has(skill) ? skill : null
 }
 
 // Format canonical skill names consistently with the server snapshot labels.

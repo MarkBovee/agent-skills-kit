@@ -20,11 +20,15 @@ await Promise.all([
 process.env.ASK_SKILLS_DIR = skillRoot
 
 const { default: plugin } = await import("../plugins/agent-skills-router/server.mjs")
-const { mergeActiveSkills } = await import("../plugins/agent-skills-router/sidebar-status.js")
+const { ASK_SKILL_NAMES: sidebarAskSkillNames, mergeActiveSkills } = await import("../plugins/agent-skills-router/sidebar-status.js")
 const sidebarStatusSource = await readFile(new URL("../plugins/agent-skills-router/sidebar-status.js", import.meta.url), "utf8")
+const { ASK_SKILL_NAMES: coreAskSkillNames } = require("../core/router-core.js")
 
-if (!sidebarStatusSource.includes('import { isAskSkillName } from "../../core/router-core.js"')) {
-  throw new Error("OpenCode TUI helper must use the CommonJS core's named skill export")
+if (sidebarStatusSource.includes("router-core.js")) {
+  throw new Error("OpenCode TUI helper must not import the CommonJS router core")
+}
+if (JSON.stringify([...sidebarAskSkillNames].sort()) !== JSON.stringify([...coreAskSkillNames].sort())) {
+  throw new Error("OpenCode TUI skill roster drifted from the router core")
 }
 
 const hotReloadRoot = await mkdtemp(join(tmpdir(), "ask-router-hot-reload-"))
