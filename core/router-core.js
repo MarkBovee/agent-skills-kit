@@ -658,9 +658,11 @@ function buildSkillOverview(sessionState) {
 function buildCompactSkillOverview(sessionState) {
   const interactionsSinceLoad = sessionState.interactionCountSinceSkillLoad || 0
   const lines = ["╌ Agent Skills Kit ╌", ...workflowHintLines(sessionState.workflow)]
-  const matched = sessionState.matchedSkills || []
-  if (matched.length > 0) {
-    lines.push(`Active: ${matched.map((skill) => skill.name).join("+")}${sessionState.executionProfile ? ` (${sessionState.executionProfile.executionTier}/${sessionState.executionProfile.delegationMode})` : ""}`)
+  const loadedSkills = sessionState.loadedSkills || []
+  if (loadedSkills.length > 0) {
+    const activeMatch = (sessionState.matchedSkills || []).find((skill) => loadedSkills.includes(skill.name))
+    const profile = activeMatch ? sessionState.executionProfile : null
+    lines.push(`Active: ${loadedSkills.join("+")}${profile ? ` (${profile.executionTier}/${profile.delegationMode})` : ""}`)
   }
   if (sessionState.needsCodeReview) {
     lines.push("→ Code edited — `skill(name: 'code-review')` before claiming done")

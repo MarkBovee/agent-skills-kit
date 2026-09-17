@@ -6,6 +6,17 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.2.17] - 2026-09-17
+
+### Fixed
+
+- **OpenCode follow-up status no longer marks unloaded route matches active.** Compact status now reports only loaded skills, with regression coverage for route suggestions.
+- **OpenCode installers normalize scalar `instructions` values.** Bash and PowerShell now preserve malformed legacy entries as arrays and remove the managed workflow entry consistently.
+
+### Changed
+
+- **Always-on instruction files are shorter.** Repeated workflow guidance is compressed while routing, lifecycle, evidence, release, and platform rules remain available.
+
 ## [2.2.16] - 2026-09-17
 
 ### Changed
