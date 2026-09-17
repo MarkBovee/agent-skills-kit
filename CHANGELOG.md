@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.2.14] - 2026-09-17
+
+### Fixed
+
+- **OpenCode TUI loads the shared router core through its native module loader.** The sidebar now imports the core's explicit `isAskSkillName` export instead of a CommonJS default export that OpenCode's TUI loader does not synthesize.
+
 ## [2.2.13] - 2026-09-17
 
 ### Fixed
