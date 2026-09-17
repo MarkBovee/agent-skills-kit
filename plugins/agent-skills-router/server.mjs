@@ -1,4 +1,4 @@
-// agent-skills-router - opencode plugin. Injects the decision tree every prompt, tracks code-edit + skill-invocation state, nudges contextually.
+// agent-skills-router - OpenCode plugin. Audits routing on first prompt, then injects compact live status and contextual nudges.
 
 import { createRequire } from "node:module"
 import { fileURLToPath } from "node:url"
@@ -30,7 +30,7 @@ const {
   CODE_EDIT_TOOL_IDS, CODE_WORK_TOOL_IDS, RECENT_TOOL_MAX, COMPLETION_PHRASES,
   SKILL_CODE_REVIEW, SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SESSION_REVIEW, SKILL_DESIGN_REVIEW, SKILL_DESIGN,
   SKILL_DEVELOP,
-  buildSkillOverview, cascadeRoute, getSessionState, isAskSkill, isAskSkillName, loadSkills,
+  buildCompactSkillOverview, buildSkillOverview, cascadeRoute, getSessionState, isAskSkill, isAskSkillName, loadSkills,
   setSessionState, hasPhraseSignal, toSingleLine, unique,
   hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, routingHintLines, buildWorkflowState, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
   buildRoutingStatus,
@@ -154,7 +154,7 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
       return `\n--- Agent Skills Kit ---\n${section}\n\n${overview}`
     }
 
-    const lines = buildSkillOverview(state)
+    const lines = buildCompactSkillOverview(state)
     const section = [...extraLines, lines].join("\n")
     return `\n--- Agent Skills Kit ---\n${section}`
   }

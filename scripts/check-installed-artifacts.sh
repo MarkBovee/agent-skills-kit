@@ -172,8 +172,8 @@ assert_installed_strings() {
     "$OPENCODE_DIR/AGENTS.md" "agent-skills-kit:opencode" present
   assert_grep "installed OpenCode workflow guidance uses shared source" \
     "$OPENCODE_DIR/AGENTS.md" "# ASK Workflow Mandate" present
-  assert_grep "installer registers shared workflow mandate" \
-    "$OPENCODE_DIR/opencode.json" "./rules/workflow.md" present
+  assert_grep "installer omits shared workflow mandate from active OpenCode instructions" \
+    "$OPENCODE_DIR/opencode.json" "./rules/workflow.md" absent
   assert_grep "installer copies shared workflow mandate" \
     "$OPENCODE_DIR/rules/workflow.md" "Never declare merge, release, or tag readiness" present
   assert_grep "installer removes old OpenCode router file configuration" \

@@ -42,6 +42,12 @@ async function main() {
   check("first prompt contains kit overview", auditText.includes("╌ Agent Skills Kit ╌"))
   check("first prompt exposes normal lifecycle status", auditText.includes("Workflow: PLAN | risk=normal"))
 
+  // Later prompts keep live obligations but omit the static decision-tree rows.
+  const compactAppend = await plugin["tui.prompt.append"]({ prompt: "continue implementation" })
+  const compactText = compactAppend?.append || ""
+  check("follow-up prompt contains compact kit status", compactText.includes("╌ Agent Skills Kit ╌") && compactText.includes("Active: develop"))
+  check("follow-up prompt omits decision-tree rows", !compactText.includes("Deep research complex, contested, high-stakes questions"))
+
   // Blocked-tool guard: bash before any skill load returns the derived hint rows.
   const blocked = await plugin["tool.execute.before"]({ tool: "bash" })
   const blockedError = typeof blocked?.tool_error === "string" ? blocked.tool_error : ""
@@ -76,7 +82,8 @@ async function main() {
   check(
     "release prompt exposes release-sensitive lifecycle",
     (releaseAppend?.append || "").includes("risk=release-sensitive")
-      && (releaseAppend?.append || "").includes("RELEASE_GATE"),
+      && (releaseAppend?.append || "").includes("RELEASE_GATE")
+      && !(releaseAppend?.append || "").includes("Deep research complex, contested, high-stakes questions"),
   )
 
   // Interaction guard: use a fresh plugin so unrelated routing assertions do

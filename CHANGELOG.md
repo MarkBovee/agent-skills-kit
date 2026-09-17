@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.2.16] - 2026-09-17
+
+### Changed
+
+- **OpenCode router context is smaller after the first prompt.** The initial prompt still contains the full skill audit and decision tree. Later prompts contain live workflow state and actionable nudges only. OpenCode installers no longer load the duplicate `workflow.md` rule automatically, while still installing the file for reference and other hosts.
+
 ## [2.2.15] - 2026-09-17
 
 ### Fixed
