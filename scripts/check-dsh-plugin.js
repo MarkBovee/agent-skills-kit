@@ -152,6 +152,13 @@ async function main() {
     const agent = { id: "gate-check" }
     const denied = await pre({ name: "bash", agent }, async () => ({ kind: "allow" }))
     check("strict gate denies before skill load", denied && denied.kind === "deny")
+    const foreignSkillAgent = { id: "foreign-skill-gate-check" }
+    listeners.get("tools/result")[0](
+      { name: "skill", agent: foreignSkillAgent, arguments: { name: "azure-deploy" } },
+      { isError: false },
+    )
+    const foreignDenied = await pre({ name: "bash", agent: foreignSkillAgent }, async () => ({ kind: "allow" }))
+    check("strict gate ignores non-ASK skill loads", foreignDenied && foreignDenied.kind === "deny")
     listeners.get("tools/result")[0](
       { name: "skill", agent, arguments: { name: "deep-research" } },
       { isError: false, output: "ASK_WORKFLOW_PASS phase=RESEARCH" },

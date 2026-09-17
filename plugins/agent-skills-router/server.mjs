@@ -25,7 +25,7 @@ const {
   CODE_EDIT_TOOL_IDS, CODE_WORK_TOOL_IDS, RECENT_TOOL_MAX, COMPLETION_PHRASES,
   SKILL_CODE_REVIEW, SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SESSION_REVIEW, SKILL_DESIGN_REVIEW, SKILL_DESIGN,
   SKILL_DEVELOP,
-  buildSkillOverview, cascadeRoute, getSessionState, loadSkills,
+  buildSkillOverview, cascadeRoute, getSessionState, isAskSkill, isAskSkillName, loadSkills,
   setSessionState, hasPhraseSignal, toSingleLine, unique,
   hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, routingHintLines, buildWorkflowState, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
   buildRoutingStatus,
@@ -49,7 +49,8 @@ function resolveSkillName(input, output) {
   for (const c of candidates) {
     if (typeof c !== "string" || !c.trim()) continue
     const skill = c.trim()
-    return skill.startsWith("ask-") ? skill.slice(4) : skill
+    const canonicalName = skill.startsWith("ask-") ? skill.slice(4) : skill
+    return isAskSkillName(canonicalName) ? canonicalName : ""
   }
   return ""
 }
@@ -75,7 +76,7 @@ let skillsCache = null
 async function getSkills() {
   if (skillsCache) return skillsCache
   const skillPath = resolveSkillPath()
-  skillsCache = await loadSkills([skillPath])
+  skillsCache = (await loadSkills([skillPath])).filter(isAskSkill)
   return skillsCache
 }
 
@@ -219,8 +220,10 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
         const state = getSessionState(sessionState, sessionKey(input))
         const recentToolIds = [...(state.recentToolIds || []), toolID].slice(-RECENT_TOOL_MAX)
         const toolCallCount = (state.toolCallCount || 0) + 1
-        const skillsLoadedCount = toolID === "skill" ? (state.skillsLoadedCount || 0) + 1 : (state.skillsLoadedCount || 0)
-        const loadedSkills = toolID === "skill" ? unique([...(state.loadedSkills || []), resolveSkillName(input, output)]) : (state.loadedSkills || [])
+        const skillName = toolID === "skill" ? resolveSkillName(input, output) : ""
+        const didLoadAskSkill = Boolean(skillName)
+        const skillsLoadedCount = didLoadAskSkill ? (state.skillsLoadedCount || 0) + 1 : (state.skillsLoadedCount || 0)
+        const loadedSkills = didLoadAskSkill ? unique([...(state.loadedSkills || []), skillName]) : (state.loadedSkills || [])
         const base = {
           recentToolIds,
           toolCallCount,
@@ -253,7 +256,6 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
           return
         }
         if (toolID !== "skill") { save(input, base); return }
-        const skillName = resolveSkillName(input, output)
         if (!skillName) { save(input, base); return }
         const skillWorkflow = workflowForSkill(state.workflow, skillName)
         if (skillName === SKILL_CODE_REVIEW) { save(input, { ...base, currentSkill: skillName, shouldCaptureImprovement: true, workflow: skillWorkflow }); return }

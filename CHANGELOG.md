@@ -11,6 +11,7 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 ### Fixed
 
 - **OpenCode sidebar respects the selected theme.** The panel now uses OpenCode's semantic primary, text, subdued, success, and warning tokens instead of a fixed color palette.
+- **OpenCode router stays inside the ASK namespace.** Its first-prompt audit, live sidebar state, and skill gate now ignore non-ASK skills from the shared global skill root.
 
 ## [2.2.9] - 2026-09-16
 

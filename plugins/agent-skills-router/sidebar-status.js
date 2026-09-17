@@ -1,5 +1,9 @@
 // Normalize the live OpenCode V2 tool history into the sidebar's compact status shape.
 
+import routerCore from "../../core/router-core.js"
+
+const { isAskSkillName } = routerCore
+
 // Accept only router status records that are safe for presentation.
 export function readStatus(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null
@@ -9,7 +13,8 @@ export function readStatus(value) {
 // Translate native ASK skill identifiers back to the canonical router skill name.
 function canonicalSkillName(value) {
   if (typeof value !== "string" || !value) return null
-  return value.startsWith("ask-") ? value.slice(4) : value
+  const skill = value.startsWith("ask-") ? value.slice(4) : value
+  return isAskSkillName(skill) ? skill : null
 }
 
 // Format canonical skill names consistently with the server snapshot labels.

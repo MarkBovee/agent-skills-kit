@@ -46,7 +46,7 @@ const {
   SKILL_DESIGN, SKILL_DESIGN_REVIEW,
   routingHintLines, cascadeRoute, hasPhraseSignal, COMPLETION_PHRASES,
   hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, INTERACTION_GUARD_THRESHOLD, buildWorkflowState, workflowHintLines,
-  workflowForSkill, parseWorkflowEvidence, recordWorkflowEvidence, buildRoutingStatus,
+  workflowForSkill, parseWorkflowEvidence, recordWorkflowEvidence, buildRoutingStatus, isAskSkillName,
 } = routerCore
 
 const CODE_EDIT_TOOL_IDS = new Set(["edit", "write", "apply_patch"])
@@ -294,13 +294,17 @@ export function apply(ctx, config) {
   // Extract the requested skill name from skill-tool call arguments.
   function skillNameOf(args) {
     const v = args?.name ?? args?.skill
-    return typeof v === "string" ? v.trim() : ""
+    if (typeof v !== "string") return ""
+    const skill = v.trim()
+    const canonicalName = skill.startsWith("ask-") ? skill.slice(4) : skill
+    return isAskSkillName(canonicalName) ? canonicalName : ""
   }
 
   // Apply the kit's review-flag flips for one successfully loaded skill.
   // Loading a review skill also resets its steer guard, so a fresh debt
   // episode later in the session can steer the agent toward it again.
   function applySkillFlips(st, loaded) {
+    if (!loaded) return
     st.skillsLoadedCount += 1
     if (loaded) {
       if (!st.loadedSkills.includes(loaded)) st.loadedSkills.push(loaded)
@@ -414,6 +418,7 @@ export function apply(ctx, config) {
       }
       if (exec?.name !== "skill") return
       const loadedSkill = skillNameOf(exec.arguments)
+      if (!loadedSkill) return
       st.lastMatch = loadedSkill
       st.currentSkill = loadedSkill
       st.workflow = workflowForSkill(st.workflow, loadedSkill)

@@ -1,5 +1,18 @@
 // Verify the exported router definition and its OpenCode V2 hook registrations.
-import { readFile } from "node:fs/promises"
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+
+const skillRoot = await mkdtemp(join(tmpdir(), "ask-opencode-v2-plugin-"))
+await Promise.all([
+  mkdir(join(skillRoot, "ask-develop")),
+  mkdir(join(skillRoot, "external-skill")),
+])
+await Promise.all([
+  writeFile(join(skillRoot, "ask-develop", "SKILL.md"), "---\nname: develop\ndescription: ASK workflow\ntriggers:\n  - test\n---\n"),
+  writeFile(join(skillRoot, "external-skill", "SKILL.md"), "---\nname: external-skill\ndescription: Must not appear in ASK\ntriggers:\n  - test\n---\n"),
+])
+process.env.ASK_SKILLS_DIR = skillRoot
 
 const { default: plugin } = await import("../plugins/agent-skills-router/server.mjs")
 const { mergeActiveSkills } = await import("../plugins/agent-skills-router/sidebar-status.js")
@@ -36,8 +49,29 @@ if (!prompt.metadata?.askKit || !Array.isArray(prompt.metadata.askKit.activeSkil
 }
 const contextEvent = { sessionID: "test", system: [] }
 await hooks.session.context(contextEvent)
-if (!contextEvent.system.some((part) => part.text?.includes("Agent Skills Kit"))) {
+const injectedContext = contextEvent.system.map((part) => part.text || "").join("\n")
+if (!injectedContext.includes("Agent Skills Kit")) {
   throw new Error("context hook did not inject router guidance into the hidden system context")
+}
+if (!injectedContext.includes("• develop: ASK workflow") || injectedContext.includes("external-skill")) {
+  throw new Error("router injected a non-ASK skill from the shared skill root")
+}
+
+await hooks.tool["execute.after"]({
+  sessionID: "test",
+  tool: "skill",
+  input: { name: "external-skill" },
+  status: "completed",
+  result: { args: { name: "external-skill" } },
+})
+let externalSkillGateError
+try {
+  await hooks.tool["execute.before"]({ sessionID: "test", tool: "bash", input: {} })
+} catch (error) {
+  externalSkillGateError = error
+}
+if (!String(externalSkillGateError?.message).includes("Load a skill first")) {
+  throw new Error("non-ASK skill incorrectly satisfied the skill gate")
 }
 
 await hooks.tool["execute.after"]({
@@ -78,6 +112,17 @@ if (JSON.stringify(liveSkills) !== JSON.stringify([{ skill: "code-review", label
   throw new Error("V2 TUI did not recover a completed native skill tool call")
 }
 
+const externalSkills = mergeActiveSkills(
+  { activeSkills: [], pending: [] },
+  [{
+    type: "assistant",
+    content: [{ type: "tool", name: "skill", state: { status: "completed", input: { id: "external-skill" } } }],
+  }],
+)
+if (externalSkills.length !== 0) {
+  throw new Error("V2 TUI included a completed non-ASK skill")
+}
+
 const mergedSkills = mergeActiveSkills(
   { activeSkills: [{ skill: "spec", label: "Spec", current: true }], pending: [] },
   [{
@@ -109,4 +154,5 @@ if (tuiSource.includes("const COLORS = {") || tuiSource.includes("#7dd3fc")) {
 
 stopped = true
 await cleanup()
+await rm(skillRoot, { recursive: true, force: true })
 console.log("OpenCode V2 plugin checks passed.")

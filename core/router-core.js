@@ -23,7 +23,15 @@ const SKILL_TEXT_WRITING = "text-writing"
 const SKILL_RESEARCH = "research"
 const SKILL_DEEP_RESEARCH = "deep-research"
 const SKILL_OBSERVABILITY = "observability"
+const SKILL_GH_INBOX = "gh-inbox"
 const REVIEW_COMPLETION_MARKER = "ASK_REVIEW_COMPLETE"
+
+const ASK_SKILL_NAMES = new Set([
+  SKILL_AGENT_WORKFLOWS, SKILL_CODE_REVIEW, SKILL_DEBUGGING, SKILL_DEEP_RESEARCH,
+  SKILL_DESIGN, SKILL_DESIGN_REVIEW, SKILL_DEVELOP, SKILL_GH_INBOX, SKILL_IMPROVE,
+  SKILL_INTAKE, SKILL_OBSERVABILITY, SKILL_RESEARCH, SKILL_SESSION_REVIEW,
+  SKILL_SPEC, SKILL_TEXT_WRITING, SKILL_VERIFICATION, SKILL_WRITE_SKILL,
+])
 const VALID_EXECUTION_TIERS = new Set(["light", "standard", "deep"])
 const VALID_DELEGATION_MODES = new Set(["auto", "prefer-subagent", "owner-only"])
 const WORKFLOW_PHASES = ["INTAKE", "RESEARCH", "SPEC", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "ITERATE", "AUDIT", "RELEASE_GATE", "DONE", "BLOCKED"]
@@ -548,6 +556,18 @@ function findSkill(skills, name) {
   return skills.find((skill) => skill.name === name)
 }
 
+// Accept only skills owned by this kit, identified by their canonical ASK directory.
+function isAskSkill(skill) {
+  if (typeof skill?.name !== "string" || !ASK_SKILL_NAMES.has(skill.name)) return false
+  return typeof skill.filePath === "string"
+    && path.basename(path.dirname(skill.filePath)) === `ask-${skill.name}`
+}
+
+// Check whether a native skill invocation belongs to this kit's canonical roster.
+function isAskSkillName(skillName) {
+  return typeof skillName === "string" && ASK_SKILL_NAMES.has(skillName)
+}
+
 function agentTierForExecutionTier(executionTier) {
   switch (executionTier) {
     case "light": return "mini"
@@ -704,10 +724,10 @@ module.exports = {
   SKILL_AGENT_WORKFLOWS, SKILL_CODE_REVIEW, SKILL_DEBUGGING,
   SKILL_SESSION_REVIEW, SKILL_IMPROVE, SKILL_DEVELOP, SKILL_INTAKE, SKILL_DESIGN,
   SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SPEC, COMPLETION_PHRASES, SKILL_DESIGN_REVIEW,
-   SKILL_TEXT_WRITING, SKILL_RESEARCH, SKILL_DEEP_RESEARCH, SKILL_OBSERVABILITY, REVIEW_COMPLETION_MARKER, hasReviewCompletionSignal, hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches,
+    SKILL_TEXT_WRITING, SKILL_RESEARCH, SKILL_DEEP_RESEARCH, SKILL_OBSERVABILITY, REVIEW_COMPLETION_MARKER, hasReviewCompletionSignal, hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches,
   buildSkillOverview, cascadeRoute, buildExecutionProfile, buildRoutingStatus, pendingReviewRequirements, activeSkillEntries, skillDisplayName, loadSkills,
   createEmptySessionState, getSessionState, setSessionState,
-   findSkill, hasPhraseSignal, routingHintLines,
+    findSkill, isAskSkill, isAskSkillName, hasPhraseSignal, routingHintLines,
    classifyWorkflowRisk, hasWorkflowRiskSignal, workflowRiskRank, requiredWorkflowPhases, buildWorkflowState, workflowHintLines, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
   stripFrontmatter, toSingleLine, normalizeStringList,
   parseBooleanField, parseFrontmatter, unique,
