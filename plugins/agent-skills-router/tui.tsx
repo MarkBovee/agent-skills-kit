@@ -39,14 +39,6 @@ function pendingText(items: string[]): string {
   return items.map((label) => `→ ${label}`).join("\n")
 }
 
-const COLORS = {
-  title: "#7dd3fc",
-  section: "#fbbf24",
-  active: "#86efac",
-  muted: "#a8a29e",
-  pending: "#fbbf24",
-}
-
 // Present a section header in one shared style so both blocks read as one system.
 function SectionHeader(props: { title: string; color: unknown }) {
   return <text fg={props.color}><b>{props.title}</b></text>
@@ -62,17 +54,17 @@ function StatusPanel(props: { api: Context; sessionID: string }) {
   return (
     <Show when={status()}>
       <box flexDirection="column" gap={1} paddingTop={1} paddingBottom={1}>
-        <text fg={COLORS.title}><b>Agent Skills Kit</b></text>
+        <text fg={props.api.theme.text.action.primary.default}><b>Agent Skills Kit</b></text>
         <box flexDirection="column">
-          <SectionHeader title="ACTIVE SKILLS" color={COLORS.section} />
-          <Show when={activeSkills().length > 0} fallback={<text fg={COLORS.muted}>No skill loaded</text>}>
-            <text fg={COLORS.active}>{activeSkillText(activeSkills())}</text>
+          <SectionHeader title="ACTIVE SKILLS" color={props.api.theme.text.default} />
+          <Show when={activeSkills().length > 0} fallback={<text fg={props.api.theme.text.subdued}>No skill loaded</text>}>
+            <text fg={props.api.theme.text.feedback.success.default}>{activeSkillText(activeSkills())}</text>
           </Show>
         </box>
         <Show when={pending().length > 0}>
           <box flexDirection="column">
-            <SectionHeader title="PENDING" color={COLORS.section} />
-            <text fg={COLORS.pending}>{pendingText(pending())}</text>
+            <SectionHeader title="PENDING" color={props.api.theme.text.default} />
+            <text fg={props.api.theme.text.feedback.warning.default}>{pendingText(pending())}</text>
           </box>
         </Show>
       </box>

@@ -93,18 +93,18 @@ if (JSON.stringify(mergedSkills) !== JSON.stringify([
 }
 
 const tuiSource = await readFile(new URL("../plugins/agent-skills-router/tui.tsx", import.meta.url), "utf8")
-const sidebarColors = [
-  'title: "#7dd3fc"',
-  'section: "#fbbf24"',
-  'active: "#86efac"',
-  'muted: "#a8a29e"',
-  'pending: "#fbbf24"',
+const sidebarThemeTokens = [
+  "props.api.theme.text.action.primary.default",
+  "props.api.theme.text.default",
+  "props.api.theme.text.subdued",
+  "props.api.theme.text.feedback.success.default",
+  "props.api.theme.text.feedback.warning.default",
 ]
-if (!tuiSource.includes("const COLORS = {") || sidebarColors.some((color) => !tuiSource.includes(color))) {
-  throw new Error("OpenCode TUI sidebar does not define its stable color palette")
+if (sidebarThemeTokens.some((token) => !tuiSource.includes(token))) {
+  throw new Error("OpenCode TUI sidebar does not use the semantic theme colors")
 }
-if (tuiSource.includes("props.api.theme")) {
-  throw new Error("OpenCode TUI sidebar uses an invalid theme token source that falls back to white")
+if (tuiSource.includes("const COLORS = {") || tuiSource.includes("#7dd3fc")) {
+  throw new Error("OpenCode TUI sidebar retains its hard-coded color palette")
 }
 
 stopped = true

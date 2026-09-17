@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.2.10] - 2026-09-17
+
+### Fixed
+
+- **OpenCode sidebar respects the selected theme.** The panel now uses OpenCode's semantic primary, text, subdued, success, and warning tokens instead of a fixed color palette.
+
 ## [2.2.9] - 2026-09-16
 
 ### Fixed
