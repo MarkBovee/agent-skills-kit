@@ -1,8 +1,6 @@
 // Normalize the live OpenCode V2 tool history into the sidebar's compact status shape.
 
-import routerCore from "../../core/router-core.js"
-
-const { isAskSkillName } = routerCore
+import { isAskSkillName } from "../../core/router-core.js"
 
 // Accept only router status records that are safe for presentation.
 export function readStatus(value) {

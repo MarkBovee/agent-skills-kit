@@ -21,6 +21,11 @@ process.env.ASK_SKILLS_DIR = skillRoot
 
 const { default: plugin } = await import("../plugins/agent-skills-router/server.mjs")
 const { mergeActiveSkills } = await import("../plugins/agent-skills-router/sidebar-status.js")
+const sidebarStatusSource = await readFile(new URL("../plugins/agent-skills-router/sidebar-status.js", import.meta.url), "utf8")
+
+if (!sidebarStatusSource.includes('import { isAskSkillName } from "../../core/router-core.js"')) {
+  throw new Error("OpenCode TUI helper must use the CommonJS core's named skill export")
+}
 
 const hotReloadRoot = await mkdtemp(join(tmpdir(), "ask-router-hot-reload-"))
 const hotReloadCorePath = join(hotReloadRoot, "core", "router-core.js")
