@@ -604,8 +604,11 @@ try {
     }
     $cfg = Get-Content -LiteralPath $opencodeJsonPath -Raw | ConvertFrom-Json
     $changed = $false
-        if ($cfg.PSObject.Properties.Match("instructions").Count -eq 0 -or $null -eq $cfg.instructions -or $cfg.instructions -isnot [System.Array]) {
+        if ($cfg.PSObject.Properties.Match("instructions").Count -eq 0 -or $null -eq $cfg.instructions) {
             $cfg | Add-Member -NotePropertyName instructions -NotePropertyValue @() -Force
+            $changed = $true
+        } elseif ($cfg.instructions -isnot [System.Array]) {
+            $cfg.instructions = @($cfg.instructions)
             $changed = $true
         }
         foreach ($ins in @("./rules/coding-standards.md", "./rules/agent-skills-kit.md")) {

@@ -45,7 +45,8 @@ async function main() {
   // Later prompts keep live obligations but omit the static decision-tree rows.
   const compactAppend = await plugin["tui.prompt.append"]({ prompt: "continue implementation" })
   const compactText = compactAppend?.append || ""
-  check("follow-up prompt contains compact kit status", compactText.includes("╌ Agent Skills Kit ╌") && compactText.includes("Active: develop"))
+  check("follow-up prompt contains compact kit status", compactText.includes("╌ Agent Skills Kit ╌"))
+  check("follow-up prompt does not mark unloaded fallback active", !compactText.includes("Active: develop"))
   check("follow-up prompt omits decision-tree rows", !compactText.includes("Deep research complex, contested, high-stakes questions"))
 
   // Blocked-tool guard: bash before any skill load returns the derived hint rows.
@@ -64,6 +65,20 @@ async function main() {
   check(
     "auto-match nudge proposes debugging",
     (matchAppend?.append || "").includes("Match: debugging"),
+  )
+  check(
+    "route match is not shown as active before skill load",
+    !(matchAppend?.append || "").includes("Active: debugging"),
+  )
+  const { buildCompactSkillOverview } = require("../core/router-core")
+  check(
+    "loaded skill stays active after route changes",
+    buildCompactSkillOverview({
+      loadedSkills: ["debugging"],
+      matchedSkills: [{ name: "develop" }],
+      executionProfile: null,
+      interactionCountSinceSkillLoad: 0,
+    }).includes("Active: debugging"),
   )
   const deepResearchAppend = await plugin["tui.prompt.append"]({ prompt: "perform exhaustive research and compare against upstream" })
   check(
@@ -137,7 +152,7 @@ async function main() {
   const afterDesignReview = await plugin["tui.prompt.append"]({ prompt: "check de pagina" })
   check(
     "design-review load clears design-review nudge",
-    !(afterDesignReview?.append || "").includes("design-review"),
+    !(afterDesignReview?.append || "").includes("Design produced"),
   )
 
   await plugin["tool.execute.after"]({ tool: "skill" }, { args: { name: "code-review" } })

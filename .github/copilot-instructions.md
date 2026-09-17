@@ -2,33 +2,29 @@
 
 This repository ships portable workflow skills under [.github/skills](./skills).
 
-- At the start of a task, choose the best matching skill immediately; do not wait for a manual trigger when the fit is clear.
-- Prefer these skills when the user's request clearly matches one of them instead of restating the full workflow inline.
-- Treat `develop` as the default execution baseline for normal software work and combine it with a more specific skill when needed.
-- For large, multi-issue, exhaustive, compatibility-sensitive, or release-sensitive work, load `intake`, write a plan, and complete plan-check before execution.
-- Record maximum-result scope as must/should/could; deferred evidence-backed work needs a reason and revisit trigger.
-- Delegate independent research, validation, review, and audit tracks. Never self-declare release readiness; require independent evidence.
-- After meaningful, subtle, or risky code changes, load `code-review` before moving on. Skip review for trivial edits where the change is obvious and low-risk.
-- If review or verification exposes a reusable workflow gap, capture it with `write-skill` before ending cold.
-- When editing code, add concise intent comments by default; place one short comment above each function unless the repo's local convention says otherwise.
-- Keep always-on instructions compact; put reusable procedures in skills so Copilot can load them on demand.
+- Load the best matching skill before substantial work; use `develop` only as default.
+- Large, exhaustive, compatibility-sensitive, or release-sensitive work: load `intake`, write a plan, classify must/should/could, and complete plan-check.
+- Delegate independent research, validation, review, and audit. Never self-declare release readiness; require independent evidence.
+- Meaningful code change: load `code-review`; skip only obvious, low-risk edits. Capture reusable workflow gaps with `write-skill`.
+- Code edits need one concise intent comment above each function unless local convention overrides.
+- Keep always-on guidance compact; load reusable procedure from skills.
 
 ## Host-neutral discovery
 
-1. Follow the host's preferred discovered skill root. Canonical source is `skills/*/SKILL.md`; installs use `~/.agents/skills/*/SKILL.md`, except OpenCode links its managed skills under its config root and dsh prefers its generated skill root.
-2. Read candidate frontmatter and load the most specific matching `SKILL.md` before substantial work. Use `develop` only when no more specific workflow applies.
-3. Add only directly implied companion skills: `design` → `design-review`, `code-review` → `verification`; use `research` for bounded evidence and `deep-research` for autonomous multi-source investigation.
-4. Native host discovery is sufficient. OpenCode and optional dsh routers add advisory matches and session state, but do not load skills or execute tools.
+1. Use host skill root. Canonical source: `skills/*/SKILL.md`; installs: `~/.agents/skills/*/SKILL.md`, except OpenCode and dsh host roots.
+2. Read frontmatter; load most specific matching `SKILL.md`. Use `develop` only without a specific match.
+3. Add implied companions only: `design` → `design-review`, `code-review` → `verification`; use `research` for bounded facts, `deep-research` for autonomous multi-source work.
+4. Native discovery suffices. OpenCode and dsh routers advise and track state; they do not load skills or run tools.
 
 ## Coding standards
 
-The `ask-code-review` skill enforces hard coding standards. Key rules enforced during review:
+`ask-code-review` enforces these hard review rules:
 
-- Intent comments on every function, method, handler, and utility — non-negotiable.
-- DRY: refactor 3+ duplications into shared components.
-- Meaningful names: avoid generic `data`, `result`, `code`, `updated`.
-- Explicit data shapes: prefer named types over loose payloads.
-- Language-specific rules (const over let, ===, type hints for Python, pipefail for shell).
+- Intent comment above every function, method, handler, and utility.
+- DRY: refactor 3+ duplications.
+- Meaningful names; avoid generic `data`, `result`, `code`, `updated`.
+- Named data shapes over loose payloads.
+- Language rules: const over let, ===, Python type hints, shell pipefail.
 
 Full standard at [rules/coding-standards.md](../../rules/coding-standards.md) in the repo.
 

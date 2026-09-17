@@ -292,6 +292,7 @@ main() {
     printf 'stale router core\n' > "$OPENCODE_DIR/plugins/core/router-core.js"
     printf 'user-owned plugin core\n' > "$OPENCODE_DIR/plugins/core/user-owned.js"
     printf 'user-owned config core\n' > "$OPENCODE_DIR/core/user-owned.js"
+    printf '{"instructions":"./rules/workflow.md"}\n' > "$OPENCODE_DIR/opencode.json"
     printf 'user instruction\n<!-- agent-skills-kit:opencode -->\nold guidance\n' > "$OPENCODE_DIR/AGENTS.md"
     printf 'user instruction\n<!-- agent-skills-kit:dsh -->\nold guidance\n' > "$DSH_HOME/AGENTS.md"
     node -e "const fs=require('fs'), p=process.argv[1]; const f=JSON.parse(fs.readFileSync(p)); f.version='0.0.0'; fs.writeFileSync(p,JSON.stringify(f)+'\\n')" "$OPENCODE_DIR/node_modules/@opencode/plugin/package.json"
@@ -306,6 +307,10 @@ main() {
       "$preset" "$STALE_PRESET_DESCRIPTION" absent
     assert_count "refresh removes duplicate OpenCode TUI sidebar entries" \
       "$OPENCODE_DIR/tui.json" "./plugins/agent-skills-router/tui.tsx" 1
+    check "refresh normalizes scalar OpenCode instructions" \
+      "$(node -e "const c=require(process.argv[1]); process.exit(Array.isArray(c.instructions)?0:1)" "$OPENCODE_DIR/opencode.json" && printf true || printf false)"
+    assert_grep "refresh removes workflow from scalar OpenCode instructions" \
+      "$OPENCODE_DIR/opencode.json" "./rules/workflow.md" absent
     check "refresh removes the obsolete OpenCode plugin core file" \
       "$([ ! -e "$OPENCODE_DIR/plugins/core/router-core.js" ] && printf true || printf false)"
     check "refresh preserves user-owned OpenCode plugin core files" \

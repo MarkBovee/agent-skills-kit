@@ -580,7 +580,7 @@ fi
 node -e "
     var fs=require('fs'), path=require('path'), f='$OPENCODE_JSON';
     var c=JSON.parse(fs.readFileSync(f,'utf-8'));
-    c.instructions=c.instructions||[];
+    c.instructions=Array.isArray(c.instructions)?c.instructions:(c.instructions==null?[]:[c.instructions]);
     var rules=['./rules/coding-standards.md','./rules/agent-skills-kit.md'];
     for(var i=0;i<rules.length;i++){if(!c.instructions.includes(rules[i])){c.instructions.push(rules[i]);}}
     c.instructions=c.instructions.filter(function(rule){return rule!=='./rules/workflow.md';});
