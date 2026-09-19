@@ -7,6 +7,7 @@ const {
   createEmptySessionState,
   parseWorkflowEvidence,
   recordWorkflowEvidence,
+  reviewModeForRisk,
   requiredWorkflowPhases,
   cascadeRoute,
   workflowHintLines,
@@ -35,7 +36,12 @@ function checkRiskProfiles() {
   check("deep research prompt is significant risk", classifyWorkflowRisk("perform exhaustive research") === "significant")
   check("large multi-issue prompt is significant risk", classifyWorkflowRisk("multiple issues with maximum compatibility") === "significant")
   check("release prompt is release-sensitive", classifyWorkflowRisk("prepare release candidate") === "release-sensitive")
-  check("small flow has execute and validate", JSON.stringify(requiredWorkflowPhases("small")) === JSON.stringify(["EXECUTE", "VALIDATE"]))
+  // Verify low-risk workflows use the lightweight combined review path.
+  check("small flow has combined review", JSON.stringify(requiredWorkflowPhases("small")) === JSON.stringify(["EXECUTE", "VALIDATE", "REVIEW"])
+    && reviewModeForRisk("small") === "combined")
+  check("normal flow has combined review", reviewModeForRisk("normal") === "combined")
+  // Verify higher-risk workflows retain separate review and audit handling.
+  check("higher-risk flows keep separate review", ["spec-required", "significant", "release-sensitive"].every((risk) => reviewModeForRisk(risk) === "separate"))
   check("release flow has audit and release gate", requiredWorkflowPhases("release-sensitive").includes("AUDIT") && requiredWorkflowPhases("release-sensitive").includes("RELEASE_GATE"))
   check("spec flow places spec before plan", JSON.stringify(requiredWorkflowPhases("spec-required").slice(0, 3)) === JSON.stringify(["INTAKE", "SPEC", "PLAN"]))
   check("release flow can include conditional spec", requiredWorkflowPhases("release-sensitive", "new external contract").includes("SPEC")

@@ -9,7 +9,18 @@ Review for correctness, requirements, and risk first. Enforce `coding-standards.
 
 Keep scope clear: code-review checks behavior, requirements, regressions, and design risk. The final `verification` pass owns proportional code-smell scanning and evidence-based test-gap reporting; escalate deeper repository-wide smell analysis to `improve`.
 
-This is a mandatory second pass after **every** code edit. Review depth scales with risk — but no edit skips review entirely.
+This is a mandatory second pass after **every** code edit. For `small` and `normal` workflows, use one lightweight combined pass covering correctness, regressions, local conventions, and a bounded counterexample/security sanity check. For `spec-required`, `significant`, and `release-sensitive` workflows, keep review separate from audit and escalate when the diff reveals higher risk.
+
+## Lightweight combined review
+
+Use this compact path only when the workflow reports `review=combined`:
+
+1. Confirm the diff solves the request and does not change unrelated behavior.
+2. Check the touched callers, local conventions, required intent comments, and the smallest meaningful regression proof.
+3. Try one or two bounded counterexamples, including unsafe input, stale state, or an error path when relevant.
+4. Escalate to separate audit/review handling when you find security, compatibility, migration, architecture, ownership, routing, release, or other cross-cutting risk.
+
+The combined pass still ends with the normal review evidence contract. It does not replace `verification`, and it can never satisfy the `AUDIT` gate required by higher-risk workflows.
 
 ## Completion handoff
 

@@ -348,12 +348,17 @@ function workflowRiskRank(risk) {
   return ["small", "normal", "spec-required", "significant", "release-sensitive"].indexOf(risk)
 }
 
+// Select the lightweight combined review only for low-risk workflows.
+function reviewModeForRisk(risk) {
+  return ["small", "normal"].includes(risk) ? "combined" : "separate"
+}
+
 // Select lifecycle gates for a risk level while keeping release decisions
 // separate from implementation and ordinary validation.
 function requiredWorkflowPhases(risk, query = "") {
   const phases = (() => {
     switch (risk) {
-      case "small": return ["EXECUTE", "VALIDATE"]
+      case "small": return ["EXECUTE", "VALIDATE", "REVIEW"]
       case "spec-required": return ["INTAKE", "SPEC", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW"]
       case "significant": return ["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "ITERATE", "AUDIT"]
       case "release-sensitive": return ["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "ITERATE", "AUDIT", "RELEASE_GATE"]
@@ -383,6 +388,7 @@ function buildWorkflowState(query, previous = null) {
   const requiredPhases = requiredWorkflowPhases(risk, previousRequiresSpec ? "new external contract" : normalizedQuery)
   return {
     risk,
+    reviewMode: reviewModeForRisk(risk),
     phase: sameRisk ? (previousWorkflow.phase || requiredPhases[0]) : requiredPhases[0],
     requiredPhases,
     completedGates: sameRisk && Array.isArray(previousWorkflow.completedGates) ? previousWorkflow.completedGates : [],
@@ -401,7 +407,7 @@ function workflowHintLines(workflow) {
   const gates = (workflow.requiredPhases || []).map((phase) => `${completed.has(phase) ? "PASS" : "TODO"}:${phase}`)
   const findings = (workflow.unresolvedFindings || []).length
   return [
-    `Workflow: ${workflow.phase} | risk=${workflow.risk} | ${gates.join(" ")}`,
+    `Workflow: ${workflow.phase} | risk=${workflow.risk} | review=${workflow.reviewMode || "separate"} | ${gates.join(" ")}`,
     `Evidence: subagents=${(workflow.subagents || []).length} | unresolved-findings=${findings} | release=${workflow.releaseStatus}`,
   ]
 }
@@ -756,7 +762,7 @@ module.exports = {
   SKILL_AGENT_WORKFLOWS, SKILL_CODE_REVIEW, SKILL_DEBUGGING,
   SKILL_SESSION_REVIEW, SKILL_IMPROVE, SKILL_DEVELOP, SKILL_INTAKE, SKILL_DESIGN,
   SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SPEC, COMPLETION_PHRASES, SKILL_DESIGN_REVIEW,
-    SKILL_TEXT_WRITING, SKILL_RESEARCH, SKILL_DEEP_RESEARCH, SKILL_OBSERVABILITY, REVIEW_COMPLETION_MARKER, hasReviewCompletionSignal, hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches,
+    SKILL_TEXT_WRITING, SKILL_RESEARCH, SKILL_DEEP_RESEARCH, SKILL_OBSERVABILITY, REVIEW_COMPLETION_MARKER, hasReviewCompletionSignal, hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, reviewModeForRisk,
   buildSkillOverview, buildCompactSkillOverview, cascadeRoute, buildExecutionProfile, buildRoutingStatus, pendingReviewRequirements, activeSkillEntries, skillDisplayName, loadSkills,
   createEmptySessionState, getSessionState, setSessionState,
     findSkill, isAskSkill, isAskSkillName, ASK_SKILL_NAMES, hasPhraseSignal, routingHintLines,

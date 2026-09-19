@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.3.0] - 2026-09-19
+
+### Added
+
+- **Lightweight combined review for low-risk work.** Small and normal workflows now use one compact review pass covering correctness, regression risk, local conventions, and bounded counterexamples, while specification, significant, and release-sensitive workflows retain separate review and audit gates.
+
 ## [2.2.20] - 2026-09-19
 
 ### Fixed

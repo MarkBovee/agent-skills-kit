@@ -40,7 +40,7 @@ async function main() {
   const auditText = auditAppend?.append || ""
   check("first prompt contains session audit header", auditText.includes("FIRST ACTION: scan the decision tree"))
   check("first prompt contains kit overview", auditText.includes("╌ Agent Skills Kit ╌"))
-  check("first prompt exposes normal lifecycle status", auditText.includes("Workflow: PLAN | risk=normal"))
+  check("first prompt exposes combined review status", auditText.includes("Workflow: PLAN | risk=normal | review=combined"))
 
   // Later prompts keep live obligations but omit the static decision-tree rows.
   const compactAppend = await plugin["tui.prompt.append"]({ prompt: "continue implementation" })
