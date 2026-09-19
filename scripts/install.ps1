@@ -121,7 +121,7 @@ Show-AskBanner
 
 # Write the Claude rule file when a Claude home already exists.
 function Write-ClaudeRulesFile {
-    @"
+@"
 # ASK Skills
 
 - Prefer workflow skills under `~/.claude/skills/` when the user's request clearly matches one of them instead of rewriting the workflow inline.
@@ -138,7 +138,7 @@ function Write-ClaudeRulesFile {
 # Append managed workflow guidance without replacing user-owned OpenCode rules.
 function Write-OpencodeAgentsSection {
     $workflowSource = Join-Path $opencodeRulesSource "workflow.md"
-    $section = @"
+$section = @"
 $opencodeSectionMarker
 $(Get-Content -LiteralPath $workflowSource -Raw)
 <!-- /agent-skills-kit:opencode -->
@@ -159,7 +159,7 @@ $(Get-Content -LiteralPath $workflowSource -Raw)
 # The section is marker-delimited and only written when the marker is absent,
 # so existing user instruction content is never rewritten or clobbered.
 function Write-DshAgentsSection {
-    $section = @"
+$section = @"
 
 $dshSectionMarker
 ## Agent Skills Kit (dsh)
@@ -251,7 +251,7 @@ function Install-DshPreset {
     # Write the preset metadata on first install, and migrate it on refresh only
     # when the description is still the pre-English managed default, so a
     # user-edited description always survives.
-    $presetContent = @"
+$presetContent = @"
 name: Agent Skills Kit
 description: Standard coding agent with the ASK decision tree in every prompt, skill/review state tracking, and optional tool gating until a skill is loaded.
 "@
