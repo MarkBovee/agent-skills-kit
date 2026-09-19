@@ -6,6 +6,13 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.2.19] - 2026-09-19
+
+### Fixed
+
+- **OpenCode's native `patch` tool now follows ASK edit safeguards.** It requires a loaded skill where configured and creates the same code-review obligation as the other code-edit tools.
+- **Session review now stays within ASK ownership.** Self-review considers only skills shipped by this repository; project-specific skills such as `ebusd-expert` are reported to their owning repository instead of creating ASK improvement debt.
+
 ## [2.2.18] - 2026-09-17
 
 ### Fixed

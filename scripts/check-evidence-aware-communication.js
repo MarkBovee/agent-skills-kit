@@ -49,6 +49,11 @@ async function checkEvidenceAwareCommunication() {
     "## Evidence-aware issue communication",
     "Distinguish observed evidence, conclusions, and information still needed.",
     "Prefer the smallest concrete next step over a broad diagnostic checklist.",
+    "This mode reviews only ASK skills supplied by the active Agent Skills Kit distribution.",
+    "the host's installed/shared ASK skill root",
+    "Do not infer ASK ownership from its mention in a consuming repository's instructions.",
+    "do not create an ASK issue or set `shouldCaptureImprovement` for it.",
+    "File an issue there only when the user explicitly requests general issue filing mode.",
   ]) {
     assertIncludes(sessionReviewSkill, phrase, "skills/ask-session-review/SKILL.md")
   }

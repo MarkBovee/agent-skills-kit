@@ -23,7 +23,7 @@ function stateFor(key) {
   return s
 }
 
-const CODE_EDIT_TOOLS = new Set(['edit', 'write', 'apply_patch'])
+const CODE_EDIT_TOOLS = new Set(['edit', 'write', 'patch', 'apply_patch'])
 const REVIEW_SKILL = 'code-review'
 const VERIFICATION_SKILL = 'verification'
 const WRITE_SKILL_SKILL = 'write-skill'

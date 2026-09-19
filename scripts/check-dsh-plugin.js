@@ -53,6 +53,7 @@ async function main() {
   // specifiers and therefore loads out-of-tree as-is, exactly like the
   // installed preset row does inside dsh.
   const source = fs.readFileSync(pluginSourcePath, "utf8")
+  const prototypeSource = fs.readFileSync(path.join(repoRoot, "plugins", "dsh-panel-prototype", "host.js"), "utf8")
 
   const workDir = fs.mkdtempSync(path.join(os.tmpdir(), "ask-dsh-plugin-"))
   const pluginCopy = path.join(workDir, "plugins", "ask-kit-router.mjs")
@@ -68,6 +69,7 @@ async function main() {
     check("exports name/inject/apply", typeof mod.name === "string" && Array.isArray(mod.inject) && typeof mod.apply === "function")
     check("hard-injects systemPrompt", mod.inject.includes("systemPrompt"))
     check("stays dependency-free (no Config schema export)", mod.Config === undefined)
+    check("prototype tracks native patch edits", prototypeSource.includes("new Set(['edit', 'write', 'patch', 'apply_patch'])"))
 
     const listeners = new Map()
     const commands = []
@@ -163,6 +165,7 @@ async function main() {
 
     // Strict-mode gate denies bash before any skill load, allows after one.
     const pre = listeners.get("tools/pre-execute")[0]
+    const assemble = listeners.get("system-prompt/assemble")[0]
     const agent = { id: "gate-check" }
     // Execute the denied callback.
     const denied = await pre({ name: "bash", agent }, async () => ({ kind: "allow" }))
@@ -175,6 +178,14 @@ async function main() {
     // Execute the foreign denied callback.
     const foreignDenied = await pre({ name: "bash", agent: foreignSkillAgent }, async () => ({ kind: "allow" }))
     check("strict gate ignores non-ASK skill loads", foreignDenied && foreignDenied.kind === "deny")
+    const deniedPatchAgent = { id: "denied-patch-gate-check" }
+    // Simulate the host refusing an edit before any ASK skill was loaded.
+    const deniedPatch = await pre({ name: "patch", agent: deniedPatchAgent }, async () => ({ kind: "allow" }))
+    // Render the rejected session to prove no review obligation was persisted.
+    const deniedPatchAssembly = await assemble({ sections: [] }, { agent: deniedPatchAgent }, async () => ({ sections: [] }))
+    // Extract the router-owned section from the rejected session snapshot.
+    const deniedPatchText = deniedPatchAssembly.sections.find((entry) => entry.name === "ask-kit:router")?.text || ""
+    check("strict gate denies patch without creating review debt", deniedPatch?.kind === "deny" && !deniedPatchText.includes("→ Code edited"))
     listeners.get("tools/result")[0](
       { name: "skill", agent, arguments: { name: "deep-research" } },
       { isError: false, output: "ASK_WORKFLOW_PASS phase=RESEARCH" },
@@ -185,7 +196,6 @@ async function main() {
 
     // Beslisboom drift: every canonical router-core row appears verbatim.
     const inbox = listeners.get("agent/inbox/inserted")[0]
-    const assemble = listeners.get("system-prompt/assemble")[0]
     // Execute the deep research state callback.
     const deepResearchState = await assemble({ sections: [] }, { agent }, async () => ({ sections: [] }))
     // Find the first item that matches the local condition.
@@ -238,8 +248,9 @@ async function main() {
 
     // Review-debt machinery mirrors router-core's own nudge wording.
     const agent3 = { id: "flip-check" }
+    listeners.get("tools/result")[0]({ name: "skill", agent: agent3, arguments: { name: "develop" } }, { isError: false })
     // Execute this callback within the surrounding workflow.
-    await pre({ name: "edit", agent: agent3, diffIdentity: "HEAD" }, async () => ({ kind: "allow" }))
+    await pre({ name: "patch", agent: agent3, diffIdentity: "HEAD" }, async () => ({ kind: "allow" }))
     // Execute the flagged callback.
     const flagged = await assemble({ sections: [] }, { agent: agent3 }, async () => ({ sections: [] }))
     // Find the first item that matches the local condition.
@@ -270,6 +281,7 @@ async function main() {
 
     // Delegated review completion clears parent debt through its explicit handoff marker.
     const delegatedAgent = { id: "delegated-review-check" }
+    listeners.get("tools/result")[0]({ name: "skill", agent: delegatedAgent, arguments: { name: "develop" } }, { isError: false })
     // Execute this callback within the surrounding workflow.
     await pre({ name: "edit", agent: delegatedAgent, diffIdentity: "HEAD" }, async () => ({ kind: "allow" }))
     // Execute the delegated before callback.
@@ -330,6 +342,7 @@ async function main() {
     const steered = []
     // Execute the steer agent callback.
     const steerAgent = { id: "steer-check", steer: (msg) => steered.push(msg) }
+    listeners.get("tools/result")[0]({ name: "skill", agent: steerAgent, arguments: { name: "develop" } }, { isError: false })
     // Execute this callback within the surrounding workflow.
     await pre({ name: "edit", agent: steerAgent, diffIdentity: "HEAD" }, async () => ({ kind: "allow" }))
     inbox({ agent: steerAgent, message: { text: "ik ben klaar" } })
@@ -383,13 +396,15 @@ async function main() {
       const appended = []
       // Execute the bridge agent callback.
       const bridgeAgent = { id: "bridge-check", session: { append: (type, data) => appended.push({ type, data }) } }
-      // Before any real routing decision a mutation must still publish a neutral
-      // view: no active skill and no predicted workflow route. The edit's
-      // review obligation is real state and may already be pending.
+      listeners.get("tools/result")[0]({ name: "skill", agent: bridgeAgent, arguments: { name: "develop" } }, { isError: false })
+      // Before any real routing decision a permitted mutation preserves the
+      // loaded skill and has no predicted workflow route.
       await pre({ name: "edit", agent: bridgeAgent, diffIdentity: "HEAD" }, async () => ({ kind: "allow" }))
       const neutralView = appended.at(-1)?.data
-       check("pre-route panel view carries no predicted workflow", Boolean(neutralView)
-         && neutralView.activeSkills.length === 0 && !("workflow" in neutralView))
+      // Verify the explicit skill load is retained without fabricating a workflow route.
+      const neutralHasDevelop = neutralView?.activeSkills.some((entry) => entry.skill === "develop")
+      check("pre-route panel view carries no predicted workflow", Boolean(neutralView)
+          && neutralHasDevelop && !("workflow" in neutralView))
       // A real prompt establishes the route, then the skill load updates it.
       inbox({ agent: bridgeAgent, message: { text: "design a ui for the dashboard" } })
       listeners.get("tools/result")[0]({ name: "skill", agent: bridgeAgent, arguments: { name: "design" } }, { isError: false })
@@ -441,6 +456,7 @@ async function main() {
       const dedupeAppended = []
       // Execute the dedupe agent callback.
       const dedupeAgent = { id: "dedupe-check", session: { append: (type, data) => dedupeAppended.push({ type, data }) } }
+      listeners.get("tools/result")[0]({ name: "skill", agent: dedupeAgent, arguments: { name: "develop" } }, { isError: false })
       // Execute this callback within the surrounding workflow.
       await pre({ name: "edit", agent: dedupeAgent, diffIdentity: "HEAD" }, async () => ({ kind: "allow" }))
       const afterFirstEdit = dedupeAppended.length
