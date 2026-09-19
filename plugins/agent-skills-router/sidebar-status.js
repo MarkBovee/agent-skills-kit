@@ -8,7 +8,7 @@ export const ASK_SKILL_NAMES = new Set([
   "research", "session-review", "spec", "text-writing", "verification", "write-skill",
 ])
 
-const CODE_EDIT_TOOL_NAMES = new Set(["edit", "write", "apply_patch"])
+const CODE_EDIT_TOOL_NAMES = new Set(["edit", "write", "patch", "apply_patch"])
 
 // Accept only router status records that are safe for presentation.
 export function readStatus(value) {

@@ -62,7 +62,7 @@ function resolveSkillName(input, output) {
   return ""
 }
 
-const BLOCKED_BEFORE_SKILL = new Set(["edit", "write", "apply_patch", "bash"])
+const BLOCKED_BEFORE_SKILL = new Set(["edit", "write", "patch", "apply_patch", "bash"])
 
 // Keep router state scoped to the host session; older hook payloads fall back
 // to the legacy bucket rather than preventing prompt guidance.
@@ -211,15 +211,6 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
     "tool.execute.before": async (input) => {
       const toolID = (typeof input?.tool === "string" ? input.tool : "").trim()
       if (!toolID) return
-      if (CODE_EDIT_TOOL_IDS.has(toolID)) {
-        const state = getSessionState(sessionState, sessionKey(input))
-        save(input, {
-          needsCodeReview: true,
-          reviewGeneration: (state.reviewGeneration || 0) + 1,
-          reviewReference: input?.diffIdentity || input?.commit || `generation-${(state.reviewGeneration || 0) + 1}`,
-          reviewEvidence: null, reviewFollowUp: null,
-        })
-      }
       if (BLOCKED_BEFORE_SKILL.has(toolID)) {
         const state = getSessionState(sessionState, sessionKey(input))
         if ((state.skillsLoadedCount || 0) === 0) {
@@ -228,6 +219,15 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
               + routingHintLines().join("\n"),
           }
         }
+      }
+      if (CODE_EDIT_TOOL_IDS.has(toolID)) {
+        const state = getSessionState(sessionState, sessionKey(input))
+        save(input, {
+          needsCodeReview: true,
+          reviewGeneration: (state.reviewGeneration || 0) + 1,
+          reviewReference: input?.diffIdentity || input?.commit || `generation-${(state.reviewGeneration || 0) + 1}`,
+          reviewEvidence: null, reviewFollowUp: null,
+        })
       }
     },
     // Execute this callback within the surrounding workflow.

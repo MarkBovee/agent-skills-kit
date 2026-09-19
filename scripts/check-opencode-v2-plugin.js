@@ -147,6 +147,23 @@ if (!String(externalSkillGateError?.message).includes("Load a skill first")) {
   throw new Error("non-ASK skill incorrectly satisfied the skill gate")
 }
 
+let patchSkillGateError
+try {
+  await hooks.tool["execute.before"]({ sessionID: "test", tool: "patch", input: {} })
+} catch (error) {
+  patchSkillGateError = error
+}
+if (!String(patchSkillGateError?.message).includes("Load a skill first")) {
+  throw new Error("V2 patch tool bypassed the skill gate")
+}
+const deniedPatchFollowUp = { sessionID: "test", prompt: { text: "show denied patch status" } }
+await hooks.session.prompt(deniedPatchFollowUp)
+// Detect whether the rejected tool changed the router's review state.
+const deniedPatchHasReviewDebt = deniedPatchFollowUp.metadata?.askKit?.pending?.some((entry) => entry.skill === "code-review")
+if (deniedPatchHasReviewDebt) {
+  throw new Error("V2 denied patch tool created code-review debt")
+}
+
 await hooks.tool["execute.after"]({
   sessionID: "test",
   tool: "skill",
@@ -174,6 +191,21 @@ await hooks.session.prompt(skillIDFollowUp)
 // Test whether any item satisfies the local predicate.
 if (!skillIDFollowUp.metadata?.askKit?.activeSkills?.some((entry) => entry.skill === "code-review" && entry.current === true)) {
   throw new Error("V2 tool adapter did not normalize the native ASK skill ID")
+}
+
+await hooks.tool["execute.before"]({ sessionID: "test", tool: "patch", input: {} })
+await hooks.tool["execute.after"]({
+  sessionID: "test",
+  tool: "patch",
+  input: {},
+  status: "completed",
+  result: {},
+})
+const patchFollowUp = { sessionID: "test", prompt: { text: "show patch status" } }
+await hooks.session.prompt(patchFollowUp)
+// Confirm the V2 patch alias creates the same review obligation as other code edits.
+if (!patchFollowUp.metadata?.askKit?.pending?.some((entry) => entry.skill === "code-review")) {
+  throw new Error("V2 patch tool did not create code-review debt")
 }
 
 const liveSkills = mergeActiveSkills(
@@ -223,12 +255,12 @@ if (orderedSkills[0]?.skill !== "code-review" || orderedSkills[0]?.current !== t
   throw new Error("V2 TUI did not place the most recently used skill first")
 }
 
-const editMessage = {
+const patchMessage = {
   type: "assistant",
-  content: [{ type: "tool", name: "write", state: { status: "completed", input: {}, output: "written" } }],
+  content: [{ type: "tool", name: "patch", state: { status: "completed", input: {}, output: "patched" } }],
 }
-if (JSON.stringify(pendingItems({ pending: [] }, [editMessage])) !== JSON.stringify(["Code review needed"])) {
-  throw new Error("V2 TUI did not surface code-review debt from a completed edit")
+if (JSON.stringify(pendingItems({ pending: [] }, [patchMessage])) !== JSON.stringify(["Code review needed"])) {
+  throw new Error("V2 TUI did not surface code-review debt from a completed patch")
 }
 
 const reviewMessage = {
@@ -238,7 +270,7 @@ const reviewMessage = {
     output: "ASK_WORKFLOW_PASS phase=REVIEW\nreview-generation: 1\nreview-result: PASS\nASK_REVIEW_COMPLETE",
   } }],
 }
-if (pendingItems({ pending: [{ label: "Code review needed" }] }, [editMessage, reviewMessage]).length !== 0) {
+if (pendingItems({ pending: [{ label: "Code review needed" }] }, [patchMessage, reviewMessage]).length !== 0) {
   throw new Error("V2 TUI did not clear code-review debt from passing review evidence")
 }
 

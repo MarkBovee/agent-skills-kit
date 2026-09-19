@@ -49,8 +49,8 @@ const {
   workflowForSkill, parseWorkflowEvidence, recordWorkflowEvidence, buildRoutingStatus, isAskSkillName,
 } = routerCore
 
-const CODE_EDIT_TOOL_IDS = new Set(["edit", "write", "apply_patch"])
-const GATED_TOOLS = new Set(["bash", "edit", "write", "apply_patch"])
+const CODE_EDIT_TOOL_IDS = new Set(["edit", "write", "patch", "apply_patch"])
+const GATED_TOOLS = new Set(["bash", "edit", "write", "patch", "apply_patch"])
 const SECTION_NAME = "ask-kit:router"
 const LOADED_SKILLS_MAX = 12
 
@@ -388,18 +388,18 @@ export function apply(ctx, config) {
     try {
       const toolID = typeof exec?.name === "string" ? exec.name : ""
       if (!toolID) return next()
+      if (blockUntilSkillLoaded && GATED_TOOLS.has(toolID) && stateFor(exec.agent?.id).skillsLoadedCount === 0) {
+        return { kind: "deny", reason: "Load a skill first via `skill(name: '...')`.\n" + routingHintLines().join("\n") }
+      }
       if (CODE_EDIT_TOOL_IDS.has(toolID)) {
         // Publish each edit because each edit creates a distinct review generation.
         const st = stateFor(exec.agent?.id)
         st.needsCodeReview = true
-         st.reviewGeneration += 1
+        st.reviewGeneration += 1
         st.reviewReference = exec?.diffIdentity || exec?.commit || `generation-${st.reviewGeneration}`
         st.reviewEvidence = null
         st.reviewFollowUp = null
         publishPanelState(exec.agent, st)
-      }
-      if (blockUntilSkillLoaded && GATED_TOOLS.has(toolID) && stateFor(exec.agent?.id).skillsLoadedCount === 0) {
-        return { kind: "deny", reason: "Load a skill first via `skill(name: '...')`.\n" + routingHintLines().join("\n") }
       }
     } catch (error) {
       console.error("[ask-kit] gating check failed (failing open):", error)

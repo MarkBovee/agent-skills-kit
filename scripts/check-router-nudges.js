@@ -132,9 +132,11 @@ async function main() {
   check("empty session routing state is safe", emptyStatus.activeSkills.length === 0
     && openCodeStatus.workflow === null && !("confidence" in emptyStatus))
 
-  // Code-edit tracking: an edit tool sets the code-review nudge.
-  await plugin["tool.execute.before"]({ tool: "edit", diffIdentity: "HEAD" })
-  await plugin["tool.execute.after"]({ tool: "edit" }, {})
+  // Load an ASK skill so the guarded native patch tool reaches edit tracking.
+  await plugin["tool.execute.after"]({ tool: "skill" }, { args: { name: "develop" } })
+  // Code-edit tracking: OpenCode V2's patch tool sets the code-review nudge.
+  await plugin["tool.execute.before"]({ tool: "patch", diffIdentity: "HEAD" })
+  await plugin["tool.execute.after"]({ tool: "patch" }, {})
   const afterEdit = await plugin["tui.prompt.append"]({ prompt: "volgende stap" })
   check(
     "code edit sets code-review nudge",

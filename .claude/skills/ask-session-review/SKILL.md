@@ -11,13 +11,18 @@ Two modes: session self-review (primary) and general issue filing (fallback).
 
 Use at session close to evaluate whether the skill ecosystem served the work well.
 
-1. Review which skills were loaded during the session from `matchedSkills` in session state.
-2. For each used skill, check: did it trigger at the right time? Was its guidance complete? Was anything missing?
-3. If a gap, missing trigger, or improvement opportunity emerges → create issue in `MarkBovee/agent-skills-kit`.
-4. Issue title starts with `skill:` and names the skill plus the gap (e.g. `skill: session-review lacks triggers for self-review`).
-5. Body includes: observed pattern, why current behavior falls short, proposed change.
-6. Before filing, check for equivalent open issues with `gh issue list --search` against `MarkBovee/agent-skills-kit`.
-7. If improvement is confirmed, flag `shouldCaptureImprovement: true` in session state.
+This mode reviews only ASK skills supplied by the active Agent Skills Kit distribution. A candidate is ASK-owned when it was loaded from its canonical ASK source: the `skills/*/SKILL.md` tree in a source checkout or the host's installed/shared ASK skill root. Do not infer ASK ownership from its mention in a consuming repository's instructions.
+
+1. Identify ASK skills loaded during the session from `matchedSkills` in session state.
+2. For each ASK skill, check: did it trigger at the right time? Was its guidance complete? Was anything missing?
+3. Do not treat a project-specific skill named in a consuming repository's instructions as an ASK skill. Its availability and guidance belong to that project's source repository; do not create an ASK issue or set `shouldCaptureImprovement` for it.
+4. If an ASK gap, missing trigger, or improvement opportunity emerges → create issue in `MarkBovee/agent-skills-kit`.
+5. Issue title starts with `skill:` and names the ASK skill plus the gap (e.g. `skill: session-review lacks triggers for self-review`).
+6. Body includes: observed pattern, why current behavior falls short, proposed change.
+7. Before filing, check for equivalent open issues with `gh issue list --search` against `MarkBovee/agent-skills-kit`.
+8. If an ASK improvement is confirmed, flag `shouldCaptureImprovement: true` in session state.
+
+For a project-specific skill gap, report the owning project and repository in the review output. File an issue there only when the user explicitly requests general issue filing mode.
 
 When code changes exist, report stale or mismatched review evidence explicitly, including expected edit generation or diff identity when available. Do not leave an unresolved review obligation looking complete.
 

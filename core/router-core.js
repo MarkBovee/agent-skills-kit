@@ -5,7 +5,7 @@ const DEFAULT_MAX_HINTS = 4
 const DEFAULT_MAX_LISTED_SKILLS = 8
 const INTERACTION_GUARD_THRESHOLD = 5
 const MAX_SESSION_CACHE = 100
-const CODE_EDIT_TOOL_IDS = new Set(["edit", "write", "apply_patch"])
+const CODE_EDIT_TOOL_IDS = new Set(["edit", "write", "patch", "apply_patch"])
 
 const SKILL_DEVELOP = "develop"
 const SKILL_INTAKE = "intake"
