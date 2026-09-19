@@ -146,6 +146,19 @@ function Get-ManagedSkillNames {
     return Get-ChildItem -LiteralPath $SourcePath -Directory | ForEach-Object { $_.Name }
 }
 
+# Accept only single-directory-name manifest entries before building cleanup paths.
+function Test-SafeManagedEntryName {
+    param([string]$EntryName)
+
+    $isSafeName = -not [string]::IsNullOrWhiteSpace($EntryName) `
+        -and -not [System.IO.Path]::IsPathRooted($EntryName) `
+        -and $EntryName -notmatch '[\\/]' `
+        -and $EntryName -ne "." `
+        -and $EntryName -ne ".."
+
+    return $isSafeName
+}
+
 # Remove previously managed skills that no longer exist in the current source set.
 function Remove-MissingManagedSkills {
     param(
@@ -169,6 +182,10 @@ function Remove-MissingManagedSkills {
         }
 
         $trimmedSkillName = $skillName.Trim()
+        if (-not (Test-SafeManagedEntryName -EntryName $trimmedSkillName)) {
+            continue
+        }
+
         if ($currentSkills.Contains($trimmedSkillName)) {
             continue
         }
@@ -203,13 +220,17 @@ function Remove-MissingManagedFiles {
         }
 
         $trimmedFileName = $fileName.Trim()
+        if (-not (Test-SafeManagedEntryName -EntryName $trimmedFileName)) {
+            continue
+        }
+
         if ($currentFiles.Contains($trimmedFileName)) {
             continue
         }
 
         $target = Join-Path $TargetPath $trimmedFileName
         if (Test-Path -LiteralPath $target) {
-            Remove-Item -LiteralPath $target -Force
+            Remove-Item -LiteralPath $target -Recurse -Force
         }
     }
 }

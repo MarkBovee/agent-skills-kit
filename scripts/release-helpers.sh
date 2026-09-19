@@ -112,6 +112,20 @@ write_current_skill_manifest() {
   done
 }
 
+# Accept only single-directory-name manifest entries before building cleanup paths.
+is_safe_managed_entry_name() {
+  local entry_name="$1"
+
+  case "$entry_name" in
+    ""|"."|".."|*/*|*\\*|/*|[A-Za-z]:*)
+      return 1
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+}
+
 # Remove previously managed skills that no longer exist in the current source set.
 remove_missing_managed_skills() {
   local target_dir="$1"
@@ -123,6 +137,7 @@ remove_missing_managed_skills() {
 
   while IFS= read -r skill_name; do
     [ -n "$skill_name" ] || continue
+    is_safe_managed_entry_name "$skill_name" || continue
     [ -d "$target_dir/$skill_name" ] || continue
 
     if ! grep -Fxq "$skill_name" "$current_manifest"; then
@@ -156,10 +171,11 @@ remove_missing_managed_files() {
 
   while IFS= read -r file_name; do
     [ -n "$file_name" ] || continue
-    [ -f "$target_dir/$file_name" ] || continue
+    is_safe_managed_entry_name "$file_name" || continue
+    [ -e "$target_dir/$file_name" ] || continue
 
     if ! grep -Fxq "$file_name" "$current_manifest"; then
-      rm -f "$target_dir/$file_name"
+      rm -rf "$target_dir/$file_name"
     fi
   done < "$previous_manifest"
 }

@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.2.20] - 2026-09-19
+
+### Fixed
+
+- **Installer parsing and stale-file cleanup.** PowerShell here-string delimiters now parse correctly in Windows PowerShell, and both installers remove manifest-managed legacy entries recursively while rejecting unsafe paths.
+
 ## [2.2.19] - 2026-09-19
 
 ### Fixed
