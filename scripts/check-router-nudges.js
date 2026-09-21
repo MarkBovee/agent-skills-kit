@@ -140,7 +140,7 @@ async function main() {
   const afterEdit = await plugin["tui.prompt.append"]({ prompt: "volgende stap" })
   check(
     "code edit sets code-review nudge",
-    (afterEdit?.append || "").includes("`skill(name: 'code-review')`"),
+    (afterEdit?.append || "").includes("`skill(id: 'ask-code-review')`"),
   )
 
   // Design gate: loading design arms the design-review nudge until it is loaded.
@@ -148,7 +148,7 @@ async function main() {
   const afterDesign = await plugin["tui.prompt.append"]({ prompt: "check de pagina" })
   check(
     "design load sets design-review nudge",
-    (afterDesign?.append || "").includes("`skill(name: 'design-review')`"),
+    (afterDesign?.append || "").includes("`skill(id: 'ask-design-review')`"),
   )
   await plugin["tool.execute.after"]({ tool: "skill" }, { args: { name: "design-review" } })
   const afterDesignReview = await plugin["tui.prompt.append"]({ prompt: "check de pagina" })
@@ -168,7 +168,7 @@ async function main() {
   const beforeCompletion = await plugin["tui.prompt.append"]({ prompt: "nog een ding" })
   check(
     "second edit keeps code-review nudge armed",
-    (beforeCompletion?.append || "").includes("`skill(name: 'code-review')`"),
+    (beforeCompletion?.append || "").includes("`skill(id: 'ask-code-review')`"),
   )
   const afterCompletion = await plugin["tui.prompt.append"]({ prompt: `ik ben ${completionWord}` })
   const postCompletion = await plugin["tui.prompt.append"]({ prompt: "en nu verder" })
@@ -224,7 +224,7 @@ async function main() {
   const afterSessionReview = await plugin["tui.prompt.append"]({ prompt: "en nu verder" })
   check(
     "session-review load clears improvement hint",
-    !(afterSessionReview?.append || "").includes("`skill(name: 'session-review')`"),
+    !(afterSessionReview?.append || "").includes("`skill(id: 'ask-session-review')`"),
   )
 
   const panelPlugin = await AgentSkillsRouter()

@@ -38,7 +38,7 @@ Decision-tree rows come from `routingHintLines()`; never duplicate them manually
 
 # ASK Workflow Mandate
 
-- Load most specific workflow skill with `skill(name: '...')` before substantial work; router matches advise only.
+- Load most specific workflow skill before substantial work (OpenCode loads by its `ask-`-prefixed id: `skill(id: 'ask-<name>')`; dsh by bare name); router matches advise only.
 - Large, exhaustive, compatibility-sensitive, or release-sensitive work: load `intake`, create plan artifact, classify risk, set must/should/could, complete plan-check.
 - Delegate independent research, validation, review, and audit. Never self-declare release readiness; require independent evidence.
 - Release-sensitive work needs independent validation, review, audit, and release-gate evidence.

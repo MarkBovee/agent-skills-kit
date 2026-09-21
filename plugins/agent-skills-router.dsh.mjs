@@ -47,6 +47,7 @@ const {
   routingHintLines, cascadeRoute, hasPhraseSignal, COMPLETION_PHRASES,
   hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, INTERACTION_GUARD_THRESHOLD, buildWorkflowState, workflowHintLines,
   workflowForSkill, parseWorkflowEvidence, recordWorkflowEvidence, buildRoutingStatus, isAskSkillName,
+  reviewNudgeLines,
 } = routerCore
 
 const CODE_EDIT_TOOL_IDS = new Set(["edit", "write", "patch", "apply_patch"])
@@ -279,12 +280,7 @@ export function apply(ctx, config) {
     lines.push(...routingHintLines().filter((line) => showDevelopFallback || !line.endsWith("→ develop")))
     if (st.lastMatch) { lines.push(""); lines.push(`Active: ${st.lastMatch}`) }
     lines.push("", ...workflowHintLines(st.workflow))
-    if (st.interactionCountSinceSkillLoad >= INTERACTION_GUARD_THRESHOLD && st.skillsLoadedCount === 0) {
-      lines.push("→ Working through 5 actions without a loaded skill — `skill(name: 'develop')` sets workflow guardrails")
-    }
-    if (st.needsCodeReview) lines.push("→ Code edited — `skill(name: 'code-review')` before claiming done")
-    if (st.needsDesignReview) lines.push("→ Design produced — `skill(name: 'design-review')` filters AI defaults before showing")
-    if (st.shouldCaptureImprovement) lines.push("→ Improvement found? `skill(name: 'session-review')` to file issue")
+    lines.push(...reviewNudgeLines(st, (name) => `\`skill(name: '${name}')\``))
     return lines.join("\n")
   }
 

@@ -255,12 +255,10 @@ async function main() {
     const flagged = await assemble({ sections: [] }, { agent: agent3 }, async () => ({ sections: [] }))
     // Find the first item that matches the local condition.
     const flaggedText = flagged.sections.find((entry) => entry.name === "ask-kit:router").text
-    const coreDebtOverview = routerCore.buildSkillOverview({
-      matchedSkills: [], needsCodeReview: true, needsDesignReview: false,
-      shouldCaptureImprovement: false, executionProfile: null, toolCallCount: 0,
-      interactionCountSinceSkillLoad: 0, recentToolIds: [], recentEditedPaths: [],
-      hasDoneSessionAudit: true, skillsLoadedCount: 1,
-    })
+    const coreDebtOverview = routerCore.reviewNudgeLines({
+      needsCodeReview: true, needsDesignReview: false,
+      shouldCaptureImprovement: false, interactionCountSinceSkillLoad: 0, skillsLoadedCount: 1,
+    }, (name) => `\`skill(name: '${name}')\``).join("\n")
     // Keep items that satisfy the local predicate.
     for (const line of coreDebtOverview.split("\n").filter((l) => l.startsWith("→"))) {
       check(`nudge derives from router-core (${line.slice(0, 40)}…)`, flaggedText.includes(line))

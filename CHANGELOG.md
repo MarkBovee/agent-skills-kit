@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.3.1] - 2026-09-21
+
+### Fixed
+
+- **OpenCode router nudges now load skills by their `ask-`-prefixed id (issue #94).** The `skill` tool matches on the installed directory id (e.g. `ask-gh-inbox`), so the router told agents to run `skill(name: '<skill>')`, which failed with "Unable to load skill". The OpenCode-facing decision-tree headings, match, blocked-tool, and review/design nudges now emit `skill(id: 'ask-<skill>')`; the shared nudge rows are factored into a single helper used by both hosts. The dsh host keeps loading by bare name; its nudges now flow through the same shared helper (their ordering within the overview updates to mirror OpenCode), while the panel `action` strings stay `skill(name: '<skill>')`. The ASK workflow-mandate docs now teach the host-correct load form.
+
 ## [2.3.0] - 2026-09-19
 
 ### Added

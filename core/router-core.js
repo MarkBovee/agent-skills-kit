@@ -623,14 +623,34 @@ function routingHintLines() {
   return OVERVIEW_ROWS.map((row) => `  ${row.label} → ${row.skill}`)
 }
 
-function buildSkillOverview(sessionState) {
+// Render the shared review/guard nudges once so both hosts derive identical
+// wording (anti-drift) while each passes its own host-correct load-call form:
+// OpenCode loads by the `ask-`-prefixed id, dsh by bare name.
+function reviewNudgeLines(sessionState, loadCall) {
   const interactionsSinceLoad = sessionState.interactionCountSinceSkillLoad || 0
+  const lines = []
+  if (sessionState.needsCodeReview) {
+    lines.push(`→ Code edited — ${loadCall(SKILL_CODE_REVIEW)} before claiming done`)
+  }
+  if (sessionState.needsDesignReview) {
+    lines.push(`→ Design produced — ${loadCall(SKILL_DESIGN_REVIEW)} filters AI defaults before showing`)
+  }
+  if (interactionsSinceLoad >= INTERACTION_GUARD_THRESHOLD && (sessionState.skillsLoadedCount || 0) === 0) {
+    lines.push(`→ Working through 5 actions without a loaded skill — ${loadCall(SKILL_DEVELOP)} sets workflow guardrails`)
+  }
+  if (sessionState.shouldCaptureImprovement) {
+    lines.push(`→ Improvement found? ${loadCall(SKILL_SESSION_REVIEW)} to file issue`)
+  }
+  return lines
+}
+
+function buildSkillOverview(sessionState) {
   const skillsLoaded = (sessionState.skillsLoadedCount || 0) > 0
   const lines = [
     "╌ Agent Skills Kit ╌",
     skillsLoaded
-      ? "Decision tree — load a different skill via `skill(name: '...')`:"
-      : "Load matching skill *now* via `skill(name: '...')` before tools:",
+      ? "Decision tree — load a different skill via `skill(id: 'ask-<name>')`:"
+      : "Load matching skill *now* via `skill(id: 'ask-<name>')` before tools:",
     "",
   ]
   lines.push(...workflowHintLines(sessionState.workflow), "")
@@ -645,24 +665,12 @@ function buildSkillOverview(sessionState) {
     lines.push("")
     lines.push(`Active: ${matched.map(s => s.name).join("+")}${sessionState.executionProfile ? ` (${sessionState.executionProfile.executionTier}/${sessionState.executionProfile.delegationMode})` : ""}`)
   }
-  if (sessionState.needsCodeReview) {
-    lines.push("→ Code edited — `skill(name: 'code-review')` before claiming done")
-  }
-  if (sessionState.needsDesignReview) {
-    lines.push("→ Design produced — `skill(name: 'design-review')` filters AI defaults before showing")
-  }
-  if (interactionsSinceLoad >= INTERACTION_GUARD_THRESHOLD && (sessionState.skillsLoadedCount || 0) === 0) {
-    lines.push("→ Working through 5 actions without a loaded skill — `skill(name: 'develop')` sets workflow guardrails")
-  }
-  if (sessionState.shouldCaptureImprovement) {
-    lines.push("→ Improvement found? `skill(name: 'session-review')` to file issue")
-  }
+  lines.push(...reviewNudgeLines(sessionState, (name) => `\`skill(id: 'ask-${name}')\``))
   return lines.join("\n")
 }
 
 // Render only live routing state after OpenCode has completed its first-prompt audit.
 function buildCompactSkillOverview(sessionState) {
-  const interactionsSinceLoad = sessionState.interactionCountSinceSkillLoad || 0
   const lines = ["╌ Agent Skills Kit ╌", ...workflowHintLines(sessionState.workflow)]
   const loadedSkills = sessionState.loadedSkills || []
   if (loadedSkills.length > 0) {
@@ -670,18 +678,7 @@ function buildCompactSkillOverview(sessionState) {
     const profile = activeMatch ? sessionState.executionProfile : null
     lines.push(`Active: ${loadedSkills.join("+")}${profile ? ` (${profile.executionTier}/${profile.delegationMode})` : ""}`)
   }
-  if (sessionState.needsCodeReview) {
-    lines.push("→ Code edited — `skill(name: 'code-review')` before claiming done")
-  }
-  if (sessionState.needsDesignReview) {
-    lines.push("→ Design produced — `skill(name: 'design-review')` filters AI defaults before showing")
-  }
-  if (interactionsSinceLoad >= INTERACTION_GUARD_THRESHOLD && (sessionState.skillsLoadedCount || 0) === 0) {
-    lines.push("→ Working through 5 actions without a loaded skill — `skill(name: 'develop')` sets workflow guardrails")
-  }
-  if (sessionState.shouldCaptureImprovement) {
-    lines.push("→ Improvement found? `skill(name: 'session-review')` to file issue")
-  }
+  lines.push(...reviewNudgeLines(sessionState, (name) => `\`skill(id: 'ask-${name}')\``))
   return lines.join("\n")
 }
 
@@ -762,8 +759,8 @@ module.exports = {
   SKILL_AGENT_WORKFLOWS, SKILL_CODE_REVIEW, SKILL_DEBUGGING,
   SKILL_SESSION_REVIEW, SKILL_IMPROVE, SKILL_DEVELOP, SKILL_INTAKE, SKILL_DESIGN,
   SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SPEC, COMPLETION_PHRASES, SKILL_DESIGN_REVIEW,
-    SKILL_TEXT_WRITING, SKILL_RESEARCH, SKILL_DEEP_RESEARCH, SKILL_OBSERVABILITY, REVIEW_COMPLETION_MARKER, hasReviewCompletionSignal, hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, reviewModeForRisk,
-  buildSkillOverview, buildCompactSkillOverview, cascadeRoute, buildExecutionProfile, buildRoutingStatus, pendingReviewRequirements, activeSkillEntries, skillDisplayName, loadSkills,
+SKILL_TEXT_WRITING, SKILL_RESEARCH, SKILL_DEEP_RESEARCH, SKILL_OBSERVABILITY, REVIEW_COMPLETION_MARKER, hasReviewCompletionSignal, hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, reviewModeForRisk,
+  buildSkillOverview, buildCompactSkillOverview, cascadeRoute, buildExecutionProfile, buildRoutingStatus, pendingReviewRequirements, activeSkillEntries, skillDisplayName, loadSkills, reviewNudgeLines,
   createEmptySessionState, getSessionState, setSessionState,
     findSkill, isAskSkill, isAskSkillName, ASK_SKILL_NAMES, hasPhraseSignal, routingHintLines,
    classifyWorkflowRisk, hasWorkflowRiskSignal, workflowRiskRank, requiredWorkflowPhases, buildWorkflowState, workflowHintLines, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
