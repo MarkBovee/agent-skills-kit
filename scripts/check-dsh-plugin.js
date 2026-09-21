@@ -258,6 +258,7 @@ async function main() {
     const coreDebtOverview = routerCore.reviewNudgeLines({
       needsCodeReview: true, needsDesignReview: false,
       shouldCaptureImprovement: false, interactionCountSinceSkillLoad: 0, skillsLoadedCount: 1,
+    // Derive each dsh-form nudge row via the shared helper to prove anti-drift.
     }, (name) => `\`skill(name: '${name}')\``).join("\n")
     // Keep items that satisfy the local predicate.
     for (const line of coreDebtOverview.split("\n").filter((l) => l.startsWith("→"))) {

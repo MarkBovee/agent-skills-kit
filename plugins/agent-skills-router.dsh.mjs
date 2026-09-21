@@ -280,6 +280,7 @@ export function apply(ctx, config) {
     lines.push(...routingHintLines().filter((line) => showDevelopFallback || !line.endsWith("→ develop")))
     if (st.lastMatch) { lines.push(""); lines.push(`Active: ${st.lastMatch}`) }
     lines.push("", ...workflowHintLines(st.workflow))
+    // Keep host-compatible nudge rows as local additions.
     lines.push(...reviewNudgeLines(st, (name) => `\`skill(name: '${name}')\``))
     return lines.join("\n")
   }
