@@ -128,7 +128,7 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
     const matchSkill = route?.matchedSkills?.[0]
     const loadedSkills = state.loadedSkills || []
     if (matchSkill && matchSkill.name !== SKILL_DEVELOP && !loadedSkills.includes(matchSkill.name)) {
-      extraLines.push(`→ Match: ${matchSkill.name} — call \`skill(name: '${matchSkill.name}')\` now`)
+      extraLines.push(`→ Match: ${matchSkill.name} — call \`skill(id: 'ask-${matchSkill.name}')\` now`)
     }
 
     const workflow = buildWorkflowState(promptText, state)
@@ -147,7 +147,7 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
       for (const s of skills) {
         auditLines.push(`  • ${s.name}: ${toSingleLine(s.description, 70)}`)
       }
-      auditLines.push("Call `skill(name: '...')` now to load the right workflow.")
+      auditLines.push("Call `skill(id: 'ask-<name>')` now to load the right workflow.")
       save(input, { hasDoneSessionAudit: true })
       const overview = buildSkillOverview(state)
       const section = [...extraLines, ...auditLines].join("\n")
@@ -215,7 +215,7 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
         const state = getSessionState(sessionState, sessionKey(input))
         if ((state.skillsLoadedCount || 0) === 0) {
           return {
-            tool_error: "Load a skill first via `skill(name: '...')`.\n"
+            tool_error: "Load a skill first via `skill(id: 'ask-<name>')`.\n"
               + routingHintLines().join("\n"),
           }
         }
