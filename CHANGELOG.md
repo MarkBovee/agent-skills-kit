@@ -6,6 +6,8 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.3.2] - 2026-09-22
+
 ### Changed
 
 - Removed `CLAUDE.md` and Claude Code-specific skill generation. Claude Code now supports `AGENTS.md` natively, eliminating the need for project-specific claude instructions and generated `.claude/skills/` exports. The export script now generates only GitHub Copilot and DeepSeek Harness (dsh) platform variants. Updated all scripts, CI workflows, and documentation accordingly.
