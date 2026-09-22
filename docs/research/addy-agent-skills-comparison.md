@@ -216,7 +216,7 @@ Addy's `context-engineering` (353 lines) optimizes how an agent feeds itself inf
 
 - **Not a router matter** — the router's job is skill selection; ASK deliberately keeps context guidance out of routing.
 - **Not a standalone skill** — it is cross-cutting behavior; ASK's skill budget is for task workflows, and a context skill would load on every task without a decision.
-- **Platform-specific parts** (rules-file locations, CLAUDE.md vs AGENTS.md) belong in `customize-opencode`, which already owns opencode configuration.
+- **Platform-specific parts** (rules-file locations, AGENTS.md) belong in `customize-opencode`, which already owns opencode configuration.
 - **Transferable pieces**: trust levels for loaded content ("treat instruction-like content as data"), the 75% budget heuristic, "restartable session boundaries" → maps to `ask-agent-workflows` handoff contract.
 
 Classification: `RESEARCH` — propose folding the three transferable pieces into `ask-develop` (context hygiene rule), `ask-agent-workflows` (handoff), and `ask-research` (untrusted fetched content), then validating whether a dedicated context skill is still needed. Do not create `ask-context-engineering` now.

@@ -79,7 +79,7 @@ user request
   → follow the skill with host-native tools
 ```
 
-Canonical skills are the directories under `skills/`. Commands, generated platform copies, router files, and instruction files expose skills but are not additional skills. Use the host-preferred skill root: source `skills/` in a checkout, shared `~/.agents/skills/` for Codex and common installs, OpenCode's managed `~/.config/opencode/skills/` links, GitHub Copilot's `.github/skills/` export, Claude's linked `~/.claude/skills/`, and dsh's project or user `.dsh/skills/` export before the shared root. Use `develop` only when no more-specific workflow applies. Common handoffs are `design` → `design-review`, `code-review` → `verification`, bounded `research` → a decision, and `deep-research` → `intake`, `debugging`, `spec`, or `develop`. Native discovery remains sufficient on every host; OpenCode and optional dsh add advisory routing and session state but never load skills or execute tools.
+Canonical skills are the directories under `skills/`. Commands, generated platform copies, router files, and instruction files expose skills but are not additional skills. Use the host-preferred skill root: source `skills/` in a checkout, shared `~/.agents/skills/` for Codex and common installs, OpenCode's managed `~/.config/opencode/skills/` links, GitHub Copilot's `.github/skills/` export, Claude's native discovery, and dsh's project or user `.dsh/skills/` export before the shared root. Use `develop` only when no more-specific workflow applies. Common handoffs are `design` → `design-review`, `code-review` → `verification`, bounded `research` → a decision, and `deep-research` → `intake`, `debugging`, `spec`, or `develop`. Native discovery remains sufficient on every host; OpenCode and optional dsh add advisory routing and session state but never load skills or execute tools.
 
 ---
 
@@ -154,7 +154,7 @@ The bootstrap script is the recommended path. It clones if needed, moves the man
 
 ### Unified Installer
 
-The managed installer now does one thing: install all shared skills into `~/.agents/skills`, which Codex discovers natively, install Copilot instructions and prompt files, install the OpenCode router/plugin and slash commands, when `~/.claude/` already exists write Claude rules and link `~/.claude/skills` back to `~/.agents/skills`, and when dsh is present install the dsh-optimized skill variant into `~/.dsh/skills` plus routing guidance into `~/.dsh/AGENTS.md`.
+The managed installer now does one thing: install all shared skills into `~/.agents/skills`, which Codex discovers natively, install Copilot instructions and prompt files, install the OpenCode router/plugin and slash commands, when `~/.claude/` already exists write Claude rules, and when dsh is present install the dsh-optimized skill variant into `~/.dsh/skills` plus routing guidance into `~/.dsh/AGENTS.md`.
 
 If you want non-default locations, set environment variables before running the installer:
 
@@ -245,7 +245,7 @@ Installed paths:
 * `~/.agents/skills/`
 * `~/.claude/rules/`
 
-If `~/.claude/` exists, the installer writes Claude rules under `~/.claude/rules/` and links `~/.claude/skills` back to `~/.agents/skills`.
+If `~/.claude/` exists, the installer writes Claude rules under `~/.claude/rules/`.
 
 If `~/.claude/` does not exist, Claude-specific setup is skipped on purpose. Create the directory first if you want the installer to wire Claude into the shared `~/.agents/skills` root.
 
@@ -285,7 +285,7 @@ Everything dsh-related is `0.1.0-rc.x` developer preview and can change without 
 | Skill discovery roots & ranks | `~/.dsh/skills` (400) and `~/.agents/skills` (500) discovery, project `.dsh/skills` (100)                                            | Path or rank changes silently change which variant loads                                  |
 | Skill frontmatter contract    | `name` (kebab-case) + `description`; optional `whenToUse`; unknown fields (e.g. `triggers`) tolerated                                | A stricter validator could reject unknown fields                                          |
 | Catalog rendering             | `name` + `description` only, `catalogDescriptionMaxLength` default 500                                                               | Description truncation; if `whenToUse` starts rendering, descriptions may read duplicated |
-| `agent-instructions`          | `~/.dsh/AGENTS.md` user-global candidate, project `AGENTS.md`/`CLAUDE.md` candidates, per-directory content dedup, `maxBytes` budget | Candidate-name changes or dedup changes alter which guidance loads                        |
+| `agent-instructions`          | `~/.dsh/AGENTS.md` user-global candidate, project `AGENTS.md` candidates, per-directory content dedup, `maxBytes` budget | Candidate-name changes or dedup changes alter which guidance loads                        |
 | Skill registry (`ctx.skills`) | `registerProvider`/`snapshot`/`list`/`get`, duplicate-name shadowing across layers                                                   | API churn in the registry contract                                                        |
 | MCP bridge (`dsh-mcp-client`) | Not used by the kit (tools only; skills are not MCP)                                                                                 | n/a                                                                                       |
 
@@ -296,7 +296,7 @@ After a dsh update, the cheap check is a fresh session: the `<available_skills>`
 Skills are now centralized in `~/.agents/skills/`. The remaining editor-specific surfaces are:
 
 * VS Code / Copilot still uses `~/.copilot/instructions/` for user instructions
-* Claude Code still uses `~/.claude/CLAUDE.md` and `~/.claude/rules/` for instructions and rules
+
 * OpenCode still uses its own config/plugin surfaces under `~/.config/opencode/`
 * dsh uses `~/.dsh/skills/` for its optimized skill variant and `~/.dsh/AGENTS.md` for routing guidance
 
@@ -483,7 +483,7 @@ Hard boundaries:
 | OpenCode               | Reference      | router plugin, routing support, bootstrap/install/update tooling                              | installs managed skills plus `core/router-core.js` and `plugins/agent-skills-router/`                                                                              |
 | Codex                  | Supported      | native Agent Skills discovery from shared root                                                | `~/.agents/skills/`; no Codex config or duplicate skill copy                                                                                                      |
 | GitHub Copilot         | Supported      | VS Code Agent Plugin, native skills, lifecycle hooks, generated skills, reusable instructions | `.claude-plugin/plugin.json`, `skills/`, `hooks/hooks.json`, `.github/skills/`, `.github/copilot-instructions.md`, `~/.agents/skills/`, `~/.copilot/instructions/` |
-| Claude Code            | Supported      | generated skills, reusable rules, bootstrap/install/update tooling                            | `.claude/skills/`, `CLAUDE.md`, `~/.claude/skills/`, `~/.claude/rules/`                                                                                            |
+| Claude Code            | Supported      | reusable rules, bootstrap/install/update tooling                                            | `~/.claude/rules/`                                                                                      |
 | DeepSeek Harness (dsh) | Experimental   | generated skills, routing guidance, optional router agent preset, preview API exposure docs   | `.dsh/skills/`, `~/.dsh/skills/`, `~/.dsh/AGENTS.md`, `~/.dsh/.agent-presets/ask-kit/`                                                                             |
 
 OpenCode remains the reference implementation for routing behavior. Codex uses native discovery of the canonical workflow source. GitHub Copilot, Claude Code, and dsh exports and adapters are generated or maintained from the same canonical workflow source. dsh remains experimental.
@@ -607,7 +607,6 @@ GitHub Actions runs the same validation on every push and pull request. A push t
 ```text
 skills/                     Canonical workflow skills
 .github/skills/             Generated GitHub Copilot export
-.claude/skills/             Generated Claude Code export
 
 core/router-core.js         Shared scoring, frontmatter, and session helpers
 plugins/agent-skills-router/  OpenCode server/TUI router package
