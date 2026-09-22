@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.3.3] - 2026-09-22
+
+### Fixed
+
+- **OpenCode sidebar colors now stay synchronized with the active theme.** The TUI widget resolves all sidebar colors through OpenCode's reactive theme tokens and guards the mapping against hardcoded palette regressions.
+
 ## [2.3.2] - 2026-09-22
 
 ### Changed
