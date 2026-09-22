@@ -11,10 +11,8 @@ const SOURCE_COMMANDS_DIR = path.join(REPO_ROOT, "commands")
 const OPENCODE_COMMANDS_DIR = path.join(REPO_ROOT, ".opencode", "commands")
 const COPILOT_PROMPTS_DIR = path.join(REPO_ROOT, ".github", "prompts")
 const COPILOT_SKILLS_DIR = path.join(REPO_ROOT, ".github", "skills")
-const CLAUDE_SKILLS_DIR = path.join(REPO_ROOT, ".claude", "skills")
 const DSH_SKILLS_DIR = path.join(REPO_ROOT, ".dsh", "skills")
 const COPILOT_INSTRUCTIONS_PATH = path.join(REPO_ROOT, ".github", "copilot-instructions.md")
-const CLAUDE_MD_PATH = path.join(REPO_ROOT, "CLAUDE.md")
 
 // DeepSeek Harness renders only name + description in its skill catalog and caps
 // descriptions at catalogDescriptionMaxLength (default 500), so the dsh export
@@ -71,16 +69,6 @@ function buildCopilotSkill(skillName, description, triggers, disableModelInvocat
   return buildSkillDocument([
     ["name", skillName],
     ["description", buildPortableDescription(description, triggers, 1000)],
-    ["disable-model-invocation", disableModelInvocation ? true : undefined],
-  ], body)
-}
-
-// Build the Claude-facing skill document with Claude-specific discovery metadata.
-function buildClaudeSkill(skillName, description, triggers, disableModelInvocation, body) {
-  return buildSkillDocument([
-    ["name", skillName],
-    ["description", description],
-    ["when_to_use", triggers.length > 0 ? `Common triggers: ${triggers.join(", ")}.` : undefined],
     ["disable-model-invocation", disableModelInvocation ? true : undefined],
   ], body)
 }
@@ -179,21 +167,17 @@ function transformBody(body, platform, skillName) {
   // Keep runtime references valid after the source skills are copied into platform-specific directories.
   // dsh keeps the canonical relative form: the skill's own directory is the resource base, so
   // `./check-existing-issue.sh` resolves against it without rewriting.
-  if (skillName === "ask-session-review" && platform !== "dsh") {
+  if (skillName === "ask-session-review") {
     transformed = transformed.replace(
       /\[check-existing-issue\.sh\]\(\.\/check-existing-issue\.sh\)/g,
-      platform === "claude"
-        ? "`${CLAUDE_SKILL_DIR}/check-existing-issue.sh`"
-        : "`.github/skills/ask-session-review/check-existing-issue.sh`",
+      ".github/skills/ask-session-review/check-existing-issue.sh",
     )
   }
 
   if (skillName === "ask-design") {
-    const replacement = platform === "claude"
-      ? "${CLAUDE_SKILL_DIR}"
-      : platform === "dsh"
-        ? "."
-        : ".github/skills/ask-design"
+    const replacement = platform === "dsh"
+      ? "."
+      : ".github/skills/ask-design"
     transformed = transformed.replace(/<path-to-this-skill>/g, replacement)
   }
 
@@ -280,30 +264,13 @@ ${preview}
 `
 }
 
-// Build the Claude root instructions file that layers Claude-specific guidance over AGENTS.md.
-function buildClaudeMd() {
-  return [
-    "@AGENTS.md",
-    "",
-    "## Claude Code",
-    "",
-    "- Load the best matching skill before substantial work; use `develop` only as default.",
-    "- Large, exhaustive, compatibility-sensitive, or release-sensitive work: load `intake`, write a plan, classify must/should/could, and complete plan-check.",
-    "- Delegate independent research, validation, review, and audit. Never self-declare release readiness; require independent evidence.",
-    "- Meaningful code change: load `code-review`; skip only obvious, low-risk edits. Capture reusable gaps with `write-skill`.",
-    "- Code edits need one concise intent comment above each function unless local convention overrides.",
-  ].join("\n")
-}
-
 // Export the canonical skills and commands into the platform directories.
 async function exportSkills() {
   await fs.mkdir(path.dirname(COPILOT_INSTRUCTIONS_PATH), { recursive: true })
-  await fs.mkdir(path.dirname(CLAUDE_MD_PATH), { recursive: true })
-  await fs.mkdir(path.dirname(CLAUDE_SKILLS_DIR), { recursive: true })
+  await fs.mkdir(path.dirname(COPILOT_SKILLS_DIR), { recursive: true })
   await fs.mkdir(path.dirname(DSH_SKILLS_DIR), { recursive: true })
 
   await resetDirectory(COPILOT_SKILLS_DIR)
-  await resetDirectory(CLAUDE_SKILLS_DIR)
   await resetDirectory(DSH_SKILLS_DIR)
 
   const skillNames = await listSkillDirectories()
@@ -329,20 +296,13 @@ async function exportSkills() {
     skillSummaries.push({ name: displayName, description })
 
     const copilotTarget = path.join(COPILOT_SKILLS_DIR, skillName)
-    const claudeTarget = path.join(CLAUDE_SKILLS_DIR, skillName)
     const dshTarget = path.join(DSH_SKILLS_DIR, skillName)
     await copyDirectory(sourceDir, copilotTarget)
-    await copyDirectory(sourceDir, claudeTarget)
     await copyDirectory(sourceDir, dshTarget)
 
     await fs.writeFile(
       path.join(copilotTarget, "SKILL.md"),
       buildCopilotSkill(displayName, description, triggers, disableModelInvocation, transformBody(sourceSkill, "copilot", skillName)),
-      "utf8",
-    )
-    await fs.writeFile(
-      path.join(claudeTarget, "SKILL.md"),
-      buildClaudeSkill(displayName, description, triggers, disableModelInvocation, transformBody(sourceSkill, "claude", skillName)),
       "utf8",
     )
     await fs.writeFile(
@@ -353,7 +313,6 @@ async function exportSkills() {
   }
 
   await fs.writeFile(COPILOT_INSTRUCTIONS_PATH, buildCopilotInstructions(skillSummaries), "utf8")
-  await fs.writeFile(CLAUDE_MD_PATH, buildClaudeMd(), "utf8")
 
   return skillNames.length
 }
@@ -362,7 +321,7 @@ exportSkills()
   // Handle the fulfilled asynchronous result.
   .then(async (count) => {
     const commandCount = await exportCommands()
-    console.log(`Exported ${count} skills and ${commandCount} commands for GitHub Copilot, Claude Code, and DeepSeek Harness (dsh); Codex uses the canonical shared skill root.`)
+    console.log(`Exported ${count} skills and ${commandCount} commands for GitHub Copilot and DeepSeek Harness (dsh); Codex uses the canonical shared skill root.`)
   })
   // Handle the local asynchronous failure.
   .catch((error) => {

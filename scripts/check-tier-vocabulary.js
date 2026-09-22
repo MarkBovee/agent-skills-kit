@@ -8,7 +8,6 @@ const GUIDANCE_ROOTS = [
   "skills",
   "rules",
   ".github/skills",
-  ".claude/skills",
   ".dsh/skills",
 ]
 

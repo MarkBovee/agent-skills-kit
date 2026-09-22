@@ -38,7 +38,7 @@ Node.js 22 is required only for the validation scripts — the shipped assets
 
    ```bash
    node ./scripts/export-platform-skills.js
-   git diff --exit-code -- .github/skills/*/SKILL.md .claude/skills/*/SKILL.md .dsh/skills/*/SKILL.md
+   git diff --exit-code -- .github/skills/*/SKILL.md .dsh/skills/*/SKILL.md
    ```
 
 ## Validation
@@ -53,7 +53,7 @@ node ./scripts/export-platform-skills.js   # regenerate exports (must produce no
 ```
 
 The CI workflow (`validate` check) runs the same steps on every push and pull
-request. Keep generated exports and `CLAUDE.md`/`.github/copilot-instructions.md`
+request. Keep generated exports and `.github/copilot-instructions.md`
 committed — CI fails if they drift.
 
 ## Commits

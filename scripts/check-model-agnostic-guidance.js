@@ -8,7 +8,6 @@ const GUIDANCE_ROOTS = [
   "skills",
   "rules",
   ".github/skills",
-  ".claude/skills",
   ".dsh/skills",
 ]
 const MODEL_SPECIFIC_PATTERN = /\b(?:chatgpt|grok|gemini|deepseek|anthropic|openai|gpt(?:[- ]?\d+(?:\.\d+)?)?|model-specific|provider-specific)\b/i

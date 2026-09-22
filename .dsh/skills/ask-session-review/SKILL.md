@@ -50,7 +50,7 @@ For explicit issue creation requests (bug report, review finding, follow-up):
 
 1. Infer repo from current git remote or explicit `owner/repo`.
 2. Check `gh` auth before using `gh issue create`.
-3. Check for duplicates with `gh issue list --search` or the bundled helper [check-existing-issue.sh](./check-existing-issue.sh).
+3. Check for duplicates with `gh issue list --search` or the bundled helper .github/skills/ask-session-review/check-existing-issue.sh.
 4. Build compact body: problem, impact, repro/evidence, expected outcome.
 5. Create issue directly — no draft approval loop.
 6. Return URL and note assumptions.

@@ -59,8 +59,8 @@ jobs:
           node ./scripts/check-widget-live-state.js
           node ./scripts/export-platform-skills.js
           ./scripts/check-installed-artifacts.sh
-          git diff --exit-code -- .github/skills .claude/skills .dsh/skills .opencode/commands .github/prompts CLAUDE.md .github/copilot-instructions.md
-          test -z "$(git status --porcelain -- .github/skills .claude/skills .dsh/skills .opencode/commands .github/prompts CLAUDE.md .github/copilot-instructions.md)"
+          git diff --exit-code -- .github/skills .dsh/skills .opencode/commands .github/prompts .github/copilot-instructions.md
+          test -z "$(git status --porcelain -- .github/skills .dsh/skills .opencode/commands .github/prompts .github/copilot-instructions.md)"
 
       - name: Read release version
         id: version
