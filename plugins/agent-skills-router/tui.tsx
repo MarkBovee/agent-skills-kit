@@ -46,6 +46,17 @@ function SectionHeader(props: { title: string; color: unknown }) {
   return <text fg={props.color}><b>{props.title}</b></text>
 }
 
+// Resolve every sidebar color from OpenCode's reactive theme instead of storing a palette snapshot.
+function sidebarColors(theme: Context["theme"]) {
+  return {
+    title: theme.text.action.primary.default,
+    section: theme.text.default,
+    active: theme.text.feedback.success.default,
+    muted: theme.text.subdued,
+    pending: theme.text.feedback.warning.default,
+  }
+}
+
 // Render ASK's compact sidebar panel from reactive session metadata.
 function StatusPanel(props: { api: Context; sessionID: string }) {
   // Execute the status callback.
@@ -56,21 +67,23 @@ function StatusPanel(props: { api: Context; sessionID: string }) {
   const activeSkills = createMemo(() => mergeActiveSkills(status(), messages()) as ActiveSkillEntry[])
   // Execute the pending callback.
   const pending = createMemo(() => pendingItems(status(), messages()))
+  // Keep the widget synchronized with theme changes made by OpenCode.
+  const colors = createMemo(() => sidebarColors(props.api.theme))
 
   return (
     <Show when={status()}>
       <box flexDirection="column" gap={1} paddingTop={1} paddingBottom={1}>
-        <text fg={props.api.theme.text.action.primary.default}><b>Agent Skills Kit</b></text>
+        <text fg={colors().title}><b>Agent Skills Kit</b></text>
         <box flexDirection="column">
-          <SectionHeader title="ACTIVE SKILLS" color={props.api.theme.text.default} />
-          <Show when={activeSkills().length > 0} fallback={<text fg={props.api.theme.text.subdued}>No skill loaded</text>}>
-            <text fg={props.api.theme.text.feedback.success.default}>{activeSkillText(activeSkills())}</text>
+          <SectionHeader title="ACTIVE SKILLS" color={colors().section} />
+          <Show when={activeSkills().length > 0} fallback={<text fg={colors().muted}>No skill loaded</text>}>
+            <text fg={colors().active}>{activeSkillText(activeSkills())}</text>
           </Show>
         </box>
         <Show when={pending().length > 0}>
           <box flexDirection="column">
-            <SectionHeader title="PENDING" color={props.api.theme.text.default} />
-            <text fg={props.api.theme.text.feedback.warning.default}>{pendingText(pending())}</text>
+            <SectionHeader title="PENDING" color={colors().section} />
+            <text fg={colors().pending}>{pendingText(pending())}</text>
           </box>
         </Show>
       </box>

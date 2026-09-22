@@ -283,11 +283,11 @@ if (JSON.stringify(pendingItems({ pending: [] }, designHistory)) !== JSON.string
 
 const tuiSource = await readFile(new URL("../plugins/agent-skills-router/tui.tsx", import.meta.url), "utf8")
 const sidebarThemeTokens = [
-  "props.api.theme.text.action.primary.default",
-  "props.api.theme.text.default",
-  "props.api.theme.text.subdued",
-  "props.api.theme.text.feedback.success.default",
-  "props.api.theme.text.feedback.warning.default",
+  "theme.text.action.primary.default",
+  "theme.text.default",
+  "theme.text.subdued",
+  "theme.text.feedback.success.default",
+  "theme.text.feedback.warning.default",
 ]
 // Test whether any item satisfies the local predicate.
 if (sidebarThemeTokens.some((token) => !tuiSource.includes(token))) {
