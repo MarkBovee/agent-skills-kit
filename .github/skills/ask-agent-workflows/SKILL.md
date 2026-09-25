@@ -42,6 +42,25 @@ Missing output, timeout, and tool failure are not passes. For release-sensitive 
 
 P0/P1 findings follow: reproduce → regression test → minimal fix → validation → affected re-audit. Do not close a finding because code changed; re-prove its invariant.
 
+## Bounded narrow-fix release path
+
+Use this path only for a release-sensitive fix with one explicit requested invariant, an existing regression proof, and a localized change in one subsystem with a bounded set of direct callers. The primary agent records the invariant, in-scope files/callers, excluded adjacent behavior, and budgets before dispatch. Any change to or affecting an external contract or an existing or new security, privacy, or safety boundary—including creating, moving, strengthening, weakening, or removing that boundary—requires the significant path. Migrations, architecture or ownership changes, cross-module behavior, or unclear scope also require the significant path. An independent reviewer or auditor may reject the narrow classification; do not argue the scope down to fit the budget.
+
+This path bounds only the review/audit finding loop. It does not replace the normal release-sensitive intake, plan, plan-check, execution, final validation, review, audit, or release-gate requirements. Before dispatch, record an immutable reference for the exact diff, such as its commit SHA or a hash of the complete patch plus its base revision. Review and audit must be performed in distinct independent contexts and produce separate evidence naming their context/session references and the same exact diff reference. If distinct contexts are unavailable, mark the missing gate blocked; one context cannot satisfy both roles. Any edit changes the diff reference and invalidates prior evidence for that diff; the delta passes must cover the new exact diff. The release-gate must consume evidence matching the final diff reference.
+
+Workflow-router phase/status is advisory and can lag edits. Never treat `DONE`, `RELEASE`, or phase markers alone as proof that the current diff passed its gates. Compare the immutable diff reference in the plan and each evidence record; if status disagrees or the current diff reference cannot be established, block release.
+
+Keep the release gates independent and bounded:
+
+1. Run one independent standard-tier review and one separate independent standard-tier audit of the requested behavior and its direct callers. Allow at most 5 minutes for each pass.
+2. Fix one batch of findings that directly violate the requested invariant or establish a release-blocking security, privacy, correctness, or safety issue. P0/P1 findings and established security, privacy, correctness, or safety blockers cannot be deferred, even when adjacent to the requested behavior. The independent reviewer and auditor must both confirm that any deferred finding is genuinely non-blocking and unrelated to the invariant; record it as a follow-up with evidence and a revisit trigger. If they disagree, block release and escalate.
+3. If the fix batch changes the diff, run targeted validation, then one separate delta review and one separate delta audit of the changed path. Allow at most 3 minutes for each delta pass.
+4. Run the full required check suite once at closeout, then complete the normal independent release-gate.
+
+The review/audit timebox is 16 minutes total and cannot be reset by splitting findings, edits, commits, handoffs, sessions, or agents, or by reclassifying the same scope. Record the cumulative time and diff reference in the task plan; carry both across handoffs and escalation. A pass that reaches its timebox returns partial or blocked evidence, never a pass. These limits cover review and audit only; they do not waive implementation, validation, the full check suite, or the release-gate.
+
+Any unresolved violation of the requested invariant, P0/P1 finding, failed validation, security, privacy, correctness, or safety blocker, or missing/blocked required evidence blocks release, regardless of when it is found. If new evidence shows an invariant bypass or a blocker requires another fix batch, stop and present the evidence and minimal expanded scope to the task owner. Scope expansion requires explicit approval recorded in a revised plan from the requesting user or a named human delegate, never the implementing coordinator; any additional budget is additive, prior evidence carries forward, and unaffected surfaces are not re-audited without cause. Never turn a blocker into a follow-up to meet the budget. Independent validation, review, audit, and release-gate evidence remain mandatory for every release-sensitive change.
+
 ## Handoff context
 
 Give subagents requirements, acceptance criteria, repository state, and relevant diff. Do not pass the primary agent's conclusion as authoritative. Include the decision tree so the subagent can load the matching workflow itself.
