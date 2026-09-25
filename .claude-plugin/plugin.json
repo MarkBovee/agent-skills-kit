@@ -1,7 +1,7 @@
 {
   "name": "agent-skills-kit",
   "description": "Workflow skills and lightweight routing guidance for GitHub Copilot and VS Code.",
-  "version": "2.3.3",
+  "version": "2.3.4",
   "author": {
     "name": "Mark Bovee",
     "url": "https://github.com/MarkBovee/agent-skills-kit"
