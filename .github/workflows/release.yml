@@ -60,6 +60,7 @@ jobs:
           node ./scripts/check-widget-live-state.js
            node ./scripts/export-platform-skills.js
            ./scripts/check-installed-artifacts.sh
+           rm -f node_modules
            git status --short --untracked-files=all
            git diff --name-only
            git diff --cached --name-only
