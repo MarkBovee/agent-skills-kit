@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.4.2] - 2026-09-26
+
+### Changed
+
+- **Included the narrow release-audit guidance from PR #100.** The bounded path remains synchronized with the validation-first lifecycle and requires immutable diff evidence, distinct review and audit contexts, bounded delta rounds, and release-blocking treatment of unresolved findings.
+
 ## [2.4.1] - 2026-09-26
 
 ### Fixed
