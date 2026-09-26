@@ -292,21 +292,72 @@ if (orderedSkills[0]?.skill !== "code-review" || orderedSkills[0]?.current !== t
 
 const patchMessage = {
   type: "assistant",
-  content: [{ type: "tool", name: "patch", state: { status: "completed", input: {}, output: "patched" } }],
+  content: [{ type: "tool", name: "patch", state: { status: "completed", input: { diffIdentity: "HEAD" }, output: "patched" } }],
 }
 if (JSON.stringify(pendingItems({ pending: [] }, [patchMessage])) !== JSON.stringify(["Code review needed"])) {
   throw new Error("V2 TUI did not surface code-review debt from a completed patch")
+}
+
+const validationMessage = {
+  type: "assistant",
+  content: [{ type: "tool", name: "task", state: {
+    status: "completed",
+    output: "ASK_WORKFLOW_PASS phase=PLAN diff=HEAD:edit-1",
+  } }],
+}
+
+const executionMessage = {
+  type: "assistant",
+  content: [{ type: "tool", name: "task", state: {
+    status: "completed",
+    output: "ASK_WORKFLOW_PASS phase=EXECUTE diff=HEAD:edit-1",
+  } }],
+}
+
+const finalValidationMessage = {
+  type: "assistant",
+  content: [{ type: "tool", name: "task", state: {
+    status: "completed",
+    output: "ASK_WORKFLOW_PASS phase=VALIDATE diff=HEAD:edit-1",
+  } }],
 }
 
 const reviewMessage = {
   type: "assistant",
   content: [{ type: "tool", name: "task", state: {
     status: "completed",
-    output: "ASK_WORKFLOW_PASS phase=REVIEW\nreview-generation: 1\nreview-result: PASS\nASK_REVIEW_COMPLETE",
+    output: "ASK_WORKFLOW_PASS phase=REVIEW diff=HEAD:edit-1\nreview-generation: 1\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE",
   } }],
 }
-if (pendingItems({ pending: [{ label: "Code review needed" }] }, [patchMessage, reviewMessage]).length !== 0) {
+if (pendingItems({ pending: [{ label: "Code review needed" }] }, [patchMessage, validationMessage, executionMessage, finalValidationMessage, reviewMessage]).length !== 0) {
   throw new Error("V2 TUI did not clear code-review debt from passing review evidence")
+}
+if (pendingItems({ pending: [{ label: "Code review needed" }] }, [patchMessage, finalValidationMessage, reviewMessage]).length !== 1) {
+  throw new Error("V2 TUI accepted review evidence before validation")
+}
+const specContextMessage = {
+  type: "assistant",
+  content: [{ type: "tool", name: "skill", state: { status: "completed", input: { name: "spec" } } }],
+}
+if (pendingItems({ pending: [] }, [specContextMessage, patchMessage, validationMessage, executionMessage, finalValidationMessage, reviewMessage]).length !== 1) {
+  throw new Error("V2 TUI dropped the active SPEC predecessor after a code edit")
+}
+const contractPrompt = {
+  type: "user",
+  content: [{ type: "text", text: "Implement a new external contract" }],
+}
+if (pendingItems({ pending: [] }, [contractPrompt, patchMessage, validationMessage, executionMessage, finalValidationMessage, reviewMessage]).length !== 1) {
+  throw new Error("V2 TUI ignored a prompt-derived SPEC predecessor")
+}
+const findingsMessage = {
+  type: "assistant",
+  content: [{ type: "tool", name: "task", state: {
+    status: "completed",
+    output: "ASK_WORKFLOW_FINDINGS phase=REVIEW diff=HEAD:edit-1\nreview-generation: 1\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE",
+  } }],
+}
+if (pendingItems({ pending: [] }, [patchMessage, validationMessage, executionMessage, finalValidationMessage, reviewMessage, findingsMessage]).length !== 1) {
+  throw new Error("V2 TUI did not re-arm code-review debt after findings")
 }
 
 const designHistory = [

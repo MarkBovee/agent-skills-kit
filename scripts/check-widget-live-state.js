@@ -237,6 +237,7 @@ async function openCodeLifecycle() {
   }))
 
   // Step 2: a real write creates code-review debt without changing Spec.
+  await plugin["chat.message"]({ sessionID }, { parts: [{ type: "text", text: "fix this parser bug" }] })
   await plugin["tool.execute.before"]({ tool: "write", sessionID, diffIdentity: "HEAD" })
   await plugin["tool.execute.after"]({ tool: "write", sessionID }, {})
   await flush()
@@ -258,7 +259,10 @@ async function openCodeLifecycle() {
     pending: [{ flag: "needsCodeReview", skill: "code-review", label: "Code review needed", action: "skill(name: 'code-review')" }],
   }))
 
-  await plugin["tool.execute.after"]({ tool: "task", sessionID }, { output: "ASK_WORKFLOW_PASS phase=REVIEW\nreview-generation: 1\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" })
+  for (const phase of ["PLAN", "EXECUTE", "VALIDATE"]) {
+    await plugin["tool.execute.after"]({ tool: "task", sessionID }, { output: `ASK_WORKFLOW_PASS phase=${phase} diff=HEAD:edit-1` })
+  }
+  await plugin["tool.execute.after"]({ tool: "task", sessionID }, { output: "ASK_WORKFLOW_PASS phase=REVIEW diff=HEAD:edit-1\nreview-generation: 1\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" })
   await flush()
 
   // Step 4: routing and loading design may overlap in a live host. The tool
@@ -379,7 +383,10 @@ async function dshWidgetLifecycle() {
   const reviewed = textOf(render())
   check("dsh widget keeps review obligation after skill load", reviewed.includes("Code review needed"))
 
-  result({ name: "task", agent, arguments: {} }, { isError: false, output: "ASK_WORKFLOW_PASS phase=REVIEW\nreview-generation: 1\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" })
+  for (const phase of ["PLAN", "EXECUTE", "VALIDATE"]) {
+    result({ name: "task", agent, arguments: {} }, { isError: false, output: `ASK_WORKFLOW_PASS phase=${phase} diff=HEAD:edit-1` })
+  }
+  result({ name: "task", agent, arguments: {} }, { isError: false, output: "ASK_WORKFLOW_PASS phase=REVIEW diff=HEAD:edit-1\nreview-generation: 1\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" })
   pump()
   const completedReview = textOf(render())
   check("dsh widget clears review obligation after evidence", !completedReview.includes("Code review needed") && !completedReview.includes("PENDING"))

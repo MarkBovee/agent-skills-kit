@@ -32,7 +32,7 @@ const {
   SKILL_DEVELOP,
   buildCompactSkillOverview, buildSkillOverview, cascadeRoute, getSessionState, isAskSkill, isAskSkillName, loadSkills,
   setSessionState, hasPhraseSignal, toSingleLine, unique,
-  hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, routingHintLines, buildWorkflowState, invalidateWorkflowForDiff, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
+  hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, reviewEvidenceAccepted, blockWorkflowForMissingDiffIdentity, routingHintLines, buildWorkflowState, invalidateWorkflowForDiff, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
   buildRoutingStatus,
 } = resolveRouterCore()
 
@@ -223,14 +223,18 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
       if (CODE_EDIT_TOOL_IDS.has(toolID)) {
         const state = getSessionState(sessionState, sessionKey(input))
         const nextGeneration = (state.reviewGeneration || 0) + 1
-        const reviewReference = input?.diffIdentity || input?.commit || `generation-${nextGeneration}`
-        const workflowDiffIdentity = `${reviewReference}:edit-${nextGeneration}`
+        const hostDiffReference = input?.diffIdentity || input?.commit || ""
+        const reviewReference = hostDiffReference || `generation-${nextGeneration}`
+        const workflowDiffIdentity = hostDiffReference ? `${hostDiffReference}:edit-${nextGeneration}` : ""
+        const workflow = state.workflow?.risk === "release-sensitive" && !hostDiffReference
+          ? blockWorkflowForMissingDiffIdentity(state.workflow)
+          : invalidateWorkflowForDiff(state.workflow, workflowDiffIdentity)
         save(input, {
           needsCodeReview: true,
           reviewGeneration: nextGeneration,
           reviewReference,
           reviewEvidence: null, reviewFollowUp: null,
-          workflow: invalidateWorkflowForDiff(state.workflow, workflowDiffIdentity),
+          workflow,
         })
       }
     },
@@ -261,11 +265,12 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
 
         // Skill documentation contains workflow marker examples; only real work
         // results may advance lifecycle gates or clear review obligations.
-        const completedReview = isDelegatedReviewCompletion(toolID, state.reviewGeneration, output, state.reviewReference)
         const reviewHandoff = toolID === "task" ? parseReviewCompletion(output) : null
         const workflowEvidence = toolID === "task" ? parseWorkflowEvidence(output) : null
         if (workflowEvidence || reviewHandoff) {
           const workflow = workflowEvidence ? recordWorkflowEvidence(state.workflow, workflowEvidence) : state.workflow
+          const completedReview = isDelegatedReviewCompletion(toolID, state.reviewGeneration, output, state.reviewReference)
+            && reviewEvidenceAccepted(workflow, workflowEvidence)
           save(input, {
             ...base,
             workflow,

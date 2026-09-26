@@ -235,6 +235,29 @@ function reviewCompletionMatches(value, generation, phase = "REVIEW", currentRef
     && (phase === "REVIEW" ? evidence.scope === "REVIEW" : phase === "AUDIT" && evidence.scope === "final-diff")
 }
 
+// Confirm that accepted workflow evidence completed the current review or audit gate.
+function reviewEvidenceAccepted(workflow, evidence) {
+  if (!evidence || evidence.status !== "PASS") return false
+  if (!["REVIEW", "AUDIT"].includes(evidence.phase)) return false
+  if (!workflow) return false
+  return workflow.diffIdentity === evidence.diffIdentity
+    && workflow.completedGates?.includes(evidence.phase)
+    && (workflow.unresolvedFindings || []).length === 0
+}
+
+// Block release-sensitive work when the host cannot identify the exact edited diff.
+function blockWorkflowForMissingDiffIdentity(workflow) {
+  if (!workflow) return workflow
+  return {
+    ...workflow,
+    phase: "BLOCKED",
+    completedGates: [],
+    unresolvedFindings: [],
+    diffIdentity: "",
+    releaseStatus: workflow.risk === "release-sensitive" ? "BLOCKED" : workflow.releaseStatus,
+  }
+}
+
 // Execute the has phrase signal helper.
 function hasPhraseSignal(query, phrases) {
   const normalized = query.trim().toLowerCase()
@@ -353,15 +376,15 @@ function reviewModeForRisk(risk) {
   return ["small", "normal"].includes(risk) ? "combined" : "separate"
 }
 
-// Select lifecycle gates for a risk level while keeping release decisions
-// separate from implementation and ordinary validation.
+// Select lifecycle gates for a risk level while keeping final review and audit
+// after validation; iteration remains conditional when a gate reports findings.
 function requiredWorkflowPhases(risk, query = "") {
   const phases = (() => {
     switch (risk) {
       case "small": return ["EXECUTE", "VALIDATE", "REVIEW"]
       case "spec-required": return ["INTAKE", "SPEC", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW"]
-      case "significant": return ["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "ITERATE", "AUDIT"]
-      case "release-sensitive": return ["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "ITERATE", "AUDIT", "RELEASE_GATE"]
+      case "significant": return ["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "AUDIT"]
+      case "release-sensitive": return ["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "AUDIT", "RELEASE_GATE"]
       default: return ["PLAN", "EXECUTE", "VALIDATE", "REVIEW"]
     }
   })()
@@ -472,7 +495,7 @@ function buildRoutingStatus(route, sessionState, explicitSkill = "") {
 // Parse explicit subagent evidence without treating missing or malformed output
 // as success; callers must handle BLOCKED and FAILED as non-passing results.
 function parseWorkflowEvidence(value) {
-  let text = typeof value === "string" ? value : ""
+  let text = typeof value === "string" ? value : (typeof value?.output === "string" ? value.output : "")
   if (!text) {
     try { text = JSON.stringify(value) || "" } catch { return null }
   }
@@ -509,7 +532,7 @@ function recordWorkflowEvidence(workflow, evidence, role = "subagent") {
   if (!workflow || !evidence || !WORKFLOW_PHASES.includes(evidence.phase || workflow.phase)) return workflow
   if (workflow.risk === "release-sensitive" && !evidence.diffIdentity) return workflow
   if (workflow.diffIdentity && evidence.diffIdentity !== workflow.diffIdentity) return workflow
-  if (workflow.risk === "release-sensitive" && !workflow.diffIdentity) workflow = { ...workflow, diffIdentity: evidence.diffIdentity }
+  if (!workflow.diffIdentity && evidence.diffIdentity) workflow = { ...workflow, diffIdentity: evidence.diffIdentity }
   const phase = evidence.phase || workflow.phase
   const requiredPhases = workflow.requiredPhases || []
   const phaseIndex = requiredPhases.indexOf(phase)
@@ -527,11 +550,15 @@ function recordWorkflowEvidence(workflow, evidence, role = "subagent") {
   if (evidence.status === "PASS") {
     if (["AUDIT", "RELEASE_GATE"].includes(phase) && unresolvedFindings.length > 0) return workflow
     completedGates.add(phase)
-    if (phase === "ITERATE") unresolvedFindings.length = 0
+    if (phase === "ITERATE") {
+      unresolvedFindings.length = 0
+      completedGates.delete("VALIDATE")
+    }
     const nextRequired = (workflow.requiredPhases || []).find((candidate) => !completedGates.has(candidate))
     nextPhase = nextRequired || "DONE"
     if (phase === "RELEASE_GATE") releaseStatus = "RELEASE"
   } else if (evidence.status === "FINDINGS") {
+    if (phase === "VALIDATE") completedGates.delete("VALIDATE")
     unresolvedFindings.push({ role, phase, status: evidence.status })
     nextPhase = "ITERATE"
   } else {
@@ -780,7 +807,7 @@ module.exports = {
   SKILL_AGENT_WORKFLOWS, SKILL_CODE_REVIEW, SKILL_DEBUGGING,
   SKILL_SESSION_REVIEW, SKILL_IMPROVE, SKILL_DEVELOP, SKILL_INTAKE, SKILL_DESIGN,
   SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SPEC, COMPLETION_PHRASES, SKILL_DESIGN_REVIEW,
-SKILL_TEXT_WRITING, SKILL_RESEARCH, SKILL_DEEP_RESEARCH, SKILL_OBSERVABILITY, REVIEW_COMPLETION_MARKER, hasReviewCompletionSignal, hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, reviewModeForRisk,
+ SKILL_TEXT_WRITING, SKILL_RESEARCH, SKILL_DEEP_RESEARCH, SKILL_OBSERVABILITY, REVIEW_COMPLETION_MARKER, hasReviewCompletionSignal, hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, reviewEvidenceAccepted, blockWorkflowForMissingDiffIdentity, reviewModeForRisk,
   buildSkillOverview, buildCompactSkillOverview, cascadeRoute, buildExecutionProfile, buildRoutingStatus, pendingReviewRequirements, activeSkillEntries, skillDisplayName, loadSkills, reviewNudgeLines,
   createEmptySessionState, getSessionState, setSessionState,
     findSkill, isAskSkill, isAskSkillName, ASK_SKILL_NAMES, hasPhraseSignal, routingHintLines,

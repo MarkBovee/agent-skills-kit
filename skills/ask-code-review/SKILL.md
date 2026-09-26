@@ -27,7 +27,7 @@ Review for correctness, requirements, and risk first. Enforce `coding-standards.
 
 Keep scope clear: code-review checks behavior, requirements, regressions, and design risk. The final `verification` pass owns proportional code-smell scanning and evidence-based test-gap reporting; escalate deeper repository-wide smell analysis to `improve`.
 
-This is a mandatory second pass after **every** code edit. For `small` and `normal` workflows, use one lightweight combined pass covering correctness, regressions, local conventions, and a bounded counterexample/security sanity check. For `spec-required`, `significant`, and `release-sensitive` workflows, keep review separate from audit and escalate when the diff reveals higher risk.
+This is a mandatory final review after the relevant validation passes for **every** code edit. For `small` and `normal` workflows, use one lightweight combined pass covering correctness, regressions, local conventions, and a bounded counterexample/security sanity check. For `spec-required`, `significant`, and `release-sensitive` workflows, keep final review separate from the final audit and escalate when the diff reveals higher risk.
 
 ## Lightweight combined review
 
@@ -38,7 +38,7 @@ Use this compact path only when the workflow reports `review=combined`:
 3. Try one or two bounded counterexamples, including unsafe input, stale state, or an error path when relevant.
 4. Escalate to separate audit/review handling when you find security, compatibility, migration, architecture, ownership, routing, release, or other cross-cutting risk.
 
-The combined pass still ends with the normal review evidence contract. It does not replace `verification`, and it can never satisfy the `AUDIT` gate required by higher-risk workflows.
+The combined pass still ends with the normal review evidence contract. It does not replace `verification`, and it can never satisfy the `AUDIT` gate required by higher-risk workflows. Do not start it until the current diff has passed validation, including applicable integration/server checks.
 
 ## Completion handoff
 
@@ -87,7 +87,7 @@ When you flag a structural problem, name the move, not just the problem: "replac
 ## Use with
 
 - `develop` when the coding pass is done and the diff needs a second look
-- `verification` after review passes to confirm the claim is proven
+- `verification` before review to establish the technical proof that final review consumes
 - `session-review` when review exposes a skill usage gap or workflow miss worth tracking
 - `write-skill` when improvement needs a new or revised skill
 ## Avoid

@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.4.1] - 2026-09-26
+
+### Fixed
+
+- **Final review and audit now run after validation.** Unit, build/lint, and integration/server checks must pass before final review; final audit and release-gate consume the reviewed, validated diff. Session hook guidance follows the same order, and iteration is conditional on findings instead of a mandatory closeout phase.
+
 ## [2.4.0] - 2026-09-26
 
 ### Changed

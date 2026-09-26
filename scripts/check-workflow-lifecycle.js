@@ -62,6 +62,18 @@ function checkEvidenceContract() {
   const passed = recordWorkflowEvidence(validationReady, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=VALIDATE diff=release-diff"), "validation")
   check("pass completes validate gate", passed.completedGates.includes("VALIDATE") && passed.releaseStatus === "PENDING")
 
+  const prematureReview = recordWorkflowEvidence(validationReady, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=REVIEW diff=release-diff"), "review")
+  check("review cannot run before validation", !prematureReview.completedGates.includes("REVIEW"))
+  const prematureAudit = recordWorkflowEvidence(validationReady, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=AUDIT diff=release-diff"), "audit")
+  check("audit cannot run before validation and review", !prematureAudit.completedGates.includes("AUDIT"))
+  check("iterate is conditional rather than a mandatory closeout gate", !workflow.requiredPhases.includes("ITERATE")
+    && workflow.requiredPhases.indexOf("VALIDATE") < workflow.requiredPhases.indexOf("REVIEW")
+    && workflow.requiredPhases.indexOf("REVIEW") < workflow.requiredPhases.indexOf("AUDIT"))
+  const acceptedReview = recordWorkflowEvidence(passed, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=REVIEW diff=release-diff"), "review")
+  check("accepted review evidence completes the review gate", acceptedReview.completedGates.includes("REVIEW"))
+  const rejectedReview = recordWorkflowEvidence(passed, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=REVIEW diff=other-diff"), "review")
+  check("stale review evidence cannot satisfy the current workflow diff", !rejectedReview.completedGates.includes("REVIEW"))
+
   const research = recordWorkflowEvidence(workflow, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=RESEARCH diff=release-diff"), "research")
   check("optional research evidence records without becoming a required gate", research.completedGates.includes("RESEARCH") && research.phase === "INTAKE")
   check("research skills own research phase", workflowForSkill(workflow, "research")?.phase === "RESEARCH"
@@ -73,7 +85,12 @@ function checkEvidenceContract() {
   const unresolvedAudit = recordWorkflowEvidence(found, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=AUDIT diff=release-diff"), "audit")
   check("unresolved audit findings block audit completion", unresolvedAudit.phase === "ITERATE" && !unresolvedAudit.completedGates.includes("AUDIT"))
   const iterated = recordWorkflowEvidence(found, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=ITERATE diff=release-diff"), "implementation")
-  check("iterate evidence resolves findings before re-audit", iterated.unresolvedFindings.length === 0 && iterated.phase === "AUDIT")
+  check("iterate evidence resolves findings and requires fresh validation", iterated.unresolvedFindings.length === 0
+    && iterated.phase === "VALIDATE" && !iterated.completedGates.includes("VALIDATE"))
+  const validationFindings = recordWorkflowEvidence({ ...passed, completedGates: [...passed.completedGates] }, parseWorkflowEvidence("ASK_WORKFLOW_FINDINGS phase=VALIDATE diff=release-diff"), "validation")
+  const reviewAfterValidationFindings = recordWorkflowEvidence(validationFindings, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=REVIEW diff=release-diff"), "review")
+  check("validation findings immediately invalidate validation before review", !validationFindings.completedGates.includes("VALIDATE")
+    && !reviewAfterValidationFindings.completedGates.includes("REVIEW"))
 
   const blocked = recordWorkflowEvidence({ ...auditReady, diffIdentity: "release-diff" }, parseWorkflowEvidence("ASK_WORKFLOW_BLOCKED phase=AUDIT diff=release-diff"), "audit")
   check("blocked evidence blocks release", blocked.phase === "BLOCKED" && blocked.releaseStatus === "BLOCKED")
