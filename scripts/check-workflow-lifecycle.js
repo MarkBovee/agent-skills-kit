@@ -113,6 +113,10 @@ function checkEvidenceContract() {
   check("repeated host commit identities still create a new workflow diff", repeatedCommitIdentity.diffIdentity === "HEAD:edit-2"
     && repeatedCommitIdentity.completedGates.length === 0
     && repeatedCommitIdentity.releaseStatus === "PENDING")
+  const newReleaseTask = buildWorkflowState("prepare release candidate", { workflow: released })
+  check("new release prompts start a fresh workflow", newReleaseTask.completedGates.length === 0
+    && newReleaseTask.releaseStatus === "PENDING"
+    && newReleaseTask.diffIdentity === "")
 }
 
 // Verify the router-facing status contains risk, phase, gates, and evidence.

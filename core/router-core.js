@@ -383,7 +383,8 @@ function buildWorkflowState(query, previous = null) {
     || workflowRiskRank(classifiedRisk) < workflowRiskRank(previousWorkflow.risk))
     ? previousWorkflow.risk
     : classifiedRisk
-  const sameRisk = previousWorkflow?.risk === risk
+  const startsNewReleaseTask = classifiedRisk === "release-sensitive" && hasWorkflowRiskSignal(normalizedQuery)
+  const sameRisk = previousWorkflow?.risk === risk && !startsNewReleaseTask
   const previousRequiresSpec = sameRisk && previousWorkflow?.requiredPhases?.includes("SPEC")
   const requiredPhases = requiredWorkflowPhases(risk, previousRequiresSpec ? "new external contract" : normalizedQuery)
   return {
