@@ -1,5 +1,7 @@
 # Release plan: bounded workflows, diff-safe gates, and focused discovery 2.4.0
 
+This plan supersedes the historical `plans/release-2.3.3.md` plan. The current candidate, metadata, and release tag are 2.4.0 / `v2.4.0`.
+
 ## Goal
 
 Release the completed workflow-safety and research-efficiency changes from issues #99, #101, and #102 as 2.4.0. Install the release into isolated homes, verify the installed surfaces, then close the three issues only after the release is merged and verified.
