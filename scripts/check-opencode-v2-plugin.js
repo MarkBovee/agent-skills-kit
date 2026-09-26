@@ -130,6 +130,41 @@ if (!injectedContext.includes("• develop: ASK workflow") || injectedContext.in
   throw new Error("router injected a non-ASK skill from the shared skill root")
 }
 
+const releaseSessionPrompt = { sessionID: "release", prompt: { text: "prepare release candidate" } }
+await hooks.session.prompt(releaseSessionPrompt)
+await hooks.tool["execute.after"]({ sessionID: "release", tool: "skill", input: { name: "develop" }, status: "completed", result: {} })
+for (const phase of ["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "ITERATE", "AUDIT", "RELEASE_GATE"]) {
+  await hooks.tool["execute.after"]({
+    sessionID: "release",
+    tool: "task",
+    status: "completed",
+    result: `ASK_WORKFLOW_PASS phase=${phase} diff=release-diff`,
+  })
+}
+await hooks.tool["execute.before"]({ sessionID: "release", tool: "edit", input: { diffIdentity: "new-diff" } })
+await hooks.session.prompt({ sessionID: "release", prompt: { text: "show release status after edit" } })
+const releaseAfterEditContext = { sessionID: "release", system: [] }
+await hooks.session.context(releaseAfterEditContext)
+// Extract the OpenCode lifecycle text from the hidden context section.
+const releaseAfterEditText = releaseAfterEditContext.system.map((part) => part.text || "").join("\n")
+if (!releaseAfterEditText.includes("release=PENDING") || releaseAfterEditText.includes("release=RELEASE")) {
+  throw new Error("OpenCode retained release-ready workflow status after a new code diff")
+}
+await hooks.tool["execute.after"]({
+  sessionID: "release",
+  tool: "task",
+  status: "completed",
+  result: "ASK_WORKFLOW_PASS phase=RELEASE_GATE diff=release-diff",
+})
+await hooks.session.prompt({ sessionID: "release", prompt: { text: "show stale release status" } })
+const staleReleaseContext = { sessionID: "release", system: [] }
+await hooks.session.context(staleReleaseContext)
+// Extract the post-stale-evidence lifecycle text from the hidden context section.
+const staleReleaseText = staleReleaseContext.system.map((part) => part.text || "").join("\n")
+if (!staleReleaseText.includes("release=PENDING") || staleReleaseText.includes("release=RELEASE")) {
+  throw new Error("OpenCode accepted release evidence for the previous diff")
+}
+
 await hooks.tool["execute.after"]({
   sessionID: "test",
   tool: "skill",

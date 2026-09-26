@@ -2,6 +2,7 @@
 
 const {
   buildWorkflowState,
+  invalidateWorkflowForDiff,
   buildRoutingStatus,
   classifyWorkflowRisk,
   createEmptySessionState,
@@ -58,33 +59,33 @@ function checkEvidenceContract() {
 
   const workflow = buildWorkflowState("prepare release candidate")
   const validationReady = { ...workflow, completedGates: ["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE"] }
-  const passed = recordWorkflowEvidence(validationReady, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=VALIDATE"), "validation")
+  const passed = recordWorkflowEvidence(validationReady, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=VALIDATE diff=release-diff"), "validation")
   check("pass completes validate gate", passed.completedGates.includes("VALIDATE") && passed.releaseStatus === "PENDING")
 
-  const research = recordWorkflowEvidence(workflow, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=RESEARCH"), "research")
+  const research = recordWorkflowEvidence(workflow, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=RESEARCH diff=release-diff"), "research")
   check("optional research evidence records without becoming a required gate", research.completedGates.includes("RESEARCH") && research.phase === "INTAKE")
   check("research skills own research phase", workflowForSkill(workflow, "research")?.phase === "RESEARCH"
     && workflowForSkill(workflow, "deep-research")?.phase === "RESEARCH")
 
   const auditReady = { ...workflow, completedGates: workflow.requiredPhases.slice(0, workflow.requiredPhases.indexOf("AUDIT")) }
-  const found = recordWorkflowEvidence(auditReady, parseWorkflowEvidence("ASK_WORKFLOW_FINDINGS phase=AUDIT"), "audit")
+  const found = recordWorkflowEvidence({ ...auditReady, diffIdentity: "release-diff" }, parseWorkflowEvidence("ASK_WORKFLOW_FINDINGS phase=AUDIT diff=release-diff"), "audit")
   check("findings move workflow to iterate", found.phase === "ITERATE" && found.unresolvedFindings.length === 1)
-  const unresolvedAudit = recordWorkflowEvidence(found, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=AUDIT"), "audit")
+  const unresolvedAudit = recordWorkflowEvidence(found, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=AUDIT diff=release-diff"), "audit")
   check("unresolved audit findings block audit completion", unresolvedAudit.phase === "ITERATE" && !unresolvedAudit.completedGates.includes("AUDIT"))
-  const iterated = recordWorkflowEvidence(found, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=ITERATE"), "implementation")
+  const iterated = recordWorkflowEvidence(found, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=ITERATE diff=release-diff"), "implementation")
   check("iterate evidence resolves findings before re-audit", iterated.unresolvedFindings.length === 0 && iterated.phase === "AUDIT")
 
-  const blocked = recordWorkflowEvidence(auditReady, parseWorkflowEvidence("ASK_WORKFLOW_BLOCKED phase=AUDIT"), "audit")
+  const blocked = recordWorkflowEvidence({ ...auditReady, diffIdentity: "release-diff" }, parseWorkflowEvidence("ASK_WORKFLOW_BLOCKED phase=AUDIT diff=release-diff"), "audit")
   check("blocked evidence blocks release", blocked.phase === "BLOCKED" && blocked.releaseStatus === "BLOCKED")
 
   // Keep items that satisfy the local predicate.
   const releaseReady = { ...workflow, completedGates: [...workflow.requiredPhases.filter((phase) => phase !== "RELEASE_GATE")] }
-  const released = recordWorkflowEvidence(releaseReady, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=RELEASE_GATE"), "release-gate")
+  const released = recordWorkflowEvidence({ ...releaseReady, diffIdentity: "release-diff" }, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=RELEASE_GATE diff=release-diff"), "release-gate")
   check("release gate pass reaches done", released.phase === "DONE" && released.releaseStatus === "RELEASE")
-  const prematureRelease = recordWorkflowEvidence(workflow, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=RELEASE_GATE"), "release-gate")
+  const prematureRelease = recordWorkflowEvidence(workflow, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=RELEASE_GATE diff=release-diff"), "release-gate")
   check("premature release evidence cannot bypass required gates", prematureRelease.releaseStatus === "PENDING"
     && !prematureRelease.completedGates.includes("RELEASE_GATE"))
-  const untrustedValidation = recordWorkflowEvidence(validationReady, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=VALIDATE"), "command")
+  const untrustedValidation = recordWorkflowEvidence(validationReady, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=VALIDATE diff=release-diff"), "command")
   check("workflow evidence remains explicit and phase-gated", untrustedValidation.completedGates.includes("VALIDATE"))
 
   const changedRisk = buildWorkflowState("fix typo in docs", { workflow: released })
@@ -98,6 +99,24 @@ function checkEvidenceContract() {
   const contractRelease = buildWorkflowState("prepare release candidate with new external contract")
   const continuedContractRelease = buildWorkflowState("run validation", { workflow: contractRelease })
   check("conditional spec gate survives follow-up prompts", continuedContractRelease.requiredPhases.includes("SPEC"))
+
+  const invalidated = invalidateWorkflowForDiff(released, "diff-after-release")
+  check("code edits invalidate completed workflow gates", invalidated.completedGates.length === 0
+    && invalidated.phase === invalidated.requiredPhases[0]
+    && invalidated.releaseStatus === "PENDING"
+    && invalidated.diffIdentity === "diff-after-release")
+  check("workflow evidence carries a diff identity", parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=VALIDATE diff=diff-after-release").diffIdentity === "diff-after-release")
+  const staleEvidence = recordWorkflowEvidence({ ...invalidated, completedGates: ["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE"] }, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=VALIDATE diff=old-diff"))
+  check("stale workflow evidence cannot complete a new diff", !staleEvidence.completedGates.includes("VALIDATE"))
+  check("release workflow rejects identity-free evidence", !recordWorkflowEvidence(invalidated, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=VALIDATE"), "validation").completedGates.includes("VALIDATE"))
+  const repeatedCommitIdentity = invalidateWorkflowForDiff({ ...released, diffIdentity: "HEAD:edit-1" }, "HEAD:edit-2")
+  check("repeated host commit identities still create a new workflow diff", repeatedCommitIdentity.diffIdentity === "HEAD:edit-2"
+    && repeatedCommitIdentity.completedGates.length === 0
+    && repeatedCommitIdentity.releaseStatus === "PENDING")
+  const newReleaseTask = buildWorkflowState("prepare release candidate", { workflow: released })
+  check("new release prompts start a fresh workflow", newReleaseTask.completedGates.length === 0
+    && newReleaseTask.releaseStatus === "PENDING"
+    && newReleaseTask.diffIdentity === "")
 }
 
 // Verify the router-facing status contains risk, phase, gates, and evidence.

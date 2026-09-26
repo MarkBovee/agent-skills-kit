@@ -46,7 +46,7 @@ const {
   SKILL_DESIGN, SKILL_DESIGN_REVIEW,
   routingHintLines, cascadeRoute, hasPhraseSignal, COMPLETION_PHRASES,
   hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, INTERACTION_GUARD_THRESHOLD, buildWorkflowState, workflowHintLines,
-  workflowForSkill, parseWorkflowEvidence, recordWorkflowEvidence, buildRoutingStatus, isAskSkillName,
+  workflowForSkill, invalidateWorkflowForDiff, parseWorkflowEvidence, recordWorkflowEvidence, buildRoutingStatus, isAskSkillName,
   reviewNudgeLines,
 } = routerCore
 
@@ -391,11 +391,15 @@ export function apply(ctx, config) {
       if (CODE_EDIT_TOOL_IDS.has(toolID)) {
         // Publish each edit because each edit creates a distinct review generation.
         const st = stateFor(exec.agent?.id)
+        const nextGeneration = st.reviewGeneration + 1
+        const reviewReference = exec?.diffIdentity || exec?.commit || `generation-${nextGeneration}`
+        const workflowDiffIdentity = `${reviewReference}:edit-${nextGeneration}`
         st.needsCodeReview = true
-        st.reviewGeneration += 1
-        st.reviewReference = exec?.diffIdentity || exec?.commit || `generation-${st.reviewGeneration}`
+        st.reviewGeneration = nextGeneration
+        st.reviewReference = reviewReference
         st.reviewEvidence = null
         st.reviewFollowUp = null
+        st.workflow = invalidateWorkflowForDiff(st.workflow, workflowDiffIdentity)
         publishPanelState(exec.agent, st)
       }
     } catch (error) {

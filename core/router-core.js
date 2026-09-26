@@ -383,7 +383,8 @@ function buildWorkflowState(query, previous = null) {
     || workflowRiskRank(classifiedRisk) < workflowRiskRank(previousWorkflow.risk))
     ? previousWorkflow.risk
     : classifiedRisk
-  const sameRisk = previousWorkflow?.risk === risk
+  const startsNewReleaseTask = classifiedRisk === "release-sensitive" && hasWorkflowRiskSignal(normalizedQuery)
+  const sameRisk = previousWorkflow?.risk === risk && !startsNewReleaseTask
   const previousRequiresSpec = sameRisk && previousWorkflow?.requiredPhases?.includes("SPEC")
   const requiredPhases = requiredWorkflowPhases(risk, previousRequiresSpec ? "new external contract" : normalizedQuery)
   return {
@@ -394,9 +395,25 @@ function buildWorkflowState(query, previous = null) {
     completedGates: sameRisk && Array.isArray(previousWorkflow.completedGates) ? previousWorkflow.completedGates : [],
     subagents: sameRisk && Array.isArray(previousWorkflow.subagents) ? previousWorkflow.subagents : [],
     unresolvedFindings: sameRisk && Array.isArray(previousWorkflow.unresolvedFindings) ? previousWorkflow.unresolvedFindings : [],
+    diffIdentity: sameRisk ? (previousWorkflow.diffIdentity || "") : "",
     releaseStatus: sameRisk && previousWorkflow.releaseStatus
       ? previousWorkflow.releaseStatus
       : (risk === "release-sensitive" ? "PENDING" : "NOT_REQUIRED"),
+  }
+}
+
+// Invalidate workflow evidence when a new code diff can no longer be covered by
+// the completed gates or release decision from the previous diff.
+function invalidateWorkflowForDiff(workflow, diffIdentity) {
+  if (!workflow || !diffIdentity || workflow.diffIdentity === diffIdentity) return workflow
+  return {
+    ...workflow,
+    phase: workflow.requiredPhases?.[0] || workflow.phase,
+    completedGates: [],
+    subagents: [],
+    unresolvedFindings: [],
+    diffIdentity,
+    releaseStatus: workflow.risk === "release-sensitive" ? "PENDING" : "NOT_REQUIRED",
   }
 }
 
@@ -407,7 +424,7 @@ function workflowHintLines(workflow) {
   const gates = (workflow.requiredPhases || []).map((phase) => `${completed.has(phase) ? "PASS" : "TODO"}:${phase}`)
   const findings = (workflow.unresolvedFindings || []).length
   return [
-    `Workflow: ${workflow.phase} | risk=${workflow.risk} | review=${workflow.reviewMode || "separate"} | ${gates.join(" ")}`,
+    `Workflow: ${workflow.phase} | risk=${workflow.risk} | review=${workflow.reviewMode || "separate"} | diff=${workflow.diffIdentity || "UNSET"} | ${gates.join(" ")}`,
     `Evidence: subagents=${(workflow.subagents || []).length} | unresolved-findings=${findings} | release=${workflow.releaseStatus}`,
   ]
 }
@@ -462,7 +479,8 @@ function parseWorkflowEvidence(value) {
   const match = text.match(/ASK_WORKFLOW_(PASS|FINDINGS|BLOCKED|FAILED)\b[^\n]*?\bphase=([A-Z_]+)/)
   if (!match) return null
   const phase = match[2] && WORKFLOW_PHASES.includes(match[2]) ? match[2] : null
-  return { status: match[1], phase }
+  const diffIdentity = text.match(/\bdiff=([^\s]+)/)?.[1] || ""
+  return { status: match[1], phase, diffIdentity }
 }
 
 // Move lifecycle status to a skill-owned phase while preserving collected
@@ -489,6 +507,9 @@ function workflowForSkill(workflow, skillName) {
 // established workflow there is nothing to advance, so the state stays null.
 function recordWorkflowEvidence(workflow, evidence, role = "subagent") {
   if (!workflow || !evidence || !WORKFLOW_PHASES.includes(evidence.phase || workflow.phase)) return workflow
+  if (workflow.risk === "release-sensitive" && !evidence.diffIdentity) return workflow
+  if (workflow.diffIdentity && evidence.diffIdentity !== workflow.diffIdentity) return workflow
+  if (workflow.risk === "release-sensitive" && !workflow.diffIdentity) workflow = { ...workflow, diffIdentity: evidence.diffIdentity }
   const phase = evidence.phase || workflow.phase
   const requiredPhases = workflow.requiredPhases || []
   const phaseIndex = requiredPhases.indexOf(phase)
@@ -763,7 +784,7 @@ SKILL_TEXT_WRITING, SKILL_RESEARCH, SKILL_DEEP_RESEARCH, SKILL_OBSERVABILITY, RE
   buildSkillOverview, buildCompactSkillOverview, cascadeRoute, buildExecutionProfile, buildRoutingStatus, pendingReviewRequirements, activeSkillEntries, skillDisplayName, loadSkills, reviewNudgeLines,
   createEmptySessionState, getSessionState, setSessionState,
     findSkill, isAskSkill, isAskSkillName, ASK_SKILL_NAMES, hasPhraseSignal, routingHintLines,
-   classifyWorkflowRisk, hasWorkflowRiskSignal, workflowRiskRank, requiredWorkflowPhases, buildWorkflowState, workflowHintLines, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
+    classifyWorkflowRisk, hasWorkflowRiskSignal, workflowRiskRank, requiredWorkflowPhases, buildWorkflowState, invalidateWorkflowForDiff, workflowHintLines, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
   stripFrontmatter, toSingleLine, normalizeStringList,
   parseBooleanField, parseFrontmatter, unique,
 }

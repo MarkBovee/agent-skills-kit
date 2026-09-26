@@ -32,7 +32,7 @@ const {
   SKILL_DEVELOP,
   buildCompactSkillOverview, buildSkillOverview, cascadeRoute, getSessionState, isAskSkill, isAskSkillName, loadSkills,
   setSessionState, hasPhraseSignal, toSingleLine, unique,
-  hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, routingHintLines, buildWorkflowState, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
+  hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, routingHintLines, buildWorkflowState, invalidateWorkflowForDiff, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
   buildRoutingStatus,
 } = resolveRouterCore()
 
@@ -222,11 +222,15 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
       }
       if (CODE_EDIT_TOOL_IDS.has(toolID)) {
         const state = getSessionState(sessionState, sessionKey(input))
+        const nextGeneration = (state.reviewGeneration || 0) + 1
+        const reviewReference = input?.diffIdentity || input?.commit || `generation-${nextGeneration}`
+        const workflowDiffIdentity = `${reviewReference}:edit-${nextGeneration}`
         save(input, {
           needsCodeReview: true,
-          reviewGeneration: (state.reviewGeneration || 0) + 1,
-          reviewReference: input?.diffIdentity || input?.commit || `generation-${(state.reviewGeneration || 0) + 1}`,
+          reviewGeneration: nextGeneration,
+          reviewReference,
           reviewEvidence: null, reviewFollowUp: null,
+          workflow: invalidateWorkflowForDiff(state.workflow, workflowDiffIdentity),
         })
       }
     },
