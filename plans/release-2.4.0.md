@@ -1,6 +1,6 @@
-# Release plan: bounded workflows, diff-safe gates, and focused discovery 2.4.0
+# Historical release plan: bounded workflows, diff-safe gates, and focused discovery 2.4.0
 
-This plan supersedes the historical `plans/release-2.3.3.md` plan. The current candidate, metadata, and release tag are 2.4.0 / `v2.4.0`.
+This plan documents the completed 2.4.0 release. The current release candidate is tracked in `docs/release-2.4.1.md`.
 
 ## Goal
 

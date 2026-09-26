@@ -45,7 +45,7 @@ const {
   SKILL_CODE_REVIEW, SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SESSION_REVIEW,
   SKILL_DESIGN, SKILL_DESIGN_REVIEW,
   routingHintLines, cascadeRoute, hasPhraseSignal, COMPLETION_PHRASES,
-  hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, INTERACTION_GUARD_THRESHOLD, buildWorkflowState, workflowHintLines,
+  hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, reviewEvidenceAccepted, blockWorkflowForMissingDiffIdentity, INTERACTION_GUARD_THRESHOLD, buildWorkflowState, workflowHintLines,
   workflowForSkill, invalidateWorkflowForDiff, parseWorkflowEvidence, recordWorkflowEvidence, buildRoutingStatus, isAskSkillName,
   reviewNudgeLines,
 } = routerCore
@@ -392,14 +392,17 @@ export function apply(ctx, config) {
         // Publish each edit because each edit creates a distinct review generation.
         const st = stateFor(exec.agent?.id)
         const nextGeneration = st.reviewGeneration + 1
-        const reviewReference = exec?.diffIdentity || exec?.commit || `generation-${nextGeneration}`
-        const workflowDiffIdentity = `${reviewReference}:edit-${nextGeneration}`
+        const hostDiffReference = exec?.diffIdentity || exec?.commit || ""
+        const reviewReference = hostDiffReference || `generation-${nextGeneration}`
+        const workflowDiffIdentity = hostDiffReference ? `${hostDiffReference}:edit-${nextGeneration}` : ""
+        st.workflow = st.workflow?.risk === "release-sensitive" && !hostDiffReference
+          ? blockWorkflowForMissingDiffIdentity(st.workflow)
+          : invalidateWorkflowForDiff(st.workflow, workflowDiffIdentity)
         st.needsCodeReview = true
         st.reviewGeneration = nextGeneration
         st.reviewReference = reviewReference
         st.reviewEvidence = null
         st.reviewFollowUp = null
-        st.workflow = invalidateWorkflowForDiff(st.workflow, workflowDiffIdentity)
         publishPanelState(exec.agent, st)
       }
     } catch (error) {
@@ -417,11 +420,13 @@ export function apply(ctx, config) {
       // advance lifecycle state or clear obligations.
        const workflowEvidence = exec?.name === "task" ? parseWorkflowEvidence(result) : null
        const reviewHandoff = exec?.name === "task" ? parseReviewCompletion(result) : null
-       const completedReview = exec?.name === "task" && workflowEvidence?.status === "PASS"
-         && (workflowEvidence.phase === "REVIEW" || workflowEvidence.phase === "AUDIT")
-         && reviewCompletionMatches(result, st.reviewGeneration, workflowEvidence.phase, st.reviewReference)
-       if (workflowEvidence || reviewHandoff) {
-        if (workflowEvidence) st.workflow = recordWorkflowEvidence(st.workflow, workflowEvidence)
+        const workflow = workflowEvidence ? recordWorkflowEvidence(st.workflow, workflowEvidence) : st.workflow
+        const completedReview = exec?.name === "task" && workflowEvidence?.status === "PASS"
+          && (workflowEvidence.phase === "REVIEW" || workflowEvidence.phase === "AUDIT")
+          && reviewCompletionMatches(result, st.reviewGeneration, workflowEvidence.phase, st.reviewReference)
+          && reviewEvidenceAccepted(workflow, workflowEvidence)
+        if (workflowEvidence || reviewHandoff) {
+         if (workflowEvidence) st.workflow = workflow
          if (completedReview) {
            st.needsCodeReview = false
             st.reviewEvidence = reviewHandoff

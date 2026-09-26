@@ -58,12 +58,13 @@ Output contract per stage (see `agent-workflows` for the full contract):
 1. Inspect the next boundary that matters.
 2. Create the smallest coherent improvement. For logic or behavior changes, write or update the failing test first (RED → GREEN → REFACTOR); for bug fixes write a regression test that demonstrates the bug before fixing it.
 3. Test it with the fastest trustworthy proof.
-4. Review it for clarity, safety, consistency, and scope.
-5. Continue unless a real blocker or decision point appears.
+4. Run the broader validation needed for the claim, including integration or server checks when applicable.
+5. Review it for clarity, safety, consistency, and scope only after validation passes.
+6. Continue unless a real blocker or decision point appears.
 
 ## Lifecycle handoff
 
-For significant work, execute only after plan-check evidence exists. After implementation, request independent validation and review; use an independent audit for architecture, ownership, routing, migration, or release-sensitive changes. Iterate on concrete findings, then return structured evidence to the primary agent.
+For significant work, execute only after plan-check evidence exists. After implementation, request validation first. Once unit, build/lint, and integration/server checks pass, request final review; use an independent final audit for architecture, ownership, routing, migration, or release-sensitive changes. If review or audit finds an issue, fix it and rerun the affected tests and validation before repeating the final gates.
 
 Never self-declare release readiness from a green test suite alone. Release-sensitive work needs an independent release-gate decision based on the final diff, validation, review, audit, compatibility evidence, and unresolved debt.
 

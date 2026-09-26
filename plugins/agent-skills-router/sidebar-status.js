@@ -9,6 +9,12 @@ export const ASK_SKILL_NAMES = new Set([
 ])
 
 const CODE_EDIT_TOOL_NAMES = new Set(["edit", "write", "patch", "apply_patch"])
+const SPEC_WORKFLOW_PHRASES = [
+  "specify requirements", "requirements spec", "requirements specification", "design brief",
+  "decision register", "requirements traceability", "spec before build", "behavior-changing",
+  "behavior changing", "new external contract", "new external contracts", "acceptance criteria unclear",
+  "unclear acceptance criteria",
+]
 
 // Accept only router status records that are safe for presentation.
 export function readStatus(value) {
@@ -79,9 +85,24 @@ function observedPendingItems(messages) {
   let needsCodeReview = false
   let needsDesignReview = false
   let reviewGeneration = 0
+  let currentReviewReference = ""
+  let currentDiffIdentity = ""
+  let validatedDiffIdentity = ""
+  let reviewedDiffIdentity = ""
+  let reviewHasFindings = false
+  let completedWorkflowPhases = new Set()
+  let specWorkflowRequired = false
 
   for (const message of messages) {
     if (!Array.isArray(message?.content)) continue
+    const messageText = message.content
+      // Keep only textual prompt content for workflow phrase detection.
+      .filter((part) => part?.type === "text" && typeof part.text === "string")
+      // Normalize prompt fragments before matching workflow triggers.
+      .map((part) => part.text.toLowerCase())
+      .join(" ")
+    // Preserve a prompt-derived SPEC requirement across later edits.
+    if (SPEC_WORKFLOW_PHRASES.some((phrase) => messageText.includes(phrase))) specWorkflowRequired = true
     for (const part of message.content) {
       if (part?.type !== "tool" || part.state?.status !== "completed") continue
       const toolName = typeof part.name === "string" ? part.name : ""
@@ -90,6 +111,13 @@ function observedPendingItems(messages) {
         hasRelevantHistory = true
         needsCodeReview = true
         reviewGeneration += 1
+        const hostReference = input?.diffIdentity || input?.commit || ""
+        currentReviewReference = hostReference
+        currentDiffIdentity = hostReference ? `${hostReference}:edit-${reviewGeneration}` : ""
+        validatedDiffIdentity = ""
+        reviewedDiffIdentity = ""
+        reviewHasFindings = false
+        completedWorkflowPhases = new Set()
         continue
       }
       if (toolName === "skill") {
@@ -100,15 +128,68 @@ function observedPendingItems(messages) {
         } else if (skill === "design-review") {
           hasRelevantHistory = true
           needsDesignReview = false
+        } else if (skill === "spec") {
+          specWorkflowRequired = true
+          validatedDiffIdentity = ""
         }
         continue
       }
       if (toolName !== "task") continue
       const output = toolOutputText(part)
-      if (!/ASK_WORKFLOW_PASS\b/.test(output) || !/ASK_REVIEW_COMPLETE\b/.test(output)) continue
-      if (!/phase=(?:REVIEW|AUDIT)\b/.test(output) || !/review-result:\s*PASS\b/.test(output)) continue
       const generation = Number(output.match(/review-generation:\s*(\d+)/)?.[1] || 0)
-      if (generation === reviewGeneration) needsCodeReview = false
+      const diffIdentity = output.match(/\bdiff=([^\s]+)/)?.[1] || ""
+      const phase = output.match(/\bphase=(SPEC|INTAKE|PLAN|PLAN_CHECK|EXECUTE|VALIDATE|REVIEW|ITERATE|AUDIT)\b/)?.[1] || ""
+      const reviewReference = output.match(/review-reference:\s*([^\s]+)/)?.[1] || ""
+      const completedAt = output.match(/review-completed-at:\s*([^\s]+)/)?.[1] || ""
+      if (phase === "VALIDATE" && /ASK_WORKFLOW_PASS\b/.test(output)
+        && currentDiffIdentity && diffIdentity === currentDiffIdentity) {
+        completedWorkflowPhases.add(phase)
+        const advancedPlanning = completedWorkflowPhases.has("INTAKE") || completedWorkflowPhases.has("PLAN_CHECK")
+        const requiresSpec = specWorkflowRequired || completedWorkflowPhases.has("SPEC")
+        const hasRequiredValidation = completedWorkflowPhases.has("PLAN")
+          && completedWorkflowPhases.has("EXECUTE") && completedWorkflowPhases.has("VALIDATE")
+          && (!advancedPlanning || (completedWorkflowPhases.has("INTAKE") && completedWorkflowPhases.has("PLAN_CHECK")))
+          && (!requiresSpec || completedWorkflowPhases.has("SPEC"))
+        if (hasRequiredValidation) validatedDiffIdentity = currentDiffIdentity
+        continue
+      }
+      if (["SPEC", "INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE"].includes(phase)
+        && /ASK_WORKFLOW_PASS\b/.test(output) && currentDiffIdentity && diffIdentity === currentDiffIdentity) {
+        completedWorkflowPhases.add(phase)
+        if (phase === "SPEC") specWorkflowRequired = true
+        if (["SPEC", "INTAKE", "PLAN_CHECK"].includes(phase)) validatedDiffIdentity = ""
+        continue
+      }
+      if ((/ASK_WORKFLOW_FINDINGS\b/.test(output) || /ASK_WORKFLOW_(BLOCKED|FAILED)\b/.test(output))
+        && currentDiffIdentity && diffIdentity === currentDiffIdentity) {
+        reviewHasFindings = true
+        if (phase === "REVIEW") reviewedDiffIdentity = ""
+        if (phase === "VALIDATE") validatedDiffIdentity = ""
+        needsCodeReview = true
+        continue
+      }
+      if (phase === "ITERATE" && /ASK_WORKFLOW_PASS\b/.test(output)
+        && currentDiffIdentity && diffIdentity === currentDiffIdentity) {
+        reviewHasFindings = false
+        validatedDiffIdentity = ""
+        completedWorkflowPhases.delete("VALIDATE")
+        continue
+      }
+      if (!/ASK_WORKFLOW_PASS\b/.test(output) || !/ASK_REVIEW_COMPLETE\b/.test(output)) continue
+      if (!/review-result:\s*PASS\b/.test(output) || generation !== reviewGeneration
+        || !currentDiffIdentity || diffIdentity !== currentDiffIdentity || !completedAt) continue
+      if (phase === "REVIEW" && /review-scope:\s*REVIEW\b/.test(output)
+        && reviewReference === currentReviewReference && !reviewHasFindings
+        && validatedDiffIdentity === currentDiffIdentity) {
+        reviewedDiffIdentity = currentDiffIdentity
+        needsCodeReview = false
+      }
+      if (phase === "AUDIT" && /review-scope:\s*final-diff\b/.test(output)
+        && reviewReference === currentReviewReference && !reviewHasFindings
+        && reviewedDiffIdentity === currentDiffIdentity
+        && validatedDiffIdentity === currentDiffIdentity) {
+        needsCodeReview = false
+      }
     }
   }
 

@@ -28,6 +28,14 @@ function check(label, condition, detail) {
   console.error(`FAIL: ${label}${detail ? ` — ${detail}` : ""}`)
 }
 
+// Advance one edited workflow through its required pre-review gates.
+async function completeValidation(plugin, generation) {
+  const diff = `HEAD:edit-${generation}`
+  for (const phase of ["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE"]) {
+    await plugin["tool.execute.after"]({ tool: "task" }, { output: `ASK_WORKFLOW_PASS phase=${phase} diff=${diff}` })
+  }
+}
+
 // Run this script's complete validation workflow.
 async function main() {
   process.env.ASK_SKILLS_DIR = SKILLS_PATH
@@ -186,29 +194,36 @@ async function main() {
     "user marker quote does not clear code-review nudge",
     (markerQuote?.append || "").includes("Code edited"),
   )
-  await plugin["tool.execute.after"]({ tool: "task" }, { output: "ASK_WORKFLOW_PASS phase=REVIEW\nreview-generation: 3\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" })
+  await completeValidation(plugin, 3)
+  await plugin["tool.execute.after"]({ tool: "task" }, { output: "ASK_WORKFLOW_PASS phase=REVIEW diff=HEAD:edit-3\nreview-generation: 3\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" })
   const delegatedReviewFollowUp = await plugin["tui.prompt.append"]({ prompt: "review handoff completed" })
   check("delegated review completion clears code-review nudge", !(delegatedReviewFollowUp?.append || "").includes("Code edited"))
   await plugin["tool.execute.before"]({ tool: "edit", diffIdentity: "HEAD" })
   await plugin["tool.execute.after"]({ tool: "edit" }, {})
+  await completeValidation(plugin, 4)
   await plugin["tool.execute.after"](
     { tool: "task" },
-    { output: "ASK_WORKFLOW_PASS phase=REVIEW\nreview-generation: 4\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" },
+    { output: "ASK_WORKFLOW_PASS phase=REVIEW diff=HEAD:edit-4\nreview-generation: 4\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" },
   )
   const combinedReviewFollowUp = await plugin["tui.prompt.append"]({ prompt: "combined review handoff completed" })
   check("combined review evidence and marker clear code-review nudge", !(combinedReviewFollowUp?.append || "").includes("Code edited"))
   await plugin["tool.execute.before"]({ tool: "edit", diffIdentity: "HEAD" })
   await plugin["tool.execute.after"]({ tool: "edit" }, {})
+  await completeValidation(plugin, 5)
   await plugin["tool.execute.after"](
     { tool: "task" },
-    { output: "ASK_WORKFLOW_FINDINGS phase=REVIEW\nreview-generation: 5\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" },
+    { output: "ASK_WORKFLOW_FINDINGS phase=REVIEW diff=HEAD:edit-5\nreview-generation: 5\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" },
   )
   const failedReviewFollowUp = await plugin["tui.prompt.append"]({ prompt: "review has findings" })
   check("non-passing review marker keeps code-review nudge armed", (failedReviewFollowUp?.append || "").includes("Code edited"))
-  await plugin["tool.execute.after"]({ tool: "task" }, { output: "ASK_WORKFLOW_PASS phase=AUDIT\nreview-generation: 6\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" })
+  await completeValidation(plugin, 6)
+  await plugin["tool.execute.after"]({ tool: "task" }, { output: "ASK_WORKFLOW_PASS phase=AUDIT diff=HEAD:edit-6\nreview-generation: 6\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" })
   const auditScopeFollowUp = await plugin["tui.prompt.append"]({ prompt: "audit scope check" })
   check("audit with non-final scope keeps code-review nudge armed", (auditScopeFollowUp?.append || "").includes("Code edited"))
-  await plugin["tool.execute.after"]({ tool: "task" }, { output: "ASK_WORKFLOW_PASS phase=AUDIT\nreview-generation: 5\nreview-scope: final-diff\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" })
+  await plugin["tool.execute.after"]({ tool: "task" }, { output: "ASK_WORKFLOW_PASS phase=ITERATE diff=HEAD:edit-5" })
+  await completeValidation(plugin, 5)
+  await plugin["tool.execute.after"]({ tool: "task" }, { output: "ASK_WORKFLOW_PASS phase=REVIEW diff=HEAD:edit-5\nreview-generation: 5\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" })
+  await plugin["tool.execute.after"]({ tool: "task" }, { output: "ASK_WORKFLOW_PASS phase=AUDIT diff=HEAD:edit-5\nreview-generation: 5\nreview-scope: final-diff\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" })
   const finalDiffAuditFollowUp = await plugin["tui.prompt.append"]({ prompt: "final diff audit completed" })
   check("audit of final diff clears code-review nudge", !(finalDiffAuditFollowUp?.append || "").includes("Code edited"))
   await plugin["tool.execute.before"]({ tool: "edit", diffIdentity: "HEAD" })

@@ -35,6 +35,14 @@ function check(label, ok, detail) {
   }
 }
 
+// Advance one edited workflow through validation before its final review.
+function completeValidation(listeners, agent, generation) {
+  const diff = `HEAD:edit-${generation}`
+  for (const phase of ["PLAN", "EXECUTE", "VALIDATE"]) {
+    listeners.get("tools/result")[0]({ name: "task", agent }, { isError: false, output: `ASK_WORKFLOW_PASS phase=${phase} diff=${diff}` })
+  }
+}
+
 // Record whether one function throws, for schema boundary assertions.
 function throws(fn) {
   try {
@@ -317,9 +325,10 @@ async function main() {
     const quotedMarker = await assemble({ sections: [] }, { agent: delegatedAgent }, async () => ({ sections: [] }))
     // Find the first item that matches the local condition.
     check("user marker quote does not clear parent nudge", quotedMarker.sections.find((entry) => entry.name === "ask-kit:router").text.includes("→ Code edited"))
+    completeValidation(listeners, delegatedAgent, 1)
     listeners.get("tools/result")[0](
       { name: "task", agent: delegatedAgent },
-      { isError: false, output: "ASK_WORKFLOW_PASS phase=REVIEW\nreview-generation: 1\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" },
+      { isError: false, output: "ASK_WORKFLOW_PASS phase=REVIEW diff=HEAD:edit-1\nreview-generation: 1\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" },
     )
     // Execute the delegated after callback.
     const delegatedAfter = await assemble({ sections: [] }, { agent: delegatedAgent }, async () => ({ sections: [] }))
@@ -327,9 +336,10 @@ async function main() {
     check("delegated review completion clears parent nudge", !delegatedAfter.sections.find((entry) => entry.name === "ask-kit:router").text.includes("→ Code edited"))
     // Execute this callback within the surrounding workflow.
     await pre({ name: "edit", agent: delegatedAgent, diffIdentity: "HEAD" }, async () => ({ kind: "allow" }))
+    completeValidation(listeners, delegatedAgent, 2)
     listeners.get("tools/result")[0](
       { name: "task", agent: delegatedAgent },
-      { isError: false, output: "ASK_WORKFLOW_PASS phase=REVIEW\nreview-generation: 2\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" },
+      { isError: false, output: "ASK_WORKFLOW_PASS phase=REVIEW diff=HEAD:edit-2\nreview-generation: 2\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" },
     )
     // Execute the combined delegated after callback.
     const combinedDelegatedAfter = await assemble({ sections: [] }, { agent: delegatedAgent }, async () => ({ sections: [] }))
@@ -337,9 +347,10 @@ async function main() {
     check("combined review evidence and marker clear parent nudge", !combinedDelegatedAfter.sections.find((entry) => entry.name === "ask-kit:router").text.includes("→ Code edited"))
     // Execute this callback within the surrounding workflow.
     await pre({ name: "edit", agent: delegatedAgent, diffIdentity: "HEAD" }, async () => ({ kind: "allow" }))
+    completeValidation(listeners, delegatedAgent, 3)
     listeners.get("tools/result")[0](
       { name: "task", agent: delegatedAgent },
-      { isError: false, output: "ASK_WORKFLOW_FINDINGS phase=REVIEW\nreview-generation: 3\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" },
+      { isError: false, output: "ASK_WORKFLOW_FINDINGS phase=REVIEW diff=HEAD:edit-3\nreview-generation: 3\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" },
     )
     // Execute the failed review after callback.
     const failedReviewAfter = await assemble({ sections: [] }, { agent: delegatedAgent }, async () => ({ sections: [] }))
@@ -347,7 +358,16 @@ async function main() {
       check("non-passing review marker keeps parent nudge", failedReviewAfter.sections.find((entry) => entry.name === "ask-kit:router").text.includes("→ Code edited"))
       listeners.get("tools/result")[0](
         { name: "task", agent: delegatedAgent },
-        { isError: false, output: "ASK_WORKFLOW_PASS phase=AUDIT\nreview-generation: 3\nreview-scope: final-diff\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" },
+        { isError: false, output: "ASK_WORKFLOW_PASS phase=ITERATE diff=HEAD:edit-3" },
+      )
+      completeValidation(listeners, delegatedAgent, 3)
+      listeners.get("tools/result")[0](
+        { name: "task", agent: delegatedAgent },
+        { isError: false, output: "ASK_WORKFLOW_PASS phase=REVIEW diff=HEAD:edit-3\nreview-generation: 3\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" },
+      )
+      listeners.get("tools/result")[0](
+        { name: "task", agent: delegatedAgent },
+        { isError: false, output: "ASK_WORKFLOW_PASS phase=AUDIT diff=HEAD:edit-3\nreview-generation: 3\nreview-scope: final-diff\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" },
       )
       // Execute the final diff audit after callback.
       const finalDiffAuditAfter = await assemble({ sections: [] }, { agent: delegatedAgent }, async () => ({ sections: [] }))
@@ -386,7 +406,8 @@ async function main() {
     const afterSteerReviewText = afterSteerReview.sections.find((entry) => entry.name === "ask-kit:router").text
      check("code-review load preserves review debt", afterSteerReviewText.includes("→ Code edited"))
     check("code-review load arms improvement after steer", afterSteerReviewText.includes("→ Improvement found?"))
-     listeners.get("tools/result")[0]({ name: "task", agent: steerAgent }, { isError: false, output: "ASK_WORKFLOW_PASS phase=REVIEW\nreview-generation: 1\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" })
+      completeValidation(listeners, steerAgent, 1)
+     listeners.get("tools/result")[0]({ name: "task", agent: steerAgent }, { isError: false, output: "ASK_WORKFLOW_PASS phase=REVIEW diff=HEAD:edit-1\nreview-generation: 1\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" })
      inbox({ agent: steerAgent, message: { text: "klaar" } })
     const secondSteerText = steered[1]?.content?.[0]?.text ?? ""
     check("completion steers session-review once", steered.length === 2 && secondSteerText.includes("'session-review'"))
@@ -458,9 +479,10 @@ async function main() {
        state = unit.apply(state, appended.at(-1))
        // Test whether any item satisfies the local predicate.
        check("code-review load preserves review debt", state.pending.some((entry) => entry.skill === "code-review"))
-       listeners.get("tools/result")[0](
-         { name: "task", agent: bridgeAgent },
-         { isError: false, output: "ASK_WORKFLOW_PASS phase=REVIEW\nreview-generation: 1\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" },
+        completeValidation(listeners, bridgeAgent, 1)
+        listeners.get("tools/result")[0](
+          { name: "task", agent: bridgeAgent },
+          { isError: false, output: "ASK_WORKFLOW_PASS phase=REVIEW diff=HEAD:edit-1\nreview-generation: 1\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" },
        )
        state = unit.apply(state, appended.at(-1))
        // Test whether any item satisfies the local predicate.

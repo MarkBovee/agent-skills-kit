@@ -88,7 +88,7 @@ Close out multi-repo work: verify integrated state, leave the workspace intentio
 
 ## Use with
 
-- `code-review` before verification when meaningful code changed
+- `code-review` after verification when meaningful code changed; final review must consume fresh validation evidence
 - `agent-workflows` when multiple agents or terminals touched different repos
 - `session-review` when the session uncovered skill usage gaps worth tracking
 - `write-skill` when improvement needs a new or revised skill

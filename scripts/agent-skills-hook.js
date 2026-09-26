@@ -77,7 +77,7 @@ function buildSessionContext(skills) {
   return [
     "Agent Skills Kit skills are installed as native Agent Skills and should be loaded when their descriptions match the task.",
     "After verification, consider session-review to reflect on skill usage and file improvements in the agent-skills-kit repo.",
-    "After code edits, route through ask-code-review before verification or a completion claim.",
+    "After code edits, complete verification first; then route through ask-code-review before a completion claim.",
     "Cost-aware default: bounded mechanical chores such as version bumps, changelog edits, release notes, and release-prep updates should start with a cheap small/mini subagent when the host supports it. Escalate to a stronger agent only when scope expands or cheap-first validation fails.",
     `Installed skill preview: ${preview}`,
   ].join("\n")
