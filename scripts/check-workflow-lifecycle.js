@@ -109,6 +109,10 @@ function checkEvidenceContract() {
   const staleEvidence = recordWorkflowEvidence({ ...invalidated, completedGates: ["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE"] }, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=VALIDATE diff=old-diff"))
   check("stale workflow evidence cannot complete a new diff", !staleEvidence.completedGates.includes("VALIDATE"))
   check("release workflow rejects identity-free evidence", !recordWorkflowEvidence(invalidated, parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=VALIDATE"), "validation").completedGates.includes("VALIDATE"))
+  const repeatedCommitIdentity = invalidateWorkflowForDiff({ ...released, diffIdentity: "HEAD:edit-1" }, "HEAD:edit-2")
+  check("repeated host commit identities still create a new workflow diff", repeatedCommitIdentity.diffIdentity === "HEAD:edit-2"
+    && repeatedCommitIdentity.completedGates.length === 0
+    && repeatedCommitIdentity.releaseStatus === "PENDING")
 }
 
 // Verify the router-facing status contains risk, phase, gates, and evidence.
