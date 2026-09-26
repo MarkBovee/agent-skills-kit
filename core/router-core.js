@@ -424,7 +424,7 @@ function workflowHintLines(workflow) {
   const gates = (workflow.requiredPhases || []).map((phase) => `${completed.has(phase) ? "PASS" : "TODO"}:${phase}`)
   const findings = (workflow.unresolvedFindings || []).length
   return [
-    `Workflow: ${workflow.phase} | risk=${workflow.risk} | diff=${workflow.diffIdentity || "UNSET"} | review=${workflow.reviewMode || "separate"} | ${gates.join(" ")}`,
+    `Workflow: ${workflow.phase} | risk=${workflow.risk} | review=${workflow.reviewMode || "separate"} | diff=${workflow.diffIdentity || "UNSET"} | ${gates.join(" ")}`,
     `Evidence: subagents=${(workflow.subagents || []).length} | unresolved-findings=${findings} | release=${workflow.releaseStatus}`,
   ]
 }
