@@ -17,6 +17,9 @@ Answer bounded questions with evidence, not recollection. This is fact-finding, 
 ## Rules
 
 - Prefer runtime evidence, reproducible tests, source code, official documentation, and standards over secondary sources.
+- For MCP-backed discovery, search for one concrete capability at a time (for example, one entity state, installed-app slug, or add-on log) instead of combining unrelated intents.
+- Prefer the smallest available search result projection/limit, invoke only the discovered read tool needed for the next diagnostic step, and avoid repeating broad searches when the relevant tool name is already known.
+- If a discovery server returns full schemas only, record the output-size or latency cost and treat compact discovery/projection support as a follow-up rather than repeatedly requesting unrelated schemas.
 - Cite external claims with stable URLs; cite local claims as `path:line` or a precise section.
 - Do not implement, settle product or architecture choices, or present an inference as fact.
 - Escalate to `deep-research` for multiple interacting unknowns, several source classes, conflicting evidence, historical/protocol analysis, or an exhaustive request.

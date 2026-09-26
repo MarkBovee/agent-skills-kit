@@ -57,6 +57,9 @@ async function main() {
     {},
   ).matchedSkills[0]?.name === "deep-research")
   check("ordinary research stays bounded", research.includes("bounded") && research.includes("external sources"))
+  check("ordinary research narrows MCP discovery", research.includes("one concrete capability at a time")
+    && research.includes("smallest available search result projection/limit"))
+  check("ordinary research avoids repeated broad discovery", research.includes("avoid repeating broad searches"))
   check("ordinary research yields a portable handoff", research.includes("Handoff: next owner"))
   check("deep research starts from local evidence", deepResearch.includes("Inspect local code, tests, fixtures"))
   check("deep research requires external primary sources", deepResearch.includes("official standards/docs"))

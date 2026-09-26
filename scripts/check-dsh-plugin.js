@@ -167,6 +167,31 @@ async function main() {
     const pre = listeners.get("tools/pre-execute")[0]
     const assemble = listeners.get("system-prompt/assemble")[0]
     const agent = { id: "gate-check" }
+    const releaseAgent = { id: "release-diff-check" }
+    listeners.get("agent/inbox/inserted")[0]({ agent: releaseAgent, message: { text: "prepare release candidate" } })
+    listeners.get("tools/result")[0]({ name: "skill", agent: releaseAgent, arguments: { name: "develop" } }, { isError: false })
+    for (const phase of ["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "ITERATE", "AUDIT", "RELEASE_GATE"]) {
+      listeners.get("tools/result")[0](
+        { name: "task", agent: releaseAgent },
+        { isError: false, output: `ASK_WORKFLOW_PASS phase=${phase} diff=release-diff` },
+      )
+    }
+    // Execute a code edit against the DSH release session.
+    await pre({ name: "edit", agent: releaseAgent, diffIdentity: "new-diff" }, async () => ({ kind: "allow" }))
+    // Assemble the DSH panel after the new diff invalidates workflow evidence.
+    const releaseAssembly = await assemble({ sections: [] }, { agent: releaseAgent }, async () => ({ sections: [] }))
+    // Extract the DSH lifecycle text from the router panel section.
+    const releaseText = releaseAssembly.sections.find((entry) => entry.name === "ask-kit:router")?.text || ""
+    check("dsh invalidates release status after a new code diff", releaseText.includes("release=PENDING") && !releaseText.includes("release=RELEASE"))
+    listeners.get("tools/result")[0](
+      { name: "task", agent: releaseAgent },
+      { isError: false, output: "ASK_WORKFLOW_PASS phase=RELEASE_GATE diff=release-diff" },
+    )
+    // Re-assemble after stale release evidence attempts to complete the old diff.
+    const staleAssembly = await assemble({ sections: [] }, { agent: releaseAgent }, async () => ({ sections: [] }))
+    // Extract the DSH lifecycle text for the stale-evidence assertion.
+    const staleText = staleAssembly.sections.find((entry) => entry.name === "ask-kit:router")?.text || ""
+    check("dsh rejects release evidence for the previous diff", staleText.includes("release=PENDING") && !staleText.includes("release=RELEASE"))
     // Execute the denied callback.
     const denied = await pre({ name: "bash", agent }, async () => ({ kind: "allow" }))
     check("strict gate denies before skill load", denied && denied.kind === "deny")

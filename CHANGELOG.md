@@ -6,11 +6,13 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
-## [2.3.4] - 2026-09-25
+## [2.4.0] - 2026-09-26
 
 ### Changed
 
-- **Narrow release audits now have an explicit scope and iteration budget (issue #99).** Eligible single-invariant fixes use separate independent review and audit contexts, one targeted delta round, and one final full check suite. The cumulative 16-minute review/audit budget cannot reset across handoffs; P0/P1 findings and blockers still block release, while verified adjacent non-blockers become evidence-backed follow-ups.
+- **Narrow release audits now have an explicit scope and iteration budget (issue #99).** Eligible single-invariant fixes use separate independent review and audit contexts, one targeted delta round, and one final full check suite. The cumulative 16-minute review/audit budget cannot reset across handoffs; P0/P1 findings and blockers still block release, while verified adjacent non-blockers become evidence-backed follow-ups. Metadata-only version changes now use a bounded validation fast path.
+- **Diff-safe workflow gates (issue #101).** OpenCode and dsh now invalidate completed workflow gates and release status when a code edit creates a new immutable diff identity.
+- **Focused MCP discovery guidance (issue #102).** Research guidance now searches one concrete capability at a time, prefers the smallest result projection or limit, and avoids repeating broad schema discovery.
 
 ## [2.3.3] - 2026-09-22
 

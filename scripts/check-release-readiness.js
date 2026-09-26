@@ -82,13 +82,11 @@ async function readChangedPathsSinceVersion(version) {
     return []
   }
 
-  const output = await readGitStdout(["diff", "--name-only", `v${version}..HEAD`])
-
-  if (!output) {
-    return []
-  }
-
-  return output.split(/\r?\n/).filter(Boolean)
+  const [trackedOutput, untrackedOutput] = await Promise.all([
+    readGitStdout(["diff", "--name-only", `v${version}`]),
+    readGitStdout(["ls-files", "--others", "--exclude-standard"]),
+  ])
+  return [...new Set(`${trackedOutput}\n${untrackedOutput}`.split(/\r?\n/).filter(Boolean))]
 }
 
 // Detect whether one changed path affects shipped install or managed assets.
