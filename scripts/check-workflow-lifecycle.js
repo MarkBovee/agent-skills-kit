@@ -15,6 +15,7 @@ const {
   workflowHintLines,
   workflowForSkill,
 } = require("../core/router-core")
+const fs = require("node:fs")
 
 let failures = 0
 
@@ -76,6 +77,33 @@ function checkRiskProfiles() {
   ).includes("AUDIT"))
   check("release flow can include conditional spec", requiredWorkflowPhases("release-sensitive", "new external contract").includes("SPEC")
     && requiredWorkflowPhases("release-sensitive", "new external contract").includes("RELEASE_GATE"))
+}
+
+// Keep release validation deferred until iterative findings are resolved.
+function checkReleaseValidationCadence() {
+  const workflowGuidance = fs.readFileSync("skills/ask-agent-workflows/SKILL.md", "utf8")
+  const deltaGuidance = workflowGuidance.slice(workflowGuidance.indexOf("## Bounded narrow-fix release path"), workflowGuidance.indexOf("## Metadata-only release fast path"))
+  check("delta findings loop repeats focused validation without the full suite", deltaGuidance.includes("Do not run the full suite during this findings loop"))
+  check("full suite runs once on the stable candidate", deltaGuidance.includes("run the full required check suite once on that exact diff"))
+  check("later code findings invalidate all prior gate evidence", deltaGuidance.includes("all validation, review, audit, and release-gate evidence for the prior diff is stale"))
+  check("later code findings rerun every final gate on the new diff", deltaGuidance.includes("run the full suite and repeat final review, independent final audit, and release-gate on that exact diff"))
+  check("final review and independent audit remain after full validation", deltaGuidance.indexOf("run the full required check suite once") < deltaGuidance.indexOf("final review run")
+    && deltaGuidance.includes("independent final audit and release-gate"))
+  check("review and audit budget remains cumulative", deltaGuidance.includes("cumulative review/audit budget remains")
+    && deltaGuidance.includes("timebox is 16 minutes total"))
+  check("budget exhaustion and blocked passes cannot claim a pass", deltaGuidance.includes("If the budget is exhausted or a pass is partial or blocked, stop and present the evidence"))
+  check("P0/P1 blockers cannot be deferred", deltaGuidance.includes("P0/P1 findings and established security, privacy, correctness, or safety blockers cannot be deferred"))
+  check("scope expansion requires owner approval", deltaGuidance.includes("Scope expansion requires explicit approval recorded in a revised plan"))
+
+  const generatedPaths = [
+    ["GitHub Copilot", ".github/skills/ask-agent-workflows/SKILL.md"],
+    ["DeepSeek Harness", ".dsh/skills/ask-agent-workflows/SKILL.md"],
+  ]
+  for (const [platform, path] of generatedPaths) {
+    const generatedGuidance = fs.readFileSync(path, "utf8")
+    const generatedSection = generatedGuidance.slice(generatedGuidance.indexOf("## Bounded narrow-fix release path"), generatedGuidance.indexOf("## Metadata-only release fast path"))
+    check(`${platform} export matches canonical release cadence`, generatedSection === deltaGuidance)
+  }
 }
 
 // Verify explicit evidence markers produce pass, finding, and blocked states.
@@ -227,6 +255,7 @@ function checkRoutingStatus() {
 // Run lifecycle checks and return a failing process status on drift.
 function main() {
   checkRiskProfiles()
+  checkReleaseValidationCadence()
   checkEvidenceContract()
   checkStatusHints()
   checkRoutingStatus()

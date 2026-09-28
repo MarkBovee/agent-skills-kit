@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.4.4] - 2026-09-28
+
+### Changed
+
+- **Reserve full validation for the stable release candidate (issue #111).** Findings batches use focused validation and bounded delta review/audit cycles; the full suite runs once after actionable findings are resolved, with final review and audit still required.
+
 ## [2.4.3] - 2026-09-28
 
 ### Changed
