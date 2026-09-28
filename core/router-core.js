@@ -38,8 +38,23 @@ const WORKFLOW_PHASES = ["INTAKE", "RESEARCH", "SPEC", "PLAN", "PLAN_CHECK", "EX
 const WORKFLOW_RISK_LEVELS = new Set(["small", "normal", "spec-required", "significant", "release-sensitive"])
 const SPEC_REQUIRED_PHRASES = ["specify requirements", "requirements spec", "requirements specification", "design brief", "decision register", "requirements traceability", "spec before build", "behavior-changing", "behavior changing", "new external contract", "new external contracts", "acceptance criteria unclear", "unclear acceptance criteria"]
 const RELEASE_RISK_PHRASES = ["release candidate", "production readiness", "ready to ship", "ready to merge", "release-sensitive"]
-const SIGNIFICANT_RISK_PHRASES = ["architecture", "architectural", "migration", "ownership", "routing change", "multi-module", "backwards compatibility", "cross-cutting", "significant refactor"]
-const SMALL_RISK_PHRASES = ["typo", "documentation-only", "docs only", "rename variable", "version bump", "changelog tweak"]
+const SIGNIFICANT_RISK_PHRASES = [
+  "architecture", "architectural", "migration", "ownership", "routing change", "multi-module",
+  "backwards compatibility", "cross-cutting", "significant refactor", "security",
+  "authentication", "authorization", "credential", "password", "token", "secret handling",
+  "access control", "permission check", "sql injection", "injection", "xss", "cross-site scripting",
+  "csrf", "race condition", "buffer overflow", "side-channel", "privilege escalation",
+  "encryption", "cryptography", "privacy", "sensitive data", "data leak", "data exfiltration",
+  "data loss", "data corruption", "input validation", "path traversal", "remote code execution",
+  "bypass", "vulnerability", "exploit", "auth", "oauth", "ssl", "tls", "crypto",
+  "login", "session management", "api key", "api secret", "schema change", "database schema",
+  "db column removal", "ssrf", "rce", "idor", "xxe",
+]
+const SMALL_RISK_PHRASES = [
+  "typo", "documentation-only", "docs only", "rename variable", "version bump", "changelog tweak",
+  "small local fix", "small local bug fix", "small bug fix", "small fix", "quick fix", "tiny fix", "small change",
+  "small adjustment", "minor adjustment",
+]
 const LARGE_BRIEF_PHRASES = [
   "large multi-issue brief", "multiple issues", "all issues", "maximum compatibility",
   "end-to-end implementation", "merge and release", "release-sensitive brief",
@@ -353,8 +368,8 @@ function classifyWorkflowRisk(query) {
   if (hasPhraseSignal(normalized, RELEASE_RISK_PHRASES)) return "release-sensitive"
   if (hasPhraseSignal(normalized, LARGE_BRIEF_PHRASES)) return "significant"
   if (hasPhraseSignal(normalized, DEEP_RESEARCH_PHRASES)) return "significant"
-  if (hasPhraseSignal(normalized, SPEC_REQUIRED_PHRASES)) return "spec-required"
   if (hasPhraseSignal(normalized, SIGNIFICANT_RISK_PHRASES)) return "significant"
+  if (hasPhraseSignal(normalized, SPEC_REQUIRED_PHRASES)) return "spec-required"
   if (hasPhraseSignal(normalized, SMALL_RISK_PHRASES)) return "small"
   return "normal"
 }
@@ -371,17 +386,17 @@ function workflowRiskRank(risk) {
   return ["small", "normal", "spec-required", "significant", "release-sensitive"].indexOf(risk)
 }
 
-// Select the lightweight combined review only for low-risk workflows.
+// Skip standalone review for explicitly small work and combine review for normal work.
 function reviewModeForRisk(risk) {
-  return ["small", "normal"].includes(risk) ? "combined" : "separate"
+  if (risk === "small") return "none"
+  return risk === "normal" ? "combined" : "separate"
 }
 
-// Select lifecycle gates for a risk level while keeping final review and audit
-// after validation; iteration remains conditional when a gate reports findings.
+// Select lifecycle gates for a risk level; small work stops after validation.
 function requiredWorkflowPhases(risk, query = "") {
   const phases = (() => {
     switch (risk) {
-      case "small": return ["EXECUTE", "VALIDATE", "REVIEW"]
+      case "small": return ["EXECUTE", "VALIDATE"]
       case "spec-required": return ["INTAKE", "SPEC", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW"]
       case "significant": return ["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "AUDIT"]
       case "release-sensitive": return ["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "AUDIT", "RELEASE_GATE"]
@@ -392,6 +407,11 @@ function requiredWorkflowPhases(risk, query = "") {
     phases.splice(1, 0, "SPEC")
   }
   return phases
+}
+
+// Require review when the workflow is unknown or explicitly includes the gate.
+function workflowRequiresReview(workflow) {
+  return !Array.isArray(workflow?.requiredPhases) || workflow.requiredPhases.includes("REVIEW")
 }
 
 // Build observable lifecycle state for router surfaces and subagent handoffs.
@@ -811,7 +831,7 @@ module.exports = {
   buildSkillOverview, buildCompactSkillOverview, cascadeRoute, buildExecutionProfile, buildRoutingStatus, pendingReviewRequirements, activeSkillEntries, skillDisplayName, loadSkills, reviewNudgeLines,
   createEmptySessionState, getSessionState, setSessionState,
     findSkill, isAskSkill, isAskSkillName, ASK_SKILL_NAMES, hasPhraseSignal, routingHintLines,
-    classifyWorkflowRisk, hasWorkflowRiskSignal, workflowRiskRank, requiredWorkflowPhases, buildWorkflowState, invalidateWorkflowForDiff, workflowHintLines, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
+    classifyWorkflowRisk, hasWorkflowRiskSignal, workflowRiskRank, requiredWorkflowPhases, buildWorkflowState, invalidateWorkflowForDiff, workflowRequiresReview, workflowHintLines, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
   stripFrontmatter, toSingleLine, normalizeStringList,
   parseBooleanField, parseFrontmatter, unique,
 }

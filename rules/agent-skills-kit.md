@@ -24,7 +24,7 @@ Normal software work (default)                        → develop
 
 ## Nudges
 
-- Code edit: load `code-review` before claiming done.
+- Code edit: load `code-review` only when the workflow includes a `REVIEW` gate; small work ends after validation.
 - Design load: load `design-review` before showing UI.
 - Five interactions without a loaded skill: load one.
 - Reusable workflow gap: load `session-review`.
@@ -33,19 +33,21 @@ Normal software work (default)                        → develop
 
 Risk determines workflow depth.
 
-1. Small: `EXECUTE → VALIDATE`.
-2. Normal: `PLAN → EXECUTE → VALIDATE → REVIEW`.
+1. Small: `EXECUTE → VALIDATE` (no separate review or audit).
+2. Normal: `PLAN → EXECUTE → VALIDATE → REVIEW` (one combined review).
 3. Spec-required: `INTAKE → SPEC → PLAN → PLAN_CHECK → EXECUTE → VALIDATE → REVIEW`.
 4. Significant: add `ITERATE → AUDIT`.
 5. Release-sensitive: add `RELEASE_GATE`.
 
-`SPEC` covers explicit requirements/design briefs, unclear acceptance criteria, behavior changes, and new external contracts. It is not needed for ordinary bugs or known small work.
+`SPEC` covers explicit requirements/design briefs, unclear acceptance criteria, behavior changes, and new external contracts. It is not needed for ordinary bugs or known small work. Explicit small local fixes use the `small` risk profile; security-sensitive terms take precedence. Only significant and release-sensitive workflows require an independent audit.
 
 `RESEARCH` is optional. `research` handles bounded facts. `deep-research` handles multi-source investigation, contradiction analysis, confidence, and handoff.
 
 Validation proves checks. Review challenges requirements and regressions. Audit independently searches counterexamples and bypasses. Release-gate decides from evidence and never edits source.
 
 Subagent results require `ASK_WORKFLOW_PASS`, `ASK_WORKFLOW_FINDINGS`, `ASK_WORKFLOW_BLOCKED`, or `ASK_WORKFLOW_FAILED` plus phase. Missing output, timeout, or tool failure is not a pass.
+
+Workflow evidence markers are for tool and subagent results only. Never include them in the final user-facing response; summarize the outcome in plain language.
 
 ## Status panel
 

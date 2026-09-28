@@ -42,7 +42,7 @@ Clarify enough to avoid wrong work, then move. One skill for the full pre-execut
    - Lopen complexiteit en benodigd redeneervermogen uiteen tussen stappen?
      (sommige mechanisch/boilerplate, andere cross-cutting/reasoning)
    - Zo ja: plan stages met volgorde, tier per stage (light/standard/deep), en validatie-gates.
-6. Define validation needed before claiming done. Order it as targeted/unit tests, build/lint/static checks, and integration/server tests where applicable; place final review and independent audit after that proof.
+6. Define validation needed before claiming done. Order it as targeted/unit tests, build/lint/static checks, and integration/server tests where applicable; place only risk-required review and audit gates after that proof.
 7. Skip plan for one or two obvious edits. Use short bullets for normal multi-step work. Fuller plan only when sequencing or coordination risk is high.
 8. If repo already has a durable planning or spec system, update that record instead of creating parallel docs.
 

@@ -79,7 +79,7 @@ user request
   → follow the skill with host-native tools
 ```
 
-Canonical skills are the directories under `skills/`. Commands, generated platform copies, router files, and instruction files expose skills but are not additional skills. Use the host-preferred skill root: source `skills/` in a checkout, shared `~/.agents/skills/` for Codex and common installs, OpenCode's managed `~/.config/opencode/skills/` links, GitHub Copilot's `.github/skills/` export, Claude's native discovery, and dsh's project or user `.dsh/skills/` export before the shared root. Use `develop` only when no more-specific workflow applies. Common handoffs are `design` → `design-review`, `verification` → final `code-review` → final `audit`, bounded `research` → a decision, and `deep-research` → `intake`, `debugging`, `spec`, or `develop`. Native discovery remains sufficient on every host; OpenCode and optional dsh add advisory routing and session state but never load skills or execute tools.
+Canonical skills are the directories under `skills/`. Commands, generated platform copies, router files, and instruction files expose skills but are not additional skills. Use the host-preferred skill root: source `skills/` in a checkout, shared `~/.agents/skills/` for Codex and common installs, OpenCode's managed `~/.config/opencode/skills/` links, GitHub Copilot's `.github/skills/` export, Claude's native discovery, and dsh's project or user `.dsh/skills/` export before the shared root. Use `develop` only when no more-specific workflow applies. Common handoffs are `design` → `design-review`, `verification` → risk-appropriate `code-review` (normal and higher-risk workflows) and `audit` (significant and release-sensitive workflows), bounded `research` → a decision, and `deep-research` → `intake`, `debugging`, `spec`, or `develop`. Native discovery remains sufficient on every host; OpenCode and optional dsh add advisory routing and session state but never load skills or execute tools.
 
 ---
 
@@ -439,13 +439,13 @@ For non-trivial work, ASK exposes proportional lifecycle gates rather than treat
 
 | Risk | Gates |
 | --- | --- |
-| Small | `EXECUTE → VALIDATE` |
-| Normal | `PLAN → EXECUTE → VALIDATE → REVIEW` |
+| Small | `EXECUTE → VALIDATE` (no separate review or audit) |
+| Normal | `PLAN → EXECUTE → VALIDATE → REVIEW` (one combined review) |
 | Spec-required | `INTAKE → SPEC → PLAN → PLAN_CHECK → EXECUTE → VALIDATE → REVIEW` |
 | Significant | `INTAKE → PLAN → PLAN_CHECK → EXECUTE → VALIDATE → REVIEW → ITERATE → AUDIT` |
 | Release-sensitive | Significant flow plus `RELEASE_GATE` |
 
-Validation proves defined technical checks. Review challenges requirements, regressions, and design risk. Independent audit searches for counterexamples, bypasses, ambiguity, unsafe fallbacks, nondeterminism, and compatibility breaks. Release-gate consumes evidence and never edits source. Subagents report explicit `ASK_WORKFLOW_PASS`, `ASK_WORKFLOW_FINDINGS`, `ASK_WORKFLOW_BLOCKED`, or `ASK_WORKFLOW_FAILED` markers with a phase; missing output, timeout, and tool failure are never passes.
+Validation proves defined technical checks. Review challenges requirements, regressions, and design risk. Independent audit searches for counterexamples, bypasses, ambiguity, unsafe fallbacks, nondeterminism, and compatibility breaks. Release-gate consumes evidence and never edits source. Small explicit local fixes finish after targeted validation; audits are reserved for significant and release-sensitive work. Subagents report explicit `ASK_WORKFLOW_PASS`, `ASK_WORKFLOW_FINDINGS`, `ASK_WORKFLOW_BLOCKED`, or `ASK_WORKFLOW_FAILED` markers with a phase; missing output, timeout, and tool failure are never passes. Keep these markers in tool results, not final user-facing responses.
 
 `SPEC` is conditional, not a mandatory ceremony: use it for explicit requirements/design-brief work, unclear acceptance criteria, behavior-changing work, and new external contracts. Ordinary bugs and small edits go directly through their proportional flow.
 

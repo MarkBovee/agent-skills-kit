@@ -15,6 +15,57 @@ const SPEC_WORKFLOW_PHRASES = [
   "behavior changing", "new external contract", "new external contracts", "acceptance criteria unclear",
   "unclear acceptance criteria",
 ]
+const SMALL_WORKFLOW_PHRASES = [
+  "typo", "documentation-only", "docs only", "rename variable", "version bump", "changelog tweak",
+  "small local fix", "small local bug fix", "small bug fix", "small fix", "quick fix", "tiny fix",
+  "small change", "small adjustment", "minor adjustment",
+]
+const RELEASE_WORKFLOW_PHRASES = [
+  "release candidate", "production readiness", "ready to ship", "ready to merge", "release-sensitive",
+]
+const LARGE_WORKFLOW_PHRASES = [
+  "large multi-issue brief", "multiple issues", "all issues", "maximum compatibility",
+  "end-to-end implementation", "merge and release", "release-sensitive brief",
+]
+const DEEP_RESEARCH_WORKFLOW_PHRASES = [
+  "deep research", "exhaustive research", "comprehensive investigation",
+  "complex technical investigation", "complex research", "contested research",
+  "high-stakes research", "high stakes research", "complex contested high-stakes question",
+  "complex compatibility question", "complex compatibility issue", "complex question", "multiple sources",
+  "multi-source research", "multi source research", "conflicting evidence",
+  "full compatibility investigation", "compare competing implementations",
+  "compare local and upstream implementations", "investigate protocol behavior",
+  "protocol behavior exhaustively", "investigate historical changes",
+  "determine protocol behaviour", "research everything relevant", "investigate open issues",
+  "open issues comprehensively", "compare against upstream",
+]
+const SIGNIFICANT_WORKFLOW_PHRASES = [
+  "architecture", "architectural", "migration", "ownership", "routing change", "multi-module",
+  "backwards compatibility", "cross-cutting", "significant refactor", "security", "authentication",
+  "authorization", "credential", "password", "token", "secret handling", "access control",
+  "permission check", "sql injection", "injection", "xss", "cross-site scripting", "csrf",
+  "race condition", "buffer overflow", "side-channel", "privilege escalation", "encryption",
+  "cryptography", "privacy", "sensitive data", "data leak", "data exfiltration", "data loss",
+  "data corruption", "input validation", "path traversal", "remote code execution", "bypass",
+  "vulnerability", "exploit", "auth", "oauth", "ssl", "tls", "crypto", "login",
+  "session management", "api key", "api secret", "schema change", "database schema",
+  "db column removal", "ssrf", "rce", "idor", "xxe",
+]
+
+// Match whole risk phrases like the shared router, not substrings in longer words.
+function hasWorkflowPhraseSignal(promptText, phrases) {
+  const normalized = promptText.trim().toLowerCase()
+  if (!normalized) return false
+  for (const phrase of phrases) {
+    const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    try {
+      if (new RegExp(`(?:^|[^a-z0-9])${escaped}(?:$|[^a-z0-9])`, "i").test(normalized)) return true
+    } catch {
+      if (normalized.includes(phrase)) return true
+    }
+  }
+  return false
+}
 
 // Accept only router status records that are safe for presentation.
 export function readStatus(value) {
@@ -40,6 +91,22 @@ function toolInput(part) {
   } catch {
     return null
   }
+}
+
+// Classify sidebar prompts with the same risk precedence as the shared router.
+function classifyObservedWorkflowRisk(promptText) {
+  const riskSignals = [
+    { risk: "release-sensitive", phrases: RELEASE_WORKFLOW_PHRASES },
+    { risk: "significant", phrases: LARGE_WORKFLOW_PHRASES },
+    { risk: "significant", phrases: DEEP_RESEARCH_WORKFLOW_PHRASES },
+    { risk: "significant", phrases: SIGNIFICANT_WORKFLOW_PHRASES },
+    { risk: "spec-required", phrases: SPEC_WORKFLOW_PHRASES },
+    { risk: "small", phrases: SMALL_WORKFLOW_PHRASES },
+  ]
+  for (const signal of riskSignals) {
+    if (hasWorkflowPhraseSignal(promptText, signal.phrases)) return signal.risk
+  }
+  return null
 }
 
 // Format canonical skill names consistently with the server snapshot labels.
@@ -92,6 +159,7 @@ function observedPendingItems(messages) {
   let reviewHasFindings = false
   let completedWorkflowPhases = new Set()
   let specWorkflowRequired = false
+  let workflowRisk = null
 
   for (const message of messages) {
     if (!Array.isArray(message?.content)) continue
@@ -101,15 +169,23 @@ function observedPendingItems(messages) {
       // Normalize prompt fragments before matching workflow triggers.
       .map((part) => part.text.toLowerCase())
       .join(" ")
-    // Preserve a prompt-derived SPEC requirement across later edits.
-    if (SPEC_WORKFLOW_PHRASES.some((phrase) => messageText.includes(phrase))) specWorkflowRequired = true
+    if (messageText) {
+      // Preserve a prompt-derived SPEC requirement across later edits.
+      if (hasWorkflowPhraseSignal(messageText, SPEC_WORKFLOW_PHRASES)) specWorkflowRequired = true
+      const observedRisk = classifyObservedWorkflowRisk(messageText)
+      const workflowRiskRank = ["small", "normal", "spec-required", "significant", "release-sensitive"]
+      if (workflowRisk === null) workflowRisk = observedRisk || "normal"
+      else if (observedRisk && workflowRiskRank.indexOf(observedRisk) > workflowRiskRank.indexOf(workflowRisk)) {
+        workflowRisk = observedRisk
+      }
+    }
     for (const part of message.content) {
       if (part?.type !== "tool" || part.state?.status !== "completed") continue
       const toolName = typeof part.name === "string" ? part.name : ""
       const input = toolInput(part)
       if (CODE_EDIT_TOOL_NAMES.has(toolName)) {
         hasRelevantHistory = true
-        needsCodeReview = true
+        needsCodeReview = workflowRisk !== "small"
         reviewGeneration += 1
         const hostReference = input?.diffIdentity || input?.commit || ""
         currentReviewReference = hostReference
@@ -165,7 +241,7 @@ function observedPendingItems(messages) {
         reviewHasFindings = true
         if (phase === "REVIEW") reviewedDiffIdentity = ""
         if (phase === "VALIDATE") validatedDiffIdentity = ""
-        needsCodeReview = true
+        needsCodeReview = workflowRisk !== "small"
         continue
       }
       if (phase === "ITERATE" && /ASK_WORKFLOW_PASS\b/.test(output)

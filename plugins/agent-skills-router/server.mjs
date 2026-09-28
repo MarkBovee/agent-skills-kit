@@ -31,7 +31,7 @@ const {
   SKILL_CODE_REVIEW, SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SESSION_REVIEW, SKILL_DESIGN_REVIEW, SKILL_DESIGN,
   SKILL_DEVELOP,
   buildCompactSkillOverview, buildSkillOverview, cascadeRoute, getSessionState, isAskSkill, isAskSkillName, loadSkills,
-  setSessionState, hasPhraseSignal, toSingleLine, unique,
+  setSessionState, toSingleLine, unique, workflowRequiresReview,
   hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, reviewEvidenceAccepted, blockWorkflowForMissingDiffIdentity, routingHintLines, buildWorkflowState, invalidateWorkflowForDiff, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
   buildRoutingStatus,
 } = resolveRouterCore()
@@ -230,7 +230,7 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
           ? blockWorkflowForMissingDiffIdentity(state.workflow)
           : invalidateWorkflowForDiff(state.workflow, workflowDiffIdentity)
         save(input, {
-          needsCodeReview: true,
+          needsCodeReview: workflowRequiresReview(workflow),
           reviewGeneration: nextGeneration,
           reviewReference,
           reviewEvidence: null, reviewFollowUp: null,
@@ -280,7 +280,11 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
           return
         }
         if (CODE_EDIT_TOOL_IDS.has(toolID)) {
-          save(input, { ...base, needsCodeReview: true, reviewReference: input?.diffIdentity || input?.commit || state.reviewReference || "" })
+          save(input, {
+            ...base,
+            needsCodeReview: workflowRequiresReview(state.workflow),
+            reviewReference: input?.diffIdentity || input?.commit || state.reviewReference || "",
+          })
           return
         }
         if (toolID !== "skill") { save(input, base); return }

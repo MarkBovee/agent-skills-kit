@@ -267,8 +267,8 @@ async function main() {
     // Find the first item that matches the local condition.
     const routedSection = routed.sections.find((entry) => entry.name === "ask-kit:router")
     check("cascade routes Dutch bug phrase to debugging", Boolean(routedSection) && routedSection.text.includes("Active: debugging"))
-    check("dsh exposes lifecycle risk and phase", Boolean(routedSection)
-      && routedSection.text.includes("Workflow:") && routedSection.text.includes("risk=normal"))
+    check("dsh escalates login work and exposes its lifecycle phase", Boolean(routedSection)
+      && routedSection.text.includes("Workflow:") && routedSection.text.includes("risk=significant"))
 
     // Tool-injected contexts (leading tool-result blocks) must not flip routing.
     const agentCtx = { id: "ctx-check" }
@@ -278,6 +278,32 @@ async function main() {
     // Find the first item that matches the local condition.
     const ctxSection = ctxAssembly.sections.find((entry) => entry.name === "ask-kit:router")
     check("tool-injected context does not route", Boolean(ctxSection) && !ctxSection.text.includes("Active:"))
+
+    // A small local fix keeps validation but does not create review debt.
+    const smallAgent = { id: "small-fix-check" }
+    inbox({ agent: smallAgent, message: { text: "small local bug fix in parser" } })
+    // Continue assembly without adding more prompt sections.
+    const smallRouted = await assemble({ sections: [] }, { agent: smallAgent }, async () => ({ sections: [] }))
+    // Select the injected router status for this small task.
+    const smallRoutedText = smallRouted.sections.find((entry) => entry.name === "ask-kit:router").text
+    listeners.get("tools/result")[0](
+      { name: "skill", agent: smallAgent, arguments: { name: "debugging" } },
+      { isError: false },
+    )
+    // Allow the native patch call after the debugging skill is loaded.
+    await listeners.get("tools/pre-execute")[0](
+      { name: "patch", agent: smallAgent, diffIdentity: "HEAD" },
+      // Continue the test call as allowed.
+      async () => ({ kind: "allow" }),
+    )
+    // Read the post-edit status to check that no review debt was added.
+    const smallEdit = await assemble({ sections: [] }, { agent: smallAgent }, async () => ({ sections: [] }))
+    // Select the injected router status after the patch.
+    const smallEditText = smallEdit.sections.find((entry) => entry.name === "ask-kit:router").text
+    check("dsh classifies an explicit small fix without a review gate",
+      smallRoutedText.includes("risk=small") && smallRoutedText.includes("review=none")
+        && smallRoutedText.includes("TODO:EXECUTE TODO:VALIDATE") && !smallRoutedText.includes("TODO:REVIEW"))
+    check("dsh small code edit creates no review nudge", !smallEditText.includes("Code edited"))
 
     // Review-debt machinery mirrors router-core's own nudge wording.
     const agent3 = { id: "flip-check" }

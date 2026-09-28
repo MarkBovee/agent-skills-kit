@@ -110,12 +110,12 @@ Output contract per stage (see `agent-workflows` for the full contract):
 2. Create the smallest coherent improvement. For logic or behavior changes, write or update the failing test first (RED → GREEN → REFACTOR); for bug fixes write a regression test that demonstrates the bug before fixing it.
 3. Test it with the fastest trustworthy proof.
 4. Run the broader validation needed for the claim, including integration or server checks when applicable.
-5. Review it for clarity, safety, consistency, and scope only after validation passes.
+5. After validation, run only the review gates required by the workflow risk; small work ends after its targeted proof.
 6. Continue unless a real blocker or decision point appears.
 
 ## Lifecycle handoff
 
-For significant work, execute only after plan-check evidence exists. After implementation, request validation first. Once unit, build/lint, and integration/server checks pass, request final review; use an independent final audit for architecture, ownership, routing, migration, or release-sensitive changes. If review or audit finds an issue, fix it and rerun the affected tests and validation before repeating the final gates.
+For significant work, execute only after plan-check evidence exists. After implementation, request validation first. Once applicable checks pass, run the required final review; use an independent final audit for significant or release-sensitive workflows. Small workflows finish after targeted validation; normal workflows use one combined review. If a required review or audit finds an issue, fix it and rerun affected checks before repeating that gate.
 
 Never self-declare release readiness from a green test suite alone. Release-sensitive work needs an independent release-gate decision based on the final diff, validation, review, audit, compatibility evidence, and unresolved debt.
 
@@ -141,7 +141,7 @@ Same flow as release: fix branch → PR → merge → tag. No feature iteration.
 3. Ask only when the answer changes scope, product behavior, architecture, safety, or acceptance.
 4. Prefer preventing mistakes early with types, validation, guards, and simpler control flow.
 5. Follow existing repo patterns before inventing new ones. Build only what the current requirement needs.
-6. After code changes, do a proportional review pass. Load `code-review` when the diff is meaningful, subtle, or risky.
+6. Run only review gates required by the workflow risk; load `code-review` when the current workflow includes `REVIEW`.
 7. When work reveals reusable workflow friction, capture it with `write-skill`.
 8. Reuse the repo's existing durable planning or spec system; do not create a parallel doc tree.
 9. Delegate only when the work is parallel, repetitive, or context-heavy.

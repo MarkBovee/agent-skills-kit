@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.4.3] - 2026-09-28
+
+### Changed
+
+- **Small local fixes now stop after targeted validation.** Normal changes retain one combined review, and significant or release-sensitive changes retain their independent audit gates.
+
 ## [2.4.2] - 2026-09-26
 
 ### Changed

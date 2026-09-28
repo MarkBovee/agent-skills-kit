@@ -20,6 +20,9 @@ function assertIncludes(content, expected, sourcePath) {
 // Verify shared policy and maintainer-facing workflow applications remain aligned.
 async function checkEvidenceAwareCommunication() {
   const sharedGuidance = await readRepoFile("rules/agent-skills-kit.md")
+  const copilotInstructions = await readRepoFile(".github/copilot-instructions.md")
+  const researchSkill = await readRepoFile("skills/ask-research/SKILL.md")
+  const claudeHook = await readRepoFile("scripts/agent-skills-hook.js")
   const inboxSkill = await readRepoFile("skills/ask-gh-inbox/SKILL.md")
   const sessionReviewSkill = await readRepoFile("skills/ask-session-review/SKILL.md")
   const workflowRules = await readRepoFile("rules/agent-skills-kit.md")
@@ -32,8 +35,26 @@ async function checkEvidenceAwareCommunication() {
     "report → investigation → evidence → implementation → release → verification",
     "switch from diagnosis mode to verification mode",
     "smallest fresh evidence",
+    "Workflow evidence markers are for tool and subagent results only.",
+    "Never include them in the final user-facing response",
   ]) {
     assertIncludes(sharedGuidance, phrase, "rules/agent-skills-kit.md")
+  }
+
+  for (const phrase of [
+    "Workflow evidence markers belong in tool or subagent results",
+    "never include them in final user-facing responses",
+  ]) {
+    assertIncludes(copilotInstructions, phrase, ".github/copilot-instructions.md")
+  }
+
+  assertIncludes(claudeHook, "only when the workflow includes a REVIEW gate", "scripts/agent-skills-hook.js")
+
+  for (const phrase of [
+    "In delegated results, return `ASK_WORKFLOW_PASS phase=RESEARCH`",
+    "Never include workflow markers in the final user-facing response.",
+  ]) {
+    assertIncludes(researchSkill, phrase, "skills/ask-research/SKILL.md")
   }
 
   for (const phrase of [

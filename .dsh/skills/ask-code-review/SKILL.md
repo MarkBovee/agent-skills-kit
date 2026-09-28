@@ -9,7 +9,7 @@ Review for correctness, requirements, and risk first. Enforce `coding-standards.
 
 Keep scope clear: code-review checks behavior, requirements, regressions, and design risk. The final `verification` pass owns proportional code-smell scanning and evidence-based test-gap reporting; escalate deeper repository-wide smell analysis to `improve`.
 
-This is a mandatory final review after the relevant validation passes for **every** code edit. For `small` and `normal` workflows, use one lightweight combined pass covering correctness, regressions, local conventions, and a bounded counterexample/security sanity check. For `spec-required`, `significant`, and `release-sensitive` workflows, keep final review separate from the final audit and escalate when the diff reveals higher risk.
+Run final review after validation only when the workflow includes a `REVIEW` gate. `small` workflows finish after targeted validation with no separate review; `normal` workflows use one lightweight combined pass covering correctness, regressions, local conventions, and a bounded counterexample/security sanity check. `spec-required`, `significant`, and `release-sensitive` workflows use a separate review; only significant and release-sensitive workflows also require an independent audit.
 
 ## Lightweight combined review
 
@@ -20,7 +20,7 @@ Use this compact path only when the workflow reports `review=combined`:
 3. Try one or two bounded counterexamples, including unsafe input, stale state, or an error path when relevant.
 4. Escalate to separate audit/review handling when you find security, compatibility, migration, architecture, ownership, routing, release, or other cross-cutting risk.
 
-The combined pass still ends with the normal review evidence contract. It does not replace `verification`, and it can never satisfy the `AUDIT` gate required by higher-risk workflows. Do not start it until the current diff has passed validation, including applicable integration/server checks.
+The combined pass still ends with the normal review evidence contract. It does not replace required validation or any `AUDIT` gate. Do not start it until the current diff has passed validation, including applicable integration/server checks.
 
 ## Completion handoff
 
@@ -50,9 +50,9 @@ When you flag a structural problem, name the move, not just the problem: "replac
 
 ## Apply proportionally
 
-- Tiny, local change: quick checklist pass — still required, just fast.
-- Medium or subtle change: use a review agent or second pass.
-- Risky or cross-cutting diff: review against requirements and likely regressions explicitly.
+- Small workflow: no separate review; complete targeted validation and stop.
+- Normal workflow: one lightweight combined review after validation.
+- Escalate to a separate review or audit only when the combined pass finds concrete elevated or cross-cutting risk.
 
 ## Improvement hook
 
