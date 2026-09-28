@@ -10,6 +10,7 @@ const {
   recordWorkflowEvidence,
   reviewModeForRisk,
   requiredWorkflowPhases,
+  workflowRequiresReview,
   cascadeRoute,
   workflowHintLines,
   workflowForSkill,
@@ -31,20 +32,48 @@ function check(label, condition) {
 // Verify risk classification maps to proportional lifecycle requirements.
 function checkRiskProfiles() {
   check("small prompt is small risk", classifyWorkflowRisk("fix typo in docs") === "small")
+  check("explicit small local bug fix is small risk", classifyWorkflowRisk("small local bug fix in parser") === "small")
+  check("risk phrases do not match inside longer words", classifyWorkflowRisk("small local fix in tokenizer") === "small")
+  check("security fix cannot be classified as small", classifyWorkflowRisk("quick fix for security vulnerability") === "significant")
+  check("security issue cannot be classified as small", classifyWorkflowRisk("small local fix for a security issue in parser") === "significant")
+  check("auth abbreviation cannot be classified as small", classifyWorkflowRisk("small auth fix") === "significant")
+  check("TLS issue cannot be classified as small", classifyWorkflowRisk("quick fix for TLS bug") === "significant")
+  check("OAuth change cannot be classified as small", classifyWorkflowRisk("small OAuth flow fix") === "significant")
+  check("API key exposure cannot be classified as small", classifyWorkflowRisk("quick fix for API key exposure") === "significant")
+  check("database schema change cannot be classified as small", classifyWorkflowRisk("small database schema change") === "significant")
+  check("SSRF fix cannot be classified as small", classifyWorkflowRisk("small local fix for SSRF in image proxy") === "significant")
+  check("IDOR fix cannot be classified as small", classifyWorkflowRisk("quick IDOR fix") === "significant")
+  check("XXE fix cannot be classified as small", classifyWorkflowRisk("small fix for XXE") === "significant")
+  check("SQL injection fix cannot be classified as small", classifyWorkflowRisk("quick fix for SQL injection") === "significant")
+  check("race-condition fix cannot be classified as small", classifyWorkflowRisk("small fix for a race condition") === "significant")
+  check("password validation remains high risk", classifyWorkflowRisk("typo in password validation") === "significant")
+  check("data-loss fixes remain high risk", classifyWorkflowRisk("quick fix for data loss") === "significant")
   check("normal prompt is normal risk", classifyWorkflowRisk("add a focused parser feature") === "normal")
   check("requirements prompt requires spec", classifyWorkflowRisk("write requirements specification") === "spec-required")
+  check("security in a spec prompt stays significant", classifyWorkflowRisk("design brief for a security vulnerability fix") === "significant")
   check("architecture prompt is significant risk", classifyWorkflowRisk("change architecture ownership") === "significant")
   check("deep research prompt is significant risk", classifyWorkflowRisk("perform exhaustive research") === "significant")
   check("large multi-issue prompt is significant risk", classifyWorkflowRisk("multiple issues with maximum compatibility") === "significant")
   check("release prompt is release-sensitive", classifyWorkflowRisk("prepare release candidate") === "release-sensitive")
-  // Verify low-risk workflows use the lightweight combined review path.
-  check("small flow has combined review", JSON.stringify(requiredWorkflowPhases("small")) === JSON.stringify(["EXECUTE", "VALIDATE", "REVIEW"])
-    && reviewModeForRisk("small") === "combined")
+  // Verify small changes stop after validation while normal changes retain one combined review.
+  const smallWorkflow = buildWorkflowState("small local bug fix in parser")
+  const normalWorkflow = buildWorkflowState("add a focused parser feature")
+  check("small flow ends after validation", JSON.stringify(requiredWorkflowPhases("small")) === JSON.stringify(["EXECUTE", "VALIDATE"])
+    && reviewModeForRisk("small") === "none" && !workflowRequiresReview(smallWorkflow))
   check("normal flow has combined review", reviewModeForRisk("normal") === "combined")
+  check("normal flow still requires review", workflowRequiresReview(normalWorkflow))
+  check("unknown workflow keeps review as a safe default", workflowRequiresReview(null))
   // Verify higher-risk workflows retain separate review and audit handling.
   check("higher-risk flows keep separate review", ["spec-required", "significant", "release-sensitive"].every((risk) => reviewModeForRisk(risk) === "separate"))
   check("release flow has audit and release gate", requiredWorkflowPhases("release-sensitive").includes("AUDIT") && requiredWorkflowPhases("release-sensitive").includes("RELEASE_GATE"))
   check("spec flow places spec before plan", JSON.stringify(requiredWorkflowPhases("spec-required").slice(0, 3)) === JSON.stringify(["INTAKE", "SPEC", "PLAN"]))
+  check("significant spec work keeps both spec and audit gates", requiredWorkflowPhases(
+    classifyWorkflowRisk("design brief for a security vulnerability fix"),
+    "design brief for a security vulnerability fix",
+  ).includes("SPEC") && requiredWorkflowPhases(
+    classifyWorkflowRisk("design brief for a security vulnerability fix"),
+    "design brief for a security vulnerability fix",
+  ).includes("AUDIT"))
   check("release flow can include conditional spec", requiredWorkflowPhases("release-sensitive", "new external contract").includes("SPEC")
     && requiredWorkflowPhases("release-sensitive", "new external contract").includes("RELEASE_GATE"))
 }

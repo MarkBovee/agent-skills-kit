@@ -47,6 +47,7 @@ const {
   routingHintLines, cascadeRoute, hasPhraseSignal, COMPLETION_PHRASES,
   hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, reviewEvidenceAccepted, blockWorkflowForMissingDiffIdentity, INTERACTION_GUARD_THRESHOLD, buildWorkflowState, workflowHintLines,
   workflowForSkill, invalidateWorkflowForDiff, parseWorkflowEvidence, recordWorkflowEvidence, buildRoutingStatus, isAskSkillName,
+  workflowRequiresReview,
   reviewNudgeLines,
 } = routerCore
 
@@ -398,7 +399,7 @@ export function apply(ctx, config) {
         st.workflow = st.workflow?.risk === "release-sensitive" && !hostDiffReference
           ? blockWorkflowForMissingDiffIdentity(st.workflow)
           : invalidateWorkflowForDiff(st.workflow, workflowDiffIdentity)
-        st.needsCodeReview = true
+        st.needsCodeReview = workflowRequiresReview(st.workflow)
         st.reviewGeneration = nextGeneration
         st.reviewReference = reviewReference
         st.reviewEvidence = null

@@ -297,6 +297,90 @@ const patchMessage = {
 if (JSON.stringify(pendingItems({ pending: [] }, [patchMessage])) !== JSON.stringify(["Code review needed"])) {
   throw new Error("V2 TUI did not surface code-review debt from a completed patch")
 }
+const smallFixPrompt = {
+  type: "user",
+  content: [{ type: "text", text: "small local bug fix in parser" }],
+}
+if (pendingItems({ pending: [{ label: "Code review needed" }] }, [smallFixPrompt, patchMessage]).length !== 0) {
+  throw new Error("V2 TUI reconstructed review debt for a small local fix")
+}
+const tokenizerFixPrompt = {
+  type: "user",
+  content: [{ type: "text", text: "small local fix in tokenizer" }],
+}
+if (pendingItems({ pending: [{ label: "Code review needed" }] }, [tokenizerFixPrompt, patchMessage]).length !== 0) {
+  throw new Error("V2 TUI matched a risk phrase inside a longer word")
+}
+const neutralFollowUpPrompt = {
+  type: "user",
+  content: [{ type: "text", text: "continue" }],
+}
+if (pendingItems({ pending: [{ label: "Code review needed" }] }, [smallFixPrompt, neutralFollowUpPrompt, patchMessage]).length !== 0) {
+  throw new Error("V2 TUI promoted a small workflow after a neutral follow-up")
+}
+const smallValidationFindings = {
+  type: "assistant",
+  content: [{ type: "tool", name: "task", state: {
+    status: "completed",
+    output: "ASK_WORKFLOW_FINDINGS phase=VALIDATE diff=HEAD:edit-1",
+  } }],
+}
+if (pendingItems({ pending: [{ label: "Code review needed" }] }, [smallFixPrompt, patchMessage, smallValidationFindings]).length !== 0) {
+  throw new Error("V2 TUI created review debt for small-work validation findings")
+}
+const smallSecurityPrompt = {
+  type: "user",
+  content: [{ type: "text", text: "small auth fix" }],
+}
+if (pendingItems({ pending: [] }, [smallSecurityPrompt, patchMessage]).length !== 1) {
+  throw new Error("V2 TUI dropped review debt for a small security fix")
+}
+const specSecurityPrompt = {
+  type: "user",
+  content: [{ type: "text", text: "design brief for a security vulnerability fix" }],
+}
+if (pendingItems({ pending: [] }, [specSecurityPrompt, patchMessage]).length !== 1) {
+  throw new Error("V2 TUI dropped review debt for significant spec-required work")
+}
+const smallSsrfPrompt = {
+  type: "user",
+  content: [{ type: "text", text: "small local fix for SSRF in image proxy" }],
+}
+if (pendingItems({ pending: [] }, [smallSsrfPrompt, patchMessage]).length !== 1) {
+  throw new Error("V2 TUI dropped review debt for a small SSRF fix")
+}
+const highRiskThenSmallPrompt = {
+  type: "user",
+  content: [{ type: "text", text: "prepare release candidate; then small local fix" }],
+}
+if (pendingItems({ pending: [] }, [highRiskThenSmallPrompt, patchMessage]).length !== 1) {
+  throw new Error("V2 TUI allowed a small phrase to downgrade a high-risk workflow")
+}
+const deepResearchThenSmallPrompt = {
+  type: "user",
+  content: [{ type: "text", text: "small local bug fix; exhaustive research required" }],
+}
+if (pendingItems({ pending: [] }, [deepResearchThenSmallPrompt, patchMessage]).length !== 1) {
+  throw new Error("V2 TUI allowed a small phrase to downgrade deep research risk")
+}
+const normalWorkflowPrompt = {
+  type: "user",
+  content: [{ type: "text", text: "add a focused parser feature" }],
+}
+const smallFollowUpPrompt = {
+  type: "user",
+  content: [{ type: "text", text: "small local bug fix" }],
+}
+if (pendingItems({ pending: [] }, [normalWorkflowPrompt, smallFollowUpPrompt, patchMessage]).length !== 1) {
+  throw new Error("V2 TUI allowed a small phrase to downgrade a normal workflow")
+}
+const specWorkflowPrompt = {
+  type: "user",
+  content: [{ type: "text", text: "write requirements specification" }],
+}
+if (pendingItems({ pending: [] }, [specWorkflowPrompt, patchMessage]).length !== 1) {
+  throw new Error("V2 TUI dropped review debt for a spec-required workflow")
+}
 
 const validationMessage = {
   type: "assistant",

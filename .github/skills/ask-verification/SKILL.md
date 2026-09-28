@@ -8,7 +8,7 @@ Match the proof to the claim. Bigger claim, stronger evidence.
 
 For delegated validation, report `ASK_WORKFLOW_PASS phase=VALIDATE`, `ASK_WORKFLOW_FINDINGS phase=VALIDATE`, `ASK_WORKFLOW_BLOCKED phase=VALIDATE`, or `ASK_WORKFLOW_FAILED phase=VALIDATE` with commands and evidence. Never turn a timeout, missing output, or tool failure into a pass.
 
-Validation proves defined technical checks. It does not replace review, independent audit, or release-gate evaluation.
+Validation proves defined technical checks. It does not replace review, independent audit, or release-gate evaluation when the workflow requires those gates.
 
 ## Verification
 
@@ -16,9 +16,10 @@ Match the proof to the claim. Bigger claim, stronger evidence.
 
 - **One bug fixed:** reproduce the bug path and show the focused proof now passes
 - **Feature works:** run targeted tests and exercise the important path
-- **Ready to merge or hand off:** run the relevant suite, build, or lint checks that cover the touched surface
+- **Ready to merge or hand off:** run the smallest relevant suite, build, or lint checks proportional to the workflow risk
 - **Installer or deployer changed:** run the installer into an isolated home and verify the installed copies of user-visible surfaces match the repo, including a refresh over a stale existing install — a green repo-side suite says nothing about what actually got deployed
-- **Any meaningful code change:** run a proportional smell scan after the main proof. Scan changed files for unbounded loops, sync-over-async, swallowed exceptions, missing cancellation, duplicated I/O or N+1 queries, hardcoded configuration, runtime artifacts, silent unknown-event handling, and relevant test gaps. Expand to a repository-wide scan for cross-module changes, audits, or explicit tech-debt work.
+- **Small workflow:** prove the specific change with the smallest trustworthy check; do not add a separate review, audit, or smell-scan pass. Keep checks for security and error handling that are directly relevant to the changed path.
+- **Normal or higher-risk code change:** run a proportional smell scan after the main proof. Scan changed files for unbounded loops, sync-over-async, swallowed exceptions, missing cancellation, duplicated I/O or N+1 queries, hardcoded configuration, runtime artifacts, silent unknown-event handling, and relevant test gaps. Expand to a repository-wide scan for cross-module changes, audits, or explicit tech-debt work.
 - **Coding-rule compliance:** inspect all changed function-like constructs for required intent comments and run the repository's source-comment check when it exists. Treat a missing comment or a skipped check as failed validation, not optional style feedback.
 - **Long-poll or deploy→restart→verify loops:** wait one full cycle once, bundle all state assertions into a single verification pass, and fail fast to a diagnostic set (a few key values) instead of repeating full waits. Do not re-run the full cycle for every surfaced sub-issue; investigate root cause off the accumulated state, fix, then re-verify once.
 
@@ -56,7 +57,7 @@ Close out multi-repo work: verify integrated state, leave the workspace intentio
 
 ## Use with
 
-- `code-review` after verification when meaningful code changed; final review must consume fresh validation evidence
+- `code-review` after verification only when the workflow includes a `REVIEW` gate; final review must consume fresh validation evidence
 - `agent-workflows` when multiple agents or terminals touched different repos
 - `session-review` when the session uncovered skill usage gaps worth tracking
 - `write-skill` when improvement needs a new or revised skill

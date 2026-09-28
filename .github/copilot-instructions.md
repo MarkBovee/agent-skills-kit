@@ -13,8 +13,9 @@ This repository ships portable workflow skills under [.github/skills](./skills).
 
 1. Use host skill root. Canonical source: `skills/*/SKILL.md`; installs: `~/.agents/skills/*/SKILL.md`, except OpenCode and dsh host roots.
 2. Read frontmatter; load most specific matching `SKILL.md`. Use `develop` only without a specific match.
-3. Add implied companions only: `design` → `design-review`; run `verification` before final `code-review` and final `audit`; use `research` for bounded facts, `deep-research` for autonomous multi-source work.
+3. Add implied companions only: `design` → `design-review`; run `verification` before risk-required review or audit gates; use `research` for bounded facts, `deep-research` for autonomous multi-source work.
 4. Native discovery suffices. OpenCode and dsh routers advise and track state; they do not load skills or run tools.
+5. Workflow evidence markers belong in tool or subagent results; never include them in final user-facing responses.
 
 ## Coding standards
 

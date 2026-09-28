@@ -109,6 +109,32 @@ async function main() {
       && !(releaseAppend?.append || "").includes("Deep research complex, contested, high-stakes questions"),
   )
 
+  // Explicit small fixes should be validated without creating review debt.
+  const smallPlugin = await (await import(PLUGIN_PATH)).AgentSkillsRouter()
+  await smallPlugin.event({ event: { type: "session.created", properties: { info: { id: "small-edit" } } } })
+  const smallPrompt = await smallPlugin["tui.prompt.append"]({
+    sessionID: "small-edit",
+    prompt: "small local bug fix in parser",
+  })
+  await smallPlugin["tool.execute.after"](
+    { tool: "skill", sessionID: "small-edit" },
+    { args: { name: "debugging" } },
+  )
+  await smallPlugin["tool.execute.before"]({ tool: "edit", sessionID: "small-edit", diffIdentity: "HEAD" })
+  await smallPlugin["tool.execute.after"]({ tool: "edit", sessionID: "small-edit" }, {})
+  const smallEditFollowUp = await smallPlugin["tui.prompt.append"]({
+    sessionID: "small-edit",
+    prompt: "continue",
+  })
+  const smallWorkflowText = smallEditFollowUp?.append || ""
+  check("small local fix exposes only execute and validate gates",
+    (smallPrompt?.append || "").includes("risk=small | review=none")
+      && (smallPrompt?.append || "").includes("TODO:EXECUTE TODO:VALIDATE")
+      && !(smallPrompt?.append || "").includes("TODO:REVIEW"))
+  check("small local code edit creates no review nudge",
+    !smallWorkflowText.includes("Code edited")
+      && !smallWorkflowText.includes("skill(id: 'ask-code-review')"))
+
   // Interaction guard: use a fresh plugin so unrelated routing assertions do
   // not change the exact interaction count this check is proving.
   const guardPlugin = await (await import(PLUGIN_PATH)).AgentSkillsRouter()

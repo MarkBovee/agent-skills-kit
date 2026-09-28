@@ -24,7 +24,7 @@ Answer bounded questions with evidence, not recollection. This is fact-finding, 
 - Cite external claims with stable URLs; cite local claims as `path:line` or a precise section.
 - Do not implement, settle product or architecture choices, or present an inference as fact.
 - Escalate to `deep-research` for multiple interacting unknowns, several source classes, conflicting evidence, historical/protocol analysis, or an exhaustive request.
-- Return `ASK_WORKFLOW_PASS phase=RESEARCH` only when the stated question is answered or remaining gaps are explicitly actionable. Use `ASK_WORKFLOW_BLOCKED phase=RESEARCH` when essential evidence is inaccessible.
+- In delegated results, return `ASK_WORKFLOW_PASS phase=RESEARCH` only when the stated question is answered or remaining gaps are explicitly actionable. Use `ASK_WORKFLOW_BLOCKED phase=RESEARCH` when essential evidence is inaccessible. Never include workflow markers in the final user-facing response.
 
 ## Output
 
