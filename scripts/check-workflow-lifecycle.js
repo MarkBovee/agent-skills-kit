@@ -106,6 +106,51 @@ function checkReleaseValidationCadence() {
   }
 }
 
+// Keep review scope and code-first audit contracts present in canonical and generated skills.
+function checkReviewAuditGuidance() {
+  const reviewGuidance = fs.readFileSync("skills/ask-code-review/SKILL.md", "utf8")
+  const auditGuidance = fs.readFileSync("skills/ask-agent-workflows/SKILL.md", "utf8")
+  const reviewContract = reviewGuidance.slice(reviewGuidance.indexOf("## Finding scope"), reviewGuidance.indexOf("## Additional axes"))
+  const auditContract = auditGuidance.slice(auditGuidance.indexOf("## Code-first independent audit"), auditGuidance.indexOf("## Finding loop"))
+
+  check("actionable review findings anchor to a changed hunk or introduced behavior",
+    reviewContract.includes("identify a changed hunk") && reviewContract.includes("direct behavior introduced by a changed hunk"))
+  check("unchanged pre-existing behavior is context, not a regression finding",
+    reviewContract.includes("pre-existing behavior is not a regression") && reviewContract.includes("classified as context"))
+  check("audit traces production paths and invariants before tests",
+    auditContract.indexOf("before inspecting tests") < auditContract.indexOf("inspect only the tests")
+      && auditContract.includes("entry points, callers, state transitions, cleanup paths, fallback decisions"))
+  check("audit distinguishes implementation inspection from validation and coverage review",
+    auditContract.includes("not validation or a test-coverage inventory")
+      && auditContract.includes("Validation owns whether the defined suite passes"))
+  check("green focused tests do not dismiss an open production bypass",
+    auditContract.includes("A green focused suite does not close an audit finding while a production-code bypass remains"))
+  check("audit guidance gives a concrete passing-test production-bypass example",
+    auditContract.includes("a focused test passes for a normal response, but an error-shaped row can still reach a production fallback"))
+  check("audit findings and clean-pass reports require production-path evidence",
+    auditContract.includes("production path, violated invariant, plausible trigger, user impact, and smallest regression proof")
+      && auditContract.includes("name the implementation paths and bypass categories inspected"))
+  check("audit handoff separates code-first evidence from validation results",
+    auditContract.includes("## Independent audit handoff")
+      && auditContract.includes("The validator owns suite execution and pass/fail reporting"))
+
+  const generatedPaths = [
+    ["GitHub Copilot", ".github/skills/ask-code-review/SKILL.md", ".github/skills/ask-agent-workflows/SKILL.md"],
+    ["DeepSeek Harness", ".dsh/skills/ask-code-review/SKILL.md", ".dsh/skills/ask-agent-workflows/SKILL.md"],
+  ]
+  for (const [platform, reviewPath, auditPath] of generatedPaths) {
+    const generatedReview = fs.readFileSync(reviewPath, "utf8")
+    const generatedAudit = fs.readFileSync(auditPath, "utf8")
+    check(`${platform} export includes the review finding-scope contract`,
+      generatedReview.includes("Every finding must identify a changed hunk or explain the direct behavior introduced by a changed hunk."))
+    check(`${platform} export includes the code-first audit contract`,
+      generatedAudit.includes("Start from the exact production diff and, before inspecting tests, identify affected entry points, callers, state transitions, cleanup paths, fallback decisions"))
+    check(`${platform} export includes the independent audit handoff`,
+      generatedAudit.includes("## Independent audit handoff")
+        && generatedAudit.includes("The validator owns suite execution and pass/fail reporting"))
+  }
+}
+
 // Verify explicit evidence markers produce pass, finding, and blocked states.
 function checkEvidenceContract() {
   check("pass marker parses phase", parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=VALIDATE")?.status === "PASS")
@@ -256,6 +301,7 @@ function checkRoutingStatus() {
 function main() {
   checkRiskProfiles()
   checkReleaseValidationCadence()
+  checkReviewAuditGuidance()
   checkEvidenceContract()
   checkStatusHints()
   checkRoutingStatus()

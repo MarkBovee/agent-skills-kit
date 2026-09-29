@@ -39,6 +39,20 @@ Return one explicit status with concrete evidence:
 
 Missing output, timeout, and tool failure are not passes. For release-sensitive work, a required audit or release-gate that cannot run blocks release.
 
+## Code-first independent audit
+
+An independent audit inspects production behavior; it is not validation or a test-coverage inventory. Start from the exact production diff and, before inspecting tests, identify affected entry points, callers, state transitions, cleanup paths, fallback decisions, and the invariants they must preserve. Challenge those invariants with plausible counterexamples such as cancellation at an await boundary, delayed first responses, malformed input, stale cached state, overlapping ownership, or alias/hardware mismatches when relevant.
+
+After reconstructing the implementation paths, inspect only the tests needed to check whether known invariants and failure modes are guarded. Tests are evidence, not a substitute for tracing production code. Validation owns whether the defined suite passes; an audit does not need to enumerate every test, rerun the full suite, or report test counts unless explicitly assigned. A green focused suite does not close an audit finding while a production-code bypass remains.
+
+An actionable audit finding names the production path, violated invariant, plausible trigger, user impact, and smallest regression proof needed. If no issue is found, name the implementation paths and bypass categories inspected; a green test count alone is not an audit pass. Audit handoffs must include the exact diff and require the auditor to record production paths and invariants before looking at tests.
+
+Example: a focused test passes for a normal response, but an error-shaped row can still reach a production fallback. Keep the audit finding open until that bypass is disproved or guarded; the green test does not establish the invariant.
+
+### Independent audit handoff
+
+Keep the audit assignment separate from validation. Provide the exact diff reference and requirements, then ask the auditor to report the production paths, callers, and invariants traced before inspecting targeted tests. Ask for counterexamples and actionable findings in the format above, or the paths and bypass categories inspected if none remain. The validator owns suite execution and pass/fail reporting; do not substitute test counts for audit evidence.
+
 ## Finding loop
 
 P0/P1 findings follow: reproduce → regression test → minimal fix → validation → affected re-audit. Do not close a finding because code changed; re-prove its invariant.
