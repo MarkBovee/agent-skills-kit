@@ -113,6 +113,13 @@ function hasOrderedGuidanceSections(content, firstSection, secondSection) {
   return firstIndex >= 0 && secondIndex >= 0 && firstIndex < secondIndex
 }
 
+// Parse an ATX H2 title, including valid indentation and optional closing markers.
+function parseH2Title(line) {
+  const match = line.match(/^ {0,3}##(?:[ \t]+(.*?))?[ \t]*$/)
+  if (!match) return null
+  return (match[1] || "").replace(/[ \t]+#+[ \t]*$/, "").trim()
+}
+
 // Find a required H2 or the next H2 while ignoring headings inside fenced code.
 function findMarkdownHeadingLine(lines, startIndex, expectedHeading) {
   let fenceCharacter = ""
@@ -134,7 +141,8 @@ function findMarkdownHeadingLine(lines, startIndex, expectedHeading) {
     }
 
     if (fenceCharacter || index < startIndex) continue
-    if (expectedHeading ? lines[index] === expectedHeading : /^## (?!#)/.test(lines[index])) return index
+    const title = parseH2Title(lines[index])
+    if (title !== null && (expectedHeading ? title === expectedHeading.replace(/^##[ \t]*/, "").trim() : true)) return index
   }
 
   return -1
@@ -150,42 +158,77 @@ function readMarkdownSection(content, heading) {
   return lines.slice(start, nextHeading < 0 ? undefined : nextHeading).join("\n").trim()
 }
 
+// Remove fenced examples so quoted text cannot satisfy active guidance checks.
+function stripFencedCodeBlocks(content) {
+  const lines = content.split(/\r?\n/)
+  const activeLines = []
+  let fenceCharacter = ""
+  let fenceLength = 0
+
+  for (const line of lines) {
+    const fenceMatch = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
+    if (fenceMatch) {
+      const marker = fenceMatch[1]
+      const suffix = fenceMatch[2]
+      if (!fenceCharacter) {
+        fenceCharacter = marker[0]
+        fenceLength = marker.length
+      } else if (marker[0] === fenceCharacter && marker.length >= fenceLength && !suffix.trim()) {
+        fenceCharacter = ""
+        fenceLength = 0
+      }
+      continue
+    }
+
+    if (!fenceCharacter) activeLines.push(line)
+  }
+
+  return activeLines.join("\n")
+}
+
 // Keep review scope and code-first audit contracts present in canonical and generated skills.
 function checkReviewAuditGuidance() {
   const reviewGuidance = fs.readFileSync("skills/ask-code-review/SKILL.md", "utf8")
   const auditGuidance = fs.readFileSync("skills/ask-agent-workflows/SKILL.md", "utf8")
   const reviewContract = readMarkdownSection(reviewGuidance, "## Finding scope")
   const auditContract = readMarkdownSection(auditGuidance, "## Code-first independent audit")
+  const activeReviewContract = stripFencedCodeBlocks(reviewContract)
+  const activeAuditContract = stripFencedCodeBlocks(auditContract)
 
   check("actionable review findings anchor to a changed hunk or introduced behavior",
-    reviewContract.includes("identify a changed hunk") && reviewContract.includes("direct behavior introduced by a changed hunk"))
+    activeReviewContract.includes("identify a changed hunk") && activeReviewContract.includes("direct behavior introduced by a changed hunk"))
   check("unchanged pre-existing behavior is context, not a regression finding",
-    reviewContract.includes("Nearby unchanged lines are context; pre-existing behavior is not a regression just because the diff made it visible."))
+    activeReviewContract.includes("Nearby unchanged lines are context; pre-existing behavior is not a regression just because the diff made it visible."))
   check("unknown review base or causal link blocks unsupported regression claims",
-    reviewContract.includes("If the base diff or causal link cannot be established, report the review as blocked or limited instead of presenting an unsupported regression."))
+    activeReviewContract.includes("If the base diff or causal link cannot be established, report the review as blocked or limited instead of presenting an unsupported regression."))
   check("renamed or fenced section headings are not treated as canonical sections",
     readMarkdownSection("## Finding scope (deprecated)\nold text", "## Finding scope") === ""
-      && readMarkdownSection("```md\n## Finding scope\n```", "## Finding scope") === "")
+      && readMarkdownSection("```md\n## Finding scope\n```", "## Finding scope") === ""
+      && readMarkdownSection("## Finding scope\nkeep\n   ## # Next section\nexclude", "## Finding scope") === "## Finding scope\nkeep"
+      && readMarkdownSection("## Finding scope\nkeep\n##\nexclude", "## Finding scope") === "## Finding scope\nkeep")
+  check("fenced contract text cannot satisfy active guidance assertions",
+    !stripFencedCodeBlocks("```md\nA green focused suite does not close an audit finding.\n```\nactive text")
+      .includes("A green focused suite does not close an audit finding"))
   check("audit traces production paths and invariants before tests",
-    hasOrderedGuidanceSections(auditContract, "identify affected entry points, callers, state transitions, cleanup paths, fallback decisions", "inspect only the tests")
-      && hasOrderedGuidanceSections(auditContract, "the invariants they must preserve", "inspect only the tests")
-      && auditContract.includes("entry points, callers, state transitions, cleanup paths, fallback decisions"))
+    hasOrderedGuidanceSections(activeAuditContract, "identify affected entry points, callers, state transitions, cleanup paths, fallback decisions", "inspect only the tests")
+      && hasOrderedGuidanceSections(activeAuditContract, "the invariants they must preserve", "inspect only the tests")
+      && activeAuditContract.includes("entry points, callers, state transitions, cleanup paths, fallback decisions"))
   check("missing or reversed audit-order markers fail the section-order predicate",
     !hasOrderedGuidanceSections("inspect only the tests", "before inspecting tests", "inspect only the tests")
       && !hasOrderedGuidanceSections("inspect only the tests before inspecting tests", "before inspecting tests", "inspect only the tests"))
   check("audit distinguishes implementation inspection from validation and coverage review",
-    auditContract.includes("not validation or a test-coverage inventory")
-      && auditContract.includes("Validation owns whether the defined suite passes"))
+    activeAuditContract.includes("not validation or a test-coverage inventory")
+      && activeAuditContract.includes("Validation owns whether the defined suite passes"))
   check("green focused tests do not dismiss an open production bypass",
-    auditContract.includes("A green focused suite does not close an audit finding while a production-code bypass remains"))
+    activeAuditContract.includes("A green focused suite does not close an audit finding while a production-code bypass remains"))
   check("audit guidance gives a concrete passing-test production-bypass example",
-    auditContract.includes("a focused test passes for a normal response, but an error-shaped row can still reach a production fallback"))
+    activeAuditContract.includes("a focused test passes for a normal response, but an error-shaped row can still reach a production fallback"))
   check("audit findings and clean-pass reports require production-path evidence",
-    auditContract.includes("production path, violated invariant, plausible trigger, user impact, and smallest regression proof")
-      && auditContract.includes("name the implementation paths and bypass categories inspected"))
+    activeAuditContract.includes("production path, violated invariant, plausible trigger, user impact, and smallest regression proof")
+      && activeAuditContract.includes("name the implementation paths and bypass categories inspected"))
   check("audit handoff separates code-first evidence from validation results",
-    auditContract.includes("## Independent audit handoff")
-      && auditContract.includes("The validator owns suite execution and pass/fail reporting"))
+    activeAuditContract.includes("### Independent audit handoff")
+      && activeAuditContract.includes("The validator owns suite execution and pass/fail reporting"))
 
   const generatedPaths = [
     ["GitHub Copilot", ".github/skills/ask-code-review/SKILL.md", ".github/skills/ask-agent-workflows/SKILL.md"],
