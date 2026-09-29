@@ -159,8 +159,8 @@ function isAtxHeadingLine(line) {
   return /^ {0,3}#{1,6}(?:[ \t]+|$)/.test(line)
 }
 
-// Stop inline-code pairing at Markdown block boundaries.
-function isInlineMarkdownBlockBoundary(line, insideBlockQuote = false) {
+// Recognize paragraph-ending Markdown blocks in the current quote content.
+function isMarkdownBlockBoundary(line) {
   const fenceMatch = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
   const beginsFence = fenceMatch && opensMarkdownFence(fenceMatch[1], fenceMatch[2])
   return /^[ \t]*$/.test(line)
@@ -170,9 +170,18 @@ function isInlineMarkdownBlockBoundary(line, insideBlockQuote = false) {
     || Boolean(getRawHtmlBlockEnd(line))
     || /^ {0,3}<!--/.test(line)
     || /^(?: {4,}|\t)/.test(line)
-    || (!insideBlockQuote && /^ {0,3}>/.test(line))
+    || /^ {0,3}>/.test(line)
     || /^ {0,3}(?:[-+*][ \t]+|\d{1,9}[.)][ \t]+)/.test(line)
     || /^ {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})$/.test(line)
+}
+
+// Stop inline-code pairing at block starts, respecting active blockquote content.
+function isInlineMarkdownBlockBoundary(line, insideBlockQuote = false) {
+  if (!insideBlockQuote || !/^ {0,3}>/.test(line)) return isMarkdownBlockBoundary(line)
+
+  const quoteContent = line.replace(/^ {0,3}>[ \t]?/, "")
+  if (!quoteContent.trim() || /^ {0,3}>/.test(quoteContent)) return true
+  return isMarkdownBlockBoundary(quoteContent)
 }
 
 // Identify backticks escaped by an odd run of preceding backslashes.
@@ -493,6 +502,13 @@ function checkReviewAuditGuidance() {
   check("unmatched code spans cannot pair across a new blockquote",
     stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUnmatched paragraph: `\n> A review finding must identify a changed hunk. `\n## Next", "## Finding scope"))
       .includes("A review finding must identify a changed hunk"))
+  check("code spans stop at nested, heading, and blank blockquote boundaries",
+    stripInactiveMarkdown(readMarkdownSection("## Finding scope\n> Example: `\n> > nested quote\n> A review finding must identify a changed hunk. `\n## Next", "## Finding scope"))
+      .includes("A review finding must identify a changed hunk")
+      && stripInactiveMarkdown(readMarkdownSection("## Finding scope\n> Example: `\n> # Quoted heading\n> A review finding must identify a changed hunk. `\n## Next", "## Finding scope"))
+        .includes("A review finding must identify a changed hunk")
+      && stripInactiveMarkdown(readMarkdownSection("## Finding scope\n> Example: `\n>\n> A review finding must identify a changed hunk. `\n## Next", "## Finding scope"))
+        .includes("A review finding must identify a changed hunk"))
   check("setext H2 boundaries end extracted sections",
     !readMarkdownSection("## Finding scope\nExisting guidance.\nPotential next section\n---\nA review finding must identify a changed hunk.", "## Finding scope")
       .includes("A review finding must identify a changed hunk"))
