@@ -159,8 +159,20 @@ function isAtxHeadingLine(line) {
   return /^ {0,3}#{1,6}(?:[ \t]+|$)/.test(line)
 }
 
+// Parse the marker and text for one ordered or unordered list item.
+function getListItemContent(line) {
+  const ordered = line.match(/^ {0,3}(\d{1,9})[.)][ \t]+(.*)$/)
+  if (ordered) return { ordered: true, number: Number(ordered[1]), content: ordered[2] }
+
+  const bullet = line.match(/^ {0,3}[-+*][ \t]+(.*)$/)
+  if (bullet) return { ordered: false, number: 0, content: bullet[1] }
+  return null
+}
+
 // Recognize paragraph-ending Markdown blocks before pairing inline code.
-function isInlineMarkdownBlockBoundary(line) {
+function isInlineMarkdownBlockBoundary(line, paragraphOpen = true) {
+  const listItem = getListItemContent(line)
+  if (paragraphOpen && listItem?.ordered && listItem.number !== 1) return false
   const fenceMatch = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
   const beginsFence = fenceMatch && opensMarkdownFence(fenceMatch[1], fenceMatch[2])
   const htmlBlock = getRawHtmlBlockEnd(line)
@@ -172,15 +184,15 @@ function isInlineMarkdownBlockBoundary(line) {
     || /^ {0,3}<!--/.test(line)
     || /^(?: {4,}|\t)/.test(line)
     || /^ {0,3}>/.test(line)
-    || /^ {0,3}(?:[-+*][ \t]+|\d{1,9}[.)][ \t]+)/.test(line)
+    || Boolean(listItem)
     || /^ {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})$/.test(line)
 }
 
 // Identify list-item text that opens a paragraph for following continuation lines.
 function startsListItemParagraph(line) {
-  const match = line.match(/^ {0,3}(?:[-+*][ \t]+|\d{1,9}[.)][ \t]+)(.+)$/)
-  if (!match || !match[1].trim()) return false
-  return !isInlineMarkdownBlockBoundary(match[1]) && !getRawHtmlBlockEnd(match[1])
+  const listItem = getListItemContent(line)
+  if (!listItem?.content.trim()) return false
+  return !isInlineMarkdownBlockBoundary(listItem.content, false) && !getRawHtmlBlockEnd(listItem.content)
 }
 
 // Recognize blockquotes at document level and inside list items.
@@ -204,6 +216,12 @@ function isEscapedBacktick(line, index) {
 
 // Identify CommonMark raw HTML blocks that prevent inner headings becoming Markdown.
 function getRawHtmlBlockEnd(line) {
+  const listItem = getListItemContent(line)
+  if (listItem && listItem.content) {
+    const listBlock = getRawHtmlBlockEnd(listItem.content)
+    if (listBlock) return listBlock
+  }
+
   const specialBlock = line.match(/^ {0,3}<(script|pre|style|textarea)(?:[ \t]|>|$)/i)
   if (specialBlock) return { kind: "marker", end: /<\/(?:pre|script|style|textarea)[ \t]*>/i }
   if (/^ {0,3}<\?/.test(line)) return { kind: "marker", end: /\?>/ }
@@ -301,6 +319,7 @@ function stripInactiveMarkdown(content) {
   let htmlBlockEnd = null
   let inlineCodeLength = 0
   let paragraphOpen = false
+  let insideList = false
 
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index]
@@ -354,27 +373,41 @@ function stripInactiveMarkdown(content) {
     if (!insideHtmlComment && isBlockquoteStartLine(line)) {
       inlineCodeLength = 0
       paragraphOpen = false
+      insideList = false
       activeLines.push("")
       insideBlockQuote = !isBlankBlockQuoteLine(line)
       continue
     }
 
     if (!insideHtmlComment && /^(?: {4,}|\t)/.test(line)) {
+      const indentedHeading = line.replace(/^(?: {4,}|\t)/, "")
+      if (insideList && isAtxHeadingLine(indentedHeading)) {
+        inlineCodeLength = 0
+        paragraphOpen = false
+        activeLines.push(indentedHeading)
+        continue
+      }
       inlineCodeLength = 0
       paragraphOpen = false
       activeLines.push("")
       continue
     }
 
+    const listItem = getListItemContent(line)
+    const orderedItemContinuesParagraph = paragraphOpen && listItem?.ordered && listItem.number !== 1
+    if (/^[ \t]*$/.test(line) || (!/^ {4,}/.test(line) && isAtxHeadingLine(line))) insideList = false
+    if (listItem && !orderedItemContinuesParagraph) insideList = true
+
     if (!insideHtmlComment) {
       if (/^ {0,3}<!--/.test(line)) {
         inlineCodeLength = 0
         paragraphOpen = false
+        insideList = false
         activeLines.push("")
         if (!line.includes("-->")) insideHtmlCommentBlock = true
         continue
       }
-      if (isInlineMarkdownBlockBoundary(line)) {
+      if (isInlineMarkdownBlockBoundary(line, paragraphOpen)) {
         inlineCodeLength = 0
         paragraphOpen = false
       }
@@ -388,7 +421,7 @@ function stripInactiveMarkdown(content) {
         continue
       }
 
-      const rawHtmlBlock = getRawHtmlBlockEnd(line)
+      const rawHtmlBlock = orderedItemContinuesParagraph ? null : getRawHtmlBlockEnd(line)
       if (rawHtmlBlock && (!rawHtmlBlock.requiresNoParagraph || !paragraphOpen)) {
         inlineCodeLength = 0
         paragraphOpen = false
@@ -401,7 +434,7 @@ function stripInactiveMarkdown(content) {
     const visibleLine = stripHtmlCommentsFromLine(line, lines, index, insideHtmlComment, inlineCodeLength)
     insideHtmlComment = visibleLine.insideHtmlComment
     inlineCodeLength = visibleLine.inlineCodeLength
-    if (visibleLine.text.trim() && (!isInlineMarkdownBlockBoundary(line) || startsListItemParagraph(line))) paragraphOpen = true
+    if (visibleLine.text.trim() && (!isInlineMarkdownBlockBoundary(line, paragraphOpen) || startsListItemParagraph(line))) paragraphOpen = true
     activeLines.push(visibleLine.text)
   }
 
@@ -605,12 +638,17 @@ function checkReviewAuditGuidance() {
       && !readMarkdownSection("## Finding scope\nParagraph before malformed tag.\n<span foo=>\n## Next\nA review finding must identify a changed hunk.", "## Finding scope")
         .includes("A review finding must identify a changed hunk")
       && !readMarkdownSection("## Finding scope\n- item\n  <span>\n## Next\nA review finding must identify a changed hunk.", "## Finding scope")
-        .includes("A review finding must identify a changed hunk"))
+        .includes("A review finding must identify a changed hunk")
+      && !readMarkdownSection("## Finding scope\nExisting paragraph\n2. <div>\n<span>\n## Hidden section\ntext\n\n## Actual next section", "## Finding scope")
+        .includes("## Hidden section"))
   check("type-6 raw HTML blocks still interrupt list-item paragraphs",
     !stripInactiveMarkdown("## Finding scope\n- item\n  <div x=>\n  A review finding must identify a changed hunk.\n  </div>\n\nActive guidance remains.")
       .includes("A review finding must identify a changed hunk")
       && stripInactiveMarkdown("## Finding scope\n- item\n  <div x=>\n  A review finding must identify a changed hunk.\n  </div>\n\nActive guidance remains.")
         .includes("Active guidance remains"))
+  check("nested list headings remain section boundaries",
+    !readMarkdownSection("## Finding scope\n- outer\n  - nested paragraph\n      ## Nested heading\nA review finding must identify a changed hunk.\n\n## Actual next section", "## Finding scope")
+      .includes("A review finding must identify a changed hunk"))
   check("only unescaped backticks open inline code spans within a run",
     !stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse \\``A review finding must identify a changed hunk` literally.\n", "## Finding scope"))
       .includes("A review finding must identify a changed hunk"))
