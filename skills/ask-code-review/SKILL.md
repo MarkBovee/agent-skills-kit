@@ -55,6 +55,10 @@ For delegated review, return `ASK_WORKFLOW_PASS phase=REVIEW` only when requirem
 - Is the proof proportional to the risk?
 - Are docs or follow-on changes needed?
 
+## Finding scope
+
+Before treating a behavior as an actionable finding, compare the cited lines with the exact review base. Every finding must identify a changed hunk or explain the direct behavior introduced by a changed hunk. Nearby unchanged lines are context; pre-existing behavior is not a regression just because the diff made it visible. If the base diff or causal link cannot be established, report the review as blocked or limited instead of presenting an unsupported regression. Keep unrelated pre-existing behavior classified as context, not as a finding against this change.
+
 ## Additional axes
 
 Check these explicitly on the diff when it touches them:

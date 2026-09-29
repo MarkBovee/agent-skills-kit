@@ -79,15 +79,52 @@ function checkRiskProfiles() {
     && requiredWorkflowPhases("release-sensitive", "new external contract").includes("RELEASE_GATE"))
 }
 
+// Extract one uniquely named H2 section for contract and export checks.
+function readMarkdownSection(content, heading) {
+  const lines = content.split(/\r?\n/)
+  const expectedHeading = `## ${heading}`
+  const headingIndices = []
+  for (let index = 0; index < lines.length; index += 1) {
+    if (lines[index] === expectedHeading) headingIndices.push(index)
+  }
+  if (headingIndices.length !== 1) return ""
+
+  const start = headingIndices[0]
+  let end = lines.length
+  for (let index = start + 1; index < lines.length; index += 1) {
+    if (/^##(?:[ \t]+|$)/.test(lines[index])) {
+      end = index
+      break
+    }
+  }
+  return lines.slice(start, end).join("\n").trim()
+}
+
+// Require a complete standalone paragraph instead of matching weakened fragments.
+function hasExactParagraph(section, paragraph) {
+  const entries = section.split(/\r?\n[ \t]*\r?\n/)
+  for (const entry of entries) {
+    if (entry.trim() === paragraph) return true
+  }
+  return false
+}
+
 // Keep release validation deferred until iterative findings are resolved.
 function checkReleaseValidationCadence() {
   const workflowGuidance = fs.readFileSync("skills/ask-agent-workflows/SKILL.md", "utf8")
-  const deltaGuidance = workflowGuidance.slice(workflowGuidance.indexOf("## Bounded narrow-fix release path"), workflowGuidance.indexOf("## Metadata-only release fast path"))
+  const deltaHeading = "Bounded narrow-fix release path"
+  const metadataHeading = "Metadata-only release fast path"
+  const deltaGuidance = readMarkdownSection(workflowGuidance, deltaHeading)
+  const metadataGuidance = readMarkdownSection(workflowGuidance, metadataHeading)
+
+  check("release cadence and metadata sections are present in order", deltaGuidance !== ""
+    && metadataGuidance !== ""
+    && workflowGuidance.indexOf(`## ${deltaHeading}`) < workflowGuidance.indexOf(`## ${metadataHeading}`))
   check("delta findings loop repeats focused validation without the full suite", deltaGuidance.includes("Do not run the full suite during this findings loop"))
   check("full suite runs once on the stable candidate", deltaGuidance.includes("run the full required check suite once on that exact diff"))
   check("later code findings invalidate all prior gate evidence", deltaGuidance.includes("all validation, review, audit, and release-gate evidence for the prior diff is stale"))
   check("later code findings rerun every final gate on the new diff", deltaGuidance.includes("run the full suite and repeat final review, independent final audit, and release-gate on that exact diff"))
-  check("final review and independent audit remain after full validation", deltaGuidance.indexOf("run the full required check suite once") < deltaGuidance.indexOf("final review run")
+  check("final review and independent audit remain after full validation", hasOrderedGuidanceSections(deltaGuidance, "run the full required check suite once", "final review run")
     && deltaGuidance.includes("independent final audit and release-gate"))
   check("review and audit budget remains cumulative", deltaGuidance.includes("cumulative review/audit budget remains")
     && deltaGuidance.includes("timebox is 16 minutes total"))
@@ -99,11 +136,77 @@ function checkReleaseValidationCadence() {
     ["GitHub Copilot", ".github/skills/ask-agent-workflows/SKILL.md"],
     ["DeepSeek Harness", ".dsh/skills/ask-agent-workflows/SKILL.md"],
   ]
-  for (const [platform, path] of generatedPaths) {
-    const generatedGuidance = fs.readFileSync(path, "utf8")
-    const generatedSection = generatedGuidance.slice(generatedGuidance.indexOf("## Bounded narrow-fix release path"), generatedGuidance.indexOf("## Metadata-only release fast path"))
-    check(`${platform} export matches canonical release cadence`, generatedSection === deltaGuidance)
+  for (const [platform, exportPath] of generatedPaths) {
+    const generatedGuidance = fs.readFileSync(exportPath, "utf8")
+    check(`${platform} export matches canonical release cadence`,
+      readMarkdownSection(generatedGuidance, deltaHeading) === deltaGuidance)
+    check(`${platform} export keeps metadata-only path after release cadence`,
+      generatedGuidance.indexOf(`## ${deltaHeading}`) < generatedGuidance.indexOf(`## ${metadataHeading}`))
   }
+}
+
+// Keep review scope and code-first audit contracts present in canonical and generated skills.
+function checkReviewAuditGuidance() {
+  const reviewGuidance = fs.readFileSync("skills/ask-code-review/SKILL.md", "utf8")
+  const auditGuidance = fs.readFileSync("skills/ask-agent-workflows/SKILL.md", "utf8")
+  const reviewContract = readMarkdownSection(reviewGuidance, "Finding scope")
+  const auditContract = readMarkdownSection(auditGuidance, "Code-first independent audit")
+  const convergenceContract = readMarkdownSection(auditGuidance, "Release audit convergence and stop rule")
+  const findingRequirement = "Before treating a behavior as an actionable finding, compare the cited lines with the exact review base. Every finding must identify a changed hunk or explain the direct behavior introduced by a changed hunk. Nearby unchanged lines are context; pre-existing behavior is not a regression just because the diff made it visible. If the base diff or causal link cannot be established, report the review as blocked or limited instead of presenting an unsupported regression. Keep unrelated pre-existing behavior classified as context, not as a finding against this change."
+  const codeFirstRequirement = "An independent audit inspects production behavior; it is not validation or a test-coverage inventory. Start from the exact production diff and, before inspecting tests, identify affected entry points, callers, state transitions, cleanup paths, fallback decisions, and the invariants they must preserve. Challenge those invariants with plausible counterexamples such as cancellation at an await boundary, delayed first responses, malformed input, stale cached state, overlapping ownership, or alias/hardware mismatches when relevant."
+  const auditEvidenceRequirement = "An actionable audit finding names the production path, violated invariant, plausible trigger, user impact, and smallest regression proof needed. If no issue is found, name the implementation paths and bypass categories inspected; a green test count alone is not an audit pass. Audit handoffs must include the exact diff and require the auditor to record production paths and invariants before looking at tests."
+  const auditHandoffRequirement = "Keep the audit assignment separate from validation. Provide the exact diff reference and requirements, then ask the auditor to report the production paths, callers, and invariants traced before inspecting targeted tests. Ask for counterexamples and actionable findings in the format above, or the paths and bypass categories inspected if none remain. The validator owns suite execution and pass/fail reporting; do not substitute test counts for audit evidence."
+  const candidateGateRequirement = "For release-sensitive work, keep one current candidate record in the task plan: an immutable diff reference plus a concise gate table for `VALIDATE`, `REVIEW`, `AUDIT`, and `RELEASE_GATE`, each with status and its matching evidence. When source changes, mark evidence for the prior diff stale immediately; rerun only checks affected by the change, not unrelated gates."
+  const deltaConvergenceRequirement = "Collect actionable findings into one bounded correction batch. After that batch, run focused validation and one delta review plus one separate delta audit limited to changed production paths and affected invariants. Do not restart broad candidate review or enumerate test suites on each delta. Once the candidate is stable, run the full required suite once, then independent final review, audit, and release-gate against that exact diff reference."
+  const ownerStopRequirement = "If the owner asks to stop the audit loop, stop review/audit work immediately and return a blocked status naming the current diff, the missing required gate, and any unresolved findings. Do not keep cycling, push, release, or close issues around the gate, and do not imply tests or deployment substitute for an audit. A stop request does not waive mandatory evidence: release-sensitive work remains blocked while a required independent gate is missing, or a P0/P1 or safety blocker is unresolved."
+
+  check("review finding attribution remains normative", hasExactParagraph(reviewContract, findingRequirement))
+  check("weakened review modality fails the exact contract assertion",
+    !hasExactParagraph(`## Finding scope\n\n${findingRequirement.replace("must identify", "may identify")}`, findingRequirement))
+  check("pre-existing behavior remains context, not a regression finding",
+    hasExactParagraph(reviewContract, "Before treating a behavior as an actionable finding, compare the cited lines with the exact review base. Every finding must identify a changed hunk or explain the direct behavior introduced by a changed hunk. Nearby unchanged lines are context; pre-existing behavior is not a regression just because the diff made it visible. If the base diff or causal link cannot be established, report the review as blocked or limited instead of presenting an unsupported regression. Keep unrelated pre-existing behavior classified as context, not as a finding against this change."))
+  check("unknown review base blocks unsupported regression claims",
+    reviewContract.includes("If the base diff or causal link cannot be established, report the review as blocked or limited instead of presenting an unsupported regression."))
+  check("code-first audit order is an exact normative contract", hasExactParagraph(auditContract, codeFirstRequirement))
+  check("reversed audit ordering fails the exact contract assertion",
+    !hasExactParagraph(`## Code-first independent audit\n\n${codeFirstRequirement.replace("before inspecting tests", "after inspecting tests")}`, codeFirstRequirement))
+  check("audit is distinct from validation and test inventory",
+    auditContract.includes("An independent audit inspects production behavior; it is not validation or a test-coverage inventory."))
+  check("tests are evidence, not a substitute for tracing production code",
+    auditContract.includes("Tests are evidence, not a substitute for tracing production code."))
+  check("focused green suite cannot dismiss production bypass",
+    auditContract.includes("A green focused suite does not close an audit finding while a production-code bypass remains."))
+  check("audit findings require production-path evidence", hasExactParagraph(auditContract, auditEvidenceRequirement))
+  check("audit clean passes name inspected paths and bypass classes", auditContract.includes("If no issue is found, name the implementation paths and bypass categories inspected; a green test count alone is not an audit pass."))
+  check("audit handoff separates the role from validation", hasExactParagraph(auditContract, auditHandoffRequirement))
+  check("audit handoff assigns suite results to validation", auditContract.includes("The validator owns suite execution and pass/fail reporting;"))
+  check("passing focused test with production bypass remains an audit finding",
+    auditContract.includes("a focused test passes for a normal response, but an error-shaped row can still reach a production fallback"))
+  check("release work keeps one immutable diff and evidence table", hasExactParagraph(convergenceContract, candidateGateRequirement))
+  check("release deltas converge through bounded focused gates", hasExactParagraph(convergenceContract, deltaConvergenceRequirement))
+  check("owner stop request returns blocked status without waiving release gates", hasExactParagraph(convergenceContract, ownerStopRequirement))
+
+  const generatedPaths = [
+    ["GitHub Copilot", ".github/skills/ask-code-review/SKILL.md", ".github/skills/ask-agent-workflows/SKILL.md"],
+    ["DeepSeek Harness", ".dsh/skills/ask-code-review/SKILL.md", ".dsh/skills/ask-agent-workflows/SKILL.md"],
+  ]
+  for (const [platform, reviewPath, auditPath] of generatedPaths) {
+    const generatedReview = fs.readFileSync(reviewPath, "utf8")
+    const generatedAudit = fs.readFileSync(auditPath, "utf8")
+    const exportedReview = readMarkdownSection(generatedReview, "Finding scope")
+    const exportedAudit = readMarkdownSection(generatedAudit, "Code-first independent audit")
+    const exportedConvergence = readMarkdownSection(generatedAudit, "Release audit convergence and stop rule")
+    check(`${platform} export preserves canonical review contract`, exportedReview === reviewContract)
+    check(`${platform} export preserves canonical audit contract`, exportedAudit === auditContract)
+    check(`${platform} export preserves canonical release convergence contract`, exportedConvergence === convergenceContract)
+  }
+}
+
+// Confirm required evidence sections appear in order.
+function hasOrderedGuidanceSections(content, firstSection, secondSection) {
+  const firstIndex = content.indexOf(firstSection)
+  const secondIndex = content.indexOf(secondSection)
+  return firstIndex >= 0 && secondIndex >= 0 && firstIndex < secondIndex
 }
 
 // Verify explicit evidence markers produce pass, finding, and blocked states.
@@ -256,6 +359,7 @@ function checkRoutingStatus() {
 function main() {
   checkRiskProfiles()
   checkReleaseValidationCadence()
+  checkReviewAuditGuidance()
   checkEvidenceContract()
   checkStatusHints()
   checkRoutingStatus()
