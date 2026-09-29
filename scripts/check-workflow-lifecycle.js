@@ -120,6 +120,11 @@ function parseH2Title(line) {
   return (match[1] || "").replace(/[ \t]+#+[ \t]*$/, "").trim()
 }
 
+// Accept only valid Markdown fence closers with matching character and length.
+function closesMarkdownFence(marker, suffix, fenceCharacter, fenceLength) {
+  return marker[0] === fenceCharacter && marker.length >= fenceLength && /^[ \t]*$/.test(suffix)
+}
+
 // Find a required H2 or the next H2 while ignoring headings inside fenced code.
 function findMarkdownHeadingLine(lines, startIndex, expectedHeading) {
   let fenceCharacter = ""
@@ -133,7 +138,7 @@ function findMarkdownHeadingLine(lines, startIndex, expectedHeading) {
       if (!fenceCharacter) {
         fenceCharacter = marker[0]
         fenceLength = marker.length
-      } else if (marker[0] === fenceCharacter && marker.length >= fenceLength && !suffix.trim()) {
+      } else if (closesMarkdownFence(marker, suffix, fenceCharacter, fenceLength)) {
         fenceCharacter = ""
         fenceLength = 0
       }
@@ -173,7 +178,7 @@ function stripFencedCodeBlocks(content) {
       if (!fenceCharacter) {
         fenceCharacter = marker[0]
         fenceLength = marker.length
-      } else if (marker[0] === fenceCharacter && marker.length >= fenceLength && !suffix.trim()) {
+      } else if (closesMarkdownFence(marker, suffix, fenceCharacter, fenceLength)) {
         fenceCharacter = ""
         fenceLength = 0
       }
@@ -206,9 +211,19 @@ function checkReviewAuditGuidance() {
       && readMarkdownSection("```md\n## Finding scope\n```", "## Finding scope") === ""
       && readMarkdownSection("## Finding scope\nkeep\n   ## # Next section\nexclude", "## Finding scope") === "## Finding scope\nkeep"
       && readMarkdownSection("## Finding scope\nkeep\n##\nexclude", "## Finding scope") === "## Finding scope\nkeep")
+  check("fence closers require matching markers and ASCII whitespace only",
+    closesMarkdownFence("~~~~", " \t", "~", 3)
+      && !closesMarkdownFence("~~", "", "~", 3)
+      && !closesMarkdownFence("~~~", "\u00a0", "~", 3)
+      && !closesMarkdownFence("```", "", "~", 3))
   check("fenced contract text cannot satisfy active guidance assertions",
     !stripFencedCodeBlocks("```md\nA green focused suite does not close an audit finding.\n```\nactive text")
-      .includes("A green focused suite does not close an audit finding"))
+      .includes("A green focused suite does not close an audit finding")
+      && !stripFencedCodeBlocks("~~~md\nA green focused suite does not close an audit finding.\n~~~\u00a0\nstill fenced\n~~~")
+        .includes("A green focused suite does not close an audit finding"))
+  check("headings inside NBSP-terminated fences cannot supply section boundaries",
+    readMarkdownSection("~~~md\n## Finding scope\n~~~\u00a0\n## Additional axes\n~~~\n## Finding scope\nactive\n## Next section\nexcluded", "## Finding scope")
+      === "## Finding scope\nactive")
   check("audit traces production paths and invariants before tests",
     hasOrderedGuidanceSections(activeAuditContract, "identify affected entry points, callers, state transitions, cleanup paths, fallback decisions", "inspect only the tests")
       && hasOrderedGuidanceSections(activeAuditContract, "the invariants they must preserve", "inspect only the tests")
