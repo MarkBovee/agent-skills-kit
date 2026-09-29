@@ -223,9 +223,11 @@ function stripInactiveMarkdown(content) {
   let fenceLength = 0
   let insideHtmlComment = false
   let htmlBlockEnd = null
+  let inlineCodeLength = 0
 
   for (const line of lines) {
     if (fenceCharacter) {
+      inlineCodeLength = 0
       const fenceMatch = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
       if (fenceMatch && closesMarkdownFence(fenceMatch[1], fenceMatch[2], fenceCharacter, fenceLength)) {
         fenceCharacter = ""
@@ -236,30 +238,39 @@ function stripInactiveMarkdown(content) {
     }
 
     if (htmlBlockEnd) {
+      inlineCodeLength = 0
       activeLines.push("")
       if (htmlBlockEnd.kind === "blank" ? /^[ \t]*$/.test(line) : htmlBlockEnd.end.test(line)) htmlBlockEnd = null
       continue
     }
 
     if (!insideHtmlComment) {
+      if (/^[ \t]*<!--/.test(line) || /^[ \t]*$/.test(line) || parseH2Title(line) !== null) inlineCodeLength = 0
       const fenceMatch = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
-      if (fenceMatch && opensMarkdownFence(fenceMatch[1], fenceMatch[2])) {
-        fenceCharacter = fenceMatch[1][0]
-        fenceLength = fenceMatch[1].length
-        activeLines.push("")
+      if (fenceMatch) {
+        if (opensMarkdownFence(fenceMatch[1], fenceMatch[2])) {
+          inlineCodeLength = 0
+          fenceCharacter = fenceMatch[1][0]
+          fenceLength = fenceMatch[1].length
+          activeLines.push("")
+        } else {
+          activeLines.push(line)
+        }
         continue
       }
 
       const rawHtmlBlock = getRawHtmlBlockEnd(line)
       if (rawHtmlBlock) {
+        inlineCodeLength = 0
         activeLines.push("")
         if (rawHtmlBlock.kind === "blank" || !rawHtmlBlock.end.test(line)) htmlBlockEnd = rawHtmlBlock
         continue
       }
     }
 
-    const visibleLine = stripHtmlCommentsFromLine(line, insideHtmlComment)
+    const visibleLine = stripHtmlCommentsFromLine(line, insideHtmlComment, inlineCodeLength)
     insideHtmlComment = visibleLine.insideHtmlComment
+    inlineCodeLength = visibleLine.inlineCodeLength
     activeLines.push(visibleLine.text)
   }
 
@@ -267,16 +278,24 @@ function stripInactiveMarkdown(content) {
 }
 
 // Remove inline and multiline HTML comments while preserving active text on the line.
-function stripHtmlCommentsFromLine(line, insideHtmlComment) {
+function stripHtmlCommentsFromLine(line, insideHtmlComment, inlineCodeLength) {
   let text = ""
   let cursor = 0
 
   while (cursor < line.length) {
     if (insideHtmlComment) {
       const end = line.indexOf("-->", cursor)
-      if (end < 0) return { text, insideHtmlComment: true }
+      if (end < 0) return { text, insideHtmlComment: true, inlineCodeLength: 0 }
       cursor = end + 3
       insideHtmlComment = false
+      continue
+    }
+
+    if (inlineCodeLength) {
+      const codeSpanEnd = findInlineCodeSpanEnd(line, cursor, inlineCodeLength)
+      if (codeSpanEnd < 0) return { text, insideHtmlComment: false, inlineCodeLength }
+      cursor = codeSpanEnd
+      inlineCodeLength = 0
       continue
     }
 
@@ -289,7 +308,7 @@ function stripHtmlCommentsFromLine(line, insideHtmlComment) {
         continue
       }
 
-      text += line.slice(cursor, cursor + delimiterLength)
+      inlineCodeLength = delimiterLength
       cursor += delimiterLength
       continue
     }
@@ -304,10 +323,10 @@ function stripHtmlCommentsFromLine(line, insideHtmlComment) {
     cursor += 1
   }
 
-  return { text, insideHtmlComment }
+  return { text, insideHtmlComment, inlineCodeLength }
 }
 
-// Find a same-line closing backtick run with the exact code-span delimiter length.
+// Find a closing backtick run with the exact inline-code delimiter length.
 function findInlineCodeSpanEnd(line, startIndex, delimiterLength) {
   let cursor = startIndex
   while (cursor < line.length) {
@@ -374,6 +393,11 @@ function checkReviewAuditGuidance() {
   check("HTML comment markers inside inline code do not hide active guidance",
     stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse `<!--` literally.\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
       .includes("A review finding must identify a changed hunk"))
+  check("multiline code spans cannot satisfy or hide active guidance",
+    !stripInactiveMarkdown(readMarkdownSection("## Finding scope\nExample: `A review finding must identify a changed hunk\ncontinued example`.\nUse `<!--\ncomment marker\n` literally.\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
+      .includes("Example: A review finding must identify a changed hunk")
+      && stripInactiveMarkdown(readMarkdownSection("## Finding scope\nExample: `A review finding must identify a changed hunk\ncontinued example`.\nUse `<!--\ncomment marker\n` literally.\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
+        .includes("A review finding must identify a changed hunk"))
   check("raw section extraction retains fenced examples for export drift checks",
     readMarkdownSection("## Finding scope\n```text\ncanonical example\n```\n## Next", "## Finding scope")
       !== readMarkdownSection("## Finding scope\n```text\ngenerated example\n```\n## Next", "## Finding scope"))
