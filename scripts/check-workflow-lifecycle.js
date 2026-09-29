@@ -159,6 +159,19 @@ function isAtxHeadingLine(line) {
   return /^ {0,3}#{1,6}(?:[ \t]+|$)/.test(line)
 }
 
+// Count quote markers and isolate the content at the current nesting depth.
+function getBlockQuotePrefix(line) {
+  let content = line
+  let depth = 0
+
+  while (true) {
+    const prefix = content.match(/^ {0,3}>[ \t]?/)
+    if (!prefix) return { content, depth }
+    content = content.slice(prefix[0].length)
+    depth += 1
+  }
+}
+
 // Recognize paragraph-ending Markdown blocks in the current quote content.
 function isMarkdownBlockBoundary(line) {
   const fenceMatch = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
@@ -176,12 +189,11 @@ function isMarkdownBlockBoundary(line) {
 }
 
 // Stop inline-code pairing at block starts, respecting active blockquote content.
-function isInlineMarkdownBlockBoundary(line, insideBlockQuote = false) {
-  if (!insideBlockQuote || !/^ {0,3}>/.test(line)) return isMarkdownBlockBoundary(line)
-
-  const quoteContent = line.replace(/^ {0,3}>[ \t]?/, "")
-  if (!quoteContent.trim() || /^ {0,3}>/.test(quoteContent)) return true
-  return isMarkdownBlockBoundary(quoteContent)
+function isInlineMarkdownBlockBoundary(line, quoteDepth = 0) {
+  const quote = getBlockQuotePrefix(line)
+  if (quoteDepth === 0) return quote.depth > 0 || isMarkdownBlockBoundary(line)
+  if (quote.depth > 0 && quote.depth !== quoteDepth) return true
+  return isMarkdownBlockBoundary(quote.depth === quoteDepth ? quote.content : line)
 }
 
 // Identify backticks escaped by an odd run of preceding backslashes.
@@ -407,10 +419,10 @@ function findInlineCodeSpanEnd(line, startIndex, delimiterLength) {
 // Require a code-span closer before the paragraph reaches a block boundary.
 function hasInlineCodeSpanClosure(lines, lineIndex, startIndex, delimiterLength) {
   if (findInlineCodeSpanEnd(lines[lineIndex], startIndex, delimiterLength) >= 0) return true
-  const insideBlockQuote = /^ {0,3}>/.test(lines[lineIndex])
+  const quoteDepth = getBlockQuotePrefix(lines[lineIndex]).depth
 
   for (let index = lineIndex + 1; index < lines.length; index += 1) {
-    if (isInlineMarkdownBlockBoundary(lines[index], insideBlockQuote)) return false
+    if (isInlineMarkdownBlockBoundary(lines[index], quoteDepth)) return false
     if (findInlineCodeSpanEnd(lines[index], 0, delimiterLength) >= 0) return true
   }
 
@@ -509,6 +521,9 @@ function checkReviewAuditGuidance() {
         .includes("A review finding must identify a changed hunk")
       && stripInactiveMarkdown(readMarkdownSection("## Finding scope\n> Example: `\n>\n> A review finding must identify a changed hunk. `\n## Next", "## Finding scope"))
         .includes("A review finding must identify a changed hunk"))
+  check("nested quote depth changes cannot pair inline-code delimiters",
+    stripInactiveMarkdown(readMarkdownSection("## Finding scope\n> outer opens unmatched `\n> > nested opens another unmatched `\n> active requirement text `\n## Next", "## Finding scope"))
+      .includes("active requirement text"))
   check("setext H2 boundaries end extracted sections",
     !readMarkdownSection("## Finding scope\nExisting guidance.\nPotential next section\n---\nA review finding must identify a changed hunk.", "## Finding scope")
       .includes("A review finding must identify a changed hunk"))
