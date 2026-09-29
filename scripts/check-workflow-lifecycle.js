@@ -194,7 +194,7 @@ function getListItemContent(line) {
       number: Number(ordered[2]),
       content: ordered[5],
       markerIndent,
-      contentIndent: measureIndentColumns(`${ordered[2]}${ordered[3]}`, markerIndent + ordered[2].length),
+      contentIndent: measureIndentColumns(ordered[4], markerIndent + ordered[2].length + ordered[3].length),
     }
   }
 
@@ -395,7 +395,7 @@ function stripInactiveMarkdown(content) {
 
     if (htmlBlockEnd) {
       const listContainerEnded = htmlBlockEnd.listContentIndent !== null
-        && isAtxHeadingLine(line)
+        && !/^[ \t]*$/.test(line)
         && measureIndentColumns(line) < htmlBlockEnd.listContentIndent
       if (listContainerEnded) {
         htmlBlockEnd = null
@@ -408,7 +408,16 @@ function stripInactiveMarkdown(content) {
         inlineCodeLength = 0
         paragraphOpen = false
         activeLines.push("")
-        if (htmlBlockEnd.kind === "blank" ? /^[ \t]*$/.test(line) : htmlBlockEnd.end.test(line)) htmlBlockEnd = null
+        const blockEnded = htmlBlockEnd.kind === "blank" ? /^[ \t]*$/.test(line) : htmlBlockEnd.end.test(line)
+        if (blockEnded) {
+          if (htmlBlockEnd.kind === "blank" && htmlBlockEnd.listContentIndent !== null) {
+            insideList = false
+            listContentIndent = null
+            listMarkerIndent = null
+            listOrdered = false
+          }
+          htmlBlockEnd = null
+        }
         continue
       }
     }
@@ -751,6 +760,11 @@ function checkReviewAuditGuidance() {
         .includes("Active guidance remains")
       && stripInactiveMarkdown(readMarkdownSection("## Finding scope\n- <div>\n## Next\nA review finding must identify a changed hunk.", "## Next"))
         .includes("A review finding must identify a changed hunk"))
+  check("HTML block termination clears stale list context",
+    !stripInactiveMarkdown("## Finding scope\n- item\n  <div>\n  list raw HTML\n  </div>\n\n<div>\n## Hidden in top-level HTML\nA review finding must identify a changed hunk.\n</div>\n\nActive prose remains.")
+      .includes("A review finding must identify a changed hunk")
+      && stripInactiveMarkdown("## Finding scope\n- item\n  <div>\n  list raw HTML\n  </div>\n\n<div>\n## Hidden in top-level HTML\nA review finding must identify a changed hunk.\n</div>\n\nActive prose remains.")
+        .includes("Active prose remains"))
   check("nested list headings remain section boundaries",
     !readMarkdownSection("## Finding scope\n- outer\n  - nested paragraph\n      ## Nested heading\nA review finding must identify a changed hunk.\n\n## Actual next section", "## Finding scope")
       .includes("A review finding must identify a changed hunk")
