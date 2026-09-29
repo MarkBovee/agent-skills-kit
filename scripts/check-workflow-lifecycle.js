@@ -106,6 +106,13 @@ function checkReleaseValidationCadence() {
   }
 }
 
+// Confirm required guidance sections both exist and appear in the intended order.
+function hasOrderedGuidanceSections(content, firstSection, secondSection) {
+  const firstIndex = content.indexOf(firstSection)
+  const secondIndex = content.indexOf(secondSection)
+  return firstIndex >= 0 && secondIndex >= 0 && firstIndex < secondIndex
+}
+
 // Keep review scope and code-first audit contracts present in canonical and generated skills.
 function checkReviewAuditGuidance() {
   const reviewGuidance = fs.readFileSync("skills/ask-code-review/SKILL.md", "utf8")
@@ -117,9 +124,15 @@ function checkReviewAuditGuidance() {
     reviewContract.includes("identify a changed hunk") && reviewContract.includes("direct behavior introduced by a changed hunk"))
   check("unchanged pre-existing behavior is context, not a regression finding",
     reviewContract.includes("pre-existing behavior is not a regression") && reviewContract.includes("classified as context"))
+  check("unknown review base or causal link blocks unsupported regression claims",
+    reviewContract.includes("If the base diff or causal link cannot be established")
+      && reviewContract.includes("report the review as blocked or limited"))
   check("audit traces production paths and invariants before tests",
-    auditContract.indexOf("before inspecting tests") < auditContract.indexOf("inspect only the tests")
+    hasOrderedGuidanceSections(auditContract, "before inspecting tests", "inspect only the tests")
       && auditContract.includes("entry points, callers, state transitions, cleanup paths, fallback decisions"))
+  check("missing or reversed audit-order markers fail the section-order predicate",
+    !hasOrderedGuidanceSections("inspect only the tests", "before inspecting tests", "inspect only the tests")
+      && !hasOrderedGuidanceSections("inspect only the tests before inspecting tests", "before inspecting tests", "inspect only the tests"))
   check("audit distinguishes implementation inspection from validation and coverage review",
     auditContract.includes("not validation or a test-coverage inventory")
       && auditContract.includes("Validation owns whether the defined suite passes"))
@@ -143,6 +156,9 @@ function checkReviewAuditGuidance() {
     const generatedAudit = fs.readFileSync(auditPath, "utf8")
     check(`${platform} export includes the review finding-scope contract`,
       generatedReview.includes("Every finding must identify a changed hunk or explain the direct behavior introduced by a changed hunk."))
+    check(`${platform} export includes the unknown-base safeguard`,
+      generatedReview.includes("If the base diff or causal link cannot be established")
+        && generatedReview.includes("report the review as blocked or limited"))
     check(`${platform} export includes the code-first audit contract`,
       generatedAudit.includes("Start from the exact production diff and, before inspecting tests, identify affected entry points, callers, state transitions, cleanup paths, fallback decisions"))
     check(`${platform} export includes the independent audit handoff`,
