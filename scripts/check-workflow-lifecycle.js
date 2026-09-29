@@ -163,11 +163,12 @@ function isAtxHeadingLine(line) {
 function isInlineMarkdownBlockBoundary(line) {
   const fenceMatch = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
   const beginsFence = fenceMatch && opensMarkdownFence(fenceMatch[1], fenceMatch[2])
+  const htmlBlock = getRawHtmlBlockEnd(line)
   return /^[ \t]*$/.test(line)
     || isAtxHeadingLine(line)
     || /^ {0,3}(?:=+[ \t]*|-+[ \t]*)$/.test(line)
     || Boolean(beginsFence)
-    || Boolean(getRawHtmlBlockEnd(line))
+    || Boolean(htmlBlock && !htmlBlock.requiresNoParagraph)
     || /^ {0,3}<!--/.test(line)
     || /^(?: {4,}|\t)/.test(line)
     || /^ {0,3}>/.test(line)
@@ -205,7 +206,7 @@ function getRawHtmlBlockEnd(line) {
   const tagMatch = line.match(/^ {0,3}<\/?([A-Za-z][A-Za-z0-9-]*)(?=[ \t/>])/)
   const blockTags = /^(?:address|article|aside|base|basefont|blockquote|body|caption|center|col|colgroup|dd|details|dialog|dir|div|dl|dt|fieldset|figcaption|figure|footer|form|frame|frameset|h[1-6]|head|header|hr|html|iframe|legend|li|link|main|menu|menuitem|meta|nav|noframes|ol|optgroup|option|p|param|search|section|summary|table|tbody|td|tfoot|th|thead|title|tr|track|ul)$/i
   if (tagMatch && blockTags.test(tagMatch[1])) return { kind: "blank" }
-  if (isCompleteHtmlTagLine(line)) return { kind: "blank" }
+  if (isCompleteHtmlTagLine(line)) return { kind: "blank", requiresNoParagraph: true }
   return null
 }
 
@@ -267,11 +268,13 @@ function stripInactiveMarkdown(content) {
   let insideBlockQuote = false
   let htmlBlockEnd = null
   let inlineCodeLength = 0
+  let paragraphOpen = false
 
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index]
     if (fenceCharacter) {
       inlineCodeLength = 0
+      paragraphOpen = false
       const fenceMatch = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
       if (fenceMatch && closesMarkdownFence(fenceMatch[1], fenceMatch[2], fenceCharacter, fenceLength)) {
         fenceCharacter = ""
@@ -283,12 +286,14 @@ function stripInactiveMarkdown(content) {
 
     if (htmlBlockEnd) {
       inlineCodeLength = 0
+      paragraphOpen = false
       activeLines.push("")
       if (htmlBlockEnd.kind === "blank" ? /^[ \t]*$/.test(line) : htmlBlockEnd.end.test(line)) htmlBlockEnd = null
       continue
     }
 
     if (insideHtmlCommentBlock) {
+      paragraphOpen = false
       activeLines.push("")
       if (line.includes("-->")) insideHtmlCommentBlock = false
       continue
@@ -299,6 +304,7 @@ function stripInactiveMarkdown(content) {
       if (isBlankBlockQuoteLine(line)) {
         insideBlockQuote = false
         inlineCodeLength = 0
+        paragraphOpen = false
         activeLines.push("")
         continue
       }
@@ -307,6 +313,7 @@ function stripInactiveMarkdown(content) {
         insideBlockQuote = false
       } else {
         inlineCodeLength = 0
+        paragraphOpen = false
         activeLines.push("")
         continue
       }
@@ -314,6 +321,7 @@ function stripInactiveMarkdown(content) {
 
     if (!insideHtmlComment && isBlockquoteStartLine(line)) {
       inlineCodeLength = 0
+      paragraphOpen = false
       activeLines.push("")
       insideBlockQuote = !isBlankBlockQuoteLine(line)
       continue
@@ -321,6 +329,7 @@ function stripInactiveMarkdown(content) {
 
     if (!insideHtmlComment && /^(?: {4,}|\t)/.test(line)) {
       inlineCodeLength = 0
+      paragraphOpen = false
       activeLines.push("")
       continue
     }
@@ -328,14 +337,19 @@ function stripInactiveMarkdown(content) {
     if (!insideHtmlComment) {
       if (/^ {0,3}<!--/.test(line)) {
         inlineCodeLength = 0
+        paragraphOpen = false
         activeLines.push("")
         if (!line.includes("-->")) insideHtmlCommentBlock = true
         continue
       }
-      if (/^[ \t]*$/.test(line) || isAtxHeadingLine(line) || /^ {0,3}(?:=+[ \t]*|-+[ \t]*)$/.test(line)) inlineCodeLength = 0
+      if (isInlineMarkdownBlockBoundary(line)) {
+        inlineCodeLength = 0
+        paragraphOpen = false
+      }
       const fenceMatch = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
       if (fenceMatch && opensMarkdownFence(fenceMatch[1], fenceMatch[2])) {
         inlineCodeLength = 0
+        paragraphOpen = false
         fenceCharacter = fenceMatch[1][0]
         fenceLength = fenceMatch[1].length
         activeLines.push("")
@@ -343,8 +357,9 @@ function stripInactiveMarkdown(content) {
       }
 
       const rawHtmlBlock = getRawHtmlBlockEnd(line)
-      if (rawHtmlBlock) {
+      if (rawHtmlBlock && (!rawHtmlBlock.requiresNoParagraph || !paragraphOpen)) {
         inlineCodeLength = 0
+        paragraphOpen = false
         activeLines.push("")
         if (rawHtmlBlock.kind === "blank" || !rawHtmlBlock.end.test(line)) htmlBlockEnd = rawHtmlBlock
         continue
@@ -354,6 +369,7 @@ function stripInactiveMarkdown(content) {
     const visibleLine = stripHtmlCommentsFromLine(line, lines, index, insideHtmlComment, inlineCodeLength)
     insideHtmlComment = visibleLine.insideHtmlComment
     inlineCodeLength = visibleLine.inlineCodeLength
+    if (visibleLine.text.trim() && !isInlineMarkdownBlockBoundary(line)) paragraphOpen = true
     activeLines.push(visibleLine.text)
   }
 
@@ -550,6 +566,9 @@ function checkReviewAuditGuidance() {
          .includes("A review finding must identify a changed hunk"))
   check("setext H2 boundaries end extracted sections",
     !readMarkdownSection("## Finding scope\nExisting guidance.\nPotential next section\n---\nA review finding must identify a changed hunk.", "## Finding scope")
+      .includes("A review finding must identify a changed hunk"))
+  check("type-7 raw HTML inside a paragraph does not hide the next H2",
+    !readMarkdownSection("## Finding scope\nParagraph before inline tag.\n<span>\n## Next\nA review finding must identify a changed hunk.", "## Finding scope")
       .includes("A review finding must identify a changed hunk"))
   check("only unescaped backticks open inline code spans within a run",
     !stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse \\``A review finding must identify a changed hunk` literally.\n", "## Finding scope"))
