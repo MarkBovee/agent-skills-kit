@@ -154,12 +154,18 @@ function closesMarkdownFence(marker, suffix, fenceCharacter, fenceLength) {
   return marker[0] === fenceCharacter && marker.length >= fenceLength && /^[ \t]*$/.test(suffix)
 }
 
+// Recognize valid ATX headings at every level before pairing inline code spans.
+function isAtxHeadingLine(line) {
+  return /^ {0,3}#{1,6}(?:[ \t]+|$)/.test(line)
+}
+
 // Stop inline-code pairing at Markdown block boundaries.
 function isInlineMarkdownBlockBoundary(line) {
   const fenceMatch = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
   const beginsFence = fenceMatch && opensMarkdownFence(fenceMatch[1], fenceMatch[2])
   return /^[ \t]*$/.test(line)
-    || parseH2Title(line) !== null
+    || isAtxHeadingLine(line)
+    || /^ {0,3}(?:=+[ \t]*|-+[ \t]*)$/.test(line)
     || Boolean(beginsFence)
     || Boolean(getRawHtmlBlockEnd(line))
     || /^ {0,3}<!--/.test(line)
@@ -167,6 +173,13 @@ function isInlineMarkdownBlockBoundary(line) {
     || /^ {0,3}>/.test(line)
     || /^ {0,3}(?:[-+*][ \t]+|\d{1,9}[.)][ \t]+)/.test(line)
     || /^ {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})$/.test(line)
+}
+
+// Identify backticks escaped by an odd run of preceding backslashes.
+function isEscapedBacktick(line, index) {
+  let slashCount = 0
+  for (let cursor = index - 1; cursor >= 0 && line[cursor] === "\\"; cursor -= 1) slashCount += 1
+  return slashCount % 2 === 1
 }
 
 // Identify CommonMark raw HTML blocks that prevent inner headings becoming Markdown.
@@ -280,7 +293,7 @@ function stripInactiveMarkdown(content) {
         if (!line.includes("-->")) insideHtmlCommentBlock = true
         continue
       }
-      if (/^[ \t]*$/.test(line) || parseH2Title(line) !== null) inlineCodeLength = 0
+      if (/^[ \t]*$/.test(line) || isAtxHeadingLine(line) || /^ {0,3}(?:=+[ \t]*|-+[ \t]*)$/.test(line)) inlineCodeLength = 0
       const fenceMatch = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
       if (fenceMatch) {
         if (opensMarkdownFence(fenceMatch[1], fenceMatch[2])) {
@@ -337,6 +350,11 @@ function stripHtmlCommentsFromLine(line, lines, lineIndex, insideHtmlComment, in
     if (line[cursor] === "`") {
       let delimiterLength = 1
       while (line[cursor + delimiterLength] === "`") delimiterLength += 1
+      if (isEscapedBacktick(line, cursor)) {
+        text += line.slice(cursor, cursor + delimiterLength)
+        cursor += delimiterLength
+        continue
+      }
       text += line.slice(cursor, cursor + delimiterLength)
       const codeSpanEnd = findInlineCodeSpanEnd(line, cursor + delimiterLength, delimiterLength)
       if (codeSpanEnd >= 0) {
@@ -424,6 +442,14 @@ function checkReviewAuditGuidance() {
     readMarkdownSection("## Finding scope `\nspoof\n## Next", "## Finding scope") === "")
   check("unmatched prose backticks do not hide following active guidance",
     stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse unmatched ` literally.\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
+      .includes("A review finding must identify a changed hunk"))
+  check("unmatched backticks cannot pair across other heading and paragraph boundaries",
+    stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse unmatched ` literally.\n### H3 with ` marker\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
+      .includes("A review finding must identify a changed hunk")
+      && stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse unmatched ` literally.\n---\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
+        .includes("A review finding must identify a changed hunk"))
+  check("escaped backticks do not open or close inline code spans",
+    stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse escaped \\` literally.\nA review finding must identify a changed hunk.\nclosing \\`\n## Next", "## Finding scope"))
       .includes("A review finding must identify a changed hunk"))
   check("invalid backtick fence openers do not hide real section boundaries",
     stripInactiveMarkdown("```info`\nA green focused suite does not close an audit finding.\nactive")
