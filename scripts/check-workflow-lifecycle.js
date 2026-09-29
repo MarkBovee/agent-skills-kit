@@ -212,7 +212,7 @@ function getListItemContent(line) {
   return null
 }
 
-// Reuse the nearest list container when a blank line precedes an indented heading.
+// Find the nearest list item's content indentation for a nested heading.
 function findListContentIndent(lines, lineIndex) {
   for (let index = lineIndex - 1; index >= 0; index -= 1) {
     if (/^[ \t]*$/.test(lines[index])) continue
