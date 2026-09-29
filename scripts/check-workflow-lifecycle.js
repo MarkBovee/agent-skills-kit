@@ -113,22 +113,31 @@ function hasOrderedGuidanceSections(content, firstSection, secondSection) {
   return firstIndex >= 0 && secondIndex >= 0 && firstIndex < secondIndex
 }
 
+// Extract one second-level Markdown section without including its successor.
+function readMarkdownSection(content, heading) {
+  const start = content.indexOf(heading)
+  if (start < 0) return ""
+
+  const nextHeading = content.indexOf("\n## ", start + heading.length)
+  return content.slice(start, nextHeading < 0 ? undefined : nextHeading).trim()
+}
+
 // Keep review scope and code-first audit contracts present in canonical and generated skills.
 function checkReviewAuditGuidance() {
   const reviewGuidance = fs.readFileSync("skills/ask-code-review/SKILL.md", "utf8")
   const auditGuidance = fs.readFileSync("skills/ask-agent-workflows/SKILL.md", "utf8")
-  const reviewContract = reviewGuidance.slice(reviewGuidance.indexOf("## Finding scope"), reviewGuidance.indexOf("## Additional axes"))
-  const auditContract = auditGuidance.slice(auditGuidance.indexOf("## Code-first independent audit"), auditGuidance.indexOf("## Finding loop"))
+  const reviewContract = readMarkdownSection(reviewGuidance, "## Finding scope")
+  const auditContract = readMarkdownSection(auditGuidance, "## Code-first independent audit")
 
   check("actionable review findings anchor to a changed hunk or introduced behavior",
     reviewContract.includes("identify a changed hunk") && reviewContract.includes("direct behavior introduced by a changed hunk"))
   check("unchanged pre-existing behavior is context, not a regression finding",
-    reviewContract.includes("pre-existing behavior is not a regression") && reviewContract.includes("classified as context"))
+    reviewContract.includes("Nearby unchanged lines are context; pre-existing behavior is not a regression just because the diff made it visible."))
   check("unknown review base or causal link blocks unsupported regression claims",
-    reviewContract.includes("If the base diff or causal link cannot be established")
-      && reviewContract.includes("report the review as blocked or limited"))
+    reviewContract.includes("If the base diff or causal link cannot be established, report the review as blocked or limited instead of presenting an unsupported regression."))
   check("audit traces production paths and invariants before tests",
-    hasOrderedGuidanceSections(auditContract, "before inspecting tests", "inspect only the tests")
+    hasOrderedGuidanceSections(auditContract, "identify affected entry points, callers, state transitions, cleanup paths, fallback decisions", "inspect only the tests")
+      && hasOrderedGuidanceSections(auditContract, "the invariants they must preserve", "inspect only the tests")
       && auditContract.includes("entry points, callers, state transitions, cleanup paths, fallback decisions"))
   check("missing or reversed audit-order markers fail the section-order predicate",
     !hasOrderedGuidanceSections("inspect only the tests", "before inspecting tests", "inspect only the tests")
@@ -154,16 +163,12 @@ function checkReviewAuditGuidance() {
   for (const [platform, reviewPath, auditPath] of generatedPaths) {
     const generatedReview = fs.readFileSync(reviewPath, "utf8")
     const generatedAudit = fs.readFileSync(auditPath, "utf8")
-    check(`${platform} export includes the review finding-scope contract`,
-      generatedReview.includes("Every finding must identify a changed hunk or explain the direct behavior introduced by a changed hunk."))
-    check(`${platform} export includes the unknown-base safeguard`,
-      generatedReview.includes("If the base diff or causal link cannot be established")
-        && generatedReview.includes("report the review as blocked or limited"))
-    check(`${platform} export includes the code-first audit contract`,
-      generatedAudit.includes("Start from the exact production diff and, before inspecting tests, identify affected entry points, callers, state transitions, cleanup paths, fallback decisions"))
-    check(`${platform} export includes the independent audit handoff`,
-      generatedAudit.includes("## Independent audit handoff")
-        && generatedAudit.includes("The validator owns suite execution and pass/fail reporting"))
+    const exportedReviewContract = readMarkdownSection(generatedReview, "## Finding scope")
+    const exportedAuditContract = readMarkdownSection(generatedAudit, "## Code-first independent audit")
+    check(`${platform} export preserves the complete canonical review finding-scope section`,
+      exportedReviewContract === reviewContract)
+    check(`${platform} export preserves the complete canonical code-first audit section and handoff`,
+      exportedAuditContract === auditContract)
   }
 }
 
