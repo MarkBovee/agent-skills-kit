@@ -159,27 +159,54 @@ function isAtxHeadingLine(line) {
   return /^ {0,3}#{1,6}(?:[ \t]+|$)/.test(line)
 }
 
+// Measure leading spaces and tabs using Markdown's four-column tab stops.
+function measureIndentColumns(value, initialColumn = 0) {
+  let column = initialColumn
+  for (const character of value) {
+    if (character === " ") column += 1
+    else if (character === "\t") column += 4 - (column % 4)
+    else break
+  }
+  return column
+}
+
+// Remove indentation by visual columns while retaining any tab overshoot as spaces.
+function stripIndentColumns(line, targetColumn) {
+  let index = 0
+  let column = 0
+  while (index < line.length && column < targetColumn) {
+    const character = line[index]
+    if (character === " ") column += 1
+    else if (character === "\t") column += 4 - (column % 4)
+    else break
+    index += 1
+  }
+  return `${" ".repeat(Math.max(0, column - targetColumn))}${line.slice(index)}`
+}
+
 // Parse the marker and text for one ordered or unordered list item.
 function getListItemContent(line) {
   const ordered = line.match(/^( {0,3})(\d{1,9})([.)])([ \t]+)(.*)$/)
   if (ordered) {
+    const markerIndent = measureIndentColumns(ordered[1])
     return {
       ordered: true,
       number: Number(ordered[2]),
       content: ordered[5],
-      markerIndent: ordered[1].length,
-      contentIndent: ordered[1].length + ordered[2].length + ordered[3].length + ordered[4].length,
+      markerIndent,
+      contentIndent: measureIndentColumns(`${ordered[2]}${ordered[3]}`, markerIndent + ordered[2].length),
     }
   }
 
   const bullet = line.match(/^( {0,3})([-+*])([ \t]+)(.*)$/)
   if (bullet) {
+    const markerIndent = measureIndentColumns(bullet[1])
     return {
       ordered: false,
       number: 0,
       content: bullet[4],
-      markerIndent: bullet[1].length,
-      contentIndent: bullet[1].length + bullet[2].length + bullet[3].length,
+      markerIndent,
+      contentIndent: measureIndentColumns(bullet[3], markerIndent + 1),
     }
   }
   return null
@@ -349,6 +376,8 @@ function stripInactiveMarkdown(content) {
   let paragraphOpen = false
   let insideList = false
   let listContentIndent = null
+  let listMarkerIndent = null
+  let listOrdered = false
 
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index]
@@ -367,11 +396,13 @@ function stripInactiveMarkdown(content) {
     if (htmlBlockEnd) {
       const listContainerEnded = htmlBlockEnd.listContentIndent !== null
         && isAtxHeadingLine(line)
-        && (line.match(/^ */)?.[0].length || 0) < htmlBlockEnd.listContentIndent
+        && measureIndentColumns(line) < htmlBlockEnd.listContentIndent
       if (listContainerEnded) {
         htmlBlockEnd = null
         insideList = false
         listContentIndent = null
+        listMarkerIndent = null
+        listOrdered = false
         paragraphOpen = false
       } else {
         inlineCodeLength = 0
@@ -414,6 +445,8 @@ function stripInactiveMarkdown(content) {
       paragraphOpen = false
       insideList = false
       listContentIndent = null
+      listMarkerIndent = null
+      listOrdered = false
       activeLines.push("")
       insideBlockQuote = !isBlankBlockQuoteLine(line)
       continue
@@ -421,10 +454,10 @@ function stripInactiveMarkdown(content) {
 
     if (!insideHtmlComment && /^(?: {4,}|\t)/.test(line)) {
       const indentation = line.match(/^(?: +|\t+)/)?.[0] || ""
-      const indentWidth = indentation.replace(/\t/g, "    ").length
+      const indentWidth = measureIndentColumns(indentation)
       const inheritedListIndent = insideList ? listContentIndent : findListContentIndent(lines, index)
       const headingContent = inheritedListIndent !== null && indentWidth >= inheritedListIndent
-        ? line.slice(inheritedListIndent)
+        ? stripIndentColumns(line, inheritedListIndent)
         : ""
       if (inheritedListIndent !== null && indentWidth - inheritedListIndent < 4 && isAtxHeadingLine(headingContent)) {
         inlineCodeLength = 0
@@ -439,14 +472,19 @@ function stripInactiveMarkdown(content) {
     }
 
     const listItem = getListItemContent(line)
-    const orderedItemContinuesParagraph = paragraphOpen && listItem?.ordered && listItem.number !== 1
+    const sameList = listItem && insideList && listItem.ordered === listOrdered && listItem.markerIndent === listMarkerIndent
+    const orderedItemContinuesParagraph = paragraphOpen && listItem?.ordered && listItem.number !== 1 && !sameList
     if (/^[ \t]*$/.test(line) || (!/^(?: {1,}|\t)/.test(line) && isAtxHeadingLine(line))) {
       insideList = false
       listContentIndent = null
+      listMarkerIndent = null
+      listOrdered = false
     }
     if (listItem && !orderedItemContinuesParagraph) {
       insideList = true
       listContentIndent = listItem.contentIndent
+      listMarkerIndent = listItem.markerIndent
+      listOrdered = listItem.ordered
     }
 
     if (!insideHtmlComment) {
@@ -455,11 +493,14 @@ function stripInactiveMarkdown(content) {
         paragraphOpen = false
         insideList = false
         listContentIndent = null
+        listMarkerIndent = null
+        listOrdered = false
         activeLines.push("")
         if (!line.includes("-->")) insideHtmlCommentBlock = true
         continue
       }
-      if (isInlineMarkdownBlockBoundary(line, paragraphOpen)) {
+      const paragraphContext = orderedItemContinuesParagraph ? true : (sameList ? false : paragraphOpen)
+      if (isInlineMarkdownBlockBoundary(line, paragraphContext)) {
         inlineCodeLength = 0
         paragraphOpen = false
       }
@@ -488,7 +529,8 @@ function stripInactiveMarkdown(content) {
     const visibleLine = stripHtmlCommentsFromLine(line, lines, index, insideHtmlComment, inlineCodeLength)
     insideHtmlComment = visibleLine.insideHtmlComment
     inlineCodeLength = visibleLine.inlineCodeLength
-    if (visibleLine.text.trim() && (!isInlineMarkdownBlockBoundary(line, paragraphOpen) || startsListItemParagraph(line))) paragraphOpen = true
+    const paragraphContext = orderedItemContinuesParagraph ? true : (sameList ? false : paragraphOpen)
+    if (visibleLine.text.trim() && (!isInlineMarkdownBlockBoundary(line, paragraphContext) || startsListItemParagraph(line))) paragraphOpen = true
     activeLines.push(visibleLine.text)
   }
 
@@ -686,15 +728,22 @@ function checkReviewAuditGuidance() {
   check("setext H2 boundaries end extracted sections",
     !readMarkdownSection("## Finding scope\nExisting guidance.\nPotential next section\n---\nA review finding must identify a changed hunk.", "## Finding scope")
       .includes("A review finding must identify a changed hunk"))
-  check("type-7 raw HTML inside a paragraph does not hide the next H2",
+  check("type-7 raw HTML after paragraph text does not hide the next H2",
     !readMarkdownSection("## Finding scope\nParagraph before inline tag.\n<span>\n## Next\nA review finding must identify a changed hunk.", "## Finding scope")
-      .includes("A review finding must identify a changed hunk")
-      && !readMarkdownSection("## Finding scope\nParagraph before malformed tag.\n<span foo=>\n## Next\nA review finding must identify a changed hunk.", "## Finding scope")
-        .includes("A review finding must identify a changed hunk")
-      && !readMarkdownSection("## Finding scope\n- item\n  <span>\n## Next\nA review finding must identify a changed hunk.", "## Finding scope")
-        .includes("A review finding must identify a changed hunk")
-      && !readMarkdownSection("## Finding scope\nExisting paragraph\n2. <div>\n<span>\n## Hidden section\ntext\n\n## Actual next section", "## Finding scope")
-        .includes("## Hidden section"))
+      .includes("A review finding must identify a changed hunk"))
+  check("malformed type-7 tags do not hide the next H2",
+    !readMarkdownSection("## Finding scope\nParagraph before malformed tag.\n<span foo=>\n## Next\nA review finding must identify a changed hunk.", "## Finding scope")
+      .includes("A review finding must identify a changed hunk"))
+  check("type-7 tags after list paragraphs do not hide the next H2",
+    !readMarkdownSection("## Finding scope\n- item\n  <span>\n## Next\nA review finding must identify a changed hunk.", "## Finding scope")
+      .includes("A review finding must identify a changed hunk"))
+  check("ordered list continuation does not fabricate a section boundary",
+    !readMarkdownSection("## Finding scope\nExisting paragraph\n2. <div>\n<span>\n## Hidden section\ntext\n\n## Actual next section", "## Finding scope")
+      .includes("## Hidden section")
+      && readMarkdownSection("## Finding scope\n1. first\n2. <div>\n   ## Not a section heading\nA review finding must identify a changed hunk.\n\n## Actual next section", "## Finding scope")
+        .includes("## Not a section heading")
+      && readMarkdownSection("## Finding scope\n1. first\n2. <div>\n   ## Not a section heading\nA review finding must identify a changed hunk.\n\n## Actual next section", "## Finding scope")
+        .includes("A review finding must identify a changed hunk"))
   check("type-6 raw HTML blocks still interrupt list-item paragraphs",
     !stripInactiveMarkdown("## Finding scope\n- item\n  <div x=>\n  A review finding must identify a changed hunk.\n  </div>\n\nActive guidance remains.")
       .includes("A review finding must identify a changed hunk")
@@ -704,7 +753,11 @@ function checkReviewAuditGuidance() {
         .includes("A review finding must identify a changed hunk"))
   check("nested list headings remain section boundaries",
     !readMarkdownSection("## Finding scope\n- outer\n  - nested paragraph\n      ## Nested heading\nA review finding must identify a changed hunk.\n\n## Actual next section", "## Finding scope")
-      .includes("A review finding must identify a changed hunk"))
+      .includes("A review finding must identify a changed hunk")
+      && !readMarkdownSection("## Finding scope\n- item\n\n    ## Nested\nexcluded\n\n## Actual", "## Finding scope")
+        .includes("excluded")
+      && !readMarkdownSection("## Finding scope\n-\touter\n\t## Next section\nA review finding must identify a changed hunk.\n", "## Finding scope")
+        .includes("A review finding must identify a changed hunk"))
   check("only unescaped backticks open inline code spans within a run",
     !stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse \\``A review finding must identify a changed hunk` literally.\n", "## Finding scope"))
       .includes("A review finding must identify a changed hunk"))
