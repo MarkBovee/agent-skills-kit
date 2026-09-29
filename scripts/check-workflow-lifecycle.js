@@ -368,6 +368,7 @@ function stripInactiveMarkdown(content) {
   const activeLines = []
   let fenceCharacter = ""
   let fenceLength = 0
+  let fenceIndent = 0
   let insideHtmlComment = false
   let insideHtmlCommentBlock = false
   let insideBlockQuote = false
@@ -384,10 +385,12 @@ function stripInactiveMarkdown(content) {
     if (fenceCharacter) {
       inlineCodeLength = 0
       paragraphOpen = false
-      const fenceMatch = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
+      const fenceContent = stripIndentColumns(line, fenceIndent)
+      const fenceMatch = fenceContent.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
       if (fenceMatch && closesMarkdownFence(fenceMatch[1], fenceMatch[2], fenceCharacter, fenceLength)) {
         fenceCharacter = ""
         fenceLength = 0
+        fenceIndent = 0
       }
       activeLines.push("")
       continue
@@ -469,6 +472,35 @@ function stripInactiveMarkdown(content) {
       const listContentColumn = listContext?.contentIndent ?? null
       const relativeIndent = listContentColumn === null ? -1 : indentWidth - listContentColumn
       const listContent = listContentColumn === null ? "" : stripIndentColumns(line, listContentColumn)
+      const nestedListItem = listContext && relativeIndent >= 0
+        ? getListItemContent(listContent)
+        : null
+
+      if (nestedListItem) {
+        insideList = true
+        listContentIndent = nestedListItem.contentIndent + listContentColumn
+        listMarkerIndent = nestedListItem.markerIndent + listContentColumn
+        listOrdered = nestedListItem.ordered
+        paragraphOpen = startsListItemParagraph(listContent)
+        const nestedFence = listContent.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
+        if (nestedFence && opensMarkdownFence(nestedFence[1], nestedFence[2])) {
+          fenceCharacter = nestedFence[1][0]
+          fenceLength = nestedFence[1].length
+          fenceIndent = listContentIndent
+          activeLines.push("")
+          continue
+        }
+        const nestedHtml = getRawHtmlBlockEnd(listContent)
+        if (nestedHtml && (!nestedHtml.requiresNoParagraph || !paragraphOpen)) {
+          activeLines.push("")
+          if (nestedHtml.kind === "blank" || !nestedHtml.end.test(listContent)) {
+            htmlBlockEnd = { ...nestedHtml, listContentIndent }
+          }
+          continue
+        }
+        activeLines.push(listContent)
+        continue
+      }
 
       if (listContentColumn !== null && relativeIndent >= 0 && relativeIndent < 4) {
         inlineCodeLength = 0
@@ -477,6 +509,27 @@ function stripInactiveMarkdown(content) {
         listMarkerIndent = listContext.markerIndent
         listOrdered = listContext.ordered
         paragraphOpen = !isAtxHeadingLine(listContent)
+
+        const continuationFence = listContent.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
+        if (continuationFence && opensMarkdownFence(continuationFence[1], continuationFence[2])) {
+          paragraphOpen = false
+          fenceCharacter = continuationFence[1][0]
+          fenceLength = continuationFence[1].length
+          fenceIndent = listContentColumn
+          activeLines.push("")
+          continue
+        }
+
+        const continuationHtml = getRawHtmlBlockEnd(listContent)
+        if (continuationHtml && (!continuationHtml.requiresNoParagraph || !paragraphOpen)) {
+          paragraphOpen = false
+          activeLines.push("")
+          if (continuationHtml.kind === "blank" || !continuationHtml.end.test(listContent)) {
+            htmlBlockEnd = { ...continuationHtml, listContentIndent: listContentColumn }
+          }
+          continue
+        }
+
         activeLines.push(listContent)
         continue
       }
@@ -526,6 +579,7 @@ function stripInactiveMarkdown(content) {
         paragraphOpen = false
         fenceCharacter = fenceMatch[1][0]
         fenceLength = fenceMatch[1].length
+        fenceIndent = 0
         activeLines.push("")
         continue
       }
@@ -774,12 +828,15 @@ function checkReviewAuditGuidance() {
         .includes("Active prose remains"))
   check("nested list headings remain section boundaries",
     !readMarkdownSection("## Finding scope\n- outer\n  - nested paragraph\n      ## Nested heading\nA review finding must identify a changed hunk.\n\n## Actual next section", "## Finding scope")
-      .includes("A review finding must identify a changed hunk")
-      && !readMarkdownSection("## Finding scope\n- item\n\n    ## Nested\nexcluded\n\n## Actual", "## Finding scope")
-        .includes("excluded")
-      && readMarkdownSection("## Finding scope\n- item\n      ## Code heading\nnot a section boundary\n\n## Actual", "## Finding scope")
-        .includes("## Code heading")
-      && stripInactiveMarkdown("## Finding scope\n10. item\n    A review finding must identify a changed hunk.\n")
+      .includes("A review finding must identify a changed hunk"))
+  check("nested list headings after blank lines remain boundaries",
+    !readMarkdownSection("## Finding scope\n- item\n\n    ## Nested\nexcluded\n\n## Actual", "## Finding scope")
+      .includes("excluded"))
+  check("deeply indented list code headings remain literal code",
+    readMarkdownSection("## Finding scope\n- item\n      ## Code heading\nnot a section boundary\n\n## Actual", "## Finding scope")
+      .includes("## Code heading"))
+  check("ordered list continuations remain visible",
+    stripInactiveMarkdown("## Finding scope\n10. item\n    A review finding must identify a changed hunk.\n")
         .includes("A review finding must identify a changed hunk")
       && stripInactiveMarkdown("## Finding scope\n  10.\titem\n        A review finding must identify a changed hunk.\n")
         .includes("A review finding must identify a changed hunk")
@@ -787,6 +844,15 @@ function checkReviewAuditGuidance() {
         .includes("A review finding must identify a changed hunk")
       && !readMarkdownSection("## Finding scope\n- item\n  10.\tinner\n        ## Nested heading\nA review finding must identify a changed hunk.\n\n## Actual", "## Finding scope")
         .includes("A review finding must identify a changed hunk"))
+  check("nested ordered-list continuations preserve paragraph prose",
+    stripInactiveMarkdown("## Finding scope\n1. outer\n    10. inner\n        A review finding must identify a changed hunk.\n")
+      .includes("A review finding must identify a changed hunk"))
+  check("nested ordered-list code fences remain inactive",
+    !stripInactiveMarkdown("## Finding scope\n10. item\n    ~~~md\n    ## Hidden fenced heading\n    ~~~\n")
+      .includes("## Hidden fenced heading"))
+  check("nested ordered-list HTML blocks remain inactive",
+    !stripInactiveMarkdown(readMarkdownSection("## Finding scope\n- item\n    10. nested\n        <div>\n        ## Hidden html heading\n        </div>\n\n## Actual", "## Finding scope"))
+      .includes("## Hidden html heading"))
   check("tab-stop-aware list headings preserve tab indentation",
     !readMarkdownSection("## Finding scope\n-\touter\n\t## Next section\nA review finding must identify a changed hunk.\n", "## Finding scope")
       .includes("A review finding must identify a changed hunk"))
