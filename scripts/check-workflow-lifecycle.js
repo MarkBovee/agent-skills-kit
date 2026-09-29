@@ -212,12 +212,12 @@ function getListItemContent(line) {
   return null
 }
 
-// Find the nearest list item's content indentation for a nested heading.
-function findListContentIndent(lines, lineIndex) {
+// Find the nearest list item that owns a blank-line continuation.
+function findListItemContext(lines, lineIndex) {
   for (let index = lineIndex - 1; index >= 0; index -= 1) {
     if (/^[ \t]*$/.test(lines[index])) continue
     const listItem = getListItemContent(lines[index])
-    if (listItem) return listItem.contentIndent
+    if (listItem) return listItem
     if (!/^(?: {1,}|\t)/.test(lines[index])) return null
   }
 
@@ -462,16 +462,22 @@ function stripInactiveMarkdown(content) {
     }
 
     if (!insideHtmlComment && measureIndentColumns(line) >= 4) {
-      const indentation = line.match(/^[ \t]+/)?.[0] || ""
-      const indentWidth = measureIndentColumns(indentation)
-      const inheritedListIndent = insideList ? listContentIndent : findListContentIndent(lines, index)
-      const headingContent = inheritedListIndent !== null && indentWidth >= inheritedListIndent
-        ? stripIndentColumns(line, inheritedListIndent)
-        : ""
-      if (inheritedListIndent !== null && indentWidth - inheritedListIndent < 4 && isAtxHeadingLine(headingContent)) {
+      const indentWidth = measureIndentColumns(line)
+      const listContext = insideList
+        ? { markerIndent: listMarkerIndent, contentIndent: listContentIndent, ordered: listOrdered }
+        : findListItemContext(lines, index)
+      const listContentColumn = listContext?.contentIndent ?? null
+      const relativeIndent = listContentColumn === null ? -1 : indentWidth - listContentColumn
+      const listContent = listContentColumn === null ? "" : stripIndentColumns(line, listContentColumn)
+
+      if (listContentColumn !== null && relativeIndent >= 0 && relativeIndent < 4) {
         inlineCodeLength = 0
-        paragraphOpen = false
-        activeLines.push(headingContent)
+        insideList = true
+        listContentIndent = listContext.contentIndent
+        listMarkerIndent = listContext.markerIndent
+        listOrdered = listContext.ordered
+        paragraphOpen = !isAtxHeadingLine(listContent)
+        activeLines.push(listContent)
         continue
       }
       inlineCodeLength = 0
@@ -482,7 +488,8 @@ function stripInactiveMarkdown(content) {
 
     const listItem = getListItemContent(line)
     const sameList = listItem && insideList && listItem.ordered === listOrdered && listItem.markerIndent === listMarkerIndent
-    const orderedItemContinuesParagraph = paragraphOpen && listItem?.ordered && listItem.number !== 1 && !sameList
+    const nestedListItem = listItem && insideList && listItem.markerIndent >= listContentIndent
+    const orderedItemContinuesParagraph = paragraphOpen && listItem?.ordered && listItem.number !== 1 && !sameList && !nestedListItem
     if (/^[ \t]*$/.test(line) || (!/^(?: {1,}|\t)/.test(line) && isAtxHeadingLine(line))) {
       insideList = false
       listContentIndent = null
@@ -769,7 +776,17 @@ function checkReviewAuditGuidance() {
     !readMarkdownSection("## Finding scope\n- outer\n  - nested paragraph\n      ## Nested heading\nA review finding must identify a changed hunk.\n\n## Actual next section", "## Finding scope")
       .includes("A review finding must identify a changed hunk")
       && !readMarkdownSection("## Finding scope\n- item\n\n    ## Nested\nexcluded\n\n## Actual", "## Finding scope")
-        .includes("excluded"))
+        .includes("excluded")
+      && readMarkdownSection("## Finding scope\n- item\n      ## Code heading\nnot a section boundary\n\n## Actual", "## Finding scope")
+        .includes("## Code heading")
+      && stripInactiveMarkdown("## Finding scope\n10. item\n    A review finding must identify a changed hunk.\n")
+        .includes("A review finding must identify a changed hunk")
+      && stripInactiveMarkdown("## Finding scope\n  10.\titem\n        A review finding must identify a changed hunk.\n")
+        .includes("A review finding must identify a changed hunk")
+      && !stripInactiveMarkdown("## Finding scope\n10. item\n        A review finding must identify a changed hunk.\n")
+        .includes("A review finding must identify a changed hunk")
+      && !readMarkdownSection("## Finding scope\n- item\n  10.\tinner\n        ## Nested heading\nA review finding must identify a changed hunk.\n\n## Actual", "## Finding scope")
+        .includes("A review finding must identify a changed hunk"))
   check("tab-stop-aware list headings preserve tab indentation",
     !readMarkdownSection("## Finding scope\n-\touter\n\t## Next section\nA review finding must identify a changed hunk.\n", "## Finding scope")
       .includes("A review finding must identify a changed hunk"))
