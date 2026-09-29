@@ -71,6 +71,14 @@ Keep the audit assignment separate from validation. Provide the exact diff refer
 
 P0/P1 findings follow: reproduce → regression test → minimal fix → validation → affected re-audit. Do not close a finding because code changed; re-prove its invariant.
 
+## Release audit convergence and stop rule
+
+For release-sensitive work, keep one current candidate record in the task plan: an immutable diff reference plus a concise gate table for `VALIDATE`, `REVIEW`, `AUDIT`, and `RELEASE_GATE`, each with status and its matching evidence. When source changes, mark evidence for the prior diff stale immediately; rerun only checks affected by the change, not unrelated gates.
+
+Collect actionable findings into one bounded correction batch. After that batch, run focused validation and one delta review plus one separate delta audit limited to changed production paths and affected invariants. Do not restart broad candidate review or enumerate test suites on each delta. Once the candidate is stable, run the full required suite once, then independent final review, audit, and release-gate against that exact diff reference.
+
+If the owner asks to stop the audit loop, stop review/audit work immediately and return a blocked status naming the current diff, the missing required gate, and any unresolved findings. Do not keep cycling, push, release, or close issues around the gate, and do not imply tests or deployment substitute for an audit. A stop request does not waive mandatory evidence: release-sensitive work remains blocked while a required independent gate is missing, or a P0/P1 or safety blocker is unresolved.
+
 ## Bounded narrow-fix release path
 
 Use this path only for a release-sensitive fix with one explicit requested invariant, an existing regression proof, and a localized change in one subsystem with a bounded set of direct callers. The primary agent records the invariant, in-scope files/callers, excluded adjacent behavior, and budgets before dispatch. Any change to or affecting an external contract or an existing or new security, privacy, or safety boundary—including creating, moving, strengthening, weakening, or removing that boundary—requires the significant path. Migrations, architecture or ownership changes, cross-module behavior, or unclear scope also require the significant path. An independent reviewer or auditor may reject the narrow classification; do not argue the scope down to fit the budget.

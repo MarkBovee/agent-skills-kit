@@ -79,817 +79,112 @@ function checkRiskProfiles() {
     && requiredWorkflowPhases("release-sensitive", "new external contract").includes("RELEASE_GATE"))
 }
 
+// Extract one uniquely named H2 section for contract and export checks.
+function readMarkdownSection(content, heading) {
+  const lines = content.split(/\r?\n/)
+  const expectedHeading = `## ${heading}`
+  const headingIndices = []
+  for (let index = 0; index < lines.length; index += 1) {
+    if (lines[index] === expectedHeading) headingIndices.push(index)
+  }
+  if (headingIndices.length !== 1) return ""
+
+  const start = headingIndices[0]
+  let end = lines.length
+  for (let index = start + 1; index < lines.length; index += 1) {
+    if (/^##(?:[ \t]+|$)/.test(lines[index])) {
+      end = index
+      break
+    }
+  }
+  return lines.slice(start, end).join("\n").trim()
+}
+
+// Require a complete standalone paragraph instead of matching weakened fragments.
+function hasExactParagraph(section, paragraph) {
+  const entries = section.split(/\r?\n[ \t]*\r?\n/)
+  for (const entry of entries) {
+    if (entry.trim() === paragraph) return true
+  }
+  return false
+}
+
 // Keep release validation deferred until iterative findings are resolved.
 function checkReleaseValidationCadence() {
   const workflowGuidance = fs.readFileSync("skills/ask-agent-workflows/SKILL.md", "utf8")
-  const deltaHeading = "## Bounded narrow-fix release path"
-  const metadataHeading = "## Metadata-only release fast path"
+  const deltaHeading = "Bounded narrow-fix release path"
+  const metadataHeading = "Metadata-only release fast path"
   const deltaGuidance = readMarkdownSection(workflowGuidance, deltaHeading)
   const metadataGuidance = readMarkdownSection(workflowGuidance, metadataHeading)
-  const activeDeltaGuidance = stripInactiveMarkdown(deltaGuidance)
-  const activeWorkflowGuidance = stripInactiveMarkdown(workflowGuidance)
-  const activeLines = activeWorkflowGuidance.split(/\r?\n/)
-  const deltaHeadingIndex = findMarkdownHeadingLine(activeLines, 0, deltaHeading)
-  const metadataHeadingIndex = findMarkdownHeadingLine(activeLines, deltaHeadingIndex + 1, metadataHeading)
-  check("release cadence and metadata sections are present in order",
-    deltaGuidance !== "" && metadataGuidance !== "" && deltaHeadingIndex >= 0 && metadataHeadingIndex > deltaHeadingIndex)
-  check("commented or fenced release-cadence examples are not active sections",
-    readMarkdownSection(`~~~md\n${deltaHeading}\nDo not run the full suite during this findings loop\n~~~`, deltaHeading) === ""
-      && readMarkdownSection(`<!--\n${deltaHeading}\nDo not run the full suite during this findings loop\n-->`, deltaHeading) === ""
-      && readMarkdownSection(`<div>\n${deltaHeading}\nDo not run the full suite during this findings loop\n${metadataHeading}\n</div>\n\n`, deltaHeading) === "")
-  check("delta findings loop repeats focused validation without the full suite", activeDeltaGuidance.includes("Do not run the full suite during this findings loop"))
-  check("full suite runs once on the stable candidate", activeDeltaGuidance.includes("run the full required check suite once on that exact diff"))
-  check("later code findings invalidate all prior gate evidence", activeDeltaGuidance.includes("all validation, review, audit, and release-gate evidence for the prior diff is stale"))
-  check("later code findings rerun every final gate on the new diff", activeDeltaGuidance.includes("run the full suite and repeat final review, independent final audit, and release-gate on that exact diff"))
-  check("final review and independent audit remain after full validation", hasOrderedGuidanceSections(activeDeltaGuidance, "run the full required check suite once", "final review run")
-    && activeDeltaGuidance.includes("independent final audit and release-gate"))
-  check("review and audit budget remains cumulative", activeDeltaGuidance.includes("cumulative review/audit budget remains")
-    && activeDeltaGuidance.includes("timebox is 16 minutes total"))
-  check("budget exhaustion and blocked passes cannot claim a pass", activeDeltaGuidance.includes("If the budget is exhausted or a pass is partial or blocked, stop and present the evidence"))
-  check("P0/P1 blockers cannot be deferred", activeDeltaGuidance.includes("P0/P1 findings and established security, privacy, correctness, or safety blockers cannot be deferred"))
-  check("scope expansion requires owner approval", activeDeltaGuidance.includes("Scope expansion requires explicit approval recorded in a revised plan"))
+
+  check("release cadence and metadata sections are present in order", deltaGuidance !== ""
+    && metadataGuidance !== ""
+    && workflowGuidance.indexOf(`## ${deltaHeading}`) < workflowGuidance.indexOf(`## ${metadataHeading}`))
+  check("delta findings loop repeats focused validation without the full suite", deltaGuidance.includes("Do not run the full suite during this findings loop"))
+  check("full suite runs once on the stable candidate", deltaGuidance.includes("run the full required check suite once on that exact diff"))
+  check("later code findings invalidate all prior gate evidence", deltaGuidance.includes("all validation, review, audit, and release-gate evidence for the prior diff is stale"))
+  check("later code findings rerun every final gate on the new diff", deltaGuidance.includes("run the full suite and repeat final review, independent final audit, and release-gate on that exact diff"))
+  check("final review and independent audit remain after full validation", hasOrderedGuidanceSections(deltaGuidance, "run the full required check suite once", "final review run")
+    && deltaGuidance.includes("independent final audit and release-gate"))
+  check("review and audit budget remains cumulative", deltaGuidance.includes("cumulative review/audit budget remains")
+    && deltaGuidance.includes("timebox is 16 minutes total"))
+  check("budget exhaustion and blocked passes cannot claim a pass", deltaGuidance.includes("If the budget is exhausted or a pass is partial or blocked, stop and present the evidence"))
+  check("P0/P1 blockers cannot be deferred", deltaGuidance.includes("P0/P1 findings and established security, privacy, correctness, or safety blockers cannot be deferred"))
+  check("scope expansion requires owner approval", deltaGuidance.includes("Scope expansion requires explicit approval recorded in a revised plan"))
 
   const generatedPaths = [
     ["GitHub Copilot", ".github/skills/ask-agent-workflows/SKILL.md"],
     ["DeepSeek Harness", ".dsh/skills/ask-agent-workflows/SKILL.md"],
   ]
-  for (const [platform, path] of generatedPaths) {
-    const generatedGuidance = fs.readFileSync(path, "utf8")
-    const generatedSection = readMarkdownSection(generatedGuidance, deltaHeading)
-    check(`${platform} export matches canonical release cadence`, generatedSection === deltaGuidance)
+  for (const [platform, exportPath] of generatedPaths) {
+    const generatedGuidance = fs.readFileSync(exportPath, "utf8")
+    check(`${platform} export matches canonical release cadence`,
+      readMarkdownSection(generatedGuidance, deltaHeading) === deltaGuidance)
     check(`${platform} export keeps metadata-only path after release cadence`,
-      hasOrderedMarkdownSections(generatedGuidance, deltaHeading, metadataHeading))
+      generatedGuidance.indexOf(`## ${deltaHeading}`) < generatedGuidance.indexOf(`## ${metadataHeading}`))
   }
-}
-
-// Confirm required guidance sections both exist and appear in the intended order.
-function hasOrderedGuidanceSections(content, firstSection, secondSection) {
-  const firstIndex = content.indexOf(firstSection)
-  const secondIndex = content.indexOf(secondSection)
-  return firstIndex >= 0 && secondIndex >= 0 && firstIndex < secondIndex
-}
-
-// Confirm exact Markdown sections appear in order outside comments and fences.
-function hasOrderedMarkdownSections(content, firstHeading, secondHeading) {
-  const lines = stripInactiveMarkdown(content).split(/\r?\n/)
-  const firstIndex = findMarkdownHeadingLine(lines, 0, firstHeading)
-  const secondIndex = findMarkdownHeadingLine(lines, firstIndex + 1, secondHeading)
-  return firstIndex >= 0 && secondIndex > firstIndex
-}
-
-// Parse an ATX H2 title, including valid indentation and optional closing markers.
-function parseH2Title(line) {
-  const match = line.match(/^ {0,3}##(?:[ \t]+(.*?))?[ \t]*$/)
-  if (!match) return null
-  return (match[1] || "").replace(/[ \t]+#+[ \t]*$/, "").replace(/^[ \t]+|[ \t]+$/g, "")
-}
-
-// Reject backtick fence openers whose info string contains a backtick.
-function opensMarkdownFence(marker, suffix) {
-  return marker[0] !== "`" || !suffix.includes("`")
-}
-
-// Accept only valid Markdown fence closers with matching character and length.
-function closesMarkdownFence(marker, suffix, fenceCharacter, fenceLength) {
-  return marker[0] === fenceCharacter && marker.length >= fenceLength && /^[ \t]*$/.test(suffix)
-}
-
-// Recognize valid ATX headings at every level before pairing inline code spans.
-function isAtxHeadingLine(line) {
-  return /^ {0,3}#{1,6}(?:[ \t]+|$)/.test(line)
-}
-
-// Measure leading spaces and tabs using Markdown's four-column tab stops.
-function measureIndentColumns(value, initialColumn = 0) {
-  let column = initialColumn
-  for (const character of value) {
-    if (character === " ") column += 1
-    else if (character === "\t") column += 4 - (column % 4)
-    else break
-  }
-  return column
-}
-
-// Remove indentation by visual columns while retaining any tab overshoot as spaces.
-function stripIndentColumns(line, targetColumn) {
-  let index = 0
-  let column = 0
-  while (index < line.length && column < targetColumn) {
-    const character = line[index]
-    if (character === " ") column += 1
-    else if (character === "\t") column += 4 - (column % 4)
-    else break
-    index += 1
-  }
-  return `${" ".repeat(Math.max(0, column - targetColumn))}${line.slice(index)}`
-}
-
-// Parse the marker and text for one ordered or unordered list item.
-function getListItemContent(line) {
-  const ordered = line.match(/^( {0,3})(\d{1,9})([.)])([ \t]+)(.*)$/)
-  if (ordered) {
-    const markerIndent = measureIndentColumns(ordered[1])
-    return {
-      ordered: true,
-      number: Number(ordered[2]),
-      content: ordered[5],
-      markerIndent,
-      contentIndent: measureIndentColumns(ordered[4], markerIndent + ordered[2].length + ordered[3].length),
-    }
-  }
-
-  const bullet = line.match(/^( {0,3})([-+*])([ \t]+)(.*)$/)
-  if (bullet) {
-    const markerIndent = measureIndentColumns(bullet[1])
-    return {
-      ordered: false,
-      number: 0,
-      content: bullet[4],
-      markerIndent,
-      contentIndent: measureIndentColumns(bullet[3], markerIndent + 1),
-    }
-  }
-  return null
-}
-
-// Find the nearest list item that owns a blank-line continuation.
-function findListItemContext(lines, lineIndex) {
-  for (let index = lineIndex - 1; index >= 0; index -= 1) {
-    if (/^[ \t]*$/.test(lines[index])) continue
-    const listItem = getListItemContent(lines[index])
-    if (listItem) return listItem
-    if (!/^(?: {1,}|\t)/.test(lines[index])) return null
-  }
-
-  return null
-}
-
-// Recognize paragraph-ending Markdown blocks before pairing inline code.
-function isInlineMarkdownBlockBoundary(line, paragraphOpen = true) {
-  const listItem = getListItemContent(line)
-  if (paragraphOpen && listItem?.ordered && listItem.number !== 1) return false
-  const fenceMatch = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
-  const beginsFence = fenceMatch && opensMarkdownFence(fenceMatch[1], fenceMatch[2])
-  const htmlBlock = getRawHtmlBlockEnd(line)
-  return /^[ \t]*$/.test(line)
-    || isAtxHeadingLine(line)
-    || /^ {0,3}(?:=+[ \t]*|-+[ \t]*)$/.test(line)
-    || Boolean(beginsFence)
-    || Boolean(htmlBlock && !htmlBlock.requiresNoParagraph)
-    || /^ {0,3}<!--/.test(line)
-    || measureIndentColumns(line) >= 4
-    || /^ {0,3}>/.test(line)
-    || Boolean(listItem)
-    || /^ {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})$/.test(line)
-}
-
-// Identify list-item text that opens a paragraph for following continuation lines.
-function startsListItemParagraph(line) {
-  const listItem = getListItemContent(line)
-  if (!listItem?.content.trim()) return false
-  return !isInlineMarkdownBlockBoundary(listItem.content, false) && !getRawHtmlBlockEnd(listItem.content)
-}
-
-// Recognize blockquotes at document level and inside list items.
-function isBlockquoteStartLine(line) {
-  return /^ {0,3}>/.test(line)
-    || /^ {0,3}(?:[-+*][ \t]+|\d{1,9}[.)][ \t]+)>/.test(line)
-}
-
-// Recognize a blank quote marker that ends the active blockquote.
-function isBlankBlockQuoteLine(line) {
-  const listContent = line.replace(/^ {0,3}(?:[-+*][ \t]+|\d{1,9}[.)][ \t]+)/, "")
-  return /^(?: {0,3}>[ \t]?)+[ \t]*$/.test(listContent)
-}
-
-// Identify backticks escaped by an odd run of preceding backslashes.
-function isEscapedBacktick(line, index) {
-  let slashCount = 0
-  for (let cursor = index - 1; cursor >= 0 && line[cursor] === "\\"; cursor -= 1) slashCount += 1
-  return slashCount % 2 === 1
-}
-
-// Identify CommonMark raw HTML blocks that prevent inner headings becoming Markdown.
-function getRawHtmlBlockEnd(line) {
-  const listItem = getListItemContent(line)
-  if (listItem && listItem.content) {
-    const listBlock = getRawHtmlBlockEnd(listItem.content)
-    if (listBlock) return listBlock
-  }
-
-  const specialBlock = line.match(/^ {0,3}<(script|pre|style|textarea)(?:[ \t]|>|$)/i)
-  if (specialBlock) return { kind: "marker", end: /<\/(?:pre|script|style|textarea)[ \t]*>/i }
-  if (/^ {0,3}<\?/.test(line)) return { kind: "marker", end: /\?>/ }
-  if (/^ {0,3}<!\[CDATA\[/.test(line)) return { kind: "marker", end: /\]\]>/ }
-  if (/^ {0,3}<![A-Z]/.test(line)) return { kind: "marker", end: />/ }
-
-  const tagMatch = line.match(/^ {0,3}<\/?([A-Za-z][A-Za-z0-9-]*)(?=[ \t/>])/)
-  const blockTags = /^(?:address|article|aside|base|basefont|blockquote|body|caption|center|col|colgroup|dd|details|dialog|dir|div|dl|dt|fieldset|figcaption|figure|footer|form|frame|frameset|h[1-6]|head|header|hr|html|iframe|legend|li|link|main|menu|menuitem|meta|nav|noframes|ol|optgroup|option|p|param|search|section|summary|table|tbody|td|tfoot|th|thead|title|tr|track|ul)$/i
-  if (tagMatch && blockTags.test(tagMatch[1])) return { kind: "blank" }
-  if (isCompleteHtmlTagLine(line)) return { kind: "blank", requiresNoParagraph: true }
-  return null
-}
-
-// Validate a complete HTML tag, including nonempty attribute values.
-function isCompleteHtmlTagLine(line) {
-  const source = line.replace(/^ {0,3}/, "")
-  let cursor = 1
-  if (source[0] !== "<") return false
-
-  const closing = source[cursor] === "/"
-  if (closing) cursor += 1
-  const tagStart = cursor
-  while (/[A-Za-z0-9-]/.test(source[cursor] || "")) cursor += 1
-  if (!/[A-Za-z]/.test(source[tagStart] || "")) return false
-
-  if (closing) {
-    while (source[cursor] === " " || source[cursor] === "\t") cursor += 1
-    return source[cursor] === ">" && /^[ \t]*$/.test(source.slice(cursor + 1))
-  }
-
-  while (cursor < source.length) {
-    while (source[cursor] === " " || source[cursor] === "\t") cursor += 1
-    if (source[cursor] === ">") return /^[ \t]*$/.test(source.slice(cursor + 1))
-    if (source[cursor] === "/" && source[cursor + 1] === ">") return /^[ \t]*$/.test(source.slice(cursor + 2))
-
-    const attribute = source.slice(cursor).match(/^[A-Za-z_:][A-Za-z0-9_.:-]*/)
-    if (!attribute) return false
-    cursor += attribute[0].length
-    while (source[cursor] === " " || source[cursor] === "\t") cursor += 1
-    if (source[cursor] !== "=") continue
-
-    cursor += 1
-    while (source[cursor] === " " || source[cursor] === "\t") cursor += 1
-    const quote = source[cursor]
-    if (quote === "\"" || quote === "'") {
-      const valueEnd = source.indexOf(quote, cursor + 1)
-      if (valueEnd < 0) return false
-      cursor = valueEnd + 1
-      continue
-    }
-
-    const valueStart = cursor
-    while (cursor < source.length && !/[ \t>]/.test(source[cursor])) {
-      if (/['"`=<]/.test(source[cursor])) return false
-      cursor += 1
-    }
-    if (cursor === valueStart) return false
-  }
-
-  return false
-}
-
-// Find a required H2 or the next H2 in already-filtered active Markdown.
-function findMarkdownHeadingLine(lines, startIndex, expectedHeading) {
-  for (let index = 0; index < lines.length; index += 1) {
-    if (index < startIndex) continue
-    const title = parseH2Title(lines[index])
-    if (title !== null && (expectedHeading ? title === expectedHeading.replace(/^##[ \t]*/, "").replace(/^[ \t]+|[ \t]+$/g, "") : true)) return index
-    if (!expectedHeading && index > 0 && /^ {0,3}-+[ \t]*$/.test(lines[index]) && !/^[ \t]*$/.test(lines[index - 1])) return index
-  }
-
-  return -1
-}
-
-// Extract a raw source section bounded by active Markdown headings.
-function readMarkdownSection(content, heading) {
-  const sourceLines = content.split(/\r?\n/)
-  const activeLines = stripInactiveMarkdown(content).split(/\r?\n/)
-  const start = findMarkdownHeadingLine(activeLines, 0, heading)
-  if (start < 0) return ""
-
-  const nextHeading = findMarkdownHeadingLine(activeLines, start + 1, "")
-  return sourceLines.slice(start, nextHeading < 0 ? undefined : nextHeading).join("\n").trim()
-}
-
-// Remove inactive code, HTML, and blockquoted examples before checking guidance.
-function stripInactiveMarkdown(content) {
-  const lines = content.split(/\r?\n/)
-  const activeLines = []
-  let fenceCharacter = ""
-  let fenceLength = 0
-  let fenceIndent = 0
-  let insideHtmlComment = false
-  let insideHtmlCommentBlock = false
-  let insideBlockQuote = false
-  let htmlBlockEnd = null
-  let inlineCodeLength = 0
-  let paragraphOpen = false
-  let insideList = false
-  let listContentIndent = null
-  let listMarkerIndent = null
-  let listOrdered = false
-
-  for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index]
-    if (fenceCharacter) {
-      inlineCodeLength = 0
-      paragraphOpen = false
-      const fenceContent = stripIndentColumns(line, fenceIndent)
-      const fenceMatch = fenceContent.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
-      if (fenceMatch && closesMarkdownFence(fenceMatch[1], fenceMatch[2], fenceCharacter, fenceLength)) {
-        fenceCharacter = ""
-        fenceLength = 0
-        fenceIndent = 0
-      }
-      activeLines.push("")
-      continue
-    }
-
-    if (htmlBlockEnd) {
-      const listContainerEnded = htmlBlockEnd.listContentIndent !== null
-        && !/^[ \t]*$/.test(line)
-        && measureIndentColumns(line) < htmlBlockEnd.listContentIndent
-      if (listContainerEnded) {
-        htmlBlockEnd = null
-        insideList = false
-        listContentIndent = null
-        listMarkerIndent = null
-        listOrdered = false
-        paragraphOpen = false
-      } else {
-        inlineCodeLength = 0
-        paragraphOpen = false
-        activeLines.push("")
-        const blockEnded = htmlBlockEnd.kind === "blank" ? /^[ \t]*$/.test(line) : htmlBlockEnd.end.test(line)
-        if (blockEnded) {
-          if (htmlBlockEnd.kind === "blank" && htmlBlockEnd.listContentIndent !== null) {
-            insideList = false
-            listContentIndent = null
-            listMarkerIndent = null
-            listOrdered = false
-          }
-          htmlBlockEnd = null
-        }
-        continue
-      }
-    }
-
-    if (insideHtmlCommentBlock) {
-      paragraphOpen = false
-      activeLines.push("")
-      if (line.includes("-->")) insideHtmlCommentBlock = false
-      continue
-    }
-
-    // Contract assertions require direct skill prose, not quoted examples.
-    if (insideBlockQuote) {
-      if (isBlankBlockQuoteLine(line)) {
-        insideBlockQuote = false
-        inlineCodeLength = 0
-        paragraphOpen = false
-        activeLines.push("")
-        continue
-      }
-
-      if (/^[ \t]*$/.test(line) || (!isBlockquoteStartLine(line) && isInlineMarkdownBlockBoundary(line))) {
-        insideBlockQuote = false
-      } else {
-        inlineCodeLength = 0
-        paragraphOpen = false
-        activeLines.push("")
-        continue
-      }
-    }
-
-    if (!insideHtmlComment && isBlockquoteStartLine(line)) {
-      inlineCodeLength = 0
-      paragraphOpen = false
-      insideList = false
-      listContentIndent = null
-      listMarkerIndent = null
-      listOrdered = false
-      activeLines.push("")
-      insideBlockQuote = !isBlankBlockQuoteLine(line)
-      continue
-    }
-
-    if (!insideHtmlComment && measureIndentColumns(line) >= 4) {
-      const indentWidth = measureIndentColumns(line)
-      const listContext = insideList
-        ? { markerIndent: listMarkerIndent, contentIndent: listContentIndent, ordered: listOrdered }
-        : findListItemContext(lines, index)
-      const listContentColumn = listContext?.contentIndent ?? null
-      const relativeIndent = listContentColumn === null ? -1 : indentWidth - listContentColumn
-      const listContent = listContentColumn === null ? "" : stripIndentColumns(line, listContentColumn)
-      const nestedListItem = listContext && relativeIndent >= 0
-        ? getListItemContent(listContent)
-        : null
-
-      if (nestedListItem) {
-        insideList = true
-        listContentIndent = nestedListItem.contentIndent + listContentColumn
-        listMarkerIndent = nestedListItem.markerIndent + listContentColumn
-        listOrdered = nestedListItem.ordered
-        paragraphOpen = startsListItemParagraph(listContent)
-        const nestedFence = listContent.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
-        if (nestedFence && opensMarkdownFence(nestedFence[1], nestedFence[2])) {
-          fenceCharacter = nestedFence[1][0]
-          fenceLength = nestedFence[1].length
-          fenceIndent = listContentIndent
-          activeLines.push("")
-          continue
-        }
-        const nestedHtml = getRawHtmlBlockEnd(listContent)
-        if (nestedHtml && (!nestedHtml.requiresNoParagraph || !paragraphOpen)) {
-          activeLines.push("")
-          if (nestedHtml.kind === "blank" || !nestedHtml.end.test(listContent)) {
-            htmlBlockEnd = { ...nestedHtml, listContentIndent }
-          }
-          continue
-        }
-        activeLines.push(listContent)
-        continue
-      }
-
-      if (listContentColumn !== null && relativeIndent >= 0 && relativeIndent < 4) {
-        inlineCodeLength = 0
-        insideList = true
-        listContentIndent = listContext.contentIndent
-        listMarkerIndent = listContext.markerIndent
-        listOrdered = listContext.ordered
-        paragraphOpen = !isAtxHeadingLine(listContent)
-
-        const continuationFence = listContent.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
-        if (continuationFence && opensMarkdownFence(continuationFence[1], continuationFence[2])) {
-          paragraphOpen = false
-          fenceCharacter = continuationFence[1][0]
-          fenceLength = continuationFence[1].length
-          fenceIndent = listContentColumn
-          activeLines.push("")
-          continue
-        }
-
-        const continuationHtml = getRawHtmlBlockEnd(listContent)
-        if (continuationHtml && (!continuationHtml.requiresNoParagraph || !paragraphOpen)) {
-          paragraphOpen = false
-          activeLines.push("")
-          if (continuationHtml.kind === "blank" || !continuationHtml.end.test(listContent)) {
-            htmlBlockEnd = { ...continuationHtml, listContentIndent: listContentColumn }
-          }
-          continue
-        }
-
-        activeLines.push(listContent)
-        continue
-      }
-      inlineCodeLength = 0
-      paragraphOpen = false
-      activeLines.push("")
-      continue
-    }
-
-    const listItem = getListItemContent(line)
-    const sameList = listItem && insideList && listItem.ordered === listOrdered && listItem.markerIndent === listMarkerIndent
-    const nestedListItem = listItem && insideList && listItem.markerIndent >= listContentIndent
-    const orderedItemContinuesParagraph = paragraphOpen && listItem?.ordered && listItem.number !== 1 && !sameList && !nestedListItem
-    if (/^[ \t]*$/.test(line) || (!/^(?: {1,}|\t)/.test(line) && isAtxHeadingLine(line))) {
-      insideList = false
-      listContentIndent = null
-      listMarkerIndent = null
-      listOrdered = false
-    }
-    if (listItem && !orderedItemContinuesParagraph) {
-      insideList = true
-      listContentIndent = listItem.contentIndent
-      listMarkerIndent = listItem.markerIndent
-      listOrdered = listItem.ordered
-    }
-
-    if (!insideHtmlComment) {
-      if (/^ {0,3}<!--/.test(line)) {
-        inlineCodeLength = 0
-        paragraphOpen = false
-        insideList = false
-        listContentIndent = null
-        listMarkerIndent = null
-        listOrdered = false
-        activeLines.push("")
-        if (!line.includes("-->")) insideHtmlCommentBlock = true
-        continue
-      }
-      const paragraphContext = orderedItemContinuesParagraph ? true : (sameList ? false : paragraphOpen)
-      if (isInlineMarkdownBlockBoundary(line, paragraphContext)) {
-        inlineCodeLength = 0
-        paragraphOpen = false
-      }
-      const fenceMatch = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
-      if (fenceMatch && opensMarkdownFence(fenceMatch[1], fenceMatch[2])) {
-        inlineCodeLength = 0
-        paragraphOpen = false
-        fenceCharacter = fenceMatch[1][0]
-        fenceLength = fenceMatch[1].length
-        fenceIndent = 0
-        activeLines.push("")
-        continue
-      }
-
-      const rawHtmlBlock = orderedItemContinuesParagraph ? null : getRawHtmlBlockEnd(line)
-      if (rawHtmlBlock && (!rawHtmlBlock.requiresNoParagraph || !paragraphOpen)) {
-        inlineCodeLength = 0
-        paragraphOpen = false
-        activeLines.push("")
-        if (rawHtmlBlock.kind === "blank" || !rawHtmlBlock.end.test(line)) {
-          htmlBlockEnd = { ...rawHtmlBlock, listContentIndent: insideList ? listContentIndent : null }
-        }
-        continue
-      }
-    }
-
-    const visibleLine = stripHtmlCommentsFromLine(line, lines, index, insideHtmlComment, inlineCodeLength)
-    insideHtmlComment = visibleLine.insideHtmlComment
-    inlineCodeLength = visibleLine.inlineCodeLength
-    const paragraphContext = orderedItemContinuesParagraph ? true : (sameList ? false : paragraphOpen)
-    if (visibleLine.text.trim() && (!isInlineMarkdownBlockBoundary(line, paragraphContext) || startsListItemParagraph(line))) paragraphOpen = true
-    activeLines.push(visibleLine.text)
-  }
-
-  return activeLines.join("\n")
-}
-
-// Remove inline and multiline HTML comments while preserving active text on the line.
-function stripHtmlCommentsFromLine(line, lines, lineIndex, insideHtmlComment, inlineCodeLength) {
-  let text = ""
-  let cursor = 0
-
-  while (cursor < line.length) {
-    if (insideHtmlComment) {
-      const end = line.indexOf("-->", cursor)
-      if (end < 0) return { text, insideHtmlComment: true, inlineCodeLength: 0 }
-      cursor = end + 3
-      insideHtmlComment = false
-      continue
-    }
-
-    if (inlineCodeLength) {
-      const codeSpanEnd = findInlineCodeSpanEnd(line, cursor, inlineCodeLength)
-      if (codeSpanEnd < 0) return { text, insideHtmlComment: false, inlineCodeLength }
-      cursor = codeSpanEnd
-      inlineCodeLength = 0
-      continue
-    }
-
-    if (line[cursor] === "`") {
-      let delimiterLength = 1
-      while (line[cursor + delimiterLength] === "`") delimiterLength += 1
-      if (isEscapedBacktick(line, cursor)) {
-        text += line[cursor]
-        cursor += 1
-        continue
-      }
-      text += line.slice(cursor, cursor + delimiterLength)
-      const codeSpanEnd = findInlineCodeSpanEnd(line, cursor + delimiterLength, delimiterLength)
-      if (codeSpanEnd >= 0) {
-        cursor = codeSpanEnd
-        continue
-      }
-
-      if (hasInlineCodeSpanClosure(lines, lineIndex, cursor + delimiterLength, delimiterLength)) {
-        inlineCodeLength = delimiterLength
-      }
-      cursor += delimiterLength
-      continue
-    }
-
-    if (line.startsWith("<!--", cursor)) {
-      cursor += 4
-      insideHtmlComment = true
-      continue
-    }
-
-    text += line[cursor]
-    cursor += 1
-  }
-
-  return { text, insideHtmlComment, inlineCodeLength }
-}
-
-// Find a closing backtick run with the exact inline-code delimiter length.
-function findInlineCodeSpanEnd(line, startIndex, delimiterLength) {
-  let cursor = startIndex
-  while (cursor < line.length) {
-    const delimiterStart = line.indexOf("`", cursor)
-    if (delimiterStart < 0) return -1
-
-    let runLength = 1
-    while (line[delimiterStart + runLength] === "`") runLength += 1
-    if (runLength === delimiterLength) return delimiterStart + runLength
-    cursor = delimiterStart + runLength
-  }
-
-  return -1
-}
-
-// Require a code-span closer before the paragraph reaches a block boundary.
-function hasInlineCodeSpanClosure(lines, lineIndex, startIndex, delimiterLength) {
-  if (findInlineCodeSpanEnd(lines[lineIndex], startIndex, delimiterLength) >= 0) return true
-
-  for (let index = lineIndex + 1; index < lines.length; index += 1) {
-    if (isInlineMarkdownBlockBoundary(lines[index])) return false
-    if (findInlineCodeSpanEnd(lines[index], 0, delimiterLength) >= 0) return true
-  }
-
-  return false
 }
 
 // Keep review scope and code-first audit contracts present in canonical and generated skills.
 function checkReviewAuditGuidance() {
   const reviewGuidance = fs.readFileSync("skills/ask-code-review/SKILL.md", "utf8")
   const auditGuidance = fs.readFileSync("skills/ask-agent-workflows/SKILL.md", "utf8")
-  const reviewContract = readMarkdownSection(reviewGuidance, "## Finding scope")
-  const auditContract = readMarkdownSection(auditGuidance, "## Code-first independent audit")
-  const activeReviewContract = stripInactiveMarkdown(reviewContract)
-  const activeAuditContract = stripInactiveMarkdown(auditContract)
+  const reviewContract = readMarkdownSection(reviewGuidance, "Finding scope")
+  const auditContract = readMarkdownSection(auditGuidance, "Code-first independent audit")
+  const convergenceContract = readMarkdownSection(auditGuidance, "Release audit convergence and stop rule")
+  const findingRequirement = "Before treating a behavior as an actionable finding, compare the cited lines with the exact review base. Every finding must identify a changed hunk or explain the direct behavior introduced by a changed hunk. Nearby unchanged lines are context; pre-existing behavior is not a regression just because the diff made it visible. If the base diff or causal link cannot be established, report the review as blocked or limited instead of presenting an unsupported regression. Keep unrelated pre-existing behavior classified as context, not as a finding against this change."
+  const codeFirstRequirement = "An independent audit inspects production behavior; it is not validation or a test-coverage inventory. Start from the exact production diff and, before inspecting tests, identify affected entry points, callers, state transitions, cleanup paths, fallback decisions, and the invariants they must preserve. Challenge those invariants with plausible counterexamples such as cancellation at an await boundary, delayed first responses, malformed input, stale cached state, overlapping ownership, or alias/hardware mismatches when relevant."
+  const auditEvidenceRequirement = "An actionable audit finding names the production path, violated invariant, plausible trigger, user impact, and smallest regression proof needed. If no issue is found, name the implementation paths and bypass categories inspected; a green test count alone is not an audit pass. Audit handoffs must include the exact diff and require the auditor to record production paths and invariants before looking at tests."
+  const auditHandoffRequirement = "Keep the audit assignment separate from validation. Provide the exact diff reference and requirements, then ask the auditor to report the production paths, callers, and invariants traced before inspecting targeted tests. Ask for counterexamples and actionable findings in the format above, or the paths and bypass categories inspected if none remain. The validator owns suite execution and pass/fail reporting; do not substitute test counts for audit evidence."
+  const candidateGateRequirement = "For release-sensitive work, keep one current candidate record in the task plan: an immutable diff reference plus a concise gate table for `VALIDATE`, `REVIEW`, `AUDIT`, and `RELEASE_GATE`, each with status and its matching evidence. When source changes, mark evidence for the prior diff stale immediately; rerun only checks affected by the change, not unrelated gates."
+  const deltaConvergenceRequirement = "Collect actionable findings into one bounded correction batch. After that batch, run focused validation and one delta review plus one separate delta audit limited to changed production paths and affected invariants. Do not restart broad candidate review or enumerate test suites on each delta. Once the candidate is stable, run the full required suite once, then independent final review, audit, and release-gate against that exact diff reference."
+  const ownerStopRequirement = "If the owner asks to stop the audit loop, stop review/audit work immediately and return a blocked status naming the current diff, the missing required gate, and any unresolved findings. Do not keep cycling, push, release, or close issues around the gate, and do not imply tests or deployment substitute for an audit. A stop request does not waive mandatory evidence: release-sensitive work remains blocked while a required independent gate is missing, or a P0/P1 or safety blocker is unresolved."
 
-  check("actionable review findings anchor to a changed hunk or introduced behavior",
-    activeReviewContract.includes("Every finding must identify a changed hunk or explain the direct behavior introduced by a changed hunk.")
-      && !stripInactiveMarkdown("## Finding scope\nEvery finding may identify a changed hunk or explain the direct behavior introduced by a changed hunk.\n")
-        .includes("Every finding must identify a changed hunk or explain the direct behavior introduced by a changed hunk."))
-  check("unchanged pre-existing behavior is context, not a regression finding",
-    activeReviewContract.includes("Nearby unchanged lines are context; pre-existing behavior is not a regression just because the diff made it visible."))
-  check("unknown review base or causal link blocks unsupported regression claims",
-    activeReviewContract.includes("If the base diff or causal link cannot be established, report the review as blocked or limited instead of presenting an unsupported regression."))
-  check("renamed or fenced section headings are not treated as canonical sections",
-    readMarkdownSection("## Finding scope (deprecated)\nold text", "## Finding scope") === ""
-      && readMarkdownSection("```md\n## Finding scope\n```", "## Finding scope") === ""
-      && readMarkdownSection("## Finding scope\nkeep\n   ## # Next section\nexclude", "## Finding scope") === "## Finding scope\nkeep"
-      && readMarkdownSection("## Finding scope\nkeep\n##\nexclude", "## Finding scope") === "## Finding scope\nkeep"
-      && readMarkdownSection("## Finding scope\u00a0\nspoof\n## Finding scope\nactive", "## Finding scope") === "## Finding scope\nactive"
-      && readMarkdownSection("##\u00a0Finding scope\nspoof\n## Finding scope\nactive", "## Finding scope") === "## Finding scope\nactive"
-      && readMarkdownSection("<!--\n## Finding scope\nspoof\n-->\n## Finding scope\nactive", "## Finding scope") === "## Finding scope\nactive"
-      && readMarkdownSection("<!-- note -->## Finding scope\nspoof\n## Next", "## Finding scope") === ""
-      && readMarkdownSection("    <!-- comment\n## Finding scope\nactive", "## Finding scope") === "## Finding scope\nactive"
-      && readMarkdownSection("```md\n<!--\n```\n## Finding scope\nactive", "## Finding scope") === "## Finding scope\nactive"
-      && readMarkdownSection("<div>\n## Finding scope\nspoof\n</div>\n\n## Finding scope\nactive", "## Finding scope") === "## Finding scope\nactive"
-      && readMarkdownSection(`<span title=">">\n## Finding scope\nspoof\n</span>\n\n## Finding scope\nactive`, "## Finding scope") === "## Finding scope\nactive")
-  check("unmatched backticks remain literal in H2 titles",
-    readMarkdownSection("## Finding scope `\nspoof\n## Next", "## Finding scope") === "")
-  check("unmatched prose backticks do not hide following active guidance",
-    stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse unmatched ` literally.\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
-      .includes("A review finding must identify a changed hunk"))
-  check("unmatched backticks do not pair across other ATX heading levels",
-    stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse unmatched ` literally.\n### H3 with ` marker\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
-      .includes("A review finding must identify a changed hunk"))
-  check("unmatched backticks do not pair across setext paragraph boundaries",
-    stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse unmatched ` literally.\nA review finding must identify a changed hunk.\nPotential next section\n---", "## Finding scope"))
-      .includes("A review finding must identify a changed hunk"))
-  check("escaped backticks do not open or close inline code spans",
-    stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse escaped \\` literally.\nA review finding must identify a changed hunk.\nclosing \\`\n## Next", "## Finding scope"))
-      .includes("A review finding must identify a changed hunk"))
-  check("invalid backtick fence openers do not hide real section boundaries",
-    stripInactiveMarkdown("```info`\nA green focused suite does not close an audit finding.\nactive")
-      .includes("A green focused suite does not close an audit finding")
-      && readMarkdownSection("## Finding scope\nactive\n```info`\n## Next section\nexclude", "## Finding scope")
-        === "## Finding scope\nactive\n```info`")
-  check("fence closers require matching markers and ASCII whitespace only",
-    closesMarkdownFence("~~~~", " \t", "~", 3)
-      && !closesMarkdownFence("~~", "", "~", 3)
-      && !closesMarkdownFence("~~~", "\u00a0", "~", 3)
-      && !closesMarkdownFence("```", "", "~", 3))
-  check("fenced contract text cannot satisfy active guidance assertions",
-    !stripInactiveMarkdown("```md\nA green focused suite does not close an audit finding.\n```\nactive text")
-      .includes("A green focused suite does not close an audit finding")
-      && !stripInactiveMarkdown("~~~md\nA green focused suite does not close an audit finding.\n~~~\u00a0\nstill fenced\n~~~")
-        .includes("A green focused suite does not close an audit finding"))
-  check("HTML-commented contract text cannot satisfy active guidance assertions",
-    !stripInactiveMarkdown(readMarkdownSection("## Finding scope\n<!-- hidden\nA review finding must identify a changed hunk.\n-->\nactive", "## Finding scope"))
-      .includes("A review finding must identify a changed hunk")
-      && !stripInactiveMarkdown(readMarkdownSection("<div>\n## Finding scope\nA review finding must identify a changed hunk.\n</div>", "## Finding scope"))
-        .includes("A review finding must identify a changed hunk")
-      && !stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse `A review finding must identify a changed hunk.` as an example.\n", "## Finding scope"))
-        .includes("A review finding must identify a changed hunk")
-      && !stripInactiveMarkdown(readMarkdownSection("<!-- note -->A review finding must identify a changed hunk.\n", "## Finding scope"))
-        .includes("A review finding must identify a changed hunk"))
-  check("HTML comment markers inside inline code do not hide active guidance",
-    stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse `<!--` literally.\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
-      .includes("A review finding must identify a changed hunk"))
-  check("invalid fence-like lines still process inline HTML comments",
-    !stripInactiveMarkdown(readMarkdownSection("## Finding scope\n```info` <!--\nA review finding must identify a changed hunk.\n-->\nactive\n## Next", "## Finding scope"))
-      .includes("A review finding must identify a changed hunk"))
-  check("multiline code spans cannot satisfy or hide active guidance",
-    !stripInactiveMarkdown(readMarkdownSection("## Finding scope\nExample: `A review finding must identify a changed hunk\ncontinued example`.\nUse `<!--\ncomment marker\n` literally.\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
-      .includes("Example: A review finding must identify a changed hunk")
-      && stripInactiveMarkdown(readMarkdownSection("## Finding scope\nExample: `A review finding must identify a changed hunk\ncontinued example`.\nUse `<!--\ncomment marker\n` literally.\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
-        .includes("A review finding must identify a changed hunk"))
-  check("quoted guidance and examples cannot satisfy active skill contracts",
-    !stripInactiveMarkdown(readMarkdownSection("## Finding scope\n> A review finding must identify a changed hunk.\n\nActive guidance remains.\n## Next", "## Finding scope"))
-      .includes("A review finding must identify a changed hunk")
-      && stripInactiveMarkdown(readMarkdownSection("## Finding scope\n> ~~~md\n> A review finding must identify a changed hunk.\n> ~~~\n\nActive guidance remains.\n## Next", "## Finding scope"))
-        .includes("Active guidance remains")
-      && !stripInactiveMarkdown(readMarkdownSection("## Finding scope\n> ~~~md\n> A review finding must identify a changed hunk.\n> ~~~\n\nActive guidance remains.\n## Next", "## Finding scope"))
-        .includes("A review finding must identify a changed hunk")
-      && !stripInactiveMarkdown(readMarkdownSection("## Finding scope\n> <div>\n> A review finding must identify a changed hunk.\n> </div>\n\nActive guidance remains.\n## Next", "## Finding scope"))
-        .includes("A review finding must identify a changed hunk")
-      && !stripInactiveMarkdown(readMarkdownSection("## Finding scope\n- > A review finding must identify a changed hunk.\n\nActive guidance remains.\n## Next", "## Finding scope"))
-        .includes("A review finding must identify a changed hunk")
-      && stripInactiveMarkdown(readMarkdownSection("## Finding scope\n> quoted example\n>\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
-        .includes("A review finding must identify a changed hunk")
-       && stripInactiveMarkdown(readMarkdownSection("## Finding scope\n- item\n  > quoted example\n  >\n  A review finding must identify a changed hunk.\n## Next", "## Finding scope"))
-         .includes("A review finding must identify a changed hunk")
-       && !stripInactiveMarkdown(readMarkdownSection("## Finding scope\n> quoted example\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
-         .includes("A review finding must identify a changed hunk"))
-  check("top-level block boundaries restore active prose after quotes",
-    stripInactiveMarkdown(readMarkdownSection("## Finding scope\n> quoted example\n---\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
-      .includes("A review finding must identify a changed hunk")
-      && stripInactiveMarkdown(readMarkdownSection("## Finding scope\n> quoted example\n~~~md\nignored code\n~~~\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
-        .includes("A review finding must identify a changed hunk")
-       && stripInactiveMarkdown(readMarkdownSection("## Finding scope\n> quoted example\n<div>\nignored html\n</div>\n\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
-         .includes("A review finding must identify a changed hunk")
-       && stripInactiveMarkdown(readMarkdownSection("## Finding scope\n> quoted example\n## Next section\nA review finding must identify a changed hunk.", "## Next section"))
-         .includes("A review finding must identify a changed hunk"))
-  check("setext H2 boundaries end extracted sections",
-    !readMarkdownSection("## Finding scope\nExisting guidance.\nPotential next section\n---\nA review finding must identify a changed hunk.", "## Finding scope")
-      .includes("A review finding must identify a changed hunk"))
-  check("type-7 raw HTML after paragraph text does not hide the next H2",
-    !readMarkdownSection("## Finding scope\nParagraph before inline tag.\n<span>\n## Next\nA review finding must identify a changed hunk.", "## Finding scope")
-      .includes("A review finding must identify a changed hunk"))
-  check("malformed type-7 tags do not hide the next H2",
-    !readMarkdownSection("## Finding scope\nParagraph before malformed tag.\n<span foo=>\n## Next\nA review finding must identify a changed hunk.", "## Finding scope")
-      .includes("A review finding must identify a changed hunk"))
-  check("type-7 tags after list paragraphs do not hide the next H2",
-    !readMarkdownSection("## Finding scope\n- item\n  <span>\n## Next\nA review finding must identify a changed hunk.", "## Finding scope")
-      .includes("A review finding must identify a changed hunk"))
-  check("ordered list continuation does not fabricate a section boundary",
-    !readMarkdownSection("## Finding scope\nExisting paragraph\n2. <div>\n<span>\n## Hidden section\ntext\n\n## Actual next section", "## Finding scope")
-      .includes("## Hidden section")
-      && readMarkdownSection("## Finding scope\n1. first\n2. <div>\n   ## Not a section heading\nA review finding must identify a changed hunk.\n\n## Actual next section", "## Finding scope")
-        .includes("## Not a section heading")
-      && readMarkdownSection("## Finding scope\n1. first\n2. <div>\n   ## Not a section heading\nA review finding must identify a changed hunk.\n\n## Actual next section", "## Finding scope")
-        .includes("A review finding must identify a changed hunk"))
-  check("type-6 raw HTML blocks still interrupt list-item paragraphs",
-    !stripInactiveMarkdown("## Finding scope\n- item\n  <div x=>\n  A review finding must identify a changed hunk.\n  </div>\n\nActive guidance remains.")
-      .includes("A review finding must identify a changed hunk")
-      && stripInactiveMarkdown("## Finding scope\n- item\n  <div x=>\n  A review finding must identify a changed hunk.\n  </div>\n\nActive guidance remains.")
-        .includes("Active guidance remains")
-      && stripInactiveMarkdown(readMarkdownSection("## Finding scope\n- <div>\n## Next\nA review finding must identify a changed hunk.", "## Next"))
-        .includes("A review finding must identify a changed hunk"))
-  check("HTML block termination clears stale list context",
-    !stripInactiveMarkdown("## Finding scope\n- item\n  <div>\n  list raw HTML\n  </div>\n\n<div>\n## Hidden in top-level HTML\nA review finding must identify a changed hunk.\n</div>\n\nActive prose remains.")
-      .includes("A review finding must identify a changed hunk")
-      && stripInactiveMarkdown("## Finding scope\n- item\n  <div>\n  list raw HTML\n  </div>\n\n<div>\n## Hidden in top-level HTML\nA review finding must identify a changed hunk.\n</div>\n\nActive prose remains.")
-        .includes("Active prose remains"))
-  check("nested list headings remain section boundaries",
-    !readMarkdownSection("## Finding scope\n- outer\n  - nested paragraph\n      ## Nested heading\nA review finding must identify a changed hunk.\n\n## Actual next section", "## Finding scope")
-      .includes("A review finding must identify a changed hunk"))
-  check("nested list headings after blank lines remain boundaries",
-    !readMarkdownSection("## Finding scope\n- item\n\n    ## Nested\nexcluded\n\n## Actual", "## Finding scope")
-      .includes("excluded"))
-  check("deeply indented list code headings remain literal code",
-    readMarkdownSection("## Finding scope\n- item\n      ## Code heading\nnot a section boundary\n\n## Actual", "## Finding scope")
-      .includes("## Code heading"))
-  check("ordered list continuations remain visible",
-    stripInactiveMarkdown("## Finding scope\n10. item\n    A review finding must identify a changed hunk.\n")
-        .includes("A review finding must identify a changed hunk")
-      && stripInactiveMarkdown("## Finding scope\n  10.\titem\n        A review finding must identify a changed hunk.\n")
-        .includes("A review finding must identify a changed hunk")
-      && !stripInactiveMarkdown("## Finding scope\n10. item\n        A review finding must identify a changed hunk.\n")
-        .includes("A review finding must identify a changed hunk")
-      && !readMarkdownSection("## Finding scope\n- item\n  10.\tinner\n        ## Nested heading\nA review finding must identify a changed hunk.\n\n## Actual", "## Finding scope")
-        .includes("A review finding must identify a changed hunk"))
-  check("nested ordered-list continuations preserve paragraph prose",
-    stripInactiveMarkdown("## Finding scope\n1. outer\n    10. inner\n        A review finding must identify a changed hunk.\n")
-      .includes("A review finding must identify a changed hunk"))
-  check("nested ordered-list code fences remain inactive",
-    !stripInactiveMarkdown("## Finding scope\n10. item\n    ~~~md\n    ## Hidden fenced heading\n    ~~~\n")
-      .includes("## Hidden fenced heading"))
-  check("nested ordered-list HTML blocks remain inactive",
-    !stripInactiveMarkdown(readMarkdownSection("## Finding scope\n- item\n    10. nested\n        <div>\n        ## Hidden html heading\n        </div>\n\n## Actual", "## Finding scope"))
-      .includes("## Hidden html heading"))
-  check("tab-stop-aware list headings preserve tab indentation",
-    !readMarkdownSection("## Finding scope\n-\touter\n\t## Next section\nA review finding must identify a changed hunk.\n", "## Finding scope")
-      .includes("A review finding must identify a changed hunk"))
-  check("tab-stop-aware list headings preserve mixed indentation",
-    !readMarkdownSection("## Finding scope\n- item\n \t## Next section\nA review finding must identify a changed hunk.\n\n## Actual next section", "## Finding scope")
-      .includes("A review finding must identify a changed hunk"))
-  check("only unescaped backticks open inline code spans within a run",
-    !stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse \\``A review finding must identify a changed hunk` literally.\n", "## Finding scope"))
-      .includes("A review finding must identify a changed hunk"))
-  check("raw section extraction retains fenced examples for export drift checks",
-    readMarkdownSection("## Finding scope\n```text\ncanonical example\n```\n## Next", "## Finding scope")
-      !== readMarkdownSection("## Finding scope\n```text\ngenerated example\n```\n## Next", "## Finding scope"))
-  check("headings inside NBSP-terminated fences cannot supply section boundaries",
-    readMarkdownSection("~~~md\n## Finding scope\n~~~\u00a0\n## Additional axes\n~~~\n## Finding scope\nactive\n## Next section\nexcluded", "## Finding scope")
-      === "## Finding scope\nactive")
-  check("audit traces production paths and invariants before tests",
-    activeAuditContract.includes("Start from the exact production diff and, before inspecting tests, identify affected entry points, callers, state transitions, cleanup paths, fallback decisions, and the invariants they must preserve.")
-      && !stripInactiveMarkdown("## Code-first independent audit\nStart from the exact production diff and, after inspecting tests, identify affected entry points, callers, state transitions, cleanup paths, fallback decisions, and the invariants they must preserve.\n")
-        .includes("Start from the exact production diff and, before inspecting tests, identify affected entry points, callers, state transitions, cleanup paths, fallback decisions, and the invariants they must preserve."))
-  check("missing or reversed audit-order markers fail the section-order predicate",
-    !hasOrderedGuidanceSections("inspect only the tests", "before inspecting tests", "inspect only the tests")
-      && !hasOrderedGuidanceSections("inspect only the tests before inspecting tests", "before inspecting tests", "inspect only the tests"))
-  check("audit distinguishes implementation inspection from validation and coverage review",
-    activeAuditContract.includes("not validation or a test-coverage inventory")
-      && activeAuditContract.includes("Validation owns whether the defined suite passes"))
-  check("green focused tests do not dismiss an open production bypass",
-    activeAuditContract.includes("A green focused suite does not close an audit finding while a production-code bypass remains"))
-  check("audit guidance gives a concrete passing-test production-bypass example",
-    activeAuditContract.includes("a focused test passes for a normal response, but an error-shaped row can still reach a production fallback"))
-  check("audit findings and clean-pass reports require production-path evidence",
-    activeAuditContract.includes("production path, violated invariant, plausible trigger, user impact, and smallest regression proof")
-      && activeAuditContract.includes("name the implementation paths and bypass categories inspected"))
-  check("audit handoff separates code-first evidence from validation results",
-    activeAuditContract.includes("### Independent audit handoff")
-      && activeAuditContract.includes("The validator owns suite execution and pass/fail reporting"))
+  check("review finding attribution remains normative", hasExactParagraph(reviewContract, findingRequirement))
+  check("weakened review modality fails the exact contract assertion",
+    !hasExactParagraph(`## Finding scope\n\n${findingRequirement.replace("must identify", "may identify")}`, findingRequirement))
+  check("pre-existing behavior remains context, not a regression finding",
+    hasExactParagraph(reviewContract, "Before treating a behavior as an actionable finding, compare the cited lines with the exact review base. Every finding must identify a changed hunk or explain the direct behavior introduced by a changed hunk. Nearby unchanged lines are context; pre-existing behavior is not a regression just because the diff made it visible. If the base diff or causal link cannot be established, report the review as blocked or limited instead of presenting an unsupported regression. Keep unrelated pre-existing behavior classified as context, not as a finding against this change."))
+  check("unknown review base blocks unsupported regression claims",
+    reviewContract.includes("If the base diff or causal link cannot be established, report the review as blocked or limited instead of presenting an unsupported regression."))
+  check("code-first audit order is an exact normative contract", hasExactParagraph(auditContract, codeFirstRequirement))
+  check("reversed audit ordering fails the exact contract assertion",
+    !hasExactParagraph(`## Code-first independent audit\n\n${codeFirstRequirement.replace("before inspecting tests", "after inspecting tests")}`, codeFirstRequirement))
+  check("audit is distinct from validation and test inventory",
+    auditContract.includes("An independent audit inspects production behavior; it is not validation or a test-coverage inventory."))
+  check("tests are evidence, not a substitute for tracing production code",
+    auditContract.includes("Tests are evidence, not a substitute for tracing production code."))
+  check("focused green suite cannot dismiss production bypass",
+    auditContract.includes("A green focused suite does not close an audit finding while a production-code bypass remains."))
+  check("audit findings require production-path evidence", hasExactParagraph(auditContract, auditEvidenceRequirement))
+  check("audit clean passes name inspected paths and bypass classes", auditContract.includes("If no issue is found, name the implementation paths and bypass categories inspected; a green test count alone is not an audit pass."))
+  check("audit handoff separates the role from validation", hasExactParagraph(auditContract, auditHandoffRequirement))
+  check("audit handoff assigns suite results to validation", auditContract.includes("The validator owns suite execution and pass/fail reporting;"))
+  check("passing focused test with production bypass remains an audit finding",
+    auditContract.includes("a focused test passes for a normal response, but an error-shaped row can still reach a production fallback"))
+  check("release work keeps one immutable diff and evidence table", hasExactParagraph(convergenceContract, candidateGateRequirement))
+  check("release deltas converge through bounded focused gates", hasExactParagraph(convergenceContract, deltaConvergenceRequirement))
+  check("owner stop request returns blocked status without waiving release gates", hasExactParagraph(convergenceContract, ownerStopRequirement))
 
   const generatedPaths = [
     ["GitHub Copilot", ".github/skills/ask-code-review/SKILL.md", ".github/skills/ask-agent-workflows/SKILL.md"],
@@ -898,13 +193,20 @@ function checkReviewAuditGuidance() {
   for (const [platform, reviewPath, auditPath] of generatedPaths) {
     const generatedReview = fs.readFileSync(reviewPath, "utf8")
     const generatedAudit = fs.readFileSync(auditPath, "utf8")
-    const exportedReviewContract = readMarkdownSection(generatedReview, "## Finding scope")
-    const exportedAuditContract = readMarkdownSection(generatedAudit, "## Code-first independent audit")
-    check(`${platform} export preserves the complete canonical review finding-scope section`,
-      exportedReviewContract === reviewContract)
-    check(`${platform} export preserves the complete canonical code-first audit section and handoff`,
-      exportedAuditContract === auditContract)
+    const exportedReview = readMarkdownSection(generatedReview, "Finding scope")
+    const exportedAudit = readMarkdownSection(generatedAudit, "Code-first independent audit")
+    const exportedConvergence = readMarkdownSection(generatedAudit, "Release audit convergence and stop rule")
+    check(`${platform} export preserves canonical review contract`, exportedReview === reviewContract)
+    check(`${platform} export preserves canonical audit contract`, exportedAudit === auditContract)
+    check(`${platform} export preserves canonical release convergence contract`, exportedConvergence === convergenceContract)
   }
+}
+
+// Confirm required evidence sections appear in order.
+function hasOrderedGuidanceSections(content, firstSection, secondSection) {
+  const firstIndex = content.indexOf(firstSection)
+  const secondIndex = content.indexOf(secondSection)
+  return firstIndex >= 0 && secondIndex >= 0 && firstIndex < secondIndex
 }
 
 // Verify explicit evidence markers produce pass, finding, and blocked states.
