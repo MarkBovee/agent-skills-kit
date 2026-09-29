@@ -175,6 +175,12 @@ function isInlineMarkdownBlockBoundary(line) {
     || /^ {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})$/.test(line)
 }
 
+// Recognize blockquotes at document level and inside list items.
+function isBlockquoteStartLine(line) {
+  return /^ {0,3}>/.test(line)
+    || /^ {0,3}(?:[-+*][ \t]+|\d{1,9}[.)][ \t]+)>/.test(line)
+}
+
 // Identify backticks escaped by an odd run of preceding backslashes.
 function isEscapedBacktick(line, index) {
   let slashCount = 0
@@ -284,7 +290,7 @@ function stripInactiveMarkdown(content) {
 
     // Contract assertions require direct skill prose, not quoted examples.
     if (insideBlockQuote) {
-      if (/^[ \t]*$/.test(line) || (!/^ {0,3}>/.test(line) && isAtxHeadingLine(line))) {
+      if (/^[ \t]*$/.test(line) || (!isBlockquoteStartLine(line) && isInlineMarkdownBlockBoundary(line))) {
         insideBlockQuote = false
       } else {
         inlineCodeLength = 0
@@ -293,7 +299,7 @@ function stripInactiveMarkdown(content) {
       }
     }
 
-    if (!insideHtmlComment && /^ {0,3}>/.test(line)) {
+    if (!insideHtmlComment && isBlockquoteStartLine(line)) {
       insideBlockQuote = true
       inlineCodeLength = 0
       activeLines.push("")
@@ -508,7 +514,18 @@ function checkReviewAuditGuidance() {
       .includes("A review finding must identify a changed hunk")
       && stripInactiveMarkdown(readMarkdownSection("## Finding scope\n> ~~~md\n> A review finding must identify a changed hunk.\n> ~~~\n\nActive guidance remains.\n## Next", "## Finding scope"))
         .includes("Active guidance remains")
+      && !stripInactiveMarkdown(readMarkdownSection("## Finding scope\n> ~~~md\n> A review finding must identify a changed hunk.\n> ~~~\n\nActive guidance remains.\n## Next", "## Finding scope"))
+        .includes("A review finding must identify a changed hunk")
       && !stripInactiveMarkdown(readMarkdownSection("## Finding scope\n> <div>\n> A review finding must identify a changed hunk.\n> </div>\n\nActive guidance remains.\n## Next", "## Finding scope"))
+        .includes("A review finding must identify a changed hunk")
+      && !stripInactiveMarkdown(readMarkdownSection("## Finding scope\n- > A review finding must identify a changed hunk.\n\nActive guidance remains.\n## Next", "## Finding scope"))
+        .includes("A review finding must identify a changed hunk"))
+  check("top-level block boundaries restore active prose after quotes",
+    stripInactiveMarkdown(readMarkdownSection("## Finding scope\n> quoted example\n---\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
+      .includes("A review finding must identify a changed hunk")
+      && stripInactiveMarkdown(readMarkdownSection("## Finding scope\n> quoted example\n~~~md\nignored code\n~~~\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
+        .includes("A review finding must identify a changed hunk")
+      && stripInactiveMarkdown(readMarkdownSection("## Finding scope\n> quoted example\n<div>\nignored html\n</div>\n\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
         .includes("A review finding must identify a changed hunk"))
   check("setext H2 boundaries end extracted sections",
     !readMarkdownSection("## Finding scope\nExisting guidance.\nPotential next section\n---\nA review finding must identify a changed hunk.", "## Finding scope")
