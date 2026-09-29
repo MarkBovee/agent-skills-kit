@@ -523,7 +523,9 @@ function checkReviewAuditGuidance() {
         .includes("A review finding must identify a changed hunk"))
   check("nested quote depth changes cannot pair inline-code delimiters",
     stripInactiveMarkdown(readMarkdownSection("## Finding scope\n> outer opens unmatched `\n> > nested opens another unmatched `\n> active requirement text `\n## Next", "## Finding scope"))
-      .includes("active requirement text"))
+      .includes("active requirement text")
+      && stripInactiveMarkdown(readMarkdownSection("## Finding scope\n> outer opens unmatched `\n> > nested opens another unmatched `\n> A review finding must identify a changed hunk. `\n## Next", "## Finding scope"))
+        .includes("A review finding must identify a changed hunk"))
   check("setext H2 boundaries end extracted sections",
     !readMarkdownSection("## Finding scope\nExisting guidance.\nPotential next section\n---\nA review finding must identify a changed hunk.", "## Finding scope")
       .includes("A review finding must identify a changed hunk"))
