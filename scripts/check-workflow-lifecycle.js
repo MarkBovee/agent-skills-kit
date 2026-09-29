@@ -117,7 +117,12 @@ function hasOrderedGuidanceSections(content, firstSection, secondSection) {
 function parseH2Title(line) {
   const match = line.match(/^ {0,3}##(?:[ \t]+(.*?))?[ \t]*$/)
   if (!match) return null
-  return (match[1] || "").replace(/[ \t]+#+[ \t]*$/, "").trim()
+  return (match[1] || "").replace(/[ \t]+#+[ \t]*$/, "").replace(/^[ \t]+|[ \t]+$/g, "")
+}
+
+// Reject backtick fence openers whose info string contains a backtick.
+function opensMarkdownFence(marker, suffix) {
+  return marker[0] !== "`" || !suffix.includes("`")
 }
 
 // Accept only valid Markdown fence closers with matching character and length.
@@ -136,6 +141,7 @@ function findMarkdownHeadingLine(lines, startIndex, expectedHeading) {
       const marker = fenceMatch[1]
       const suffix = fenceMatch[2]
       if (!fenceCharacter) {
+        if (!opensMarkdownFence(marker, suffix)) continue
         fenceCharacter = marker[0]
         fenceLength = marker.length
       } else if (closesMarkdownFence(marker, suffix, fenceCharacter, fenceLength)) {
@@ -147,7 +153,7 @@ function findMarkdownHeadingLine(lines, startIndex, expectedHeading) {
 
     if (fenceCharacter || index < startIndex) continue
     const title = parseH2Title(lines[index])
-    if (title !== null && (expectedHeading ? title === expectedHeading.replace(/^##[ \t]*/, "").trim() : true)) return index
+    if (title !== null && (expectedHeading ? title === expectedHeading.replace(/^##[ \t]*/, "").replace(/^[ \t]+|[ \t]+$/g, "") : true)) return index
   }
 
   return -1
@@ -176,8 +182,12 @@ function stripFencedCodeBlocks(content) {
       const marker = fenceMatch[1]
       const suffix = fenceMatch[2]
       if (!fenceCharacter) {
-        fenceCharacter = marker[0]
-        fenceLength = marker.length
+        if (opensMarkdownFence(marker, suffix)) {
+          fenceCharacter = marker[0]
+          fenceLength = marker.length
+        } else {
+          activeLines.push(line)
+        }
       } else if (closesMarkdownFence(marker, suffix, fenceCharacter, fenceLength)) {
         fenceCharacter = ""
         fenceLength = 0
@@ -210,7 +220,14 @@ function checkReviewAuditGuidance() {
     readMarkdownSection("## Finding scope (deprecated)\nold text", "## Finding scope") === ""
       && readMarkdownSection("```md\n## Finding scope\n```", "## Finding scope") === ""
       && readMarkdownSection("## Finding scope\nkeep\n   ## # Next section\nexclude", "## Finding scope") === "## Finding scope\nkeep"
-      && readMarkdownSection("## Finding scope\nkeep\n##\nexclude", "## Finding scope") === "## Finding scope\nkeep")
+      && readMarkdownSection("## Finding scope\nkeep\n##\nexclude", "## Finding scope") === "## Finding scope\nkeep"
+      && readMarkdownSection("## Finding scope\u00a0\nspoof\n## Finding scope\nactive", "## Finding scope") === "## Finding scope\nactive"
+      && readMarkdownSection("##\u00a0Finding scope\nspoof\n## Finding scope\nactive", "## Finding scope") === "## Finding scope\nactive")
+  check("invalid backtick fence openers do not hide real section boundaries",
+    stripFencedCodeBlocks("```info`\nA green focused suite does not close an audit finding.\nactive")
+      .includes("A green focused suite does not close an audit finding")
+      && readMarkdownSection("## Finding scope\nactive\n```info`\n## Next section\nexclude", "## Finding scope")
+        === "## Finding scope\nactive\n```info`")
   check("fence closers require matching markers and ASCII whitespace only",
     closesMarkdownFence("~~~~", " \t", "~", 3)
       && !closesMarkdownFence("~~", "", "~", 3)
