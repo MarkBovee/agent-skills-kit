@@ -237,7 +237,7 @@ function isInlineMarkdownBlockBoundary(line, paragraphOpen = true) {
     || Boolean(beginsFence)
     || Boolean(htmlBlock && !htmlBlock.requiresNoParagraph)
     || /^ {0,3}<!--/.test(line)
-    || /^(?: {4,}|\t)/.test(line)
+    || measureIndentColumns(line) >= 4
     || /^ {0,3}>/.test(line)
     || Boolean(listItem)
     || /^ {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})$/.test(line)
@@ -461,8 +461,8 @@ function stripInactiveMarkdown(content) {
       continue
     }
 
-    if (!insideHtmlComment && /^(?: {4,}|\t)/.test(line)) {
-      const indentation = line.match(/^(?: +|\t+)/)?.[0] || ""
+    if (!insideHtmlComment && measureIndentColumns(line) >= 4) {
+      const indentation = line.match(/^[ \t]+/)?.[0] || ""
       const indentWidth = measureIndentColumns(indentation)
       const inheritedListIndent = insideList ? listContentIndent : findListContentIndent(lines, index)
       const headingContent = inheritedListIndent !== null && indentWidth >= inheritedListIndent
@@ -769,9 +769,13 @@ function checkReviewAuditGuidance() {
     !readMarkdownSection("## Finding scope\n- outer\n  - nested paragraph\n      ## Nested heading\nA review finding must identify a changed hunk.\n\n## Actual next section", "## Finding scope")
       .includes("A review finding must identify a changed hunk")
       && !readMarkdownSection("## Finding scope\n- item\n\n    ## Nested\nexcluded\n\n## Actual", "## Finding scope")
-        .includes("excluded")
-      && !readMarkdownSection("## Finding scope\n-\touter\n\t## Next section\nA review finding must identify a changed hunk.\n", "## Finding scope")
-        .includes("A review finding must identify a changed hunk"))
+        .includes("excluded"))
+  check("tab-stop-aware list headings preserve tab indentation",
+    !readMarkdownSection("## Finding scope\n-\touter\n\t## Next section\nA review finding must identify a changed hunk.\n", "## Finding scope")
+      .includes("A review finding must identify a changed hunk"))
+  check("tab-stop-aware list headings preserve mixed indentation",
+    !readMarkdownSection("## Finding scope\n- item\n \t## Next section\nA review finding must identify a changed hunk.\n\n## Actual next section", "## Finding scope")
+      .includes("A review finding must identify a changed hunk"))
   check("only unescaped backticks open inline code spans within a run",
     !stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse \\``A review finding must identify a changed hunk` literally.\n", "## Finding scope"))
       .includes("A review finding must identify a changed hunk"))
