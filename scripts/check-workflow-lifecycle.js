@@ -156,8 +156,8 @@ function closesMarkdownFence(marker, suffix, fenceCharacter, fenceLength) {
 
 // Identify CommonMark raw HTML blocks that prevent inner headings becoming Markdown.
 function getRawHtmlBlockEnd(line) {
-  const specialBlock = line.match(/^ {0,3}<(script|pre|style|textarea)(?:[ \t]|>)/i)
-  if (specialBlock) return { kind: "marker", end: new RegExp(`</${specialBlock[1]}[ \\t]*>`, "i") }
+  const specialBlock = line.match(/^ {0,3}<(script|pre|style|textarea)(?:[ \t]|>|$)/i)
+  if (specialBlock) return { kind: "marker", end: /<\/(?:pre|script|style|textarea)[ \t]*>/i }
   if (/^ {0,3}<\?/.test(line)) return { kind: "marker", end: /\?>/ }
   if (/^ {0,3}<!\[CDATA\[/.test(line)) return { kind: "marker", end: /\]\]>/ }
   if (/^ {0,3}<![A-Z]/.test(line)) return { kind: "marker", end: />/ }
@@ -165,8 +165,32 @@ function getRawHtmlBlockEnd(line) {
   const tagMatch = line.match(/^ {0,3}<\/?([A-Za-z][A-Za-z0-9-]*)(?=[ \t/>])/)
   const blockTags = /^(?:address|article|aside|base|basefont|blockquote|body|caption|center|col|colgroup|dd|details|dialog|dir|div|dl|dt|fieldset|figcaption|figure|footer|form|frame|frameset|h[1-6]|head|header|hr|html|iframe|legend|li|link|main|menu|menuitem|meta|nav|noframes|ol|optgroup|option|p|param|search|section|summary|table|tbody|td|tfoot|th|thead|title|tr|track|ul)$/i
   if (tagMatch && blockTags.test(tagMatch[1])) return { kind: "blank" }
-  if (/^ {0,3}<\/?[A-Za-z][A-Za-z0-9-]*(?:[ \t]+[^<>]*)?\/?\s*>[ \t]*$/.test(line)) return { kind: "blank" }
+  if (isCompleteHtmlTagLine(line)) return { kind: "blank" }
   return null
+}
+
+// Recognize a complete HTML tag while allowing angle brackets inside quoted attributes.
+function isCompleteHtmlTagLine(line) {
+  const startMatch = line.match(/^ {0,3}<\/?[A-Za-z][A-Za-z0-9-]*/)
+  if (!startMatch) return false
+
+  let quote = ""
+  for (let index = startMatch[0].length; index < line.length; index += 1) {
+    const character = line[index]
+    if (quote) {
+      if (character === quote) quote = ""
+      continue
+    }
+
+    if (character === "\"" || character === "'") {
+      quote = character
+      continue
+    }
+
+    if (character === ">") return /^[ \t]*$/.test(line.slice(index + 1))
+  }
+
+  return false
 }
 
 // Find a required H2 or the next H2 in already-filtered active Markdown.
@@ -256,18 +280,47 @@ function stripHtmlCommentsFromLine(line, insideHtmlComment) {
       continue
     }
 
-    const start = line.indexOf("<!--", cursor)
-    if (start < 0) {
-      text += line.slice(cursor)
-      break
+    if (line[cursor] === "`") {
+      let delimiterLength = 1
+      while (line[cursor + delimiterLength] === "`") delimiterLength += 1
+      const codeSpanEnd = findInlineCodeSpanEnd(line, cursor + delimiterLength, delimiterLength)
+      if (codeSpanEnd >= 0) {
+        cursor = codeSpanEnd
+        continue
+      }
+
+      text += line.slice(cursor, cursor + delimiterLength)
+      cursor += delimiterLength
+      continue
     }
 
-    text += line.slice(cursor, start)
-    cursor = start + 4
-    insideHtmlComment = true
+    if (line.startsWith("<!--", cursor)) {
+      cursor += 4
+      insideHtmlComment = true
+      continue
+    }
+
+    text += line[cursor]
+    cursor += 1
   }
 
   return { text, insideHtmlComment }
+}
+
+// Find a same-line closing backtick run with the exact code-span delimiter length.
+function findInlineCodeSpanEnd(line, startIndex, delimiterLength) {
+  let cursor = startIndex
+  while (cursor < line.length) {
+    const delimiterStart = line.indexOf("`", cursor)
+    if (delimiterStart < 0) return -1
+
+    let runLength = 1
+    while (line[delimiterStart + runLength] === "`") runLength += 1
+    if (runLength === delimiterLength) return delimiterStart + runLength
+    cursor = delimiterStart + runLength
+  }
+
+  return -1
 }
 
 // Keep review scope and code-first audit contracts present in canonical and generated skills.
@@ -294,7 +347,8 @@ function checkReviewAuditGuidance() {
       && readMarkdownSection("##\u00a0Finding scope\nspoof\n## Finding scope\nactive", "## Finding scope") === "## Finding scope\nactive"
       && readMarkdownSection("<!--\n## Finding scope\nspoof\n-->\n## Finding scope\nactive", "## Finding scope") === "## Finding scope\nactive"
       && readMarkdownSection("```md\n<!--\n```\n## Finding scope\nactive", "## Finding scope") === "## Finding scope\nactive"
-      && readMarkdownSection("<div>\n## Finding scope\nspoof\n</div>\n\n## Finding scope\nactive", "## Finding scope") === "## Finding scope\nactive")
+      && readMarkdownSection("<div>\n## Finding scope\nspoof\n</div>\n\n## Finding scope\nactive", "## Finding scope") === "## Finding scope\nactive"
+      && readMarkdownSection(`<span title=">">\n## Finding scope\nspoof\n</span>\n\n## Finding scope\nactive`, "## Finding scope") === "## Finding scope\nactive")
   check("invalid backtick fence openers do not hide real section boundaries",
     stripInactiveMarkdown("```info`\nA green focused suite does not close an audit finding.\nactive")
       .includes("A green focused suite does not close an audit finding")
@@ -314,7 +368,12 @@ function checkReviewAuditGuidance() {
     !stripInactiveMarkdown(readMarkdownSection("## Finding scope\n<!-- hidden\nA review finding must identify a changed hunk.\n-->\nactive", "## Finding scope"))
       .includes("A review finding must identify a changed hunk")
       && !stripInactiveMarkdown(readMarkdownSection("<div>\n## Finding scope\nA review finding must identify a changed hunk.\n</div>", "## Finding scope"))
+        .includes("A review finding must identify a changed hunk")
+      && !stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse `A review finding must identify a changed hunk.` as an example.\n", "## Finding scope"))
         .includes("A review finding must identify a changed hunk"))
+  check("HTML comment markers inside inline code do not hide active guidance",
+    stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse `<!--` literally.\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
+      .includes("A review finding must identify a changed hunk"))
   check("raw section extraction retains fenced examples for export drift checks",
     readMarkdownSection("## Finding scope\n```text\ncanonical example\n```\n## Next", "## Finding scope")
       !== readMarkdownSection("## Finding scope\n```text\ngenerated example\n```\n## Next", "## Finding scope"))
