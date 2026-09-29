@@ -181,6 +181,12 @@ function isBlockquoteStartLine(line) {
     || /^ {0,3}(?:[-+*][ \t]+|\d{1,9}[.)][ \t]+)>/.test(line)
 }
 
+// Recognize a blank quote marker that ends the active blockquote.
+function isBlankBlockQuoteLine(line) {
+  const listContent = line.replace(/^ {0,3}(?:[-+*][ \t]+|\d{1,9}[.)][ \t]+)/, "")
+  return /^(?: {0,3}>[ \t]?)+[ \t]*$/.test(listContent)
+}
+
 // Identify backticks escaped by an odd run of preceding backslashes.
 function isEscapedBacktick(line, index) {
   let slashCount = 0
@@ -290,6 +296,13 @@ function stripInactiveMarkdown(content) {
 
     // Contract assertions require direct skill prose, not quoted examples.
     if (insideBlockQuote) {
+      if (isBlankBlockQuoteLine(line)) {
+        insideBlockQuote = false
+        inlineCodeLength = 0
+        activeLines.push("")
+        continue
+      }
+
       if (/^[ \t]*$/.test(line) || (!isBlockquoteStartLine(line) && isInlineMarkdownBlockBoundary(line))) {
         insideBlockQuote = false
       } else {
@@ -300,9 +313,9 @@ function stripInactiveMarkdown(content) {
     }
 
     if (!insideHtmlComment && isBlockquoteStartLine(line)) {
-      insideBlockQuote = true
       inlineCodeLength = 0
       activeLines.push("")
+      insideBlockQuote = !isBlankBlockQuoteLine(line)
       continue
     }
 
@@ -519,6 +532,10 @@ function checkReviewAuditGuidance() {
       && !stripInactiveMarkdown(readMarkdownSection("## Finding scope\n> <div>\n> A review finding must identify a changed hunk.\n> </div>\n\nActive guidance remains.\n## Next", "## Finding scope"))
         .includes("A review finding must identify a changed hunk")
       && !stripInactiveMarkdown(readMarkdownSection("## Finding scope\n- > A review finding must identify a changed hunk.\n\nActive guidance remains.\n## Next", "## Finding scope"))
+        .includes("A review finding must identify a changed hunk")
+      && stripInactiveMarkdown(readMarkdownSection("## Finding scope\n> quoted example\n>\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
+        .includes("A review finding must identify a changed hunk")
+      && stripInactiveMarkdown(readMarkdownSection("## Finding scope\n- item\n  > quoted example\n  >\n  A review finding must identify a changed hunk.\n## Next", "## Finding scope"))
         .includes("A review finding must identify a changed hunk"))
   check("top-level block boundaries restore active prose after quotes",
     stripInactiveMarkdown(readMarkdownSection("## Finding scope\n> quoted example\n---\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
