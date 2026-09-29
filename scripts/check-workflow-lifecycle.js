@@ -113,13 +113,41 @@ function hasOrderedGuidanceSections(content, firstSection, secondSection) {
   return firstIndex >= 0 && secondIndex >= 0 && firstIndex < secondIndex
 }
 
-// Extract one second-level Markdown section without including its successor.
+// Find a required H2 or the next H2 while ignoring headings inside fenced code.
+function findMarkdownHeadingLine(lines, startIndex, expectedHeading) {
+  let fenceCharacter = ""
+  let fenceLength = 0
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const fenceMatch = lines[index].match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
+    if (fenceMatch) {
+      const marker = fenceMatch[1]
+      const suffix = fenceMatch[2]
+      if (!fenceCharacter) {
+        fenceCharacter = marker[0]
+        fenceLength = marker.length
+      } else if (marker[0] === fenceCharacter && marker.length >= fenceLength && !suffix.trim()) {
+        fenceCharacter = ""
+        fenceLength = 0
+      }
+      continue
+    }
+
+    if (fenceCharacter || index < startIndex) continue
+    if (expectedHeading ? lines[index] === expectedHeading : /^## (?!#)/.test(lines[index])) return index
+  }
+
+  return -1
+}
+
+// Extract one exact second-level Markdown section without including its successor.
 function readMarkdownSection(content, heading) {
-  const start = content.indexOf(heading)
+  const lines = content.split(/\r?\n/)
+  const start = findMarkdownHeadingLine(lines, 0, heading)
   if (start < 0) return ""
 
-  const nextHeading = content.indexOf("\n## ", start + heading.length)
-  return content.slice(start, nextHeading < 0 ? undefined : nextHeading).trim()
+  const nextHeading = findMarkdownHeadingLine(lines, start + 1, "")
+  return lines.slice(start, nextHeading < 0 ? undefined : nextHeading).join("\n").trim()
 }
 
 // Keep review scope and code-first audit contracts present in canonical and generated skills.
@@ -135,6 +163,9 @@ function checkReviewAuditGuidance() {
     reviewContract.includes("Nearby unchanged lines are context; pre-existing behavior is not a regression just because the diff made it visible."))
   check("unknown review base or causal link blocks unsupported regression claims",
     reviewContract.includes("If the base diff or causal link cannot be established, report the review as blocked or limited instead of presenting an unsupported regression."))
+  check("renamed or fenced section headings are not treated as canonical sections",
+    readMarkdownSection("## Finding scope (deprecated)\nold text", "## Finding scope") === ""
+      && readMarkdownSection("```md\n## Finding scope\n```", "## Finding scope") === "")
   check("audit traces production paths and invariants before tests",
     hasOrderedGuidanceSections(auditContract, "identify affected entry points, callers, state transitions, cleanup paths, fallback decisions", "inspect only the tests")
       && hasOrderedGuidanceSections(auditContract, "the invariants they must preserve", "inspect only the tests")
