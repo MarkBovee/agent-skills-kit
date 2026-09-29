@@ -176,6 +176,13 @@ function isInlineMarkdownBlockBoundary(line) {
     || /^ {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})$/.test(line)
 }
 
+// Identify list-item text that opens a paragraph for following continuation lines.
+function startsListItemParagraph(line) {
+  const match = line.match(/^ {0,3}(?:[-+*][ \t]+|\d{1,9}[.)][ \t]+)(.+)$/)
+  if (!match || !match[1].trim()) return false
+  return !isInlineMarkdownBlockBoundary(match[1]) && !getRawHtmlBlockEnd(match[1])
+}
+
 // Recognize blockquotes at document level and inside list items.
 function isBlockquoteStartLine(line) {
   return /^ {0,3}>/.test(line)
@@ -394,7 +401,7 @@ function stripInactiveMarkdown(content) {
     const visibleLine = stripHtmlCommentsFromLine(line, lines, index, insideHtmlComment, inlineCodeLength)
     insideHtmlComment = visibleLine.insideHtmlComment
     inlineCodeLength = visibleLine.inlineCodeLength
-    if (visibleLine.text.trim() && !isInlineMarkdownBlockBoundary(line)) paragraphOpen = true
+    if (visibleLine.text.trim() && (!isInlineMarkdownBlockBoundary(line) || startsListItemParagraph(line))) paragraphOpen = true
     activeLines.push(visibleLine.text)
   }
 
@@ -596,7 +603,14 @@ function checkReviewAuditGuidance() {
     !readMarkdownSection("## Finding scope\nParagraph before inline tag.\n<span>\n## Next\nA review finding must identify a changed hunk.", "## Finding scope")
       .includes("A review finding must identify a changed hunk")
       && !readMarkdownSection("## Finding scope\nParagraph before malformed tag.\n<span foo=>\n## Next\nA review finding must identify a changed hunk.", "## Finding scope")
+        .includes("A review finding must identify a changed hunk")
+      && !readMarkdownSection("## Finding scope\n- item\n  <span>\n## Next\nA review finding must identify a changed hunk.", "## Finding scope")
         .includes("A review finding must identify a changed hunk"))
+  check("type-6 raw HTML blocks still interrupt list-item paragraphs",
+    !stripInactiveMarkdown("## Finding scope\n- item\n  <div x=>\n  A review finding must identify a changed hunk.\n  </div>\n\nActive guidance remains.")
+      .includes("A review finding must identify a changed hunk")
+      && stripInactiveMarkdown("## Finding scope\n- item\n  <div x=>\n  A review finding must identify a changed hunk.\n  </div>\n\nActive guidance remains.")
+        .includes("Active guidance remains"))
   check("only unescaped backticks open inline code spans within a run",
     !stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse \\``A review finding must identify a changed hunk` literally.\n", "## Finding scope"))
       .includes("A review finding must identify a changed hunk"))
