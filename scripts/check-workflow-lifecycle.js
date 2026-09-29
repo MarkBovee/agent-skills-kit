@@ -210,25 +210,50 @@ function getRawHtmlBlockEnd(line) {
   return null
 }
 
-// Recognize a complete HTML tag while allowing angle brackets inside quoted attributes.
+// Validate a complete HTML tag, including nonempty attribute values.
 function isCompleteHtmlTagLine(line) {
-  const startMatch = line.match(/^ {0,3}<\/?[A-Za-z][A-Za-z0-9-]*/)
-  if (!startMatch) return false
+  const source = line.replace(/^ {0,3}/, "")
+  let cursor = 1
+  if (source[0] !== "<") return false
 
-  let quote = ""
-  for (let index = startMatch[0].length; index < line.length; index += 1) {
-    const character = line[index]
-    if (quote) {
-      if (character === quote) quote = ""
+  const closing = source[cursor] === "/"
+  if (closing) cursor += 1
+  const tagStart = cursor
+  while (/[A-Za-z0-9-]/.test(source[cursor] || "")) cursor += 1
+  if (!/[A-Za-z]/.test(source[tagStart] || "")) return false
+
+  if (closing) {
+    while (source[cursor] === " " || source[cursor] === "\t") cursor += 1
+    return source[cursor] === ">" && /^[ \t]*$/.test(source.slice(cursor + 1))
+  }
+
+  while (cursor < source.length) {
+    while (source[cursor] === " " || source[cursor] === "\t") cursor += 1
+    if (source[cursor] === ">") return /^[ \t]*$/.test(source.slice(cursor + 1))
+    if (source[cursor] === "/" && source[cursor + 1] === ">") return /^[ \t]*$/.test(source.slice(cursor + 2))
+
+    const attribute = source.slice(cursor).match(/^[A-Za-z_:][A-Za-z0-9_.:-]*/)
+    if (!attribute) return false
+    cursor += attribute[0].length
+    while (source[cursor] === " " || source[cursor] === "\t") cursor += 1
+    if (source[cursor] !== "=") continue
+
+    cursor += 1
+    while (source[cursor] === " " || source[cursor] === "\t") cursor += 1
+    const quote = source[cursor]
+    if (quote === "\"" || quote === "'") {
+      const valueEnd = source.indexOf(quote, cursor + 1)
+      if (valueEnd < 0) return false
+      cursor = valueEnd + 1
       continue
     }
 
-    if (character === "\"" || character === "'") {
-      quote = character
-      continue
+    const valueStart = cursor
+    while (cursor < source.length && !/[ \t>]/.test(source[cursor])) {
+      if (/['"`=<]/.test(source[cursor])) return false
+      cursor += 1
     }
-
-    if (character === ">") return /^[ \t]*$/.test(line.slice(index + 1))
+    if (cursor === valueStart) return false
   }
 
   return false
@@ -569,7 +594,9 @@ function checkReviewAuditGuidance() {
       .includes("A review finding must identify a changed hunk"))
   check("type-7 raw HTML inside a paragraph does not hide the next H2",
     !readMarkdownSection("## Finding scope\nParagraph before inline tag.\n<span>\n## Next\nA review finding must identify a changed hunk.", "## Finding scope")
-      .includes("A review finding must identify a changed hunk"))
+      .includes("A review finding must identify a changed hunk")
+      && !readMarkdownSection("## Finding scope\nParagraph before malformed tag.\n<span foo=>\n## Next\nA review finding must identify a changed hunk.", "## Finding scope")
+        .includes("A review finding must identify a changed hunk"))
   check("only unescaped backticks open inline code spans within a run",
     !stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse \\``A review finding must identify a changed hunk` literally.\n", "## Finding scope"))
       .includes("A review finding must identify a changed hunk"))
