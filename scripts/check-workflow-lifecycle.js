@@ -222,6 +222,7 @@ function stripInactiveMarkdown(content) {
   let fenceCharacter = ""
   let fenceLength = 0
   let insideHtmlComment = false
+  let insideHtmlCommentBlock = false
   let htmlBlockEnd = null
   let inlineCodeLength = 0
 
@@ -244,8 +245,26 @@ function stripInactiveMarkdown(content) {
       continue
     }
 
+    if (insideHtmlCommentBlock) {
+      activeLines.push("")
+      if (line.includes("-->")) insideHtmlCommentBlock = false
+      continue
+    }
+
+    if (!insideHtmlComment && /^(?: {4,}|\t)/.test(line)) {
+      inlineCodeLength = 0
+      activeLines.push("")
+      continue
+    }
+
     if (!insideHtmlComment) {
-      if (/^[ \t]*<!--/.test(line) || /^[ \t]*$/.test(line) || parseH2Title(line) !== null) inlineCodeLength = 0
+      if (/^ {0,3}<!--/.test(line)) {
+        inlineCodeLength = 0
+        activeLines.push("")
+        if (!line.includes("-->")) insideHtmlCommentBlock = true
+        continue
+      }
+      if (/^[ \t]*$/.test(line) || parseH2Title(line) !== null) inlineCodeLength = 0
       const fenceMatch = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
       if (fenceMatch) {
         if (opensMarkdownFence(fenceMatch[1], fenceMatch[2])) {
@@ -302,6 +321,7 @@ function stripHtmlCommentsFromLine(line, insideHtmlComment, inlineCodeLength) {
     if (line[cursor] === "`") {
       let delimiterLength = 1
       while (line[cursor + delimiterLength] === "`") delimiterLength += 1
+      text += line.slice(cursor, cursor + delimiterLength)
       const codeSpanEnd = findInlineCodeSpanEnd(line, cursor + delimiterLength, delimiterLength)
       if (codeSpanEnd >= 0) {
         cursor = codeSpanEnd
@@ -365,9 +385,13 @@ function checkReviewAuditGuidance() {
       && readMarkdownSection("## Finding scope\u00a0\nspoof\n## Finding scope\nactive", "## Finding scope") === "## Finding scope\nactive"
       && readMarkdownSection("##\u00a0Finding scope\nspoof\n## Finding scope\nactive", "## Finding scope") === "## Finding scope\nactive"
       && readMarkdownSection("<!--\n## Finding scope\nspoof\n-->\n## Finding scope\nactive", "## Finding scope") === "## Finding scope\nactive"
+      && readMarkdownSection("<!-- note -->## Finding scope\nspoof\n## Next", "## Finding scope") === ""
+      && readMarkdownSection("    <!-- comment\n## Finding scope\nactive", "## Finding scope") === "## Finding scope\nactive"
       && readMarkdownSection("```md\n<!--\n```\n## Finding scope\nactive", "## Finding scope") === "## Finding scope\nactive"
       && readMarkdownSection("<div>\n## Finding scope\nspoof\n</div>\n\n## Finding scope\nactive", "## Finding scope") === "## Finding scope\nactive"
       && readMarkdownSection(`<span title=">">\n## Finding scope\nspoof\n</span>\n\n## Finding scope\nactive`, "## Finding scope") === "## Finding scope\nactive")
+  check("unmatched backticks remain literal in H2 titles",
+    readMarkdownSection("## Finding scope `\nspoof\n## Next", "## Finding scope") === "")
   check("invalid backtick fence openers do not hide real section boundaries",
     stripInactiveMarkdown("```info`\nA green focused suite does not close an audit finding.\nactive")
       .includes("A green focused suite does not close an audit finding")
@@ -389,6 +413,8 @@ function checkReviewAuditGuidance() {
       && !stripInactiveMarkdown(readMarkdownSection("<div>\n## Finding scope\nA review finding must identify a changed hunk.\n</div>", "## Finding scope"))
         .includes("A review finding must identify a changed hunk")
       && !stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse `A review finding must identify a changed hunk.` as an example.\n", "## Finding scope"))
+        .includes("A review finding must identify a changed hunk")
+      && !stripInactiveMarkdown(readMarkdownSection("<!-- note -->A review finding must identify a changed hunk.\n", "## Finding scope"))
         .includes("A review finding must identify a changed hunk"))
   check("HTML comment markers inside inline code do not hide active guidance",
     stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse `<!--` literally.\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
