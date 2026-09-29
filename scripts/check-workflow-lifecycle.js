@@ -154,6 +154,21 @@ function closesMarkdownFence(marker, suffix, fenceCharacter, fenceLength) {
   return marker[0] === fenceCharacter && marker.length >= fenceLength && /^[ \t]*$/.test(suffix)
 }
 
+// Stop inline-code pairing at Markdown block boundaries.
+function isInlineMarkdownBlockBoundary(line) {
+  const fenceMatch = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
+  const beginsFence = fenceMatch && opensMarkdownFence(fenceMatch[1], fenceMatch[2])
+  return /^[ \t]*$/.test(line)
+    || parseH2Title(line) !== null
+    || Boolean(beginsFence)
+    || Boolean(getRawHtmlBlockEnd(line))
+    || /^ {0,3}<!--/.test(line)
+    || /^(?: {4,}|\t)/.test(line)
+    || /^ {0,3}>/.test(line)
+    || /^ {0,3}(?:[-+*][ \t]+|\d{1,9}[.)][ \t]+)/.test(line)
+    || /^ {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})$/.test(line)
+}
+
 // Identify CommonMark raw HTML blocks that prevent inner headings becoming Markdown.
 function getRawHtmlBlockEnd(line) {
   const specialBlock = line.match(/^ {0,3}<(script|pre|style|textarea)(?:[ \t]|>|$)/i)
@@ -226,7 +241,8 @@ function stripInactiveMarkdown(content) {
   let htmlBlockEnd = null
   let inlineCodeLength = 0
 
-  for (const line of lines) {
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index]
     if (fenceCharacter) {
       inlineCodeLength = 0
       const fenceMatch = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
@@ -287,7 +303,7 @@ function stripInactiveMarkdown(content) {
       }
     }
 
-    const visibleLine = stripHtmlCommentsFromLine(line, insideHtmlComment, inlineCodeLength)
+    const visibleLine = stripHtmlCommentsFromLine(line, lines, index, insideHtmlComment, inlineCodeLength)
     insideHtmlComment = visibleLine.insideHtmlComment
     inlineCodeLength = visibleLine.inlineCodeLength
     activeLines.push(visibleLine.text)
@@ -297,7 +313,7 @@ function stripInactiveMarkdown(content) {
 }
 
 // Remove inline and multiline HTML comments while preserving active text on the line.
-function stripHtmlCommentsFromLine(line, insideHtmlComment, inlineCodeLength) {
+function stripHtmlCommentsFromLine(line, lines, lineIndex, insideHtmlComment, inlineCodeLength) {
   let text = ""
   let cursor = 0
 
@@ -328,7 +344,9 @@ function stripHtmlCommentsFromLine(line, insideHtmlComment, inlineCodeLength) {
         continue
       }
 
-      inlineCodeLength = delimiterLength
+      if (hasInlineCodeSpanClosure(lines, lineIndex, cursor + delimiterLength, delimiterLength)) {
+        inlineCodeLength = delimiterLength
+      }
       cursor += delimiterLength
       continue
     }
@@ -362,6 +380,18 @@ function findInlineCodeSpanEnd(line, startIndex, delimiterLength) {
   return -1
 }
 
+// Require a code-span closer before the paragraph reaches a block boundary.
+function hasInlineCodeSpanClosure(lines, lineIndex, startIndex, delimiterLength) {
+  if (findInlineCodeSpanEnd(lines[lineIndex], startIndex, delimiterLength) >= 0) return true
+
+  for (let index = lineIndex + 1; index < lines.length; index += 1) {
+    if (isInlineMarkdownBlockBoundary(lines[index])) return false
+    if (findInlineCodeSpanEnd(lines[index], 0, delimiterLength) >= 0) return true
+  }
+
+  return false
+}
+
 // Keep review scope and code-first audit contracts present in canonical and generated skills.
 function checkReviewAuditGuidance() {
   const reviewGuidance = fs.readFileSync("skills/ask-code-review/SKILL.md", "utf8")
@@ -392,6 +422,9 @@ function checkReviewAuditGuidance() {
       && readMarkdownSection(`<span title=">">\n## Finding scope\nspoof\n</span>\n\n## Finding scope\nactive`, "## Finding scope") === "## Finding scope\nactive")
   check("unmatched backticks remain literal in H2 titles",
     readMarkdownSection("## Finding scope `\nspoof\n## Next", "## Finding scope") === "")
+  check("unmatched prose backticks do not hide following active guidance",
+    stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse unmatched ` literally.\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
+      .includes("A review finding must identify a changed hunk"))
   check("invalid backtick fence openers do not hide real section boundaries",
     stripInactiveMarkdown("```info`\nA green focused suite does not close an audit finding.\nactive")
       .includes("A green focused suite does not close an audit finding")
