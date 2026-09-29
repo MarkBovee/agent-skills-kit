@@ -702,7 +702,9 @@ function checkReviewAuditGuidance() {
   const activeAuditContract = stripInactiveMarkdown(auditContract)
 
   check("actionable review findings anchor to a changed hunk or introduced behavior",
-    activeReviewContract.includes("identify a changed hunk") && activeReviewContract.includes("direct behavior introduced by a changed hunk"))
+    activeReviewContract.includes("Every finding must identify a changed hunk or explain the direct behavior introduced by a changed hunk.")
+      && !stripInactiveMarkdown("## Finding scope\nEvery finding may identify a changed hunk or explain the direct behavior introduced by a changed hunk.\n")
+        .includes("Every finding must identify a changed hunk or explain the direct behavior introduced by a changed hunk."))
   check("unchanged pre-existing behavior is context, not a regression finding",
     activeReviewContract.includes("Nearby unchanged lines are context; pre-existing behavior is not a regression just because the diff made it visible."))
   check("unknown review base or causal link blocks unsupported regression claims",
@@ -869,9 +871,9 @@ function checkReviewAuditGuidance() {
     readMarkdownSection("~~~md\n## Finding scope\n~~~\u00a0\n## Additional axes\n~~~\n## Finding scope\nactive\n## Next section\nexcluded", "## Finding scope")
       === "## Finding scope\nactive")
   check("audit traces production paths and invariants before tests",
-    hasOrderedGuidanceSections(activeAuditContract, "identify affected entry points, callers, state transitions, cleanup paths, fallback decisions", "inspect only the tests")
-      && hasOrderedGuidanceSections(activeAuditContract, "the invariants they must preserve", "inspect only the tests")
-      && activeAuditContract.includes("entry points, callers, state transitions, cleanup paths, fallback decisions"))
+    activeAuditContract.includes("Start from the exact production diff and, before inspecting tests, identify affected entry points, callers, state transitions, cleanup paths, fallback decisions, and the invariants they must preserve.")
+      && !stripInactiveMarkdown("## Code-first independent audit\nStart from the exact production diff and, after inspecting tests, identify affected entry points, callers, state transitions, cleanup paths, fallback decisions, and the invariants they must preserve.\n")
+        .includes("Start from the exact production diff and, before inspecting tests, identify affected entry points, callers, state transitions, cleanup paths, fallback decisions, and the invariants they must preserve."))
   check("missing or reversed audit-order markers fail the section-order predicate",
     !hasOrderedGuidanceSections("inspect only the tests", "before inspecting tests", "inspect only the tests")
       && !hasOrderedGuidanceSections("inspect only the tests before inspecting tests", "before inspecting tests", "inspect only the tests"))
