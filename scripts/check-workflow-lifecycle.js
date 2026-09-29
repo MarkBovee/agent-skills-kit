@@ -170,7 +170,6 @@ function isInlineMarkdownBlockBoundary(line) {
     || Boolean(getRawHtmlBlockEnd(line))
     || /^ {0,3}<!--/.test(line)
     || /^(?: {4,}|\t)/.test(line)
-    || /^ {0,3}>/.test(line)
     || /^ {0,3}(?:[-+*][ \t]+|\d{1,9}[.)][ \t]+)/.test(line)
     || /^ {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})$/.test(line)
 }
@@ -227,6 +226,7 @@ function findMarkdownHeadingLine(lines, startIndex, expectedHeading) {
     if (index < startIndex) continue
     const title = parseH2Title(lines[index])
     if (title !== null && (expectedHeading ? title === expectedHeading.replace(/^##[ \t]*/, "").replace(/^[ \t]+|[ \t]+$/g, "") : true)) return index
+    if (!expectedHeading && index > 0 && /^ {0,3}-+[ \t]*$/.test(lines[index]) && !/^[ \t]*$/.test(lines[index - 1])) return index
   }
 
   return -1
@@ -295,15 +295,11 @@ function stripInactiveMarkdown(content) {
       }
       if (/^[ \t]*$/.test(line) || isAtxHeadingLine(line) || /^ {0,3}(?:=+[ \t]*|-+[ \t]*)$/.test(line)) inlineCodeLength = 0
       const fenceMatch = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
-      if (fenceMatch) {
-        if (opensMarkdownFence(fenceMatch[1], fenceMatch[2])) {
-          inlineCodeLength = 0
-          fenceCharacter = fenceMatch[1][0]
-          fenceLength = fenceMatch[1].length
-          activeLines.push("")
-        } else {
-          activeLines.push(line)
-        }
+      if (fenceMatch && opensMarkdownFence(fenceMatch[1], fenceMatch[2])) {
+        inlineCodeLength = 0
+        fenceCharacter = fenceMatch[1][0]
+        fenceLength = fenceMatch[1].length
+        activeLines.push("")
         continue
       }
 
@@ -351,8 +347,8 @@ function stripHtmlCommentsFromLine(line, lines, lineIndex, insideHtmlComment, in
       let delimiterLength = 1
       while (line[cursor + delimiterLength] === "`") delimiterLength += 1
       if (isEscapedBacktick(line, cursor)) {
-        text += line.slice(cursor, cursor + delimiterLength)
-        cursor += delimiterLength
+        text += line[cursor]
+        cursor += 1
         continue
       }
       text += line.slice(cursor, cursor + delimiterLength)
@@ -443,11 +439,12 @@ function checkReviewAuditGuidance() {
   check("unmatched prose backticks do not hide following active guidance",
     stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse unmatched ` literally.\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
       .includes("A review finding must identify a changed hunk"))
-  check("unmatched backticks cannot pair across other heading and paragraph boundaries",
+  check("unmatched backticks do not pair across other ATX heading levels",
     stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse unmatched ` literally.\n### H3 with ` marker\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
-      .includes("A review finding must identify a changed hunk")
-      && stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse unmatched ` literally.\n---\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
-        .includes("A review finding must identify a changed hunk"))
+      .includes("A review finding must identify a changed hunk"))
+  check("unmatched backticks do not pair across setext paragraph boundaries",
+    stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse unmatched ` literally.\nA review finding must identify a changed hunk.\nPotential next section\n---", "## Finding scope"))
+      .includes("A review finding must identify a changed hunk"))
   check("escaped backticks do not open or close inline code spans",
     stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse escaped \\` literally.\nA review finding must identify a changed hunk.\nclosing \\`\n## Next", "## Finding scope"))
       .includes("A review finding must identify a changed hunk"))
@@ -478,11 +475,25 @@ function checkReviewAuditGuidance() {
   check("HTML comment markers inside inline code do not hide active guidance",
     stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse `<!--` literally.\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
       .includes("A review finding must identify a changed hunk"))
+  check("invalid fence-like lines still process inline HTML comments",
+    !stripInactiveMarkdown(readMarkdownSection("## Finding scope\n```info` <!--\nA review finding must identify a changed hunk.\n-->\nactive\n## Next", "## Finding scope"))
+      .includes("A review finding must identify a changed hunk"))
   check("multiline code spans cannot satisfy or hide active guidance",
     !stripInactiveMarkdown(readMarkdownSection("## Finding scope\nExample: `A review finding must identify a changed hunk\ncontinued example`.\nUse `<!--\ncomment marker\n` literally.\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
       .includes("Example: A review finding must identify a changed hunk")
       && stripInactiveMarkdown(readMarkdownSection("## Finding scope\nExample: `A review finding must identify a changed hunk\ncontinued example`.\nUse `<!--\ncomment marker\n` literally.\nA review finding must identify a changed hunk.\n## Next", "## Finding scope"))
         .includes("A review finding must identify a changed hunk"))
+  check("multiline code spans inside consecutive blockquote lines remain inactive",
+    !stripInactiveMarkdown(readMarkdownSection("## Finding scope\n> Example: `A review finding\n> must identify a changed hunk`.\nActive guidance remains.\n## Next", "## Finding scope"))
+      .includes("A review finding")
+      && stripInactiveMarkdown(readMarkdownSection("## Finding scope\n> Example: `A review finding\n> must identify a changed hunk`.\nActive guidance remains.\n## Next", "## Finding scope"))
+        .includes("Active guidance remains"))
+  check("setext H2 boundaries end extracted sections",
+    !readMarkdownSection("## Finding scope\nExisting guidance.\nPotential next section\n---\nA review finding must identify a changed hunk.", "## Finding scope")
+      .includes("A review finding must identify a changed hunk"))
+  check("only unescaped backticks open inline code spans within a run",
+    !stripInactiveMarkdown(readMarkdownSection("## Finding scope\nUse \\``A review finding must identify a changed hunk` literally.\n", "## Finding scope"))
+      .includes("A review finding must identify a changed hunk"))
   check("raw section extraction retains fenced examples for export drift checks",
     readMarkdownSection("## Finding scope\n```text\ncanonical example\n```\n## Next", "## Finding scope")
       !== readMarkdownSection("## Finding scope\n```text\ngenerated example\n```\n## Next", "## Finding scope"))
