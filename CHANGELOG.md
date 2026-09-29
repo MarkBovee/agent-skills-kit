@@ -12,6 +12,7 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 - **Anchor review findings to the changed diff (issue #113).** Unchanged pre-existing behavior is context, not a regression attributed to a change.
 - **Make independent audits code-first (issue #114).** Audit handoffs require production paths and invariants before selective test inspection; passing focused tests cannot dismiss a production-code bypass.
+- **Bound release audit convergence (issue #115).** Track one current diff and gate table, batch findings into focused delta checks, and stop with a blocked status when the owner ends the audit loop; mandatory final gates remain intact.
 - **Bound release audit convergence (issue #115).** Keep one current diff and gate table, batch findings into focused delta checks, preserve final independent gates, and report blocked status when the owner stops the audit loop.
 
 ## [2.4.4] - 2026-09-28
