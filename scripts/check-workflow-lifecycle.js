@@ -82,12 +82,24 @@ function checkRiskProfiles() {
 // Keep release validation deferred until iterative findings are resolved.
 function checkReleaseValidationCadence() {
   const workflowGuidance = fs.readFileSync("skills/ask-agent-workflows/SKILL.md", "utf8")
-  const deltaGuidance = workflowGuidance.slice(workflowGuidance.indexOf("## Bounded narrow-fix release path"), workflowGuidance.indexOf("## Metadata-only release fast path"))
+  const deltaHeading = "## Bounded narrow-fix release path"
+  const metadataHeading = "## Metadata-only release fast path"
+  const deltaGuidance = readMarkdownSection(workflowGuidance, deltaHeading)
+  const metadataGuidance = readMarkdownSection(workflowGuidance, metadataHeading)
+  const activeWorkflowGuidance = stripInactiveMarkdown(workflowGuidance)
+  const activeLines = activeWorkflowGuidance.split(/\r?\n/)
+  const deltaHeadingIndex = findMarkdownHeadingLine(activeLines, 0, deltaHeading)
+  const metadataHeadingIndex = findMarkdownHeadingLine(activeLines, deltaHeadingIndex + 1, metadataHeading)
+  check("release cadence and metadata sections are present in order",
+    deltaGuidance !== "" && metadataGuidance !== "" && deltaHeadingIndex >= 0 && metadataHeadingIndex > deltaHeadingIndex)
+  check("commented or fenced release-cadence examples are not active sections",
+    readMarkdownSection(`~~~md\n${deltaHeading}\nDo not run the full suite during this findings loop\n~~~`, deltaHeading) === ""
+      && readMarkdownSection(`<!--\n${deltaHeading}\nDo not run the full suite during this findings loop\n-->`, deltaHeading) === "")
   check("delta findings loop repeats focused validation without the full suite", deltaGuidance.includes("Do not run the full suite during this findings loop"))
   check("full suite runs once on the stable candidate", deltaGuidance.includes("run the full required check suite once on that exact diff"))
   check("later code findings invalidate all prior gate evidence", deltaGuidance.includes("all validation, review, audit, and release-gate evidence for the prior diff is stale"))
   check("later code findings rerun every final gate on the new diff", deltaGuidance.includes("run the full suite and repeat final review, independent final audit, and release-gate on that exact diff"))
-  check("final review and independent audit remain after full validation", deltaGuidance.indexOf("run the full required check suite once") < deltaGuidance.indexOf("final review run")
+  check("final review and independent audit remain after full validation", hasOrderedGuidanceSections(deltaGuidance, "run the full required check suite once", "final review run")
     && deltaGuidance.includes("independent final audit and release-gate"))
   check("review and audit budget remains cumulative", deltaGuidance.includes("cumulative review/audit budget remains")
     && deltaGuidance.includes("timebox is 16 minutes total"))
@@ -101,8 +113,10 @@ function checkReleaseValidationCadence() {
   ]
   for (const [platform, path] of generatedPaths) {
     const generatedGuidance = fs.readFileSync(path, "utf8")
-    const generatedSection = generatedGuidance.slice(generatedGuidance.indexOf("## Bounded narrow-fix release path"), generatedGuidance.indexOf("## Metadata-only release fast path"))
+    const generatedSection = readMarkdownSection(generatedGuidance, deltaHeading)
     check(`${platform} export matches canonical release cadence`, generatedSection === deltaGuidance)
+    check(`${platform} export keeps metadata-only path after release cadence`,
+      hasOrderedMarkdownSections(generatedGuidance, deltaHeading, metadataHeading))
   }
 }
 
@@ -111,6 +125,14 @@ function hasOrderedGuidanceSections(content, firstSection, secondSection) {
   const firstIndex = content.indexOf(firstSection)
   const secondIndex = content.indexOf(secondSection)
   return firstIndex >= 0 && secondIndex >= 0 && firstIndex < secondIndex
+}
+
+// Confirm exact Markdown sections appear in order outside comments and fences.
+function hasOrderedMarkdownSections(content, firstHeading, secondHeading) {
+  const lines = stripInactiveMarkdown(content).split(/\r?\n/)
+  const firstIndex = findMarkdownHeadingLine(lines, 0, firstHeading)
+  const secondIndex = findMarkdownHeadingLine(lines, firstIndex + 1, secondHeading)
+  return firstIndex >= 0 && secondIndex > firstIndex
 }
 
 // Parse an ATX H2 title, including valid indentation and optional closing markers.
@@ -130,28 +152,10 @@ function closesMarkdownFence(marker, suffix, fenceCharacter, fenceLength) {
   return marker[0] === fenceCharacter && marker.length >= fenceLength && /^[ \t]*$/.test(suffix)
 }
 
-// Find a required H2 or the next H2 while ignoring headings inside fenced code.
+// Find a required H2 or the next H2 in already-filtered active Markdown.
 function findMarkdownHeadingLine(lines, startIndex, expectedHeading) {
-  let fenceCharacter = ""
-  let fenceLength = 0
-
   for (let index = 0; index < lines.length; index += 1) {
-    const fenceMatch = lines[index].match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
-    if (fenceMatch) {
-      const marker = fenceMatch[1]
-      const suffix = fenceMatch[2]
-      if (!fenceCharacter) {
-        if (!opensMarkdownFence(marker, suffix)) continue
-        fenceCharacter = marker[0]
-        fenceLength = marker.length
-      } else if (closesMarkdownFence(marker, suffix, fenceCharacter, fenceLength)) {
-        fenceCharacter = ""
-        fenceLength = 0
-      }
-      continue
-    }
-
-    if (fenceCharacter || index < startIndex) continue
+    if (index < startIndex) continue
     const title = parseH2Title(lines[index])
     if (title !== null && (expectedHeading ? title === expectedHeading.replace(/^##[ \t]*/, "").replace(/^[ \t]+|[ \t]+$/g, "") : true)) return index
   }
@@ -161,7 +165,7 @@ function findMarkdownHeadingLine(lines, startIndex, expectedHeading) {
 
 // Extract one exact second-level Markdown section without including its successor.
 function readMarkdownSection(content, heading) {
-  const lines = content.split(/\r?\n/)
+  const lines = stripInactiveMarkdown(content).split(/\r?\n/)
   const start = findMarkdownHeadingLine(lines, 0, heading)
   if (start < 0) return ""
 
@@ -169,36 +173,69 @@ function readMarkdownSection(content, heading) {
   return lines.slice(start, nextHeading < 0 ? undefined : nextHeading).join("\n").trim()
 }
 
-// Remove fenced examples so quoted text cannot satisfy active guidance checks.
-function stripFencedCodeBlocks(content) {
+// Remove fenced code and HTML comments before evaluating active Markdown guidance.
+function stripInactiveMarkdown(content) {
   const lines = content.split(/\r?\n/)
   const activeLines = []
   let fenceCharacter = ""
   let fenceLength = 0
+  let insideHtmlComment = false
 
   for (const line of lines) {
-    const fenceMatch = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
-    if (fenceMatch) {
-      const marker = fenceMatch[1]
-      const suffix = fenceMatch[2]
-      if (!fenceCharacter) {
-        if (opensMarkdownFence(marker, suffix)) {
-          fenceCharacter = marker[0]
-          fenceLength = marker.length
-        } else {
-          activeLines.push(line)
-        }
-      } else if (closesMarkdownFence(marker, suffix, fenceCharacter, fenceLength)) {
+    if (fenceCharacter) {
+      const fenceMatch = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
+      if (fenceMatch && closesMarkdownFence(fenceMatch[1], fenceMatch[2], fenceCharacter, fenceLength)) {
         fenceCharacter = ""
         fenceLength = 0
       }
+      activeLines.push("")
       continue
     }
 
-    if (!fenceCharacter) activeLines.push(line)
+    if (!insideHtmlComment) {
+      const fenceMatch = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
+      if (fenceMatch && opensMarkdownFence(fenceMatch[1], fenceMatch[2])) {
+        fenceCharacter = fenceMatch[1][0]
+        fenceLength = fenceMatch[1].length
+        activeLines.push("")
+        continue
+      }
+    }
+
+    const visibleLine = stripHtmlCommentsFromLine(line, insideHtmlComment)
+    insideHtmlComment = visibleLine.insideHtmlComment
+    activeLines.push(visibleLine.text)
   }
 
   return activeLines.join("\n")
+}
+
+// Remove inline and multiline HTML comments while preserving active text on the line.
+function stripHtmlCommentsFromLine(line, insideHtmlComment) {
+  let text = ""
+  let cursor = 0
+
+  while (cursor < line.length) {
+    if (insideHtmlComment) {
+      const end = line.indexOf("-->", cursor)
+      if (end < 0) return { text, insideHtmlComment: true }
+      cursor = end + 3
+      insideHtmlComment = false
+      continue
+    }
+
+    const start = line.indexOf("<!--", cursor)
+    if (start < 0) {
+      text += line.slice(cursor)
+      break
+    }
+
+    text += line.slice(cursor, start)
+    cursor = start + 4
+    insideHtmlComment = true
+  }
+
+  return { text, insideHtmlComment }
 }
 
 // Keep review scope and code-first audit contracts present in canonical and generated skills.
@@ -207,8 +244,8 @@ function checkReviewAuditGuidance() {
   const auditGuidance = fs.readFileSync("skills/ask-agent-workflows/SKILL.md", "utf8")
   const reviewContract = readMarkdownSection(reviewGuidance, "## Finding scope")
   const auditContract = readMarkdownSection(auditGuidance, "## Code-first independent audit")
-  const activeReviewContract = stripFencedCodeBlocks(reviewContract)
-  const activeAuditContract = stripFencedCodeBlocks(auditContract)
+  const activeReviewContract = reviewContract
+  const activeAuditContract = auditContract
 
   check("actionable review findings anchor to a changed hunk or introduced behavior",
     activeReviewContract.includes("identify a changed hunk") && activeReviewContract.includes("direct behavior introduced by a changed hunk"))
@@ -222,9 +259,11 @@ function checkReviewAuditGuidance() {
       && readMarkdownSection("## Finding scope\nkeep\n   ## # Next section\nexclude", "## Finding scope") === "## Finding scope\nkeep"
       && readMarkdownSection("## Finding scope\nkeep\n##\nexclude", "## Finding scope") === "## Finding scope\nkeep"
       && readMarkdownSection("## Finding scope\u00a0\nspoof\n## Finding scope\nactive", "## Finding scope") === "## Finding scope\nactive"
-      && readMarkdownSection("##\u00a0Finding scope\nspoof\n## Finding scope\nactive", "## Finding scope") === "## Finding scope\nactive")
+      && readMarkdownSection("##\u00a0Finding scope\nspoof\n## Finding scope\nactive", "## Finding scope") === "## Finding scope\nactive"
+      && readMarkdownSection("<!--\n## Finding scope\nspoof\n-->\n## Finding scope\nactive", "## Finding scope") === "## Finding scope\nactive"
+      && readMarkdownSection("```md\n<!--\n```\n## Finding scope\nactive", "## Finding scope") === "## Finding scope\nactive")
   check("invalid backtick fence openers do not hide real section boundaries",
-    stripFencedCodeBlocks("```info`\nA green focused suite does not close an audit finding.\nactive")
+    stripInactiveMarkdown("```info`\nA green focused suite does not close an audit finding.\nactive")
       .includes("A green focused suite does not close an audit finding")
       && readMarkdownSection("## Finding scope\nactive\n```info`\n## Next section\nexclude", "## Finding scope")
         === "## Finding scope\nactive\n```info`")
@@ -234,10 +273,13 @@ function checkReviewAuditGuidance() {
       && !closesMarkdownFence("~~~", "\u00a0", "~", 3)
       && !closesMarkdownFence("```", "", "~", 3))
   check("fenced contract text cannot satisfy active guidance assertions",
-    !stripFencedCodeBlocks("```md\nA green focused suite does not close an audit finding.\n```\nactive text")
+    !stripInactiveMarkdown("```md\nA green focused suite does not close an audit finding.\n```\nactive text")
       .includes("A green focused suite does not close an audit finding")
-      && !stripFencedCodeBlocks("~~~md\nA green focused suite does not close an audit finding.\n~~~\u00a0\nstill fenced\n~~~")
+      && !stripInactiveMarkdown("~~~md\nA green focused suite does not close an audit finding.\n~~~\u00a0\nstill fenced\n~~~")
         .includes("A green focused suite does not close an audit finding"))
+  check("HTML-commented contract text cannot satisfy active guidance assertions",
+    !readMarkdownSection("## Finding scope\n<!-- hidden\nA review finding must identify a changed hunk.\n-->\nactive", "## Finding scope")
+      .includes("A review finding must identify a changed hunk"))
   check("headings inside NBSP-terminated fences cannot supply section boundaries",
     readMarkdownSection("~~~md\n## Finding scope\n~~~\u00a0\n## Additional axes\n~~~\n## Finding scope\nactive\n## Next section\nexcluded", "## Finding scope")
       === "## Finding scope\nactive")
