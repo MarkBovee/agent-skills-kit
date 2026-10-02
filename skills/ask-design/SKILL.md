@@ -1,6 +1,6 @@
 ---
 name: ask-design
-description: "Design: Use when the request is to design, redesign, polish, review, or implement UI/UX for web or mobile interfaces, landing pages, dashboards, flows, or visual systems."
+description: "Design: Use to design, redesign, polish, or implement UI/UX for web or mobile interfaces, landing pages, dashboards, flows, or visual systems."
 triggers:
   - design a ui
   - redesign this page

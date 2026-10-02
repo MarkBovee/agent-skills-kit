@@ -9,7 +9,9 @@ const { spawnSync } = require("node:child_process")
 const REPO_ROOT = path.resolve(__dirname, "..")
 const SKILLS_DIR = path.join(REPO_ROOT, "skills")
 const HOOK_SCRIPT = path.join(REPO_ROOT, "scripts", "agent-skills-hook.js")
-const MAX_DESCRIPTION_LENGTH = 400
+// Claude Code shares one listing budget (1% of the context window) across every installed skill and drops
+// descriptions once it is spent, so each ASK description stays short enough to survive next to other packs.
+const MAX_DESCRIPTION_LENGTH = 160
 const MAX_LISTING_BUDGET = 1536 * 4
 
 const failures = []
@@ -127,6 +129,11 @@ function checkHookBehavior() {
   run("post-skill", { session_id: "state", tool_input: { skill: "ask-code-review" } })
   const cleared = parseHookOutput(run("prompt", { session_id: "state", prompt: "continue" }).stdout)
   expect(!cleared?.hookSpecificOutput?.additionalContext?.includes("Code edited"), "loading ask-code-review clears the reminder")
+  // Payload captured live from Claude Code 2.1.284: plugin skills arrive namespaced as `<plugin>:<skill>`.
+  run("post-edit", { session_id: "state", tool_name: "Write" })
+  run("post-skill", { session_id: "state", hook_event_name: "PostToolUse", tool_name: "Skill", tool_input: { skill: "agent-skills-kit:ask-code-review" }, tool_response: { success: true, commandName: "agent-skills-kit:ask-code-review" } })
+  const clearedNamespaced = parseHookOutput(run("prompt", { session_id: "state", prompt: "continue" }).stdout)
+  expect(!clearedNamespaced?.hookSpecificOutput?.additionalContext?.includes("Code edited"), "loading the plugin-namespaced agent-skills-kit:ask-code-review clears the reminder")
   fs.rmSync(stateDir, { recursive: true, force: true })
 
   const slash = runHook("prompt", JSON.stringify({ prompt: "/clear" }))

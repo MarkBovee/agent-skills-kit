@@ -1,6 +1,6 @@
 ---
 name: ask-observability
-description: "Observability: Use when instrumenting a feature for production — adding or improving logging, metrics, tracing, or alerting — or when production issues are reported and the current telemetry cannot explain them."
+description: "Observability: Use when adding or improving logging, metrics, tracing, or alerting, or when current telemetry cannot explain a production issue."
 execution_tier: standard
 triggers:
   - observability

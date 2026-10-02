@@ -186,9 +186,11 @@ function buildHookOutput(eventName, additionalContext) {
 }
 
 // Read the skill id a Skill tool call loaded, across the input shapes hosts use.
+// Claude Code reports plugin skills as `<plugin>:<skill>` (for example `agent-skills-kit:ask-code-review`),
+// so any `<namespace>:` prefix is dropped to compare against the bare native id.
 function readLoadedSkill(payload) {
   const input = payload.tool_input || {}
-  return String(input.skill || input.name || input.command || "").trim()
+  return String(input.skill || input.name || input.command || "").trim().split(":").pop()
 }
 
 // Handle one hook event and emit only the event-supported JSON shape.

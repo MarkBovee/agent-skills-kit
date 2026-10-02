@@ -1,6 +1,6 @@
 ---
 name: ask-text-writing
-description: "Text Writing: Produce human-sounding text that avoids detectable AI writing patterns. Use for tweets, emails, articles, bios, captions, reports, copy, messages, LinkedIn posts, cover letters, README files — any output that must not read as AI-generated."
+description: "Text Writing: Use for emails, posts, articles, bios, READMEs, or any copy that must sound human and avoid detectable AI writing patterns."
 triggers:
   - anti-slop
   - make this sound human

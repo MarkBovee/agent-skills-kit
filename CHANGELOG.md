@@ -6,6 +6,20 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.5.1] - 2026-10-02
+
+### Fixed
+
+- **Review reminder clears for plugin installs.** Claude Code reports plugin skills as `agent-skills-kit:ask-code-review` in the `PostToolUse` payload; the hook only matched the bare `ask-code-review`, so the reminder never cleared for plugin-only installs. The hook now drops the plugin namespace, and `check-claude-code.js` replays the payload captured from a live session.
+
+### Changed
+
+- **Shorter skill descriptions.** The 17 descriptions shrink from 3456 to 2408 characters (longest 156) so they survive Claude Code's shared skill-listing budget next to other skill packs; triggers are unchanged. `check-claude-code.js` now caps a description at 160 characters.
+
+### Added
+
+- **Temp-usage security lint.** `scripts/check-tmp-usage.js` is a line-based heuristic that flags `os.tmpdir()` without an adjacent `mkdtemp`, paths in the shared temp directory, and `TMPDIR`/`TEMP`/`GetTempPath` references without an unpredictable name in `scripts/`, `plugins/`, `core/`, and `hooks/`. It runs in CI and the `AGENTS.md` check list.
+
 ## [2.5.0] - 2026-10-02
 
 ### Added

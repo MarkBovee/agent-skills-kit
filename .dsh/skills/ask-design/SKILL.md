@@ -1,6 +1,6 @@
 ---
 name: "design"
-description: "Design: Use when the request is to design, redesign, polish, review, or implement UI/UX for web or mobile interfaces, landing pages, dashboards, flows, or visual systems. Common triggers: design a ui, redesign this page, improve ux, polish the frontend, landing page design, dashboard design, mobile app ui, design system, ui review, redesign the frontend, improve this page, landing page, mobile ui, color palette, typography, font pairing, ui style, accessibility, animation design, data visuali..."
+description: "Design: Use to design, redesign, polish, or implement UI/UX for web or mobile interfaces, landing pages, dashboards, flows, or visual systems. Common triggers: design a ui, redesign this page, improve ux, polish the frontend, landing page design, dashboard design, mobile app ui, design system, ui review, redesign the frontend, improve this page, landing page, mobile ui, color palette, typography, font pairing, ui style, accessibility, animation design, data visualization, ux patterns, design..."
 whenToUse: "Common triggers: design a ui, redesign this page, improve ux, polish the frontend, landing page design, dashboard design, mobile app ui, design system, ui review, redesign the frontend, improve this page, landing page, mobile ui, color palette, typography, font pairing, ui style, accessibility, animation design, data visualization, ux patterns, design system generation."
 ---
 # ASK Design
