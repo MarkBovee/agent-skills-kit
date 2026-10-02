@@ -46,6 +46,16 @@ Decision-tree rows come from `routingHintLines()`; never duplicate them manually
 
 <!-- /agent-skills-kit:opencode -->
 
+## Evidence reuse
+
+Do not repeat intake, plan-check, review, or audit for a diff those gates already passed. Gate evidence is bound to the diff it examined; cite it instead of redoing it.
+
+- Record each completed gate once in the PR body or plan: gate, result, who ran it (independent or not), and the diff reference (commit SHA or diff identity).
+- Evidence stays valid for an identical diff. Updating the base branch, merging, or tagging does not invalidate it when the diff content against the base is unchanged; compare before assuming otherwise.
+- Classify any follow-up change before choosing gates. Mechanical deltas (version bump, changelog, regenerated exports, comment or doc wording) need validation only. Behavioral deltas need focused validation plus one delta review and one delta audit limited to the changed paths, at `standard` tier; escalate to `deep` only for an open cross-cutting invariant or counter-evidence.
+- Reused evidence must itself have been independent; self-review never becomes release evidence by being cited later. Never reuse evidence that is stale or mismatched against the current diff.
+- State in the handoff which evidence was reused and which was produced fresh.
+
 ## Releases
 
 User-visible shipped changes need a patch bump in `VERSION`, matching `CHANGELOG.md` entry, and matching `.claude-plugin/plugin.json` version. Stable releases use `vX.Y.Z` tags. Never tag before merge to `main`; release workflow publishes from `main`.
