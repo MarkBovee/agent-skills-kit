@@ -6,6 +6,24 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.5.0] - 2026-10-02
+
+### Added
+
+- **Claude Code plugin support.** Marketplace manifest, Claude Code-conformant hooks (`SessionStart`, `UserPromptSubmit`, `PostToolUse`) with session state in `${CLAUDE_PLUGIN_DATA}`, workflow mandate in the session context, and read-only `ask-reviewer`, `ask-auditor`, and `ask-researcher` subagents. `check-claude-code.js` guards the contract.
+- **Proportional test budget.** `ask-verification` defines new tests per risk class; `develop`, `debugging`, `agent-workflows`, `spec`, `intake`, and coding standards defer to it. `strict tests` restores the old TDD behavior. `check-test-policy.js` guards it.
+- **Non-destructive Claude installer.** `ASK_CLAUDE_MODE=auto|plugin|skills|off`, per-skill links, legacy link migration, generated rules from `rules/workflow.md`, and `--uninstall-claude` / `-UninstallClaude`.
+
+### Changed
+
+- **Skill ids are now `ask-<name>`.** Frontmatter `name` equals the directory, descriptions start with the nice name, and commands load the `ask-` id. The router, OpenCode, and dsh keep routing on the bare name; slash commands in Claude Code become `/ask-<name>`.
+- **Plugin manifest follows Claude Code rules.** Invalid non-`./` path keys are removed so default locations apply, and metadata plus `marketplace.json` are added.
+
+### Fixed
+
+- **Prompt hook crash.** `agent-skills-hook.js` imported functions `router-core.js` no longer exports and failed silently; it now routes through `cascadeRoute` and returns `additionalContext`, which the model actually receives.
+- **Installer deleted user skills.** The Claude step no longer runs `rm -rf ~/.claude/skills` before linking.
+
 ## [2.4.6] - 2026-10-02
 
 ### Added

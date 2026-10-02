@@ -12,7 +12,8 @@ Portable skill pack for OpenCode, Codex, GitHub Copilot, Claude Code, and dsh. S
 - `plugins/`: OpenCode and dsh routers plus TUI/widget code.
 - `scripts/`: install, update, export, and validation scripts.
 - `rules/`: shared coding and workflow guidance.
-- `.github/`, `.claude/`, `.dsh/`, `.opencode/`: generated exports; never hand-edit.
+- `.github/`, `.dsh/`, `.opencode/`: generated exports; never hand-edit.
+- `.claude-plugin/`, `hooks/`, `agents/`: Claude Code plugin manifest, marketplace, hooks, and read-only subagents (hand-maintained).
 
 ## Coding standards
 
@@ -20,7 +21,7 @@ Read `rules/coding-standards.md` before code edits. Every function-like construc
 
 ## Skills
 
-Every `skills/*/SKILL.md` needs frontmatter: `name`, one-sentence `description`, and `triggers`. Keep skills self-contained, normally 30–90 lines. Use `ask-` names for workflow/meta skills. Keep cross-references bidirectional where useful. Keep generic skills free of repository-specific paths.
+Every `skills/*/SKILL.md` needs frontmatter: `name` equal to its directory (`ask-<name>`), a one-sentence `description` that starts with the nice name (`Develop: ...`), and `triggers`. The router and exports keep using the bare name; `ask-` is the native id. Keep skills self-contained, normally 30–90 lines. Use `ask-` names for workflow/meta skills. Keep cross-references bidirectional where useful. Keep generic skills free of repository-specific paths.
 
 ## Router
 
@@ -63,6 +64,8 @@ node ./scripts/check-widget-live-state.js
 node ./scripts/check-research-workflow.js
 node ./scripts/check-tier-vocabulary.js
 node ./scripts/validate-plugin.js
+node ./scripts/check-claude-code.js
+node ./scripts/check-test-policy.js
 node ./scripts/check-release-readiness.js --require-version-entry
 ./scripts/check-installed-artifacts.sh
 ```

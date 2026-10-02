@@ -32,6 +32,16 @@ jobs:
       - name: Validate trigger routing
         run: node ./scripts/check-trigger-overlap.js
 
+      - name: Validate Claude Code contract (manifest, skills, hooks, agents)
+        run: node ./scripts/check-claude-code.js
+
+      - name: Validate proportional test budget
+        run: node ./scripts/check-test-policy.js
+
+      - name: Validate plugin with the Claude Code CLI (advisory until proven stable)
+        continue-on-error: true
+        run: npx --yes @anthropic-ai/claude-code plugin validate . --strict
+
       - name: Validate source intent comments
         run: node ./scripts/check-code-comments.js
 
