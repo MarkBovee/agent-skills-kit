@@ -10,5 +10,12 @@
   "homepage": "https://github.com/MarkBovee/agent-skills-kit",
   "repository": "https://github.com/MarkBovee/agent-skills-kit",
   "license": "MIT",
-  "keywords": ["skills", "workflow", "routing", "code-review", "verification"]
+  "keywords": [
+    "skills",
+    "workflow",
+    "routing",
+    "code-review",
+    "verification"
+  ],
+  "commands": []
 }

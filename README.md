@@ -376,7 +376,7 @@ Each skill also ships as a slash command. A command loads its skill and applies 
 | Claude Code              | skills are commands (2026)           | no separate file — `skill` → `/name`                  |
 | DeepSeek Harness (dsh)   | registered by the ask-kit preset row | no files — `ctx.commands.register()` at runtime       |
 
-Commands are authored once under `commands/` and exported by `export-platform-skills.js` into `.opencode/commands/` (OpenCode) and `.github/prompts/*.prompt.md` (Copilot/VS Code). Claude Code gets its command surface for free because its skills already act as slash commands. dsh has no file-based command discovery; its picker entries are registered programmatically by the ask-kit router preset (one `ctx.commands.register()` per skill; the handler steers the load-the-skill prompt pattern), so no command files ship for it.
+Commands are authored once under `commands/` and exported by `export-platform-skills.js` into `.opencode/commands/` (OpenCode) and `.github/prompts/*.prompt.md` (Copilot/VS Code). Claude Code gets its command surface for free because its skills already act as slash commands; `plugin.json` sets `"commands": []` so `commands/` is not loaded a second time (verified: 17 skills, 0 commands, no duplicate menu entries). dsh has no file-based command discovery; its picker entries are registered programmatically by the ask-kit router preset (one `ctx.commands.register()` per skill; the handler steers the load-the-skill prompt pattern), so no command files ship for it.
 
 ---
 

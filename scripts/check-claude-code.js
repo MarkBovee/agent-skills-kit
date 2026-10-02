@@ -53,6 +53,8 @@ function checkManifest() {
   // Require every string path to start with ./ as Claude Code demands.
   expect(pathKeys.every((key) => plugin[key].startsWith("./")), "plugin.json component paths start with ./")
   expect(plugin.name === "agent-skills-kit", "plugin.json name is agent-skills-kit")
+  // Skills already act as slash commands in Claude Code; loading commands/ too would duplicate every menu entry.
+  expect(Array.isArray(plugin.commands) && plugin.commands.length === 0, "plugin.json sets commands to [] so skills are not duplicated as commands")
   // Find the marketplace entry that points at this plugin root.
   expect(marketplace.plugins?.some((entry) => entry.name === plugin.name && entry.source === "./"), "marketplace.json lists the plugin with source ./")
 }
