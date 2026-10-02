@@ -1,6 +1,6 @@
 ---
-name: verification
-description: Use when about to claim something works, is fixed, or ready to hand off — and when a task changed one or more repos and needs intentional cleanup before stopping.
+name: ask-verification
+description: "Verification: Use when about to claim something works, is fixed, or ready to hand off — and when a task changed one or more repos and needs intentional cleanup before stopping."
 execution_tier: standard
 triggers:
   - verify

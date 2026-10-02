@@ -1,6 +1,6 @@
 ---
 name: "spec"
-description: "Use when building a requirements spec or design brief before code — formalizing capture, decisions, and validation gates for non-trivial or enterprise-style work. Traceability + human-owned validation before handover. Common triggers: spec, specify requirements, requirements spec, requirements capture, design brief, decision register, requirements traceability, traceable requirements, validation gate, readiness gate, handover package, spec before build, truth spine, requirements-driven, requi..."
+description: "Spec: Use when building a requirements spec or design brief before code — formalizing capture, decisions, and validation gates for non-trivial or enterprise-style work. Traceability + human-owned validation before handover. Common triggers: spec, specify requirements, requirements spec, requirements capture, design brief, decision register, requirements traceability, traceable requirements, validation gate, readiness gate, handover package, spec before build, truth spine, requirements-driven,..."
 whenToUse: "Common triggers: spec, specify requirements, requirements spec, requirements capture, design brief, decision register, requirements traceability, traceable requirements, validation gate, readiness gate, handover package, spec before build, truth spine, requirements-driven, requirements engineering, formalize requirements, requirements specification, engineering contract, invariant, proof obligation, counterexample, compatibility-sensitive, material requirement."
 ---
 # ASK Spec

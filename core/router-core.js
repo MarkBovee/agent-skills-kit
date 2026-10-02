@@ -611,6 +611,11 @@ async function findSkillFiles(root) {
   return results
 }
 
+// Strip the ask- prefix so routing keeps using the nice bare skill name while the native id stays ask-<name>.
+function toBareSkillName(skillId) {
+  return typeof skillId === "string" ? skillId.replace(/^ask-/, "") : skillId
+}
+
 async function loadSkills(pathsToScan) {
   const files = []
   for (const skillPath of pathsToScan) {
@@ -621,14 +626,15 @@ async function loadSkills(pathsToScan) {
   for (const filePath of files) {
     const content = await fs.readFile(filePath, "utf8")
     const frontmatter = parseFrontmatter(content)
-    const name = (frontmatter.name || path.basename(path.dirname(filePath))).trim()
+    const id = (frontmatter.name || path.basename(path.dirname(filePath))).trim()
+    const name = toBareSkillName(id)
     const description = (frontmatter.description || "").trim()
     const triggers = normalizeStringList(frontmatter.triggers)
     const isDefault = parseBooleanField(frontmatter.default)
     const executionTier = parseExecutionTier(frontmatter.execution_tier)
     const delegationDefault = parseDelegationMode(frontmatter.delegation_default)
     if (!name || !description) continue
-    skills.push({ name, description, triggers, isDefault, executionTier, delegationDefault, filePath })
+    skills.push({ id, name, description, triggers, isDefault, executionTier, delegationDefault, filePath })
   }
   return skills.sort((left, right) => left.name.localeCompare(right.name))
 }
@@ -832,6 +838,6 @@ module.exports = {
   createEmptySessionState, getSessionState, setSessionState,
     findSkill, isAskSkill, isAskSkillName, ASK_SKILL_NAMES, hasPhraseSignal, routingHintLines,
     classifyWorkflowRisk, hasWorkflowRiskSignal, workflowRiskRank, requiredWorkflowPhases, buildWorkflowState, invalidateWorkflowForDiff, workflowRequiresReview, workflowHintLines, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
-  stripFrontmatter, toSingleLine, normalizeStringList,
+  toBareSkillName, stripFrontmatter, toSingleLine, normalizeStringList,
   parseBooleanField, parseFrontmatter, unique,
 }

@@ -1,6 +1,6 @@
 ---
-name: agent-workflows
-description: Use when coordinating multi-agent work, parallel execution, task handoff, shared context, or clean session shutdown across multiple agents or terminals. Especially useful when the host supports subagents, hooks, or shared context.
+name: ask-agent-workflows
+description: "Agent Workflows: Use when coordinating multi-agent work, parallel execution, task handoff, shared context, or clean session shutdown across multiple agents or terminals. Especially useful when the host supports subagents, hooks, or shared context."
 execution_tier: light
 delegation_default: prefer-subagent
 triggers:

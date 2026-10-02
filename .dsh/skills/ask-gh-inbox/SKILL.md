@@ -1,6 +1,6 @@
 ---
 name: "gh-inbox"
-description: "Process the current repository's GitHub issues and discussions, triage activity, reply when clear, and persist inbox state. Use when asked to check the GitHub inbox, triage issues or discussions, or catch up on repo activity. Common triggers: github inbox, gh inbox, triage issues, check issues, check discussions, reply to issue, process inbox, gh-inbox."
+description: "GitHub Inbox: Process the current repository's GitHub issues and discussions, triage activity, reply when clear, and persist inbox state. Use when asked to check the GitHub inbox, triage issues or discussions, or catch up on repo activity. Common triggers: github inbox, gh inbox, triage issues, check issues, check discussions, reply to issue, process inbox, gh-inbox."
 whenToUse: "Common triggers: github inbox, gh inbox, triage issues, check issues, check discussions, reply to issue, process inbox, gh-inbox."
 ---
 # ASK GitHub Inbox

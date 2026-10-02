@@ -1,6 +1,6 @@
 ---
-name: "text-writing"
-description: "Produce human-sounding text that avoids detectable AI writing patterns. Use for tweets, emails, articles, bios, captions, reports, copy, messages, LinkedIn posts, cover letters, README files — any output that must not read as AI-generated. Common triggers: anti-slop, make this sound human, sound human, not AI, does not read like AI, write a tweet, draft email, write an email, cover letter, linkedin post, newsletter, blog post, copywriting, schrijf als mens, niet AI, menselijk laten klinken."
+name: "ask-text-writing"
+description: "Text Writing: Produce human-sounding text that avoids detectable AI writing patterns. Use for tweets, emails, articles, bios, captions, reports, copy, messages, LinkedIn posts, cover letters, README files — any output that must not read as AI-generated. Common triggers: anti-slop, make this sound human, sound human, not AI, does not read like AI, write a tweet, draft email, write an email, cover letter, linkedin post, newsletter, blog post, copywriting, schrijf als mens, niet AI, menselijk laten klinken."
 ---
 # Human-First Writing
 

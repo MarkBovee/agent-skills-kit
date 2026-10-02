@@ -1,6 +1,6 @@
 ---
-name: develop
-description: "Default baseline skill for normal software work: small safe iterations, built-in validation, no unnecessary pauses between clear next steps. Includes mode selection (direct, batch, delegate) and cheap-first escalation for bounded mechanical chores."
+name: ask-develop
+description: "Develop: Default baseline skill for normal software work: small safe iterations, built-in validation, no unnecessary pauses between clear next steps. Includes mode selection (direct, batch, delegate) and cheap-first escalation for bounded mechanical chores."
 default: true
 execution_tier: standard
 delegation_default: auto

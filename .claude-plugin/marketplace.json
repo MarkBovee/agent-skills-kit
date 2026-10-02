@@ -1,0 +1,19 @@
+{
+  "name": "agent-skills-kit",
+  "owner": {
+    "name": "Mark Bovee",
+    "url": "https://github.com/MarkBovee"
+  },
+  "metadata": {
+    "description": "Workflow skills and routing guidance for coding agents."
+  },
+  "plugins": [
+    {
+      "name": "agent-skills-kit",
+      "source": "./",
+      "description": "Seventeen ask-prefixed workflow skills (develop, debugging, code-review, verification, intake, spec, research, and more) plus lifecycle hooks for routing hints.",
+      "category": "development",
+      "keywords": ["skills", "workflow", "routing"]
+    }
+  ]
+}

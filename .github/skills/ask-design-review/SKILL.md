@@ -1,6 +1,6 @@
 ---
-name: "design-review"
-description: "Review an existing design, UI, or copy for AI-generated default patterns and quality issues before shipping or handoff. Common triggers: review this design, check for AI slop, does this look AI-generated, design review, audit the design, does this look premium, review the frontend, check this UI."
+name: "ask-design-review"
+description: "Design Review: Review an existing design, UI, or copy for AI-generated default patterns and quality issues before shipping or handoff. Common triggers: review this design, check for AI slop, does this look AI-generated, design review, audit the design, does this look premium, review the frontend, check this UI."
 ---
 # Design Review — Anti-Default Filter
 

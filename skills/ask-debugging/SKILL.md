@@ -1,6 +1,6 @@
 ---
-name: debugging
-description: Use when a bug, failing test, or broken build is not already explained by a clear local mistake, or when a first fix did not work.
+name: ask-debugging
+description: "Debugging: Use when a bug, failing test, or broken build is not already explained by a clear local mistake, or when a first fix did not work."
 execution_tier: standard
 delegation_default: auto
 triggers:

@@ -1,6 +1,6 @@
 ---
-name: gh-inbox
-description: Process the current repository's GitHub issues and discussions, triage activity, reply when clear, and persist inbox state. Use when asked to check the GitHub inbox, triage issues or discussions, or catch up on repo activity.
+name: ask-gh-inbox
+description: "GitHub Inbox: Process the current repository's GitHub issues and discussions, triage activity, reply when clear, and persist inbox state. Use when asked to check the GitHub inbox, triage issues or discussions, or catch up on repo activity."
 execution_tier: standard
 delegation_default: owner-only
 triggers:

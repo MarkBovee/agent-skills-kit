@@ -1,6 +1,6 @@
 ---
-name: design-review
-description: Review an existing design, UI, or copy for AI-generated default patterns and quality issues before shipping or handoff.
+name: ask-design-review
+description: "Design Review: Review an existing design, UI, or copy for AI-generated default patterns and quality issues before shipping or handoff."
 triggers:
   - review this design
   - check for AI slop

@@ -1,6 +1,6 @@
 ---
-name: intake
-description: Use when the goal, constraints, or success criteria are not yet crisp — from fuzzy design ideas through ambiguous scope to multi-file planning. Covers brainstorming, scoping, and execution planning in one skill.
+name: ask-intake
+description: "Intake: Use when the goal, constraints, or success criteria are not yet crisp — from fuzzy design ideas through ambiguous scope to multi-file planning. Covers brainstorming, scoping, and execution planning in one skill."
 execution_tier: standard
 triggers:
   - brainstorm

@@ -1,11 +1,14 @@
 {
   "name": "agent-skills-kit",
-  "description": "Workflow skills and lightweight routing guidance for GitHub Copilot and VS Code.",
+  "displayName": "Agent Skills Kit",
   "version": "2.4.6",
+  "description": "Workflow skills and lightweight routing guidance for coding agents: Claude Code, GitHub Copilot, Codex, OpenCode, and dsh.",
   "author": {
     "name": "Mark Bovee",
-    "url": "https://github.com/MarkBovee/agent-skills-kit"
+    "url": "https://github.com/MarkBovee"
   },
-  "skills": "skills/",
-  "hooks": "hooks/hooks.json"
+  "homepage": "https://github.com/MarkBovee/agent-skills-kit",
+  "repository": "https://github.com/MarkBovee/agent-skills-kit",
+  "license": "MIT",
+  "keywords": ["skills", "workflow", "routing", "code-review", "verification"]
 }
