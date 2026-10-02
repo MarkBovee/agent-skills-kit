@@ -237,11 +237,104 @@ assert_no_stale_strings() {
   done
 }
 
+
+# Run the installer in a throwaway home with an optional claude shim directory first on PATH.
+run_claude_installer() {
+  local root="$1" log="$2" shim_dir="$3"
+  shift 3
+  env \
+    HOME="$root/home" \
+    DSH_HOME="$root/dsh" \
+    AGENTS_DIR="$root/agents" \
+    CODEX_HOME="$root/codex" \
+    COPILOT_DIR="$root/copilot" \
+    OPENCODE_DIR="$root/opencode" \
+    CLAUDE_DIR="$root/claude" \
+    ASK_CLAUDE_MODE="${ASK_CLAUDE_MODE_OVERRIDE:-auto}" \
+    PATH="${shim_dir:+$shim_dir:}$PATH" \
+    bash "$REPO_ROOT/scripts/install.sh" "$@" >"$log" 2>&1
+}
+
+# Create a fake claude CLI that logs its arguments and fails the install subcommand when asked.
+make_claude_shim() {
+  local dir="$1" fail_install="$2"
+  mkdir -p "$dir"
+  cat > "$dir/claude" <<EOF
+#!/usr/bin/env sh
+printf '%s\n' "\$*" >> "$dir/calls.log"
+if [ "$fail_install" = "yes" ] && [ "\$2" = "install" ]; then exit 1; fi
+exit 0
+EOF
+  chmod +x "$dir/claude"
+}
+
+# Exercise the Claude Code install paths: fresh, user-owned skills, legacy link, plugin, fallback, uninstall.
+check_claude_scenarios() {
+  local base
+  base="$(mktemp -d "${TMPDIR:-/tmp}/ask-claude-check.XXXXXX")"
+  echo "Claude Code installer scenarios (sandbox: $base)…"
+
+  # Scenario A: fresh machine, skills mode creates the Claude dir, links skills, writes generated rules.
+  local a="$base/a"; mkdir -p "$a"
+  ASK_CLAUDE_MODE_OVERRIDE=skills run_claude_installer "$a" "$a/log" "" || check "claude fresh install succeeds" false "$(tail -5 "$a/log" | tr '\n' ' ')"
+  check "claude fresh install links ask-develop" "$([ -L "$a/claude/skills/ask-develop" ] && printf true || printf false)"
+  check "claude skill root stays a real directory" "$([ -d "$a/claude/skills" ] && [ ! -L "$a/claude/skills" ] && printf true || printf false)"
+  assert_grep "claude rules come from the shared workflow mandate" "$a/claude/rules/agent-skills-kit.md" "# ASK Workflow Mandate" present
+  assert_grep "claude rules explain the ask- ids" "$a/claude/rules/agent-skills-kit.md" 'the id `ask-<name>`' present
+  check "claude install writes no duplicate workflow.md" "$([ ! -e "$a/claude/rules/workflow.md" ] && printf true || printf false)"
+
+  # Scenario B: a user-owned skill in the Claude skill root must survive install and refresh.
+  local b="$base/b"; mkdir -p "$b/claude/skills/my-own"
+  printf 'mine\n' > "$b/claude/skills/my-own/SKILL.md"
+  ASK_CLAUDE_MODE_OVERRIDE=skills run_claude_installer "$b" "$b/log" "" || check "claude install with user skill succeeds" false
+  ASK_CLAUDE_MODE_OVERRIDE=skills run_claude_installer "$b" "$b/log2" "" || check "claude refresh with user skill succeeds" false
+  check "claude install preserves a user-owned skill" "$([ -f "$b/claude/skills/my-own/SKILL.md" ] && printf true || printf false)"
+  check "claude install still links ASK skills next to it" "$([ -L "$b/claude/skills/ask-intake" ] && printf true || printf false)"
+
+  # Scenario C: legacy whole-directory link to the shared root is migrated without touching the shared root.
+  local c="$base/c"; mkdir -p "$c/agents/skills/other-tool-skill" "$c/claude"
+  printf 'other\n' > "$c/agents/skills/other-tool-skill/SKILL.md"
+  ln -s "$c/agents/skills" "$c/claude/skills"
+  ASK_CLAUDE_MODE_OVERRIDE=skills run_claude_installer "$c" "$c/log" "" || check "claude legacy-link migration succeeds" false
+  check "claude legacy whole-directory link becomes a real directory" "$([ -d "$c/claude/skills" ] && [ ! -L "$c/claude/skills" ] && printf true || printf false)"
+  check "claude migration keeps the shared root intact" "$([ -f "$c/agents/skills/other-tool-skill/SKILL.md" ] && printf true || printf false)"
+  check "claude migration hides foreign shared skills from Claude" "$([ ! -e "$c/claude/skills/other-tool-skill" ] && printf true || printf false)"
+
+  # Scenario D: with a claude CLI the plugin route is used and no per-skill links are created.
+  local d="$base/d"; mkdir -p "$d"
+  make_claude_shim "$d/shim" no
+  run_claude_installer "$d" "$d/log" "$d/shim" || check "claude plugin install succeeds" false "$(tail -5 "$d/log" | tr '\n' ' ')"
+  assert_grep "claude plugin route registers the marketplace" "$d/shim/calls.log" "plugin marketplace add" present
+  assert_grep "claude plugin route installs the plugin" "$d/shim/calls.log" "plugin install agent-skills-kit@agent-skills-kit" present
+  check "claude plugin route creates no duplicate skill links" "$([ ! -e "$d/claude/skills/ask-develop" ] && printf true || printf false)"
+
+  # Scenario E: a failing plugin install falls back to per-skill links.
+  local e="$base/e"; mkdir -p "$e"
+  make_claude_shim "$e/shim" yes
+  run_claude_installer "$e" "$e/log" "$e/shim" || check "claude plugin fallback install succeeds" false "$(tail -5 "$e/log" | tr '\n' ' ')"
+  check "claude plugin failure falls back to per-skill links" "$([ -L "$e/claude/skills/ask-develop" ] && printf true || printf false)"
+
+  # Scenario F: uninstall removes only ASK-owned pieces.
+  ASK_CLAUDE_MODE_OVERRIDE=skills run_claude_installer "$b" "$b/log3" "" --uninstall-claude || check "claude uninstall succeeds" false
+  check "claude uninstall removes ASK skill links" "$([ ! -e "$b/claude/skills/ask-intake" ] && printf true || printf false)"
+  check "claude uninstall removes generated rules" "$([ ! -e "$b/claude/rules/agent-skills-kit.md" ] && printf true || printf false)"
+  check "claude uninstall keeps the user-owned skill" "$([ -f "$b/claude/skills/my-own/SKILL.md" ] && printf true || printf false)"
+
+  rm -rf "$base"
+}
+
 main() {
   command -v node >/dev/null 2>&1 || {
     echo "node is required to run the installer check." >&2
     exit 1
   }
+
+  if [ "${ASK_CHECK_ONLY_CLAUDE:-0}" = "1" ]; then
+    check_claude_scenarios
+    [ "$failures" -eq 0 ] || { echo "$failures check(s) failed." >&2; exit 1; }
+    echo "Claude Code installer scenarios passed."
+    exit 0
+  fi
 
   make_sandbox
   trap 'rm -rf "$SANDBOX"' EXIT
@@ -352,6 +445,8 @@ main() {
     "$REPO_ROOT/scripts/install.ps1" "$STALE_PRESET_DESCRIPTION" present
 
   assert_no_stale_strings
+
+  check_claude_scenarios
 
   echo
   if [ "$failures" -eq 0 ]; then

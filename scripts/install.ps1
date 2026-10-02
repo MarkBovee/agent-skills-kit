@@ -5,7 +5,9 @@ param(
     [string]$CopilotDir = (Join-Path $HOME ".copilot"),
     [string]$OpencodeDir = $(if ($env:XDG_CONFIG_HOME) { Join-Path $env:XDG_CONFIG_HOME "opencode" } else { Join-Path $HOME ".config\opencode" }),
     [string]$ClaudeDir = (Join-Path $HOME ".claude"),
-    [string]$DshHome = $(if ($env:DSH_HOME) { $env:DSH_HOME } else { Join-Path $HOME ".dsh" })
+    [string]$DshHome = $(if ($env:DSH_HOME) { $env:DSH_HOME } else { Join-Path $HOME ".dsh" }),
+    [string]$ClaudeMode = $(if ($env:ASK_CLAUDE_MODE) { $env:ASK_CLAUDE_MODE } else { "auto" }),
+    [switch]$UninstallClaude
 )
 
 Set-StrictMode -Version Latest
@@ -36,6 +38,8 @@ $opencodeAgentsFile = Join-Path $OpencodeDir "AGENTS.md"
 $claudeSkillsTarget = Join-Path $ClaudeDir "skills"
 $claudeRulesTarget = Join-Path $ClaudeDir "rules"
 $claudeRulesFile = Join-Path $claudeRulesTarget "agent-skills-kit.md"
+$claudePluginId = "agent-skills-kit@agent-skills-kit"
+$claudeRulesMarker = "<!-- agent-skills-kit:managed -->"
 $dshSkillsTarget = Join-Path $DshHome "skills"
 $dshAgentsFile = Join-Path $DshHome "AGENTS.md"
 $dshMetadataFile = Join-Path $DshHome ".agent-skills-kit-dsh-install.txt"
@@ -119,20 +123,92 @@ function Remove-LegacyInstallArtifacts {
 # Render installer identity before file operations begin.
 Show-AskBanner
 
-# Write the Claude rule file when a Claude home already exists.
+# Write the Claude rule file from the shared workflow mandate (single source: rules/workflow.md).
 function Write-ClaudeRulesFile {
-@"
-# ASK Skills
+    $workflow = Get-Content -LiteralPath (Join-Path $opencodeRulesSource "workflow.md") -Raw
+    $lines = @(
+        $claudeRulesMarker,
+        $workflow.TrimEnd(),
+        "",
+        '- ASK skills are native Agent Skills with the id `ask-<name>` (for example `ask-develop`); the guidance above names them without the prefix.',
+        '- Follow the Test budget in `ask-verification`; `strict tests` restores TDD and a regression test per fix.'
+    )
+    ($lines -join "`n") + "`n" | Set-Content -LiteralPath $claudeRulesFile -NoNewline
+}
 
-- Prefer workflow skills under `~/.claude/skills/` when the user's request clearly matches one of them instead of rewriting the workflow inline.
-- Treat `develop` as the default execution baseline for normal software work and combine it with a more specific skill when needed.
-- For large, multi-issue, exhaustive, compatibility-sensitive, or release-sensitive work, load `intake`, write a plan, and complete plan-check before execution.
-- Record maximum-result scope as must/should/could; deferred evidence-backed work needs a reason and revisit trigger.
-- Delegate independent research, validation, review, and audit tracks. Never self-declare release readiness; require independent evidence.
-- After code edits, load `code-review` before claiming completion.
-- If review, verification, or wrap-up exposes a reusable workflow gap, capture it with `write-skill` before ending cold.
-- When editing code, add concise intent comments by default; place one short comment above each function unless the repo's local convention says otherwise.
-"@ | Set-Content -LiteralPath $claudeRulesFile -NoNewline
+# Decide how Claude Code is wired: plugin (via the claude CLI), skills (per-skill links), or off.
+function Resolve-ClaudeMode {
+    if ($ClaudeMode -in @("plugin", "skills", "off")) { return $ClaudeMode }
+    if (Get-Command claude -ErrorAction SilentlyContinue) { return "plugin" }
+    if (Test-Path -LiteralPath $ClaudeDir) { return "skills" }
+    return "off"
+}
+
+# Remove only ASK-owned links from the Claude skill root; real directories and foreign links stay untouched.
+function Remove-AskClaudeSkillLinks {
+    if (-not (Test-Path -LiteralPath $claudeSkillsTarget)) { return }
+    $root = Get-Item -LiteralPath $claudeSkillsTarget -Force
+    if ($root.LinkType) {
+        # Legacy installs replaced the whole directory with a link to the shared root; drop just that link.
+        if ($root.Target -contains $sharedSkillsTarget) { $root.Delete() }
+        return
+    }
+    foreach ($entry in Get-ChildItem -LiteralPath $claudeSkillsTarget -Force -Filter "ask-*") {
+        if ($entry.LinkType -and ($entry.Target | Where-Object { $_ -like "$sharedSkillsTarget*" })) { $entry.Delete() }
+    }
+}
+
+# Link each managed skill into the Claude skill root without replacing anything the user owns.
+function Link-ClaudeSkills {
+    param([string[]]$SkillNames)
+    New-Item -ItemType Directory -Force -Path $claudeSkillsTarget | Out-Null
+    foreach ($skillName in $SkillNames) {
+        $linkPath = Join-Path $claudeSkillsTarget $skillName
+        $targetPath = Join-Path $sharedSkillsTarget $skillName
+        if (Test-Path -LiteralPath $linkPath) {
+            $existing = Get-Item -LiteralPath $linkPath -Force
+            if (-not $existing.LinkType) {
+                Write-Warning "Skipped Claude skill link for ${skillName}: a user-owned directory already exists."
+                continue
+            }
+            $existing.Delete()
+        }
+        try { New-Item -ItemType SymbolicLink -Path $linkPath -Target $targetPath | Out-Null }
+        catch { New-Item -ItemType Junction -Path $linkPath -Target $targetPath | Out-Null }
+    }
+}
+
+# Install the ASK plugin through the claude CLI; returns $false when the CLI path fails.
+function Install-ClaudePlugin {
+    try {
+        & claude plugin marketplace add $repoRoot *> $null
+        & claude plugin install $claudePluginId --scope user *> $null
+        return ($LASTEXITCODE -eq 0)
+    }
+    catch { return $false }
+}
+
+# Remove the Claude rules this installer generated, leaving user-written rule files alone.
+function Remove-ClaudeRules {
+    if ((Test-Path -LiteralPath $claudeRulesFile) -and (Select-String -LiteralPath $claudeRulesFile -SimpleMatch $claudeRulesMarker -Quiet)) {
+        Remove-Item -LiteralPath $claudeRulesFile -Force
+    }
+    $standards = Join-Path $claudeRulesTarget "coding-standards.md"
+    $standardsSource = Join-Path $opencodeRulesSource "coding-standards.md"
+    if ((Test-Path -LiteralPath $standards) -and ((Get-FileHash -LiteralPath $standards).Hash -eq (Get-FileHash -LiteralPath $standardsSource).Hash)) {
+        Remove-Item -LiteralPath $standards -Force
+    }
+}
+
+# Undo the whole Claude Code integration: plugin, links, and generated rules.
+function Uninstall-Claude {
+    if (Get-Command claude -ErrorAction SilentlyContinue) {
+        & claude plugin uninstall $claudePluginId *> $null
+        & claude plugin marketplace remove agent-skills-kit *> $null
+    }
+    Remove-AskClaudeSkillLinks
+    Remove-ClaudeRules
+    "Removed ASK from Claude Code (plugin, skill links, generated rules)."
 }
 
 # Append managed workflow guidance without replacing user-owned OpenCode rules.
@@ -475,6 +551,11 @@ function Set-DirectoryLink {
     }
 }
 
+if ($UninstallClaude) {
+    Uninstall-Claude
+    return
+}
+
 $node = Get-Command node -ErrorAction SilentlyContinue
 if (-not $node) {
     throw "node is required to export Copilot assets before install."
@@ -515,6 +596,7 @@ try {
 
     Clear-OldSkillRoot -TargetPath $copilotSkillsTarget -CurrentSkillNames $currentSkillNames
     Clear-OldSkillRoot -TargetPath $opencodeSkillsTarget -CurrentSkillNames $currentSkillNames
+    Remove-AskClaudeSkillLinks
     Clear-OldSkillRoot -TargetPath $claudeSkillsTarget -CurrentSkillNames $currentSkillNames
 
     # Symlink managed ask skills into OpenCode skills dir for native discovery.
@@ -677,12 +759,25 @@ try {
     }
     if ($tuiChanged) { $tuiCfg | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $opencodeTuiJsonPath }
 
-    if (Test-Path -LiteralPath $ClaudeDir) {
+    # Wire Claude Code: plugin via the claude CLI when available, otherwise per-skill links; never replace user skills.
+    $claudeResolvedMode = Resolve-ClaudeMode
+    $claudeResult = "skipped"
+    if ($claudeResolvedMode -ne "off") {
         New-Item -ItemType Directory -Force -Path $claudeRulesTarget | Out-Null
         Write-ClaudeRulesFile
         Copy-Item -LiteralPath (Join-Path $opencodeRulesSource "coding-standards.md") -Destination (Join-Path $claudeRulesTarget "coding-standards.md") -Force
-        Copy-Item -LiteralPath (Join-Path $opencodeRulesSource "workflow.md") -Destination (Join-Path $claudeRulesTarget "workflow.md") -Force
-        Set-DirectoryLink -LinkPath $claudeSkillsTarget -TargetPath $sharedSkillsTarget
+        $legacyClaudeWorkflow = Join-Path $claudeRulesTarget "workflow.md"
+        if ((Test-Path -LiteralPath $legacyClaudeWorkflow) -and (Select-String -LiteralPath $legacyClaudeWorkflow -SimpleMatch "# ASK Workflow Mandate" -Quiet)) {
+            Remove-Item -LiteralPath $legacyClaudeWorkflow -Force
+        }
+        if ($claudeResolvedMode -eq "plugin" -and (Install-ClaudePlugin)) {
+            $claudeResult = "plugin"
+        }
+        else {
+            if ($claudeResolvedMode -eq "plugin") { Write-Warning "Claude plugin install failed; falling back to per-skill links." }
+            Link-ClaudeSkills -SkillNames $currentSkillNames
+            $claudeResult = "skills"
+        }
     }
 
     # Install the dsh-optimized skill variant and routing guidance when dsh is
@@ -728,12 +823,10 @@ try {
     "Installed OpenCode rules to $(Join-Path $opencodeRulesTarget 'coding-standards.md')"
     "Installed OpenCode agent-skills-kit usage guide to $(Join-Path $opencodeRulesTarget 'agent-skills-kit.md')"
     "Installed OpenCode workflow guidance to $opencodeAgentsFile"
-    if (Test-Path -LiteralPath $ClaudeDir) {
-        "Installed Claude Code rules to $claudeRulesFile"
-        "Linked Claude skills at $claudeSkillsTarget -> $sharedSkillsTarget"
-    }
-    else {
-        "Skipped Claude linking because $ClaudeDir does not exist."
+    switch ($claudeResult) {
+        "plugin" { "Installed Claude Code rules to $claudeRulesFile and the $claudePluginId plugin" }
+        "skills" { "Installed Claude Code rules to $claudeRulesFile and linked ASK skills into $claudeSkillsTarget" }
+        default { "Skipped Claude Code setup (ASK_CLAUDE_MODE=$ClaudeMode; no claude CLI and $ClaudeDir does not exist)." }
     }
     if ($null -ne $dshInstalledCount) {
         "Installed $dshInstalledCount dsh skills to $dshSkillsTarget"
