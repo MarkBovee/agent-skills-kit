@@ -976,7 +976,7 @@ const planIndexStatusPatch = planGateItems(workflowHistory("add a status panel",
     tool: "patch",
     patchText: "*** Begin Patch\n*** Update File: plans/README.md\n@@\n-| 001 | Show plan gate status in the OpenCode sidebar | P2 | M | — | IN PROGRESS |\n+| 001 | Show plan gate status in the OpenCode sidebar | P2 | M | — | DONE |\n*** End Patch",
   },
-]), process.cwd())
+]), planWorkspace)
 assertGateSnapshot(planIndexStatusPatch, [
   "PLAN_CHECK=PASS", "VALIDATE=PASS", "REVIEW=PASS", "AUDIT=PASS", "RELEASE_GATE=PENDING",
 ], "after changing only the plan index status cell")
