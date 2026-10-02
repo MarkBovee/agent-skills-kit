@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.4.6] - 2026-10-02
+
+### Added
+
+- **Show the plan gate ledger in the OpenCode sidebar.** The panel tracks all five gates from explicit session evidence, rejects stale or unbound post-edit results, and keeps sidebar colors tied to the selected OpenCode theme.
+
 ## [2.4.5] - 2026-09-29
 
 ### Changed

@@ -1,11 +1,18 @@
 /** @jsxImportSource @opentui/solid */
 
 import { createMemo, Show } from "solid-js"
-import { Plugin, type Context } from "@opencode/plugin/tui"
-import { mergeActiveSkills, pendingItems, readStatus } from "./sidebar-status.js"
+import { Plugin } from "@opencode/plugin/tui"
+import type { Context } from "@opencode/plugin/tui/plugin"
+import {
+  mergeActiveSkills,
+  pendingItems,
+  planGateItems,
+  planGateText,
+  readStatus,
+  sidebarColors,
+} from "./sidebar-status.js"
 
-// OpenCode TUI face for the ASK router package. It renders only the status
-// snapshot published by the server router through supported prompt metadata.
+// OpenCode TUI face for ASK status snapshots and structured plan-gate evidence.
 
 type ActiveSkillEntry = {
   skill?: unknown
@@ -46,17 +53,6 @@ function SectionHeader(props: { title: string; color: unknown }) {
   return <text fg={props.color}><b>{props.title}</b></text>
 }
 
-// Resolve every sidebar color from OpenCode's reactive theme instead of storing a palette snapshot.
-function sidebarColors(theme: Context["theme"]) {
-  return {
-    title: theme.text.action.primary.default,
-    section: theme.text.default,
-    active: theme.text.feedback.success.default,
-    muted: theme.text.subdued,
-    pending: theme.text.feedback.warning.default,
-  }
-}
-
 // Render ASK's compact sidebar panel from reactive session metadata.
 function StatusPanel(props: { api: Context; sessionID: string }) {
   // Execute the status callback.
@@ -67,11 +63,13 @@ function StatusPanel(props: { api: Context; sessionID: string }) {
   const activeSkills = createMemo(() => mergeActiveSkills(status(), messages()) as ActiveSkillEntry[])
   // Execute the pending callback.
   const pending = createMemo(() => pendingItems(status(), messages()))
+  // Reconstruct plan progress from explicit lifecycle evidence in this session.
+  const planGates = createMemo(() => planGateItems(messages(), props.api.data.session.get(props.sessionID)?.location.directory))
   // Keep the widget synchronized with theme changes made by OpenCode.
   const colors = createMemo(() => sidebarColors(props.api.theme))
 
   return (
-    <Show when={status()}>
+    <Show when={status() || planGates()}>
       <box flexDirection="column" gap={1} paddingTop={1} paddingBottom={1}>
         <text fg={colors().title}><b>Agent Skills Kit</b></text>
         <box flexDirection="column">
@@ -80,6 +78,12 @@ function StatusPanel(props: { api: Context; sessionID: string }) {
             <text fg={colors().active}>{activeSkillText(activeSkills())}</text>
           </Show>
         </box>
+        <Show when={planGates()}>
+          <box flexDirection="column">
+            <SectionHeader title="PLAN GATES" color={colors().section} />
+            <text fg={colors().section}>{planGateText(planGates()!)}</text>
+          </box>
+        </Show>
         <Show when={pending().length > 0}>
           <box flexDirection="column">
             <SectionHeader title="PENDING" color={colors().section} />
