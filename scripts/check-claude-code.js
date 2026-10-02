@@ -79,10 +79,20 @@ function checkSkills() {
   expect(listingChars <= MAX_LISTING_BUDGET, `skill listing stays within ${MAX_LISTING_BUDGET} characters (${listingChars})`)
 }
 
+// Check the agent definitions use the ask- names and a tool allowlist without edit tools.
+function checkAgents() {
+  const agentsDir = path.join(REPO_ROOT, "agents")
+  for (const fileName of fs.readdirSync(agentsDir)) {
+    const raw = fs.readFileSync(path.join(agentsDir, fileName), "utf8")
+    expect(/^name: ask-[a-z-]+$/m.test(raw) && raw.includes(`name: ${fileName.replace(/\.md$/, "")}`), `${fileName} agent name matches its file and the ask- prefix`)
+    expect(/^tools:/m.test(raw) && !/^tools:.*\b(Edit|Write|MultiEdit)\b/m.test(raw), `${fileName} agent is read-only`)
+  }
+}
+
 // Check the hooks file uses the nested Claude Code shape with a quoted plugin root.
 function checkHooksFile() {
   const hooks = readJson("hooks/hooks.json").hooks || {}
-  for (const eventName of ["SessionStart", "UserPromptSubmit"]) {
+  for (const eventName of ["SessionStart", "UserPromptSubmit", "PostToolUse"]) {
     // Flatten the handler lists of every hook entry for one event.
     const handlers = (hooks[eventName] || []).flatMap((entry) => entry.hooks || [])
     expect(handlers.length > 0, `${eventName} defines nested hook handlers`)
@@ -104,6 +114,19 @@ function checkHookBehavior() {
   const alternate = parseHookOutput(runHook("prompt", JSON.stringify({ user_input: "fix the failing test in the parser" })).stdout)
   expect(alternate?.hookSpecificOutput?.additionalContext?.includes("ask-debugging"), "UserPromptSubmit also reads the user_input payload field")
 
+  const stateDir = fs.mkdtempSync(path.join(require("node:os").tmpdir(), "ask-hook-state-"))
+  const stateEnv = { ...process.env, CLAUDE_PLUGIN_DATA: stateDir }
+  // Run one hook event with a JSON payload and the isolated state directory.
+  const run = (event, payload) => spawnSync(process.execPath, [HOOK_SCRIPT, event], { input: JSON.stringify(payload), encoding: "utf8", env: stateEnv, timeout: 10000 })
+  run("prompt", { session_id: "state", prompt: "implement the next step" })
+  run("post-edit", { session_id: "state", tool_name: "Edit" })
+  const nudge = parseHookOutput(run("prompt", { session_id: "state", prompt: "continue" }).stdout)
+  expect(nudge?.hookSpecificOutput?.additionalContext?.includes("ask-code-review"), "an edit makes the next prompt remind about ask-code-review")
+  run("post-skill", { session_id: "state", tool_input: { skill: "ask-code-review" } })
+  const cleared = parseHookOutput(run("prompt", { session_id: "state", prompt: "continue" }).stdout)
+  expect(!cleared?.hookSpecificOutput?.additionalContext?.includes("Code edited"), "loading ask-code-review clears the reminder")
+  fs.rmSync(stateDir, { recursive: true, force: true })
+
   const slash = runHook("prompt", JSON.stringify({ prompt: "/clear" }))
   expect(slash.status === 0 && slash.stdout.trim() === "", "slash-command prompts produce no hint")
 
@@ -114,6 +137,7 @@ function checkHookBehavior() {
 checkManifest()
 checkSkills()
 checkHooksFile()
+checkAgents()
 checkHookBehavior()
 
 if (failures.length > 0) {
