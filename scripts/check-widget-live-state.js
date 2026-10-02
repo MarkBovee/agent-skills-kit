@@ -309,6 +309,9 @@ async function openCodeTuiLifecycle() {
   check("opencode TUI reads reactive session metadata", source.includes("createMemo(() => sessionStatus(props.api, props.sessionID))"))
   check("opencode TUI replaces dynamic skill lists atomically", !source.includes("<For each="))
   check("opencode TUI has no duplicate update subscription", !source.includes('api.event.on("session.updated"'))
+  check("opencode TUI derives optional plan gates from session history", source.includes("planGateItems(messages(), props.api.data.session.get(props.sessionID)?.location.directory)"))
+  check("opencode TUI scopes each ledger read to the active session", source.includes("message.list(props.sessionID)"))
+  check("opencode TUI renders plan gates without changing the router snapshot", source.includes('title="PLAN GATES"') && !source.includes("workflow?: unknown"))
 }
 
 // Wire the real dsh router row to a subscribable projection store, render the
