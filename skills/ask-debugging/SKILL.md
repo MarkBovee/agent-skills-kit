@@ -1,6 +1,7 @@
 ---
 name: ask-debugging
-description: "Debugging: Use when a bug, failing test, or broken build has no clear local cause, or a first fix did not work."
+disable-model-invocation: true
+description: "Debugging: Use when a bug, failing test, crash, wrong result, or broken build needs a root cause, or when a first fix did not work."
 execution_tier: standard
 delegation_default: auto
 triggers:
@@ -23,12 +24,16 @@ triggers:
   - hangt
   - hanging
   - crash loop
-  - None
-  - target_temp
   - niet werkend
   - doet het niet
   - malfunction
-  - storing
+  - returns the wrong
+  - wrong result
+  - wrong output
+  - find the cause
+  - find the root cause
+  - started failing
+  - unexpected behavior
 ---
 
 # ASK Debugging

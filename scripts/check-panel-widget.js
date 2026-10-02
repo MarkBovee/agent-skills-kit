@@ -79,13 +79,13 @@ function main() {
   const source = fs.readFileSync(widgetPath, "utf8")
   const renderer = loadWidget({
     activeSkills: [{ skill: "develop", label: "Develop", current: true }, { skill: "debugging", label: "Debugging", current: false }],
-    pending: [{ flag: "needsCodeReview", skill: "code-review", label: "Code review needed", action: "skill(name: 'code-review')" }],
+    pending: [{ flag: "needsCodeReview", skill: "code-review", label: "Code review needed", action: "Read ~/.agents/skills/ask-code-review/SKILL.md" }],
   })
   const visible = textOf(renderer({ session: { sessionId: "test" } }))
   check("renders active skills", visible.includes("ACTIVE SKILLS") && visible.includes("Develop") && visible.includes("Debugging"))
   check("no longer renders a confidence meter", !visible.includes("CONFIDENCE") && !visible.includes("%"))
   check("does not render workflow", !visible.includes("WORKFLOW") && !visible.includes("Plan"))
-  check("renders review pending", visible.includes("PENDING") && visible.includes("Code review needed") && visible.includes("skill(name: 'code-review')"))
+  check("renders review pending", visible.includes("PENDING") && visible.includes("Code review needed") && visible.includes("Read ~/.agents/skills/ask-code-review/SKILL.md"))
   const emptyVisible = textOf(loadWidget({})({ session: { sessionId: "empty" } }))
   check("renders safe empty state", emptyVisible.includes("Not matched"))
   check("hides pending section when no obligations", !emptyVisible.includes("PENDING"))

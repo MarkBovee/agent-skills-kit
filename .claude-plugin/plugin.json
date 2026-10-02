@@ -1,7 +1,7 @@
 {
   "name": "agent-skills-kit",
   "displayName": "Agent Skills Kit",
-  "version": "2.5.1",
+  "version": "2.5.2",
   "description": "Workflow skills and lightweight routing guidance for coding agents: Claude Code, GitHub Copilot, Codex, OpenCode, and dsh.",
   "author": {
     "name": "Mark Bovee",

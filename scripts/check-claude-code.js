@@ -83,26 +83,29 @@ function checkSkills() {
   expect(listingChars <= MAX_LISTING_BUDGET, `skill listing stays within ${MAX_LISTING_BUDGET} characters (${listingChars})`)
 }
 
-// Check the agent definitions use the ask- names and a tool allowlist without edit tools.
+// Check the agent definitions use ask- names, read-only tools, and a Sonnet fallback.
 function checkAgents() {
   const agentsDir = path.join(REPO_ROOT, "agents")
   for (const fileName of fs.readdirSync(agentsDir)) {
     const raw = fs.readFileSync(path.join(agentsDir, fileName), "utf8")
     expect(/^name: ask-[a-z-]+$/m.test(raw) && raw.includes(`name: ${fileName.replace(/\.md$/, "")}`), `${fileName} agent name matches its file and the ask- prefix`)
     expect(/^tools:/m.test(raw) && !/^tools:.*\b(Edit|Write|MultiEdit)\b/m.test(raw), `${fileName} agent is read-only`)
+    expect(/^model:\s*sonnet\s*$/m.test(raw), `${fileName} agent requests Sonnet rather than inheriting the session model`)
   }
 }
 
 // Check the hooks file uses the nested Claude Code shape with a quoted plugin root.
 function checkHooksFile() {
   const hooks = readJson("hooks/hooks.json").hooks || {}
-  for (const eventName of ["SessionStart", "UserPromptSubmit", "PostToolUse"]) {
+  for (const eventName of ["SessionStart", "SubagentStart", "UserPromptSubmit", "PostToolUse"]) {
     // Flatten the handler lists of every hook entry for one event.
     const handlers = (hooks[eventName] || []).flatMap((entry) => entry.hooks || [])
     expect(handlers.length > 0, `${eventName} defines nested hook handlers`)
     // Require command handlers that quote the plugin root variable.
     expect(handlers.every((handler) => handler.type === "command" && handler.command.includes('"${CLAUDE_PLUGIN_ROOT}')), `${eventName} handlers quote \${CLAUDE_PLUGIN_ROOT}`)
   }
+  const postToolHandlers = (hooks.PostToolUse || []).flatMap((entry) => entry.hooks || [])
+  expect(postToolHandlers.some((handler) => handler.command.endsWith("agent-skills-hook.js\" post-skill-read")), "PostToolUse tracks router-directed skill file reads")
 }
 
 // Smoke-test the hook script with real Claude Code payload shapes.
@@ -126,14 +129,28 @@ function checkHookBehavior() {
   run("post-edit", { session_id: "state", tool_name: "Edit" })
   const nudge = parseHookOutput(run("prompt", { session_id: "state", prompt: "continue" }).stdout)
   expect(nudge?.hookSpecificOutput?.additionalContext?.includes("ask-code-review"), "an edit makes the next prompt remind about ask-code-review")
-  run("post-skill", { session_id: "state", tool_input: { skill: "ask-code-review" } })
+  run("post-skill-read", { session_id: "state", tool_input: { file_path: path.join(SKILLS_DIR, "ask-code-review", "SKILL.md") } })
   const cleared = parseHookOutput(run("prompt", { session_id: "state", prompt: "continue" }).stdout)
-  expect(!cleared?.hookSpecificOutput?.additionalContext?.includes("Code edited"), "loading ask-code-review clears the reminder")
+  expect(!cleared?.hookSpecificOutput?.additionalContext?.includes("Code edited"), "reading ask-code-review clears the reminder")
   // Payload captured live from Claude Code 2.1.284: plugin skills arrive namespaced as `<plugin>:<skill>`.
   run("post-edit", { session_id: "state", tool_name: "Write" })
   run("post-skill", { session_id: "state", hook_event_name: "PostToolUse", tool_name: "Skill", tool_input: { skill: "agent-skills-kit:ask-code-review" }, tool_response: { success: true, commandName: "agent-skills-kit:ask-code-review" } })
   const clearedNamespaced = parseHookOutput(run("prompt", { session_id: "state", prompt: "continue" }).stdout)
   expect(!clearedNamespaced?.hookSpecificOutput?.additionalContext?.includes("Code edited"), "loading the plugin-namespaced agent-skills-kit:ask-code-review clears the reminder")
+
+  const subagent = parseHookOutput(runHook("subagent-start", JSON.stringify({ agent_type: "Explore" })).stdout)
+  expect(subagent?.hookSpecificOutput?.hookEventName === "SubagentStart" && subagent.hookSpecificOutput.additionalContext.includes("Read ~/.agents/skills/ask-debugging/SKILL.md"), "SubagentStart gives subagents router-directed file paths")
+  expect(!startContext.includes("Installed skill preview"), "SessionStart does not repeat the native skill listing")
+
+  const question = parseHookOutput(run("prompt", { prompt: "What does pageCount return for an empty list?", session_id: "question" }).stdout)
+  expect(!question, "a plain question gets no routing or workflow line")
+  const develop = parseHookOutput(run("prompt", { prompt: "Implement this: add pagination to the API", session_id: "develop" }).stdout)
+  expect(develop?.hookSpecificOutput?.additionalContext?.includes("ask-develop"), "a develop trigger produces an ask-develop hint")
+
+  run("prompt", { session_id: "compact", prompt: "implement the next step" })
+  run("session-start", { session_id: "compact", source: "compact" })
+  const afterCompact = parseHookOutput(run("prompt", { session_id: "compact", prompt: "implement the next step" }).stdout)
+  expect(afterCompact?.hookSpecificOutput?.additionalContext?.includes("Workflow risk="), "the workflow risk line is announced again after compaction")
   fs.rmSync(stateDir, { recursive: true, force: true })
 
   const slash = runHook("prompt", JSON.stringify({ prompt: "/clear" }))

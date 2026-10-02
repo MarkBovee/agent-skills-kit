@@ -23,6 +23,8 @@ Read `rules/coding-standards.md` before code edits. Every function-like construc
 
 Every `skills/*/SKILL.md` needs frontmatter: `name` equal to its directory (`ask-<name>`), a one-sentence `description` that starts with the nice name (`Develop: ...`), and `triggers`. The router and exports keep using the bare name; `ask-` is the native id. Keep skills self-contained, normally 30–90 lines. Use `ask-` names for workflow/meta skills. Keep cross-references bidirectional where useful. Keep generic skills free of repository-specific paths.
 
+`triggers` feed only the ASK router; Claude Code selects skills from `description` alone, so the key use cases and terms belong in the description, which must stay at or under 160 characters to survive the shared listing budget. Keep each `SKILL.md` body compact and move procedures needed only in rare cases (for example release gates) to a one-level `references/` file. Measure activation changes with `node ./scripts/eval-skill-activation.js` (spends tokens; not part of CI).
+
 ## Router
 
 `plugins/agent-skills-router/` audits the first OpenCode prompt, then emits compact live status. Its TUI reads router-core state; it never computes routing. Advisory matches suggest one skill; agents load skills explicitly. Fresh sessions stay neutral. Route matches remain hollow until loaded. Pending obligations are `code-review` and `design-review`.
@@ -39,7 +41,7 @@ Decision-tree rows come from `routingHintLines()`; never duplicate them manually
 
 # ASK Workflow Mandate
 
-- Load most specific workflow skill before substantial work (OpenCode loads by its `ask-`-prefixed id: `skill(id: 'ask-<name>')`; dsh by bare name); router matches advise only.
+- Use router matches to select the most specific workflow skill before substantial work, then read `~/.agents/skills/ask-<name>/SKILL.md` directly. Do not invoke model-invocation-disabled leaf skills through the native Skill tool; plugins may use their own dispatch paths.
 - Large, exhaustive, compatibility-sensitive, or release-sensitive work: load `intake`, create plan artifact, classify risk, set must/should/could, complete plan-check.
 - Delegate independent research, validation, review, and audit. Never self-declare release readiness; require independent evidence.
 - Release-sensitive work needs independent validation, review, audit, and release-gate evidence.

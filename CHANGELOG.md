@@ -6,6 +6,26 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.5.2] - 2026-10-02
+
+### Fixed
+
+- **Design reviews no longer route to code review.** The router had no `design-review` route, so "does this look AI-generated? review it" matched `review` and the hook pointed at `ask-code-review`. A design-review route now runs before code review.
+- **Debugging catches wrong-result bugs.** "Returns the wrong", "wrong result", "find the cause", "find the root cause", and "started failing" route to `ask-debugging`. The repository-specific triggers `None` and `target_temp` and the Dutch `storing` (malfunction), which also matched English "storing", are gone; they pulled ordinary prompts into debugging.
+- **Generic skills stay generic.** `ask-develop` no longer names services from one repository, and stray Dutch text in `ask-intake` and `ask-agent-workflows` is now English.
+
+### Changed
+
+- **Cost-aware subagents.** Coordinators now choose a model for each supported delegation, with Haiku for bounded mechanical work, Sonnet as the custom-agent fallback, and Opus reserved for justified high-judgment tasks.
+- **Leaner hook context.** SessionStart drops the skill preview that duplicated Claude Code's own listing (2267 to 1377 characters). A plain question with no routed skill gets no workflow line. The risk line is announced again after compaction, and an `ask-develop` hint appears when a develop trigger fires.
+- **Subagents get the routing table** through a new `SubagentStart` hook.
+- **Descriptions carry their triggers.** Claude Code ignores the `triggers` field, so `ask-agent-workflows` now names release chores in its description, and `ask-develop` and `ask-debugging` state when to use them.
+- **Release gates moved to a reference file.** `ask-agent-workflows` keeps a short release-sensitive summary and loads `references/release-gates.md` only for release work (214 to 186 lines).
+
+### Added
+
+- **`scripts/eval-skill-activation.js`.** Runs 20 realistic prompts through `claude -p` and scores which skill loads first. Manual tool; it spends tokens. With Sonnet and one run per case, the score went from 17/20 on 2.5.1 to 19/20 with no false positives on the two no-skill prompts.
+
 ## [2.5.1] - 2026-10-02
 
 ### Fixed

@@ -23,6 +23,11 @@ const ROUTING_CASES = [
   ["research protocol behavior exhaustively", "deep-research"],
   ["compare local and upstream implementations", "deep-research"],
   ["debug a protocol behavior regression", "debugging"],
+  ["page(items, 1, 2) returns the wrong items, find the cause", "debugging"],
+  ["the parser started failing after the merge", "debugging"],
+  // Former repo-specific triggers must not pull ordinary prompts into debugging.
+  ["we are storing the session in redis, add a ttl", "develop"],
+  ["none of the helpers have docs yet, add them", "develop"],
   ["investigate current state of production crash", "debugging"],
   ["deep research this production crash", "debugging"],
   ["audit protocol behavior", "improve"],
@@ -76,6 +81,11 @@ const ROUTING_CASES = [
   ["create issue", "session-review"],
   ["retro", "session-review"],
   ["file an issue", "session-review"],
+  // Product — design-review wins over code review for design and copy checks
+  ["does this look ai-generated? review it", "design-review"],
+  ["review this design before we ship", "design-review"],
+  ["review the frontend code changes in this PR", "code-review"],
+  ["review the UI tests", "code-review"],
   // Coordinate — agent-workflows
   ["multi-agent coordination", "agent-workflows"],
   ["parallel work", "agent-workflows"],

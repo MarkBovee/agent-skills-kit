@@ -73,13 +73,13 @@ Every supported host follows one contract:
 ```text
 user request
   → discover the host-preferred skill root
-  → compare name, description, and triggers
-  → load the most specific matching skill before substantial work
+  → a router or plugin selects the most specific matching skill
+  → read only that skill's SKILL.md before substantial work
   → add only a directly implied companion skill
   → follow the skill with host-native tools
 ```
 
-Canonical skills are the directories under `skills/`. Commands, generated platform copies, router files, and instruction files expose skills but are not additional skills. Use the host-preferred skill root: source `skills/` in a checkout, shared `~/.agents/skills/` for Codex and common installs, OpenCode's managed `~/.config/opencode/skills/` links, GitHub Copilot's `.github/skills/` export, Claude's native discovery, and dsh's project or user `.dsh/skills/` export before the shared root. Use `develop` only when no more-specific workflow applies. Common handoffs are `design` → `design-review`, `verification` → risk-appropriate `code-review` (normal and higher-risk workflows) and `audit` (significant and release-sensitive workflows), bounded `research` → a decision, and `deep-research` → `intake`, `debugging`, `spec`, or `develop`. Native discovery remains sufficient on every host; OpenCode and optional dsh add advisory routing and session state but never load skills or execute tools.
+Canonical skills are the directories under `skills/`. Commands, generated platform copies, router files, and instruction files expose skills but are not additional skills. Use the host-preferred skill root: source `skills/` in a checkout, shared `~/.agents/skills/` for Codex and common installs, OpenCode's managed `~/.config/opencode/skills/` links, GitHub Copilot's `.github/skills/` export, Claude's native discovery, and dsh's project or user `.dsh/skills/` export before the shared root. Use `develop` only when no more-specific workflow applies. Common handoffs are `design` → `design-review`, `verification` → risk-appropriate `code-review` (normal and higher-risk workflows) and `audit` (significant and release-sensitive workflows), bounded `research` → a decision, and `deep-research` → `intake`, `debugging`, `spec`, or `develop`. Leaf skills are not selected implicitly: routers read the chosen `SKILL.md` directly, while plugin-owned skills remain under plugin dispatch.
 
 ---
 
@@ -236,7 +236,7 @@ The repository also ships a VS Code Agent Plugin under `.claude-plugin/`, with n
 }
 ```
 
-Native Agent Skills perform the automatic relevance-based loading. The plugin manifest and hooks are maintained source assets; `scripts/validate-plugin.js` checks their contract and version alignment. The plugin hooks only add compact session guidance and non-blocking prompt hints; they do not execute skills, rewrite commands, or approve tools. The `SessionStart` hook also surfaces the same cost-aware execution-profile hint described under [Router](#router), and the `UserPromptSubmit` hook recomputes it per prompt (it does not yet track code-edit state across calls the way the OpenCode plugin does, since no post-tool-execution hook event is wired here). Hooks are preview functionality in VS Code. Inspect loaded skills in Agent Customizations and hook activity in Agent Debug Logs.
+The plugin hook routes requests to the appropriate skill file; it does not invoke native leaf skills. The plugin manifest and hooks are maintained source assets; `scripts/validate-plugin.js` checks their contract and version alignment. `SessionStart` provides the router table, and `UserPromptSubmit` recomputes its route per prompt. Hooks are preview functionality in VS Code. Inspect hook activity in Agent Debug Logs.
 
 ### Claude Code Details
 
@@ -251,8 +251,8 @@ Install as a plugin (recommended):
 
 What the plugin provides:
 
-* 17 `ask-` skills (native discovery, loaded by description).
-* `SessionStart` context: routing table with `ask-` ids plus the workflow mandate.
+* 17 `ask-` skills, hidden from automatic model invocation.
+* `SessionStart` context: routing table with `ask-` ids and shared file paths plus the workflow mandate.
 * `UserPromptSubmit` hints: routing suggestion, workflow risk and gates, test budget, review reminder.
 * `PostToolUse` tracking of edits and `ask-code-review` loads; session state lives in `${CLAUDE_PLUGIN_DATA}`.
 * Read-only subagents `ask-reviewer`, `ask-auditor`, `ask-researcher` that return the `ASK_WORKFLOW_*` evidence markers.
@@ -270,13 +270,13 @@ Validate locally with `node scripts/check-claude-code.js` and, when the CLI is i
 
 ### Codex Details
 
-Codex loads skills from the Agent Skills standard. Native discovery scans repository `.agents/skills` directories and the user shared `~/.agents/skills/` root. ASK installs canonical skill directories there, so every ASK skill is available to Codex without a generated copy.
+Codex loads skills from the Agent Skills standard. It scans repository `.agents/skills` directories and the user shared `~/.agents/skills/` root. ASK installs canonical skill directories there, and `~/.codex/config.toml` disables native invocation for shared leaf skills while leaving dispatchers enabled.
 
-Use `$skill-name` or the Codex skill picker for explicit loading. Codex can also implicitly select skills from frontmatter descriptions. ASK's OpenCode router is not installed into Codex: the current Codex skill host exposes no supported equivalent hook for prompt injection, tool gating, or session-state widgets. Codex receives canonical skills and native skill selection, but not OpenCode live routing nudges or dsh's panel.
+Use the global Codex `AGENTS.md` router guidance to read a selected shared `SKILL.md` directly. Native invocation remains enabled only for dispatcher skills. ASK's OpenCode router is not installed into Codex: the current Codex skill host exposes no supported equivalent hook for prompt injection, tool gating, or session-state widgets.
 
 ### DeepSeek Harness (dsh) Details
 
-dsh (DeepSeek Harness) is an **Experimental** Cordis-based "everything is a plugin" agent harness. The kit works **without any dsh plugin**: dsh loads `SKILL.md` bundles natively from ranked skill roots, and its `skill` tool + catalog (`<available_skills>` in the session system prompt) already implements the kit's self-selection routing model. On top of that baseline, an **optional** agent preset (`ask-kit`) adds the OpenCode router's decision-tree injection and per-session state tracking to sessions that select it.
+dsh (DeepSeek Harness) is an **Experimental** Cordis-based "everything is a plugin" agent harness. The optional `ask-kit` agent preset routes to shared workflow files and reads the selected `SKILL.md` directly; it does not depend on native discovery for workflow bodies.
 
 Installed paths (when dsh is present — a reachable `dsh` binary or an existing dsh home):
 
@@ -287,7 +287,7 @@ Installed paths (when dsh is present — a reachable `dsh` binary or an existing
 
 #### dsh router preset (optional)
 
-The `ask-kit` preset mounts `plugins/agent-skills-router.dsh.mjs` as a Cordis row. Per model step it appends an `--- Agent Skills Kit ---` section built from `routingHintLines()` in `core/router-core.js` (no decision-tree copy can drift), tracks which skills each session loaded, flags review debt after `edit`/`write`/`patch`/`apply_patch`, and clears nudges on completion phrases — mirroring `plugins/agent-skills-router.mjs`. Its compact composer panel reads the same router-core status snapshot through `ask-kit/state`: the active skills and pending review obligations. The workflow route stays internal to the prompt surface, and the panel is presentation only; it does not route or infer workflow state. It also registers one slash command per skill (`/spec`, `/debugging`, …) through dsh's command registry: picking one steers the session with a load-the-skill prompt following the platform command-file pattern (per-workflow specifics stay in the skill body), with the typed remainder as focus. Row config: `blockUntilSkillLoaded: true` reproduces the OpenCode blocked-tool gate (bash/edit/write/patch/apply_patch denied until a skill loads); it defaults to `false`.
+The `ask-kit` preset mounts `plugins/agent-skills-router.dsh.mjs` as a Cordis row. Per model step it appends an `--- Agent Skills Kit ---` section built from `routingHintLines()` in `core/router-core.js`, reads the selected shared `SKILL.md`, tracks router-directed reads, flags review debt after code edits, and clears nudges on completion evidence — mirroring the OpenCode router. Its compact composer panel reads the same `ask-kit/state` snapshot. Slash commands steer the session to read the selected file directly, with any typed remainder as focus. Row config: `blockUntilSkillLoaded: true` gates edits until the router has read an ASK workflow file; it defaults to `false`.
 
 Reinstall refreshes only the managed files (`plugins/ask-kit-router.mjs`, `vendor/router-core.js`); the copied composition, the appended router row, and any edits you made are left alone — delete `~/.dsh/.agent-presets/ask-kit/` and reinstall to rebase on the current `standard` preset or re-add a removed row. Select the preset per session from dsh's picker; removing the directory removes it from the roster.
 
@@ -308,7 +308,7 @@ Everything dsh-related is `0.1.0-rc.x` developer preview and can change without 
 | Skill registry (`ctx.skills`) | `registerProvider`/`snapshot`/`list`/`get`, duplicate-name shadowing across layers                                                   | API churn in the registry contract                                                        |
 | MCP bridge (`dsh-mcp-client`) | Not used by the kit (tools only; skills are not MCP)                                                                                 | n/a                                                                                       |
 
-After a dsh update, the cheap check is a fresh session: the `<available_skills>` catalog should list all seventeen skills and `skill(name: '...')` should load a body; typing `/` in the composer should offer the kit's slash commands when the ask-kit preset is selected.
+After a dsh update, start a fresh session with the `ask-kit` preset, verify a routed prompt reads the matching skill file, and confirm `/` offers the kit's router commands.
 
 ### Shared Root Policy
 
@@ -367,7 +367,7 @@ Skills use short display names (e.g. `debugging`, `develop`) for easy reference.
 
 ## Commands
 
-Each skill also ships as a slash command. A command loads its skill and applies the workflow — no duplicated instructions, always the current skill body.
+Each workflow command routes to and reads its skill file, then applies the workflow — no duplicated instructions, always the current skill body.
 
 | Platform                 | Mechanism                            | Location                                              |
 | ------------------------ | ------------------------------------ | ----------------------------------------------------- |
@@ -376,7 +376,7 @@ Each skill also ships as a slash command. A command loads its skill and applies 
 | Claude Code              | skills are commands (2026)           | no separate file — `skill` → `/name`                  |
 | DeepSeek Harness (dsh)   | registered by the ask-kit preset row | no files — `ctx.commands.register()` at runtime       |
 
-Commands are authored once under `commands/` and exported by `export-platform-skills.js` into `.opencode/commands/` (OpenCode) and `.github/prompts/*.prompt.md` (Copilot/VS Code). Claude Code gets its command surface for free because its skills already act as slash commands; `plugin.json` sets `"commands": []` so `commands/` is not loaded a second time (verified: 17 skills, 0 commands, no duplicate menu entries). dsh has no file-based command discovery; its picker entries are registered programmatically by the ask-kit router preset (one `ctx.commands.register()` per skill; the handler steers the load-the-skill prompt pattern), so no command files ship for it.
+Commands are authored once under `commands/` and exported by `export-platform-skills.js` into `.opencode/commands/` (OpenCode) and `.github/prompts/*.prompt.md` (Copilot/VS Code). Each command reads the router-selected `SKILL.md`; it does not invoke a hidden native leaf skill. dsh has no file-based command discovery; its picker entries are registered programmatically by the ask-kit router preset and steer the session to read the corresponding file.
 
 ---
 
@@ -398,7 +398,7 @@ The pack favors fast trustworthy checks, then proportional review and verificati
 
 ## Router
 
-`plugins/agent-skills-router/` presents a **decision tree** on the first OpenCode prompt, then compact live status on later prompts; its TUI sidebar renders the router-core status snapshot. Advisory phrase matching proposes one specific skill; the agent still evaluates the task and explicitly loads it via `skill(id: 'ask-<name>')` (OpenCode matches on the installed directory id, e.g. `ask-gh-inbox`, not the frontmatter `name`). No scoring, hidden execution, or automatic skill loading.
+`plugins/agent-skills-router/` presents a **decision tree** on the first OpenCode prompt, then compact live status on later prompts; its TUI sidebar renders the router-core status snapshot. Advisory phrase matching proposes one specific skill; the agent reads only that skill's `SKILL.md` from the shared root. A successful canonical file read updates router state and satisfies the pre-edit gate. No hidden execution or automatic skill loading.
 
 The decision tree injected on the first OpenCode prompt:
 
@@ -450,7 +450,7 @@ flowchart TD
 | **Write**      | `text-writing`                   | `#8b5cf6` violet |
 | **Operate**    | `gh-inbox`, `observability`      | `#4c9aff` blue   |
 
-Session state tracks code edits, tool usage, and skill-load events. The router nudges when code was edited without review, when a UI was produced (load `design-review`), or when many tools ran without loading any skill — always hint, never force.
+Session state tracks code edits, tool usage, and router-directed skill-file reads. The router nudges when code was edited without review, when a UI was produced (read `design-review`), or when many tools ran without loading any workflow — always hint, never force.
 
 ### Risk-based lifecycle
 

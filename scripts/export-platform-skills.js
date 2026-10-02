@@ -232,19 +232,19 @@ function buildCopilotInstructions(skills) {
 
 This repository ships portable workflow skills under [.github/skills](./skills).
 
-- Load the best matching skill before substantial work; use \`develop\` only as default.
+- Use the router to select the best matching skill before substantial work, then read its \`SKILL.md\` directly; use \`develop\` only as default.
 - Large, exhaustive, compatibility-sensitive, or release-sensitive work: load \`intake\`, write a plan, classify must/should/could, and complete plan-check.
 - Delegate independent research, validation, review, and audit. Never self-declare release readiness; require independent evidence.
 - Meaningful code change: load \`code-review\`; skip only obvious, low-risk edits. Capture reusable workflow gaps with \`write-skill\`.
 - Code edits need one concise intent comment above each function unless local convention overrides.
-- Keep always-on guidance compact; load reusable procedure from skills.
+- Keep always-on guidance compact; read reusable procedure from the router-selected skill file.
 
 ## Host-neutral discovery
 
-1. Use host skill root. Canonical source: \`skills/*/SKILL.md\`; installs: \`~/.agents/skills/*/SKILL.md\`, except OpenCode and dsh host roots.
-2. Read frontmatter; load most specific matching \`SKILL.md\`. Use \`develop\` only without a specific match.
+1. Use the host skill root. Canonical source: \`skills/*/SKILL.md\`; shared install: \`~/.agents/skills/*/SKILL.md\`.
+2. Route first, then read the most specific matching \`SKILL.md\` directly. Use \`develop\` only without a specific match.
 3. Add implied companions only: \`design\` → \`design-review\`; run \`verification\` before risk-required review or audit gates; use \`research\` for bounded facts, \`deep-research\` for autonomous multi-source work.
-4. Native discovery suffices. OpenCode and dsh routers advise and track state; they do not load skills or run tools.
+4. Routers select and load skills by reading their files; do not invoke hidden leaf skills through a native skill action.
 5. Workflow evidence markers belong in tool or subagent results; never include them in final user-facing responses.
 
 ## Coding standards

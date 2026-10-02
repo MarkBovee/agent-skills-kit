@@ -1,6 +1,7 @@
 ---
 name: ask-develop
-description: "Develop: Default baseline for normal software work: small safe iterations, built-in validation, and no unnecessary pauses between clear next steps."
+disable-model-invocation: true
+description: "Develop: Use for normal implementation work (add, fix, refactor, build a feature) when no more specific ASK skill fits; small safe iterations with validation."
 default: true
 execution_tier: standard
 delegation_default: auto
@@ -72,18 +73,19 @@ Before finishing any code change, inspect every changed function-like construct 
 
 ## Cheap-first escalation
 
-1. Start bounded mechanical chores on the smallest viable agent or subagent.
-2. Validate the result before widening context.
-3. Escalate to default agent only if scope grows beyond the original bounded task.
-4. Escalate to `default` or xhigh only for cross-cutting, analysis-heavy, or repeatedly failing work, and only when a cheaper-tier attempt already produced evidence it cannot solve.
+1. Before each delegation, select a task-appropriate model and pass it per invocation when the host supports it; tiers alone do not select a model. See `agent-workflows`' [model routing reference](../ask-agent-workflows/references/model-routing.md).
+2. Start bounded mechanical chores on the smallest viable agent or subagent.
+3. Validate the result before widening context.
+4. Escalate to default agent only if scope grows beyond the original bounded task.
+5. Escalate to `default` or xhigh only for cross-cutting, analysis-heavy, or repeatedly failing work, and only when a cheaper-tier attempt already produced evidence it cannot solve.
 
 ### Execution tiers by task reasoning
 
 | Complexity | Execution tier | Fits |
 |---|---|---|
-| Mechanical, boilerplate, bounded parsing | light | EbusService, RegisterService, EntityFactoryService |
-| Nuanced but contained | standard | — |
-| Cross-cutting, implicit reasoning, error handling | deep | DiscoveryService, CoordinatorService |
+| Mechanical, boilerplate, bounded parsing | light | a data mapper, a register table, a factory |
+| Nuanced but contained | standard | one service with local state |
+| Cross-cutting, implicit reasoning, error handling | deep | discovery, coordination, recovery paths |
 
 Choose the lowest tier that fits; escalate only when evidence demands it. A delta fix or follow-up after a broader change is standard work, not a repeat of the original deep pass.
 

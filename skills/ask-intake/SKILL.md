@@ -1,5 +1,6 @@
 ---
 name: ask-intake
+disable-model-invocation: true
 description: "Intake: Use when the goal, constraints, or success criteria are not yet crisp: brainstorming, scoping ambiguous work, and multi-file execution planning."
 execution_tier: standard
 triggers:
@@ -84,11 +85,10 @@ Clarify enough to avoid wrong work, then move. One skill for the full pre-execut
 3. Order work chunks by meaningful progress, not micro-steps.
 4. Note key risks or open questions.
 5. **Detect if work splits into dependent stages:**
-   - Zitten er natuurlijke service/module-grenzen in?
-   - Zijn er dependency chains (stap B heeft output A nodig)?
-   - Lopen complexiteit en benodigd redeneervermogen uiteen tussen stappen?
-     (sommige mechanisch/boilerplate, andere cross-cutting/reasoning)
-   - Zo ja: plan stages met volgorde, tier per stage (light/standard/deep), en validatie-gates.
+   - Are there natural service or module boundaries?
+   - Are there dependency chains (step B needs the output of step A)?
+   - Do complexity and required reasoning differ between steps (some mechanical, some cross-cutting)?
+   - If so, plan ordered stages with a tier per stage (light/standard/deep) and a validation gate per stage.
 6. Define validation needed before claiming done. Order it as existing targeted tests, build/lint/static checks, and integration/server tests only where the risk requires them (test budget in `verification`); place only risk-required review and audit gates after that proof.
 7. Skip plan for one or two obvious edits. Use short bullets for normal multi-step work. Fuller plan only when sequencing or coordination risk is high.
 8. If repo already has a durable planning or spec system, update that record instead of creating parallel docs.

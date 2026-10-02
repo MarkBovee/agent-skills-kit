@@ -1,5 +1,6 @@
 ---
 name: ask-observability
+disable-model-invocation: true
 description: "Observability: Use when adding or improving logging, metrics, tracing, or alerting, or when current telemetry cannot explain a production issue."
 execution_tier: standard
 triggers:

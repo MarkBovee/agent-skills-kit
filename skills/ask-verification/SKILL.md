@@ -1,5 +1,6 @@
 ---
 name: ask-verification
+disable-model-invocation: true
 description: "Verification: Use before claiming something works, is fixed, or is ready to hand off, and when changed repos need intentional cleanup before stopping."
 execution_tier: standard
 triggers:

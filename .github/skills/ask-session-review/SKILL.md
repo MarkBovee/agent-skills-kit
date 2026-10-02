@@ -1,6 +1,7 @@
 ---
 name: "ask-session-review"
 description: "Session Review: Use after completing work to reflect on skill usage and gaps, and to file GitHub issues from bugs, review findings, or follow-ups. Common triggers: retrospective, retro, reflect on session, how did i use skills, file an issue, create issue, github issue, file issue, gh issue create."
+disable-model-invocation: true
 ---
 # ASK Session Review
 

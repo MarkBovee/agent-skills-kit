@@ -1,6 +1,7 @@
 ---
 name: "ask-observability"
 description: "Observability: Use when adding or improving logging, metrics, tracing, or alerting, or when current telemetry cannot explain a production issue. Common triggers: observability, instrumentation, add logging, structured logging, log levels, add metrics, adding metrics, metrics dashboard, set up metrics, set up tracing, distributed tracing, opentelemetry, set up alerting, alerting on, alert rule, runbook, telemetry setup, app telemetry, monitor this feature, how do we observe, what is working in production, monitoring alerts, instrument this, production visibility."
+disable-model-invocation: true
 ---
 # ASK Observability
 

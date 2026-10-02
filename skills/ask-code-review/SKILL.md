@@ -1,5 +1,6 @@
 ---
 name: ask-code-review
+disable-model-invocation: true
 description: "Code Review: Use when a meaningful diff is ready and fresh eyes should catch requirement gaps, regressions, or risky design before handoff."
 execution_tier: standard
 delegation_default: auto

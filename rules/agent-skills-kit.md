@@ -53,7 +53,7 @@ Workflow evidence markers are for tool and subagent results only. Never include 
 
 Panel shows active skills and pending review obligations. `router-core.js` builds state; dsh emits `ask-kit/state`; OpenCode publishes session prompt metadata; TUI reads state only.
 
-Route matches stay hollow until skill load. `activeSkills` lists loaded skill first; `current: true` means actually loaded. `develop` fallback never displaces loaded skill. Workflow stays in prompt, not panel. Pending obligations are `code-review` and `design-review`; each exposes a `skill(name: '<skill>')` action (dsh/panel-facing only — OpenCode's TUI renders just the label) and clears on load. In OpenCode, load by the installed directory id `skill(id: 'ask-<skill>')`.
+Route matches stay hollow until the selected `SKILL.md` is read. `activeSkills` lists the loaded skill first; `current: true` means its file was read. `develop` fallback never displaces a specific match. Workflow stays in the prompt, not the panel. Pending obligations are `code-review` and `design-review`; read the corresponding `~/.agents/skills/ask-<skill>/SKILL.md` before continuing. Do not invoke model-invocation-disabled leaf skills through the native Skill tool.
 
 ## Evidence-aware communication
 

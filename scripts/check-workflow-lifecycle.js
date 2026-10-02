@@ -111,12 +111,15 @@ function hasExactParagraph(section, paragraph) {
 
 // Keep release validation deferred until iterative findings are resolved.
 function checkReleaseValidationCadence() {
-  const workflowGuidance = fs.readFileSync("skills/ask-agent-workflows/SKILL.md", "utf8")
+  // The release procedure lives in a reference file so the skill body stays compact.
+  const workflowGuidance = fs.readFileSync("skills/ask-agent-workflows/references/release-gates.md", "utf8")
   const deltaHeading = "Bounded narrow-fix release path"
   const metadataHeading = "Metadata-only release fast path"
   const deltaGuidance = readMarkdownSection(workflowGuidance, deltaHeading)
   const metadataGuidance = readMarkdownSection(workflowGuidance, metadataHeading)
 
+  check("agent-workflows points release-sensitive work at the release-gates reference",
+    fs.readFileSync("skills/ask-agent-workflows/SKILL.md", "utf8").includes("[references/release-gates.md](references/release-gates.md)"))
   check("release cadence and metadata sections are present in order", deltaGuidance !== ""
     && metadataGuidance !== ""
     && workflowGuidance.indexOf(`## ${deltaHeading}`) < workflowGuidance.indexOf(`## ${metadataHeading}`))
@@ -133,8 +136,8 @@ function checkReleaseValidationCadence() {
   check("scope expansion requires owner approval", deltaGuidance.includes("Scope expansion requires explicit approval recorded in a revised plan"))
 
   const generatedPaths = [
-    ["GitHub Copilot", ".github/skills/ask-agent-workflows/SKILL.md"],
-    ["DeepSeek Harness", ".dsh/skills/ask-agent-workflows/SKILL.md"],
+    ["GitHub Copilot", ".github/skills/ask-agent-workflows/references/release-gates.md"],
+    ["DeepSeek Harness", ".dsh/skills/ask-agent-workflows/references/release-gates.md"],
   ]
   for (const [platform, exportPath] of generatedPaths) {
     const generatedGuidance = fs.readFileSync(exportPath, "utf8")
@@ -151,7 +154,8 @@ function checkReviewAuditGuidance() {
   const auditGuidance = fs.readFileSync("skills/ask-agent-workflows/SKILL.md", "utf8")
   const reviewContract = readMarkdownSection(reviewGuidance, "Finding scope")
   const auditContract = readMarkdownSection(auditGuidance, "Code-first independent audit")
-  const convergenceContract = readMarkdownSection(auditGuidance, "Release audit convergence and stop rule")
+  const releaseGuidance = fs.readFileSync("skills/ask-agent-workflows/references/release-gates.md", "utf8")
+  const convergenceContract = readMarkdownSection(releaseGuidance, "Release audit convergence and stop rule")
   const findingRequirement = "Before treating a behavior as an actionable finding, compare the cited lines with the exact review base. Every finding must identify a changed hunk or explain the direct behavior introduced by a changed hunk. Nearby unchanged lines are context; pre-existing behavior is not a regression just because the diff made it visible. If the base diff or causal link cannot be established, report the review as blocked or limited instead of presenting an unsupported regression. Keep unrelated pre-existing behavior classified as context, not as a finding against this change."
   const codeFirstRequirement = "An independent audit inspects production behavior; it is not validation or a test-coverage inventory. Start from the exact production diff and, before inspecting tests, identify affected entry points, callers, state transitions, cleanup paths, fallback decisions, and the invariants they must preserve. Challenge those invariants with plausible counterexamples such as cancellation at an await boundary, delayed first responses, malformed input, stale cached state, overlapping ownership, or alias/hardware mismatches when relevant."
   const auditEvidenceRequirement = "An actionable audit finding names the production path, violated invariant, plausible trigger, user impact, and smallest regression proof needed. If no issue is found, name the implementation paths and bypass categories inspected; a green test count alone is not an audit pass. Audit handoffs must include the exact diff and require the auditor to record production paths and invariants before looking at tests."
@@ -195,10 +199,54 @@ function checkReviewAuditGuidance() {
     const generatedAudit = fs.readFileSync(auditPath, "utf8")
     const exportedReview = readMarkdownSection(generatedReview, "Finding scope")
     const exportedAudit = readMarkdownSection(generatedAudit, "Code-first independent audit")
-    const exportedConvergence = readMarkdownSection(generatedAudit, "Release audit convergence and stop rule")
+    const generatedRelease = fs.readFileSync(auditPath.replace("SKILL.md", "references/release-gates.md"), "utf8")
+    const exportedConvergence = readMarkdownSection(generatedRelease, "Release audit convergence and stop rule")
     check(`${platform} export preserves canonical review contract`, exportedReview === reviewContract)
     check(`${platform} export preserves canonical audit contract`, exportedAudit === auditContract)
     check(`${platform} export preserves canonical release convergence contract`, exportedConvergence === convergenceContract)
+  }
+}
+
+// Verify model routing stays explicit in canonical skills and generated exports.
+function checkModelRoutingGuidance() {
+  const routingPath = "skills/ask-agent-workflows/references/model-routing.md"
+  const routingGuidance = fs.readFileSync(routingPath, "utf8")
+  const workflowGuidance = fs.readFileSync("skills/ask-agent-workflows/SKILL.md", "utf8")
+  const developGuidance = fs.readFileSync("skills/ask-develop/SKILL.md", "utf8")
+  const routingSection = readMarkdownSection(workflowGuidance, "Subagent tier & budget")
+  const developSection = readMarkdownSection(developGuidance, "Cheap-first escalation")
+
+  check("agent-workflows requires a model choice for supported delegations",
+    routingSection.includes("Before each delegation, choose a task-appropriate model")
+      && routingSection.includes("references/model-routing.md"))
+  check("develop requires per-delegation model selection",
+    developSection.includes("select a task-appropriate model and pass it per invocation"))
+  check("model routing distinguishes Haiku, Sonnet, and selective Opus",
+    routingGuidance.includes("| Mechanical / light | Haiku |")
+      && routingGuidance.includes("| Standard | Sonnet |")
+      && routingGuidance.includes("| High-judgment / deep | Opus, selectively |"))
+  check("model routing treats model selection as a request until verified",
+    routingGuidance.includes("a request, not proof of the model actually used")
+      && routingGuidance.includes("Verify the active model in `/tasks`"))
+  check("model routing distinguishes Explore and Plan limitations",
+    routingGuidance.includes("The built-in `Explore` agent")
+      && routingGuidance.includes("The built-in `Plan` agent inherits the parent model"))
+  check("model routing rejects force-all as a per-task selection strategy",
+    routingGuidance.includes("Do not use `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1`"))
+
+  const generatedPaths = [
+    ["GitHub Copilot", ".github/skills/ask-agent-workflows/references/model-routing.md", ".github/skills/ask-agent-workflows/SKILL.md", ".github/skills/ask-develop/SKILL.md"],
+    ["DeepSeek Harness", ".dsh/skills/ask-agent-workflows/references/model-routing.md", ".dsh/skills/ask-agent-workflows/SKILL.md", ".dsh/skills/ask-develop/SKILL.md"],
+  ]
+  for (const [platform, generatedRoutingPath, generatedWorkflowPath, generatedDevelopPath] of generatedPaths) {
+    const generatedRouting = fs.readFileSync(generatedRoutingPath, "utf8")
+    const generatedWorkflow = fs.readFileSync(generatedWorkflowPath, "utf8")
+    const generatedDevelop = fs.readFileSync(generatedDevelopPath, "utf8")
+    check(`${platform} export preserves the model routing reference`, generatedRouting === routingGuidance)
+    check(`${platform} export preserves the delegation routing rule`,
+      readMarkdownSection(generatedWorkflow, "Subagent tier & budget") === routingSection)
+    check(`${platform} export preserves the develop routing rule`,
+      readMarkdownSection(generatedDevelop, "Cheap-first escalation") === developSection)
   }
 }
 
@@ -360,6 +408,7 @@ function main() {
   checkRiskProfiles()
   checkReleaseValidationCadence()
   checkReviewAuditGuidance()
+  checkModelRoutingGuidance()
   checkEvidenceContract()
   checkStatusHints()
   checkRoutingStatus()
