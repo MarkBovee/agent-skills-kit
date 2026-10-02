@@ -56,11 +56,11 @@ function readSessionId(payload) {
   return typeof sessionId === "string" && sessionId.trim() ? sessionId.trim() : "hook-session"
 }
 
-// Choose a writable state directory, preferring the persistent plugin data directory.
+// Choose a private state directory, preferring the plugin data directory over a per-user cache (never shared /tmp).
 function stateDirectory() {
   return process.env.CLAUDE_PLUGIN_DATA
     ? path.join(process.env.CLAUDE_PLUGIN_DATA, "sessions")
-    : path.join(os.tmpdir(), "agent-skills-kit-sessions")
+    : path.join(os.homedir(), ".cache", "agent-skills-kit", "sessions")
 }
 
 // Build the state file path for one session with a filesystem-safe name.
@@ -80,8 +80,8 @@ function loadState(sessionId) {
 // Persist session state best-effort; a failed write must never break the session.
 function saveState(sessionId, state) {
   try {
-    fs.mkdirSync(stateDirectory(), { recursive: true })
-    fs.writeFileSync(statePath(sessionId), JSON.stringify(state))
+    fs.mkdirSync(stateDirectory(), { recursive: true, mode: 0o700 })
+    fs.writeFileSync(statePath(sessionId), JSON.stringify(state), { mode: 0o600 })
   } catch {
     // State is advisory; ignore write failures.
   }
