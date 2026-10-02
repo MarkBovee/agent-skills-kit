@@ -45,8 +45,12 @@ async function validatePluginManifest(errors) {
   }
 
   if (typeof plugin.version !== "string") errors.push("plugin.json version is required")
-  if (plugin.skills !== "skills/") errors.push('plugin.json must point skills to "skills/"')
-  if (plugin.hooks !== "hooks/hooks.json") errors.push('plugin.json must point hooks to "hooks/hooks.json"')
+  // Claude Code auto-discovers skills/ and hooks/hooks.json; manifest path keys must start with ./ or be omitted.
+  for (const key of ["skills", "hooks", "commands", "agents"]) {
+    const value = plugin[key]
+    if (typeof value === "string" && !value.startsWith("./")) errors.push(`plugin.json ${key} path must start with ./ (or be omitted so the default location is used)`)
+  }
+  if (typeof plugin.description !== "string" || !plugin.description.includes("Claude Code")) errors.push("plugin.json description must mention Claude Code")
 
   const version = (await fs.readFile(VERSION_PATH, "utf8")).trim()
   if (plugin.version !== version) errors.push(`plugin.json version must match VERSION (${version})`)
@@ -89,7 +93,7 @@ async function validateReleaseOpenCodeContract(errors) {
   }
 }
 
-// Validate the hook manifest against the supported VS Code lifecycle shape.
+// Validate the hook manifest against the Claude Code shape: event -> [{ hooks: [{ type, command }] }].
 async function validateHooks(errors) {
   const hooks = await readJson(HOOKS_PATH, errors)
   if (!hooks) return
@@ -102,8 +106,14 @@ async function validateHooks(errors) {
 
   for (const entries of Object.values(hooks.hooks || {})) {
     for (const entry of entries) {
-      if (entry.type !== "command" || typeof entry.command !== "string") {
-        errors.push("every hook entry must define type=command and a command")
+      if (!Array.isArray(entry.hooks) || entry.hooks.length === 0) {
+        errors.push("every hook entry must wrap its handlers in a hooks array (Claude Code format)")
+        continue
+      }
+      for (const handler of entry.hooks) {
+        if (handler.type !== "command" || typeof handler.command !== "string") {
+          errors.push("every hook handler must define type=command and a command")
+        }
       }
     }
   }
@@ -127,11 +137,11 @@ async function validateSkills(errors) {
     const content = raw.toString("utf8")
     const frontmatter = parseFrontmatter(content)
 
-    const nameMatches = frontmatter.name === entry.name || entry.name === `ask-${frontmatter.name}`
+    const nameMatches = frontmatter.name === entry.name && entry.name.startsWith("ask-")
     if (!nameMatches || !NAME_PATTERN.test(entry.name)) {
-      errors.push(`${path.relative(REPO_ROOT, skillPath)} name must match its kebab-case directory`)
+      errors.push(`${path.relative(REPO_ROOT, skillPath)} name must equal its ask-prefixed kebab-case directory`)
     } else {
-      skillNames.push(frontmatter.name)
+      skillNames.push(frontmatter.name.replace(/^ask-/, ""))
     }
     if (typeof frontmatter.description !== "string" || frontmatter.description.trim().length === 0) {
       errors.push(`${path.relative(REPO_ROOT, skillPath)} requires a description`)

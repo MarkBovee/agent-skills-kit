@@ -35,6 +35,9 @@ OPENCODE_AGENTS_FILE="$OPENCODE_DIR/AGENTS.md"
 CLAUDE_SKILLS_TARGET="$CLAUDE_DIR/skills"
 CLAUDE_RULES_TARGET="$CLAUDE_DIR/rules"
 CLAUDE_RULES_FILE="$CLAUDE_RULES_TARGET/agent-skills-kit.md"
+CLAUDE_MODE="${ASK_CLAUDE_MODE:-auto}"
+CLAUDE_PLUGIN_ID="agent-skills-kit@agent-skills-kit"
+CLAUDE_RULES_MARKER="<!-- agent-skills-kit:managed -->"
 DSH_SKILLS_TARGET="$DSH_HOME/skills"
 DSH_AGENTS_FILE="$DSH_HOME/AGENTS.md"
 DSH_METADATA_FILE="$DSH_HOME/.agent-skills-kit-dsh-install.txt"
@@ -138,20 +141,14 @@ trap cleanup_install EXIT
 
 show_ask_banner
 
-# Write the Claude rule file when a Claude home already exists.
+# Write the Claude rule file from the shared workflow mandate (single source: rules/workflow.md).
 write_claude_rules_file() {
-  cat > "$CLAUDE_RULES_FILE" <<'EOF'
-# ASK Skills
-
-- Prefer workflow skills under `~/.claude/skills/` when the user's request clearly matches one of them instead of rewriting the workflow inline.
-- Treat `develop` as the default execution baseline for normal software work and combine it with a more specific skill when needed.
-- For large, multi-issue, exhaustive, compatibility-sensitive, or release-sensitive work, load `intake`, write a plan, and complete plan-check before execution.
-- Record maximum-result scope as must/should/could; deferred evidence-backed work needs a reason and revisit trigger.
-- Delegate independent research, validation, review, and audit tracks. Never self-declare release readiness; require independent evidence.
-- After code edits, load `code-review` before claiming completion.
-- If review, verification, or wrap-up exposes a reusable workflow gap, capture it with `write-skill` before ending cold.
-- When editing code, add concise intent comments by default; place one short comment above each function unless the repo's local convention says otherwise.
-EOF
+  {
+    printf '%s\n' "$CLAUDE_RULES_MARKER"
+    cat "$OPENCODE_RULES_SOURCE/workflow.md"
+    printf '\n- ASK skills are native Agent Skills with the id `ask-<name>` (for example `ask-develop`); the guidance above names them without the prefix.\n'
+    printf -- '- Follow the Test budget in `ask-verification`; `strict tests` restores TDD and a regression test per fix.\n'
+  } > "$CLAUDE_RULES_FILE"
 }
 
 # Append managed workflow guidance without replacing user-owned OpenCode rules.
@@ -457,6 +454,84 @@ ensure_directory_symlink() {
   ln -s "$target_path" "$link_path"
 }
 
+# Decide how Claude Code is wired: plugin (via the claude CLI), skills (per-skill links), or off.
+resolve_claude_mode() {
+  case "$CLAUDE_MODE" in
+    plugin|skills|off) printf '%s\n' "$CLAUDE_MODE" ;;
+    *)
+      if command -v claude >/dev/null 2>&1; then printf 'plugin\n'
+      elif [ -d "$CLAUDE_DIR" ]; then printf 'skills\n'
+      else printf 'off\n'
+      fi
+      ;;
+  esac
+}
+
+# Remove only ASK-owned links from the Claude skill root; real directories and foreign links stay untouched.
+remove_ask_claude_skill_links() {
+  local entry=""
+
+  # Legacy installs replaced the whole directory with a link to the shared root; drop just that link.
+  if [ -L "$CLAUDE_SKILLS_TARGET" ] && [ "$(readlink "$CLAUDE_SKILLS_TARGET")" = "$SHARED_SKILLS_TARGET" ]; then
+    rm -f "$CLAUDE_SKILLS_TARGET"
+    return 0
+  fi
+
+  [ -d "$CLAUDE_SKILLS_TARGET" ] || return 0
+  for entry in "$CLAUDE_SKILLS_TARGET"/ask-*; do
+    [ -L "$entry" ] || continue
+    case "$(readlink "$entry")" in
+      "$SHARED_SKILLS_TARGET"/*) rm -f "$entry" ;;
+    esac
+  done
+}
+
+# Link each managed skill into the Claude skill root without replacing anything the user owns.
+link_claude_skills() {
+  local skill_name=""
+  mkdir -p "$CLAUDE_SKILLS_TARGET"
+  while IFS= read -r skill_name; do
+    [ -n "$skill_name" ] || continue
+    if [ -e "$CLAUDE_SKILLS_TARGET/$skill_name" ] && [ ! -L "$CLAUDE_SKILLS_TARGET/$skill_name" ]; then
+      echo "Skipped Claude skill link for $skill_name: a user-owned directory already exists." >&2
+      continue
+    fi
+    ln -sfn "$SHARED_SKILLS_TARGET/$skill_name" "$CLAUDE_SKILLS_TARGET/$skill_name"
+  done < "$CURRENT_MANAGED_SKILLS"
+}
+
+# Install the ASK plugin through the claude CLI; returns non-zero when the CLI path fails.
+install_claude_plugin() {
+  claude plugin marketplace add "$REPO_ROOT" >/dev/null 2>&1 || true
+  claude plugin install "$CLAUDE_PLUGIN_ID" --scope user >/dev/null 2>&1
+}
+
+# Remove the Claude rules this installer generated, leaving user-written rule files alone.
+remove_claude_rules() {
+  if grep -qF "$CLAUDE_RULES_MARKER" "$CLAUDE_RULES_FILE" 2>/dev/null; then
+    rm -f "$CLAUDE_RULES_FILE"
+  fi
+  if cmp -s "$OPENCODE_RULES_SOURCE/coding-standards.md" "$CLAUDE_RULES_TARGET/coding-standards.md" 2>/dev/null; then
+    rm -f "$CLAUDE_RULES_TARGET/coding-standards.md"
+  fi
+}
+
+# Undo the whole Claude Code integration: plugin, links, and generated rules.
+uninstall_claude() {
+  if command -v claude >/dev/null 2>&1; then
+    claude plugin uninstall "$CLAUDE_PLUGIN_ID" >/dev/null 2>&1 || true
+    claude plugin marketplace remove agent-skills-kit >/dev/null 2>&1 || true
+  fi
+  remove_ask_claude_skill_links
+  remove_claude_rules
+  echo "Removed ASK from Claude Code (plugin, skill links, generated rules)."
+}
+
+if [ "${1:-}" = "--uninstall-claude" ]; then
+  uninstall_claude
+  exit 0
+fi
+
 if ! command -v node >/dev/null 2>&1; then
   echo "node is required to export Copilot assets before install." >&2
   exit 1
@@ -500,6 +575,7 @@ installed_count="$(sync_shared_skills)"
 
 clean_old_skill_root "$COPILOT_SKILLS_TARGET"
 clean_old_skill_root "$OPENCODE_SKILLS_TARGET"
+remove_ask_claude_skill_links
 clean_old_skill_root "$CLAUDE_SKILLS_TARGET"
 
 # Symlink managed ask skills into opencode skills dir so native Agent Skills
@@ -614,12 +690,23 @@ node -e "
     fs.writeFileSync(f,JSON.stringify(c,null,2)+'\n');
   "
 
-if [ -d "$CLAUDE_DIR" ]; then
+# Wire Claude Code: plugin via the claude CLI when available, otherwise per-skill links; never replace user skills.
+claude_mode="$(resolve_claude_mode)"
+claude_result="skipped"
+if [ "$claude_mode" != "off" ]; then
   mkdir -p "$CLAUDE_RULES_TARGET"
   write_claude_rules_file
   cp "$OPENCODE_RULES_SOURCE/coding-standards.md" "$CLAUDE_RULES_TARGET/coding-standards.md"
-  cp "$OPENCODE_RULES_SOURCE/workflow.md" "$CLAUDE_RULES_TARGET/workflow.md"
-  ensure_directory_symlink "$CLAUDE_SKILLS_TARGET" "$SHARED_SKILLS_TARGET"
+  if grep -qF "# ASK Workflow Mandate" "$CLAUDE_RULES_TARGET/workflow.md" 2>/dev/null; then
+    rm -f "$CLAUDE_RULES_TARGET/workflow.md"
+  fi
+  if [ "$claude_mode" = "plugin" ] && install_claude_plugin; then
+    claude_result="plugin"
+  else
+    [ "$claude_mode" = "plugin" ] && echo "Claude plugin install failed; falling back to per-skill links." >&2
+    link_claude_skills
+    claude_result="skills"
+  fi
 fi
 
 # Install the dsh-optimized skill variant and routing guidance when dsh is
@@ -661,12 +748,11 @@ echo "Installed OpenCode router package to $OPENCODE_PLUGINS_TARGET/agent-skills
 echo "Installed OpenCode rules to $OPENCODE_RULES_TARGET/coding-standards.md"
 echo "Installed OpenCode agent-skills-kit usage guide to $OPENCODE_RULES_TARGET/agent-skills-kit.md"
 echo "Installed OpenCode workflow guidance to $OPENCODE_AGENTS_FILE"
-if [ -d "$CLAUDE_DIR" ]; then
-  echo "Installed Claude Code rules to $CLAUDE_RULES_FILE"
-  echo "Linked Claude skills at $CLAUDE_SKILLS_TARGET -> $SHARED_SKILLS_TARGET"
-else
-  echo "Skipped Claude linking because $CLAUDE_DIR does not exist."
-fi
+case "$claude_result" in
+  plugin) echo "Installed Claude Code rules to $CLAUDE_RULES_FILE and the $CLAUDE_PLUGIN_ID plugin" ;;
+  skills) echo "Installed Claude Code rules to $CLAUDE_RULES_FILE and linked ASK skills into $CLAUDE_SKILLS_TARGET" ;;
+  *) echo "Skipped Claude Code setup (ASK_CLAUDE_MODE=$CLAUDE_MODE; no claude CLI and $CLAUDE_DIR does not exist)." ;;
+esac
 if [ -n "$dsh_installed_count" ]; then
   echo "Installed ${dsh_installed_count} dsh skills to $DSH_SKILLS_TARGET"
   echo "Added dsh routing guidance to $DSH_AGENTS_FILE"

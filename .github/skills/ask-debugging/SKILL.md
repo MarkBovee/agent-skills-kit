@@ -1,6 +1,6 @@
 ---
-name: "debugging"
-description: "Use when a bug, failing test, or broken build is not already explained by a clear local mistake, or when a first fix did not work. Common triggers: bug, failing test, broken build, debug, debuggen, error, crash, stack trace, not working, does not work, broke, start debugging, start investigating, fout opsporen, slow startup, timeout, hangt, hanging, crash loop, None, target_temp, niet werkend, doet het niet, malfunction, storing."
+name: "ask-debugging"
+description: "Debugging: Use when a bug, failing test, or broken build is not already explained by a clear local mistake, or when a first fix did not work. Common triggers: bug, failing test, broken build, debug, debuggen, error, crash, stack trace, not working, does not work, broke, start debugging, start investigating, fout opsporen, slow startup, timeout, hangt, hanging, crash loop, None, target_temp, niet werkend, doet het niet, malfunction, storing."
 ---
 # ASK Debugging
 
@@ -14,7 +14,7 @@ Fix obvious one-line mistakes directly. For everything else, earn the fix by nar
 4. Instrument the boundary that is most likely lying.
 5. Form one hypothesis and test it with the smallest useful change.
 6. Fix the root cause, not the symptom. Ask "why does this happen?" until the actual cause is reached.
-7. Guard against recurrence with a regression test or check that fails without the fix and passes with it.
+7. Guard against recurrence with one regression test or check that fails without the fix, only when the symptom is cheap to reproduce at the public boundary (test budget in `verification`); otherwise record the reproduction. Extend an existing test before adding a file.
 8. Verify the result end-to-end with the repository's own commands, self-review the explanation, and continue if the issue is not yet solved.
 
 ## Error output is data

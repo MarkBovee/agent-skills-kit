@@ -1,6 +1,6 @@
 ---
-name: "develop"
-description: "Default baseline skill for normal software work: small safe iterations, built-in validation, no unnecessary pauses between clear next steps. Includes mode selection (direct, batch, delegate) and cheap-first escalation for bounded mechanical chores. Common triggers: develop, kaizen, autopilot, keep going, continue without waiting, do not stop, don't stop, ga door, werk door, volgende logische stap, volgende stap, start working, start coding, get started, zonder te wachten, niet stoppen, gewoon doorgaan, ga verder, implement this, fix this, add this, pas dit aan, maak dit af, implement, implementeer dit, keep coding, continue implementation, work through steps, code change, start implementing, start implementation, batch edits, delegate work, subagent, maak dit werkend, rewrite, herbouw, coordinator, coördinator, omwerken, entity rewrite, refactor, code aanpassen, werk dit bij, build this, development."
+name: "ask-develop"
+description: "Develop: Default baseline skill for normal software work: small safe iterations, built-in validation, no unnecessary pauses between clear next steps. Includes mode selection (direct, batch, delegate) and cheap-first escalation for bounded mechanical chores. Common triggers: develop, kaizen, autopilot, keep going, continue without waiting, do not stop, don't stop, ga door, werk door, volgende logische stap, volgende stap, start working, start coding, get started, zonder te wachten, niet stoppen, gewoon doorgaan, ga verder, implement this, fix this, add this, pas dit aan, maak dit af, implement, implementeer dit, keep coding, continue implementation, work through steps, code change, start implementing, start implementation, batch edits, delegate work, subagent, maak dit werkend, rewrite, herbouw, coordinator, coördinator, omwerken, entity rewrite, refactor, code aanpassen, werk dit bij, build this, development."
 ---
 # ASK Develop
 
@@ -56,7 +56,7 @@ Output contract per stage (see `agent-workflows` for the full contract):
 
 0. **Plan if missing.** Non-trivial task (3+ changes, multi-file, risky) without a plan? If scope is new or unclear, load `intake` first. Otherwise generate inline plan with `todowrite` or short bullets. Trivial 1-2 edits: skip.
 1. Inspect the next boundary that matters.
-2. Create the smallest coherent improvement. For logic or behavior changes, write or update the failing test first (RED → GREEN → REFACTOR); for bug fixes write a regression test that demonstrates the bug before fixing it.
+2. Create the smallest coherent improvement. Add tests only within the test budget for the workflow risk (see `verification`): none for `small` work unless existing tests cannot prove the change. Write the failing test first only when the user or repository asks for TDD or `strict tests`.
 3. Test it with the fastest trustworthy proof.
 4. Run the broader validation needed for the claim, including integration or server checks when applicable.
 5. After validation, run only the review gates required by the workflow risk; small work ends after its targeted proof.

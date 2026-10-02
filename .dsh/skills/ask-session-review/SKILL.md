@@ -1,6 +1,6 @@
 ---
 name: "session-review"
-description: "Use after completing work to reflect on skill usage, identify gaps, and file improvement issues in the agent-skills-kit repo. Also handles general GitHub issue creation from bug reports, review findings, and follow-ups. Common triggers: retrospective, retro, reflect on session, how did i use skills, file an issue, create issue, github issue, file issue, gh issue create."
+description: "Session Review: Use after completing work to reflect on skill usage, identify gaps, and file improvement issues in the agent-skills-kit repo. Also handles general GitHub issue creation from bug reports, review findings, and follow-ups. Common triggers: retrospective, retro, reflect on session, how did i use skills, file an issue, create issue, github issue, file issue, gh issue create."
 whenToUse: "Common triggers: retrospective, retro, reflect on session, how did i use skills, file an issue, create issue, github issue, file issue, gh issue create."
 ---
 # ASK Session Review

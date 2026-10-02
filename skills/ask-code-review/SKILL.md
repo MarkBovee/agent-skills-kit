@@ -1,6 +1,6 @@
 ---
-name: code-review
-description: Use when code changed and a meaningful diff is ready; fresh eyes should catch requirement gaps, regressions, or risky design mistakes before handoff or success claims.
+name: ask-code-review
+description: "Code Review: Use when code changed and a meaningful diff is ready; fresh eyes should catch requirement gaps, regressions, or risky design mistakes before handoff or success claims."
 execution_tier: standard
 delegation_default: auto
 triggers:

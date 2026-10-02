@@ -154,7 +154,7 @@ The bootstrap script is the recommended path. It clones if needed, moves the man
 
 ### Unified Installer
 
-The managed installer now does one thing: install all shared skills into `~/.agents/skills`, which Codex discovers natively, install Copilot instructions and prompt files, install the OpenCode router/plugin and slash commands, when `~/.claude/` already exists write Claude rules, and when dsh is present install the dsh-optimized skill variant into `~/.dsh/skills` plus routing guidance into `~/.dsh/AGENTS.md`.
+The managed installer now does one thing: install all shared skills into `~/.agents/skills`, which Codex discovers natively, install Copilot instructions and prompt files, install the OpenCode router/plugin and slash commands, wire Claude Code (plugin or per-skill links plus generated rules, never replacing user skills), and when dsh is present install the dsh-optimized skill variant into `~/.dsh/skills` plus routing guidance into `~/.dsh/AGENTS.md`.
 
 If you want non-default locations, set environment variables before running the installer:
 
@@ -240,14 +240,33 @@ Native Agent Skills perform the automatic relevance-based loading. The plugin ma
 
 ### Claude Code Details
 
-Installed paths:
+ASK ships as a native Claude Code plugin. Skills carry the id `ask-<name>` (for example `/ask-develop`, or `/agent-skills-kit:ask-develop` when installed as a plugin); descriptions start with the nice name (`Develop: ...`).
 
-* `~/.agents/skills/`
-* `~/.claude/rules/`
+Install as a plugin (recommended):
 
-If `~/.claude/` exists, the installer writes Claude rules under `~/.claude/rules/`.
+```text
+/plugin marketplace add MarkBovee/agent-skills-kit
+/plugin install agent-skills-kit@agent-skills-kit
+```
 
-If `~/.claude/` does not exist, Claude-specific setup is skipped on purpose. Create the directory first if you want the installer to wire Claude into the shared `~/.agents/skills` root.
+What the plugin provides:
+
+* 17 `ask-` skills (native discovery, loaded by description).
+* `SessionStart` context: routing table with `ask-` ids plus the workflow mandate.
+* `UserPromptSubmit` hints: routing suggestion, workflow risk and gates, test budget, review reminder.
+* `PostToolUse` tracking of edits and `ask-code-review` loads; session state lives in `${CLAUDE_PLUGIN_DATA}`.
+* Read-only subagents `ask-reviewer`, `ask-auditor`, `ask-researcher` that return the `ASK_WORKFLOW_*` evidence markers.
+
+The installer (`install.sh` / `install.ps1`) never replaces `~/.claude/skills`. `ASK_CLAUDE_MODE` selects the wiring:
+
+* `auto` (default): plugin when the `claude` CLI exists, per-skill links when only `~/.claude/` exists, otherwise skipped.
+* `plugin`: marketplace add + install through the CLI; falls back to per-skill links when that fails.
+* `skills`: per-skill symlinks `~/.claude/skills/ask-<name>` that never overwrite a user-owned directory.
+* `off`: skip Claude entirely.
+
+Rules are generated into `~/.claude/rules/agent-skills-kit.md` from `rules/workflow.md`. Remove everything ASK added with `scripts/install.sh --uninstall-claude` or `scripts/install.ps1 -UninstallClaude`. Legacy installs that linked the whole `~/.claude/skills` directory to `~/.agents/skills` are migrated automatically.
+
+Validate locally with `node scripts/check-claude-code.js` and, when the CLI is installed, `claude plugin validate . --strict`.
 
 ### Codex Details
 
@@ -357,7 +376,7 @@ Each skill also ships as a slash command. A command loads its skill and applies 
 | Claude Code              | skills are commands (2026)           | no separate file — `skill` → `/name`                  |
 | DeepSeek Harness (dsh)   | registered by the ask-kit preset row | no files — `ctx.commands.register()` at runtime       |
 
-Commands are authored once under `commands/` and exported by `export-platform-skills.js` into `.opencode/commands/` (OpenCode) and `.github/prompts/*.prompt.md` (Copilot/VS Code). Claude Code gets its command surface for free because its skills already act as slash commands. dsh has no file-based command discovery; its picker entries are registered programmatically by the ask-kit router preset (one `ctx.commands.register()` per skill; the handler steers the load-the-skill prompt pattern), so no command files ship for it.
+Commands are authored once under `commands/` and exported by `export-platform-skills.js` into `.opencode/commands/` (OpenCode) and `.github/prompts/*.prompt.md` (Copilot/VS Code). Claude Code gets its command surface for free because its skills already act as slash commands; `plugin.json` sets `"commands": []` so `commands/` is not loaded a second time (verified: 17 skills, 0 commands, no duplicate menu entries). dsh has no file-based command discovery; its picker entries are registered programmatically by the ask-kit router preset (one `ctx.commands.register()` per skill; the handler steers the load-the-skill prompt pattern), so no command files ship for it.
 
 ---
 
@@ -483,7 +502,7 @@ Hard boundaries:
 | OpenCode               | Reference      | router plugin, routing support, bootstrap/install/update tooling                              | installs managed skills plus `core/router-core.js` and `plugins/agent-skills-router/`                                                                              |
 | Codex                  | Supported      | native Agent Skills discovery from shared root                                                | `~/.agents/skills/`; no Codex config or duplicate skill copy                                                                                                      |
 | GitHub Copilot         | Supported      | VS Code Agent Plugin, native skills, lifecycle hooks, generated skills, reusable instructions | `.claude-plugin/plugin.json`, `skills/`, `hooks/hooks.json`, `.github/skills/`, `.github/copilot-instructions.md`, `~/.agents/skills/`, `~/.copilot/instructions/` |
-| Claude Code            | Supported      | reusable rules, bootstrap/install/update tooling                                            | `~/.claude/rules/`                                                                                      |
+| Claude Code            | Supported      | plugin + marketplace, lifecycle hooks, read-only subagents, native skills, rules            | `.claude-plugin/`, `hooks/hooks.json`, `agents/`, `~/.claude/rules/`                                                                                    |
 | DeepSeek Harness (dsh) | Experimental   | generated skills, routing guidance, optional router agent preset, preview API exposure docs   | `.dsh/skills/`, `~/.dsh/skills/`, `~/.dsh/AGENTS.md`, `~/.dsh/.agent-presets/ask-kit/`                                                                             |
 
 OpenCode remains the reference implementation for routing behavior. Codex uses native discovery of the canonical workflow source. GitHub Copilot, Claude Code, and dsh exports and adapters are generated or maintained from the same canonical workflow source. dsh remains experimental.

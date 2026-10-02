@@ -1,6 +1,6 @@
 ---
-name: session-review
-description: Use after completing work to reflect on skill usage, identify gaps, and file improvement issues in the agent-skills-kit repo. Also handles general GitHub issue creation from bug reports, review findings, and follow-ups.
+name: ask-session-review
+description: "Session Review: Use after completing work to reflect on skill usage, identify gaps, and file improvement issues in the agent-skills-kit repo. Also handles general GitHub issue creation from bug reports, review findings, and follow-ups."
 execution_tier: light
 delegation_default: prefer-subagent
 triggers:

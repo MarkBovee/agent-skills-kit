@@ -103,7 +103,7 @@ This gate is mandatory. A formatter run without the inspection, scoped execution
 - Add short intent comments before non-obvious projection, persistence, retry, recovery, concurrency, protocol, and data-integrity blocks.
 - Keep architecture proportional to the repository. Do not add repositories, event-store wrappers, workers, brokers, factories, or frameworks without a demonstrated need.
 - Separate dependency vulnerability warnings from compiler and test failures. Report warnings; do not hide them or perform speculative upgrades.
-- Run checks in this order: `dotnet format --verify-no-changes`, `dotnet build`, `dotnet test`, then `git diff --check`.
+- Run checks in this order: `dotnet format --verify-no-changes`, `dotnet build`, `dotnet test` scoped to the touched projects (the full suite only when the risk requires it), then `git diff --check`.
 - Apply these rules across production code, tests, crawler code, and repository configuration, not only new files.
 
 ## Error Handling & Performance
@@ -119,6 +119,6 @@ This gate is mandatory. A formatter run without the inspection, scoped execution
 - Performance impact acceptable.
 - Error handling covers edge cases, not just happy path.
 - All existing tests passing.
-- If external integration changed: dry-run and idempotency coverage included.
+- If external integration changed: dry-run and idempotency are covered by an existing test or one new test within the test budget.
 - Code is self-documenting and has "why" comments at non-obvious decisions; file-level purpose comments present where applicable.
 - Relevant checks (lint, typecheck, tests) are warning-free and error-free.

@@ -1,6 +1,6 @@
 ---
-name: research
-description: Use when a question needs bounded fact-finding across repository, documentation, code, or external sources before an answer or decision.
+name: ask-research
+description: "Research: Use when a question needs bounded fact-finding across repository, documentation, code, or external sources before an answer or decision."
 execution_tier: standard
 delegation_default: auto
 triggers:

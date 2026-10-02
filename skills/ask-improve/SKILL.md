@@ -1,6 +1,6 @@
 ---
-name: improve
-description: Use when the codebase needs a structured audit, audit-driven plans, execution of those plans, or a focused refactoring/simplification pass. Covers correctness, security, performance, tech debt, migrations, DX, direction, and code cleanup in one skill.
+name: ask-improve
+description: "Improve: Use when the codebase needs a structured audit, audit-driven plans, execution of those plans, or a focused refactoring/simplification pass. Covers correctness, security, performance, tech debt, migrations, DX, direction, and code cleanup in one skill."
 execution_tier: standard
 delegation_default: prefer-subagent
 triggers:

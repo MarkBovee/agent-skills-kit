@@ -1,6 +1,6 @@
 ---
-name: agent-workflows
-description: Use when coordinating multi-agent work, parallel execution, task handoff, shared context, or clean session shutdown across multiple agents or terminals. Especially useful when the host supports subagents, hooks, or shared context.
+name: ask-agent-workflows
+description: "Agent Workflows: Use when coordinating multi-agent work, parallel execution, task handoff, shared context, or clean session shutdown across multiple agents or terminals. Especially useful when the host supports subagents, hooks, or shared context."
 execution_tier: light
 delegation_default: prefer-subagent
 triggers:
@@ -69,7 +69,7 @@ Keep the audit assignment separate from validation. Provide the exact diff refer
 
 ## Finding loop
 
-P0/P1 findings follow: reproduce → regression test → minimal fix → validation → affected re-audit. Do not close a finding because code changed; re-prove its invariant.
+P0/P1 findings follow: reproduce → one regression proof within the test budget → minimal fix → validation → affected re-audit. Other findings are reported without new tests. Do not close a finding because code changed; re-prove its invariant.
 
 ## Release audit convergence and stop rule
 

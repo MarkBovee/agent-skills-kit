@@ -3,7 +3,7 @@
 const fs = require("node:fs/promises")
 const path = require("node:path")
 
-const { parseBooleanField, parseFrontmatter, stripFrontmatter, toSingleLine } = require("../core/router-core")
+const { parseBooleanField, parseFrontmatter, stripFrontmatter, toBareSkillName, toSingleLine } = require("../core/router-core")
 
 const REPO_ROOT = path.resolve(__dirname, "..")
 const SOURCE_SKILLS_DIR = path.join(REPO_ROOT, "skills")
@@ -289,7 +289,8 @@ async function exportSkills() {
     }
     const sourceSkill = sourceSkillRaw.toString("utf8")
     const frontmatter = parseFrontmatter(sourceSkill)
-    const displayName = (frontmatter.name || skillName).trim()
+    const skillId = (frontmatter.name || skillName).trim()
+    const displayName = toBareSkillName(skillId)
     const description = (frontmatter.description || "").trim()
     const triggers = getSkillTriggers(frontmatter)
     const disableModelInvocation = parseBooleanField(frontmatter["disable-model-invocation"])
@@ -303,7 +304,7 @@ async function exportSkills() {
 
     await fs.writeFile(
       path.join(copilotTarget, "SKILL.md"),
-      buildCopilotSkill(displayName, description, triggers, disableModelInvocation, transformBody(sourceSkill, "copilot", skillName)),
+      buildCopilotSkill(skillId, description, triggers, disableModelInvocation, transformBody(sourceSkill, "copilot", skillName)),
       "utf8",
     )
     await fs.writeFile(

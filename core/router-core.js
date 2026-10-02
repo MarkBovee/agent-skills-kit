@@ -460,6 +460,15 @@ function invalidateWorkflowForDiff(workflow, diffIdentity) {
   }
 }
 
+// Short test-budget statement per workflow risk, mirrored from the verification skill.
+const TEST_POLICY = {
+  "small": "no new tests unless existing ones cannot prove the change",
+  "normal": "new behavior at the public boundary; one regression test per bug only when cheap",
+  "spec-required": "one test per acceptance criterion",
+  "significant": "as normal plus one test per P0/P1 finding",
+  "release-sensitive": "full proof set",
+}
+
 // Render concise lifecycle status for prompt and panel surfaces.
 function workflowHintLines(workflow) {
   if (!workflow) return []
@@ -469,6 +478,7 @@ function workflowHintLines(workflow) {
   return [
     `Workflow: ${workflow.phase} | risk=${workflow.risk} | review=${workflow.reviewMode || "separate"} | diff=${workflow.diffIdentity || "UNSET"} | ${gates.join(" ")}`,
     `Evidence: subagents=${(workflow.subagents || []).length} | unresolved-findings=${findings} | release=${workflow.releaseStatus}`,
+    `Tests: ${TEST_POLICY[workflow.risk] || TEST_POLICY.normal}`,
   ]
 }
 
@@ -611,6 +621,11 @@ async function findSkillFiles(root) {
   return results
 }
 
+// Strip the ask- prefix so routing keeps using the nice bare skill name while the native id stays ask-<name>.
+function toBareSkillName(skillId) {
+  return typeof skillId === "string" ? skillId.replace(/^ask-/, "") : skillId
+}
+
 async function loadSkills(pathsToScan) {
   const files = []
   for (const skillPath of pathsToScan) {
@@ -621,14 +636,15 @@ async function loadSkills(pathsToScan) {
   for (const filePath of files) {
     const content = await fs.readFile(filePath, "utf8")
     const frontmatter = parseFrontmatter(content)
-    const name = (frontmatter.name || path.basename(path.dirname(filePath))).trim()
+    const id = (frontmatter.name || path.basename(path.dirname(filePath))).trim()
+    const name = toBareSkillName(id)
     const description = (frontmatter.description || "").trim()
     const triggers = normalizeStringList(frontmatter.triggers)
     const isDefault = parseBooleanField(frontmatter.default)
     const executionTier = parseExecutionTier(frontmatter.execution_tier)
     const delegationDefault = parseDelegationMode(frontmatter.delegation_default)
     if (!name || !description) continue
-    skills.push({ name, description, triggers, isDefault, executionTier, delegationDefault, filePath })
+    skills.push({ id, name, description, triggers, isDefault, executionTier, delegationDefault, filePath })
   }
   return skills.sort((left, right) => left.name.localeCompare(right.name))
 }
@@ -832,6 +848,6 @@ module.exports = {
   createEmptySessionState, getSessionState, setSessionState,
     findSkill, isAskSkill, isAskSkillName, ASK_SKILL_NAMES, hasPhraseSignal, routingHintLines,
     classifyWorkflowRisk, hasWorkflowRiskSignal, workflowRiskRank, requiredWorkflowPhases, buildWorkflowState, invalidateWorkflowForDiff, workflowRequiresReview, workflowHintLines, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
-  stripFrontmatter, toSingleLine, normalizeStringList,
+  TEST_POLICY, toBareSkillName, stripFrontmatter, toSingleLine, normalizeStringList,
   parseBooleanField, parseFrontmatter, unique,
 }

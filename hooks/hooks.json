@@ -2,16 +2,46 @@
   "hooks": {
     "SessionStart": [
       {
-        "type": "command",
-        "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/agent-skills-hook.js\" session-start",
-        "timeout": 10
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/agent-skills-hook.js\" session-start",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
       {
-        "type": "command",
-        "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/agent-skills-hook.js\" prompt",
-        "timeout": 10
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/agent-skills-hook.js\" prompt",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/agent-skills-hook.js\" post-edit",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/agent-skills-hook.js\" post-skill",
+            "timeout": 10
+          }
+        ]
       }
     ]
   }
