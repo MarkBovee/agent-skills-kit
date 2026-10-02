@@ -1,6 +1,6 @@
 ---
 name: "ask-code-review"
-description: "Code Review: Use when code changed and a meaningful diff is ready; fresh eyes should catch requirement gaps, regressions, or risky design mistakes before handoff or success claims. Common triggers: review, nakijken, pull request, code review, fresh eyes, start reviewing, review deze wijziging, check de wijziging, review changes, second look, bekijk de diff, controleer de code, code check, diff review, PR review."
+description: "Code Review: Use when a meaningful diff is ready and fresh eyes should catch requirement gaps, regressions, or risky design before handoff. Common triggers: review, nakijken, pull request, code review, fresh eyes, start reviewing, review deze wijziging, check de wijziging, review changes, second look, bekijk de diff, controleer de code, code check, diff review, PR review."
 ---
 # ASK Code Review
 

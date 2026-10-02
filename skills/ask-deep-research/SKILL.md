@@ -1,6 +1,6 @@
 ---
 name: ask-deep-research
-description: "Deep Research: Use when a complex technical question needs autonomous, multi-source investigation, contradiction analysis, and an actionable cited handoff."
+description: "Deep Research: Use when a complex technical question needs autonomous multi-source investigation, contradiction analysis, and a cited handoff."
 execution_tier: deep
 delegation_default: prefer-subagent
 triggers:

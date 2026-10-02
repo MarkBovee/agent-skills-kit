@@ -1,6 +1,6 @@
 ---
 name: "research"
-description: "Research: Use when a question needs bounded fact-finding across repository, documentation, code, or external sources before an answer or decision. Common triggers: research this, research question, find evidence, compare sources, investigate current state, look into this technology, research documentation."
+description: "Research: Use when a question needs bounded fact-finding across repository, docs, code, or external sources before an answer or decision. Common triggers: research this, research question, find evidence, compare sources, investigate current state, look into this technology, research documentation."
 whenToUse: "Common triggers: research this, research question, find evidence, compare sources, investigate current state, look into this technology, research documentation."
 ---
 # ASK Research

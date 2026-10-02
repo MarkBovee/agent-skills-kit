@@ -1,6 +1,6 @@
 ---
 name: "ask-write-skill"
-description: "Write Skill: Use when creating or revising skills, or when agent behavior reveals a reusable workflow improvement, routing gap, or missing guardrail that should become a skill, plugin, or prompt-pack follow-up. Common triggers: create skill, revise skill, skill design, trigger-focused, write skills, improve skills, skill improvement, skill gap, workflow improvement, routing gap, missing guardrail, prompt pack improvement, reusable improvement, agent missed, auto improvement."
+description: "Write Skill: Use when creating or revising skills, or when agent behavior reveals a reusable workflow improvement, routing gap, or missing guardrail. Common triggers: create skill, revise skill, skill design, trigger-focused, write skills, improve skills, skill improvement, skill gap, workflow improvement, routing gap, missing guardrail, prompt pack improvement, reusable improvement, agent missed, auto improvement."
 ---
 # Writing ASK Skills
 

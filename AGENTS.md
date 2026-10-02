@@ -66,6 +66,7 @@ node ./scripts/check-tier-vocabulary.js
 node ./scripts/validate-plugin.js
 node ./scripts/check-claude-code.js
 node ./scripts/check-test-policy.js
+node ./scripts/check-tmp-usage.js
 node ./scripts/check-release-readiness.js --require-version-entry
 ./scripts/check-installed-artifacts.sh
 ```

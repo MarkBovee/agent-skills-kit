@@ -1,6 +1,6 @@
 ---
 name: ask-spec
-description: "Spec: Use when building a requirements spec or design brief before code — formalizing capture, decisions, and validation gates for non-trivial or enterprise-style work. Traceability + human-owned validation before handover."
+description: "Spec: Use when non-trivial work needs a requirements spec or design brief before code: captured decisions, traceability, and validation gates."
 execution_tier: standard
 triggers:
   - spec

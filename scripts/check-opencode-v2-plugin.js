@@ -1164,6 +1164,7 @@ assertGateSnapshot(pendingMutationShell, [
 
 const redirectedSafeShell = planGateItems(workflowHistory("add a status panel", [
   ...completeHistory,
+  // tmp-ok: workdir is a string in a simulated tool history; nothing is created there.
   { tool: "bash", command: "node ./scripts/check-opencode-v2-plugin.js", workdir: "/tmp" },
 ]), planWorkspace)
 assertGateSnapshot(redirectedSafeShell, [

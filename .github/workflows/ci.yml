@@ -38,6 +38,9 @@ jobs:
       - name: Validate proportional test budget
         run: node ./scripts/check-test-policy.js
 
+      - name: Reject unsafe temp-directory usage
+        run: node ./scripts/check-tmp-usage.js
+
       - name: Validate plugin with the Claude Code CLI (advisory until proven stable)
         continue-on-error: true
         run: npx --yes @anthropic-ai/claude-code plugin validate . --strict
