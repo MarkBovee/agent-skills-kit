@@ -55,7 +55,7 @@ Keep the audit assignment separate from validation. Provide the exact diff refer
 
 ## Finding loop
 
-P0/P1 findings follow: reproduce → regression test → minimal fix → validation → affected re-audit. Do not close a finding because code changed; re-prove its invariant.
+P0/P1 findings follow: reproduce → one regression proof within the test budget → minimal fix → validation → affected re-audit. Other findings are reported without new tests. Do not close a finding because code changed; re-prove its invariant.
 
 ## Release audit convergence and stop rule
 

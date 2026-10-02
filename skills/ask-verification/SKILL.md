@@ -51,7 +51,7 @@ Match the proof to the claim. Bigger claim, stronger evidence.
 - **Ready to merge or hand off:** run the smallest relevant suite, build, or lint checks proportional to the workflow risk
 - **Installer or deployer changed:** run the installer into an isolated home and verify the installed copies of user-visible surfaces match the repo, including a refresh over a stale existing install — a green repo-side suite says nothing about what actually got deployed
 - **Small workflow:** prove the specific change with the smallest trustworthy check; do not add a separate review, audit, or smell-scan pass. Keep checks for security and error handling that are directly relevant to the changed path.
-- **Normal or higher-risk code change:** run a proportional smell scan after the main proof. Scan changed files for unbounded loops, sync-over-async, swallowed exceptions, missing cancellation, duplicated I/O or N+1 queries, hardcoded configuration, runtime artifacts, silent unknown-event handling, and relevant test gaps. Expand to a repository-wide scan for cross-module changes, audits, or explicit tech-debt work.
+- **Normal or higher-risk code change:** run a proportional smell scan after the main proof. Scan changed files for unbounded loops, sync-over-async, swallowed exceptions, missing cancellation, duplicated I/O or N+1 queries, hardcoded configuration, runtime artifacts, silent unknown-event handling, and relevant test gaps (report them; add tests only within the test budget). Expand to a repository-wide scan for cross-module changes, audits, or explicit tech-debt work.
 - **Coding-rule compliance:** inspect all changed function-like constructs for required intent comments and run the repository's source-comment check when it exists. Treat a missing comment or a skipped check as failed validation, not optional style feedback.
 - **Long-poll or deploy→restart→verify loops:** wait one full cycle once, bundle all state assertions into a single verification pass, and fail fast to a diagnostic set (a few key values) instead of repeating full waits. Do not re-run the full cycle for every surfaced sub-issue; investigate root cause off the accumulated state, fix, then re-verify once.
 
@@ -71,9 +71,23 @@ Match the proof to the claim. Bigger claim, stronger evidence.
 
 The standing bar every change must clear, separate from per-task acceptance criteria. Raising the bar is silent; lowering it is loud:
 
-- No new lint/type suppressions, stubs, or skipped or deleted tests to get to green.
+- No new lint/type suppressions, stubs, or skipped tests, and no stripped assertions, to get to green. Deleting a redundant test needs a one-line rationale.
 - No weakened thresholds, assertions stripped out, or previously enforced checks disabled without an explicit, accepted rationale.
-- A regression test guards the original symptom and fails without its fix.
+- The original symptom is proven fixed: an existing test, or one new regression test within the test budget, fails without the fix; otherwise record a scripted or manual reproduction.
+
+## Test budget
+
+New tests are a cost. Match them to the workflow risk. The user or repository can opt back into strict behavior with `strict tests` (TDD and a regression test per fix).
+
+| Risk | New tests |
+| --- | --- |
+| small | None unless existing tests cannot prove the change; run the relevant existing tests. |
+| normal | New behavior at the public boundary. A bug fix gets one regression test only when the symptom is cheap to reproduce there. TDD only on request. |
+| spec-required | One test per acceptance criterion, not per requirement or invariant. |
+| significant | As normal, plus one test per P0/P1 audit finding; report other findings without adding tests. |
+| release-sensitive | Unchanged: the full proof set. |
+
+Rules: no tests for trivial, private, generated, or configuration code; extend or parametrize an existing test before adding a file; report test gaps instead of closing them unless the budget allows.
 
 ## Workspace wrap-up
 

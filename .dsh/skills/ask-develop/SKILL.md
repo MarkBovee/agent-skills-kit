@@ -57,7 +57,7 @@ Output contract per stage (see `agent-workflows` for the full contract):
 
 0. **Plan if missing.** Non-trivial task (3+ changes, multi-file, risky) without a plan? If scope is new or unclear, load `intake` first. Otherwise generate inline plan with `todowrite` or short bullets. Trivial 1-2 edits: skip.
 1. Inspect the next boundary that matters.
-2. Create the smallest coherent improvement. For logic or behavior changes, write or update the failing test first (RED → GREEN → REFACTOR); for bug fixes write a regression test that demonstrates the bug before fixing it.
+2. Create the smallest coherent improvement. Add tests only within the test budget for the workflow risk (see `verification`): none for `small` work unless existing tests cannot prove the change. Write the failing test first only when the user or repository asks for TDD or `strict tests`.
 3. Test it with the fastest trustworthy proof.
 4. Run the broader validation needed for the claim, including integration or server checks when applicable.
 5. After validation, run only the review gates required by the workflow risk; small work ends after its targeted proof.

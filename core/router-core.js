@@ -460,6 +460,15 @@ function invalidateWorkflowForDiff(workflow, diffIdentity) {
   }
 }
 
+// Short test-budget statement per workflow risk, mirrored from the verification skill.
+const TEST_POLICY = {
+  "small": "no new tests unless existing ones cannot prove the change",
+  "normal": "new behavior at the public boundary; one regression test per bug only when cheap",
+  "spec-required": "one test per acceptance criterion",
+  "significant": "as normal plus one test per P0/P1 finding",
+  "release-sensitive": "full proof set",
+}
+
 // Render concise lifecycle status for prompt and panel surfaces.
 function workflowHintLines(workflow) {
   if (!workflow) return []
@@ -469,6 +478,7 @@ function workflowHintLines(workflow) {
   return [
     `Workflow: ${workflow.phase} | risk=${workflow.risk} | review=${workflow.reviewMode || "separate"} | diff=${workflow.diffIdentity || "UNSET"} | ${gates.join(" ")}`,
     `Evidence: subagents=${(workflow.subagents || []).length} | unresolved-findings=${findings} | release=${workflow.releaseStatus}`,
+    `Tests: ${TEST_POLICY[workflow.risk] || TEST_POLICY.normal}`,
   ]
 }
 
@@ -838,6 +848,6 @@ module.exports = {
   createEmptySessionState, getSessionState, setSessionState,
     findSkill, isAskSkill, isAskSkillName, ASK_SKILL_NAMES, hasPhraseSignal, routingHintLines,
     classifyWorkflowRisk, hasWorkflowRiskSignal, workflowRiskRank, requiredWorkflowPhases, buildWorkflowState, invalidateWorkflowForDiff, workflowRequiresReview, workflowHintLines, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
-  toBareSkillName, stripFrontmatter, toSingleLine, normalizeStringList,
+  TEST_POLICY, toBareSkillName, stripFrontmatter, toSingleLine, normalizeStringList,
   parseBooleanField, parseFrontmatter, unique,
 }
