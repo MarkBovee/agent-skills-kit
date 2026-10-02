@@ -134,7 +134,22 @@ function checkHookBehavior() {
   expect(garbage.status === 0 && garbage.stdout.trim() === "", "malformed payload exits 0 without output")
 }
 
+// Run the real `claude plugin validate --strict` on each manifest/component target when the CLI is installed.
+function checkNativeValidator() {
+  const probe = spawnSync("claude", ["--version"], { encoding: "utf8", timeout: 20000 })
+  if (probe.error || probe.status !== 0) {
+    console.log("SKIP: claude CLI not installed; native plugin validation not run")
+    return
+  }
+  const targets = [".claude-plugin/plugin.json", ".claude-plugin/marketplace.json", "skills", "agents", "commands"]
+  for (const target of targets) {
+    const validation = spawnSync("claude", ["plugin", "validate", target, "--strict"], { cwd: REPO_ROOT, encoding: "utf8", timeout: 60000 })
+    expect(validation.status === 0, `claude plugin validate --strict passes for ${target}`)
+  }
+}
+
 checkManifest()
+checkNativeValidator()
 checkSkills()
 checkHooksFile()
 checkAgents()
