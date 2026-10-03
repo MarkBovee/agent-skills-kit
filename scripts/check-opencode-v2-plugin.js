@@ -11,12 +11,17 @@ const require = createRequire(import.meta.url)
 const skillRoot = await mkdtemp(join(tmpdir(), "ask-opencode-v2-plugin-"))
 await Promise.all([
   mkdir(join(skillRoot, "ask-develop")),
+  mkdir(join(skillRoot, "ask-code-review")),
   mkdir(join(skillRoot, "external-skill")),
 ])
+const outsideSkillRoot = await mkdtemp(join(tmpdir(), "ask-opencode-outside-skill-"))
 await Promise.all([
   writeFile(join(skillRoot, "ask-develop", "SKILL.md"), "---\nname: develop\ndescription: ASK workflow\ntriggers:\n  - test\n---\n"),
+  writeFile(join(skillRoot, "ask-code-review", "SKILL.md"), "---\nname: code-review\ndescription: ASK review workflow\ntriggers:\n  - review\n---\n"),
   writeFile(join(skillRoot, "external-skill", "SKILL.md"), "---\nname: external-skill\ndescription: Must not appear in ASK\ntriggers:\n  - test\n---\n"),
+  writeFile(join(outsideSkillRoot, "SKILL.md"), "---\nname: design-review\ndescription: Outside ASK root\n---\n"),
 ])
+await symlink(outsideSkillRoot, join(skillRoot, "ask-design"))
 process.env.ASK_SKILLS_DIR = skillRoot
 const planWorkspace = await mkdtemp(join(skillRoot, "plan-workspace-"))
 await Promise.all([
@@ -1395,8 +1400,56 @@ try {
 } catch (error) {
   externalSkillGateError = error
 }
-if (!String(externalSkillGateError?.message).includes("Load a skill first")) {
+if (!String(externalSkillGateError?.message).includes("Read the routed ASK file first")) {
   throw new Error("non-ASK skill incorrectly satisfied the skill gate")
+}
+
+await hooks.tool["execute.after"]({
+  sessionID: "test",
+  tool: "read",
+  input: { path: join(skillRoot, "ask-develop", "SKILL.md") },
+  status: "error",
+}, { isError: true, error: "read failed" })
+let failedReadGateError
+try {
+  await hooks.tool["execute.before"]({ sessionID: "test", tool: "patch", input: {} })
+} catch (error) {
+  failedReadGateError = error
+}
+if (!String(failedReadGateError?.message).includes("Read the routed ASK file first")) {
+  throw new Error("failed skill-file read incorrectly satisfied the skill gate")
+}
+
+await hooks.tool["execute.after"]({
+  sessionID: "test",
+  tool: "read",
+  input: { path: join(skillRoot, "external-skill", "SKILL.md") },
+  status: "completed",
+}, { content: "external skill" })
+let externalReadGateError
+try {
+  await hooks.tool["execute.before"]({ sessionID: "test", tool: "patch", input: {} })
+} catch (error) {
+  externalReadGateError = error
+}
+if (!String(externalReadGateError?.message).includes("Read the routed ASK file first")) {
+  throw new Error("a non-ASK file read incorrectly satisfied the skill gate")
+}
+
+await hooks.tool["execute.after"]({
+  sessionID: "test",
+  tool: "read",
+  input: { path: join(skillRoot, "ask-design", "SKILL.md") },
+  status: "completed",
+}, { content: "symlinked skill file" })
+let escapedReadGateError
+try {
+  await hooks.tool["execute.before"]({ sessionID: "test", tool: "patch", input: {} })
+} catch (error) {
+  escapedReadGateError = error
+}
+if (!String(escapedReadGateError?.message).includes("Read the routed ASK file first")) {
+  throw new Error("a symlink escaping the ASK root incorrectly satisfied the skill gate")
 }
 
 let patchSkillGateError
@@ -1405,7 +1458,7 @@ try {
 } catch (error) {
   patchSkillGateError = error
 }
-if (!String(patchSkillGateError?.message).includes("Load a skill first")) {
+if (!String(patchSkillGateError?.message).includes("Read the routed ASK file first")) {
   throw new Error("V2 patch tool bypassed the skill gate")
 }
 const deniedPatchFollowUp = { sessionID: "test", prompt: { text: "show denied patch status" } }
@@ -1418,17 +1471,22 @@ if (deniedPatchHasReviewDebt) {
 
 await hooks.tool["execute.after"]({
   sessionID: "test",
-  tool: "skill",
-  input: { name: "spec" },
+  tool: "read",
+  input: { path: join(skillRoot, "ask-develop", "SKILL.md") },
   status: "completed",
-  result: { args: { name: "spec" } },
-})
+}, { content: "ASK Develop" })
+await hooks.tool["execute.after"]({
+  sessionID: "test",
+  tool: "read",
+  input: { path: join(skillRoot, "ask-code-review", "SKILL.md") },
+  status: "completed",
+}, { content: "ASK Code Review" })
 const followUp = { sessionID: "test", prompt: { text: "follow up" } }
 await hooks.session.prompt(followUp)
 if (followUp.prompt.text !== "follow up") throw new Error("follow-up router guidance leaked into prompt text")
 // Test whether any item satisfies the local predicate.
-if (!followUp.metadata?.askKit?.activeSkills?.some((entry) => entry.skill === "spec" && entry.current === true)) {
-  throw new Error("V2 tool adapter dropped skill input before publishing router status")
+if (!followUp.metadata?.askKit?.activeSkills?.some((entry) => entry.skill === "code-review" && entry.current === true)) {
+  throw new Error("V2 tool adapter failed to track a canonical ASK file read")
 }
 
 await hooks.tool["execute.after"]({
@@ -1469,6 +1527,28 @@ const liveSkills = mergeActiveSkills(
 )
 if (JSON.stringify(liveSkills) !== JSON.stringify([{ skill: "code-review", label: "Code Review", current: true }])) {
   throw new Error("V2 TUI did not recover a completed native skill tool call")
+}
+
+const readLoadedSkills = mergeActiveSkills(
+  { activeSkills: [], pending: [] },
+  [{
+    type: "assistant",
+    content: [{ type: "tool", name: "read", state: { status: "completed", input: { path: join(skillRoot, "ask-code-review", "SKILL.md") } } }],
+  }],
+)
+if (JSON.stringify(readLoadedSkills) !== JSON.stringify([{ skill: "code-review", label: "Code Review", current: true }])) {
+  throw new Error("V2 TUI did not recover a completed router-directed ASK file read")
+}
+
+const unrelatedReadSkills = mergeActiveSkills(
+  { activeSkills: [], pending: [] },
+  [{
+    type: "assistant",
+    content: [{ type: "tool", name: "read", state: { status: "completed", input: { path: join(skillRoot, "external-skill", "SKILL.md") } } }],
+  }],
+)
+if (unrelatedReadSkills.length !== 0) {
+  throw new Error("V2 TUI included a non-ASK file read as a loaded workflow")
 }
 
 const externalSkills = mergeActiveSkills(
@@ -1711,4 +1791,5 @@ if (tuiSource.includes("const COLORS = {") || sidebarHelperSource.includes("#7dd
 stopped = true
 await cleanup()
 await rm(skillRoot, { recursive: true, force: true })
+await rm(outsideSkillRoot, { recursive: true, force: true })
 console.log("OpenCode V2 plugin checks passed.")

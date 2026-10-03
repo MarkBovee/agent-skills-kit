@@ -83,26 +83,31 @@ function checkSkills() {
   expect(listingChars <= MAX_LISTING_BUDGET, `skill listing stays within ${MAX_LISTING_BUDGET} characters (${listingChars})`)
 }
 
-// Check the agent definitions use the ask- names and a tool allowlist without edit tools.
+// Check the agent definitions use ask- names, read-only tools, and a Sonnet fallback.
 function checkAgents() {
   const agentsDir = path.join(REPO_ROOT, "agents")
   for (const fileName of fs.readdirSync(agentsDir)) {
     const raw = fs.readFileSync(path.join(agentsDir, fileName), "utf8")
     expect(/^name: ask-[a-z-]+$/m.test(raw) && raw.includes(`name: ${fileName.replace(/\.md$/, "")}`), `${fileName} agent name matches its file and the ask- prefix`)
     expect(/^tools:/m.test(raw) && !/^tools:.*\b(Edit|Write|MultiEdit)\b/m.test(raw), `${fileName} agent is read-only`)
+    expect(/^model:\s*sonnet\s*$/m.test(raw), `${fileName} agent requests Sonnet rather than inheriting the session model`)
   }
 }
 
 // Check the hooks file uses the nested Claude Code shape with a quoted plugin root.
 function checkHooksFile() {
   const hooks = readJson("hooks/hooks.json").hooks || {}
-  for (const eventName of ["SessionStart", "UserPromptSubmit", "PostToolUse"]) {
+  for (const eventName of ["SessionStart", "SubagentStart", "UserPromptSubmit", "PostToolUse"]) {
     // Flatten the handler lists of every hook entry for one event.
     const handlers = (hooks[eventName] || []).flatMap((entry) => entry.hooks || [])
     expect(handlers.length > 0, `${eventName} defines nested hook handlers`)
     // Require command handlers that quote the plugin root variable.
     expect(handlers.every((handler) => handler.type === "command" && handler.command.includes('"${CLAUDE_PLUGIN_ROOT}')), `${eventName} handlers quote \${CLAUDE_PLUGIN_ROOT}`)
   }
+  // Flatten the handler lists of every PostToolUse entry.
+  const postToolHandlers = (hooks.PostToolUse || []).flatMap((entry) => entry.hooks || [])
+  // Require a handler that tracks router-directed skill file reads.
+  expect(postToolHandlers.some((handler) => handler.command.endsWith("agent-skills-hook.js\" post-skill-read")), "PostToolUse tracks router-directed skill file reads")
 }
 
 // Smoke-test the hook script with real Claude Code payload shapes.
@@ -126,14 +131,52 @@ function checkHookBehavior() {
   run("post-edit", { session_id: "state", tool_name: "Edit" })
   const nudge = parseHookOutput(run("prompt", { session_id: "state", prompt: "continue" }).stdout)
   expect(nudge?.hookSpecificOutput?.additionalContext?.includes("ask-code-review"), "an edit makes the next prompt remind about ask-code-review")
-  run("post-skill", { session_id: "state", tool_input: { skill: "ask-code-review" } })
+  run("post-skill-read", { session_id: "state", tool_input: { file_path: path.join(SKILLS_DIR, "ask-code-review", "SKILL.md") } })
   const cleared = parseHookOutput(run("prompt", { session_id: "state", prompt: "continue" }).stdout)
-  expect(!cleared?.hookSpecificOutput?.additionalContext?.includes("Code edited"), "loading ask-code-review clears the reminder")
+  expect(!cleared?.hookSpecificOutput?.additionalContext?.includes("Code edited"), "reading ask-code-review clears the reminder")
   // Payload captured live from Claude Code 2.1.284: plugin skills arrive namespaced as `<plugin>:<skill>`.
   run("post-edit", { session_id: "state", tool_name: "Write" })
   run("post-skill", { session_id: "state", hook_event_name: "PostToolUse", tool_name: "Skill", tool_input: { skill: "agent-skills-kit:ask-code-review" }, tool_response: { success: true, commandName: "agent-skills-kit:ask-code-review" } })
   const clearedNamespaced = parseHookOutput(run("prompt", { session_id: "state", prompt: "continue" }).stdout)
   expect(!clearedNamespaced?.hookSpecificOutput?.additionalContext?.includes("Code edited"), "loading the plugin-namespaced agent-skills-kit:ask-code-review clears the reminder")
+
+  // Run a hook with a chosen shared skill root so path resolution never depends on the developer's real home directory.
+  const runWithSharedRoot = (event, payload, sharedRoot) => spawnSync(process.execPath, [HOOK_SCRIPT, event], { input: JSON.stringify(payload), encoding: "utf8", env: { ...stateEnv, ASK_SKILLS_DIR: sharedRoot }, timeout: 10000 })
+  const bundledDebugging = path.join(SKILLS_DIR, "ask-debugging", "SKILL.md")
+  const missingRoot = path.join(stateDir, "no-shared-skills")
+  const pluginOnly = parseHookOutput(runWithSharedRoot("subagent-start", { agent_type: "Explore" }, missingRoot).stdout)
+  expect(pluginOnly?.hookSpecificOutput?.hookEventName === "SubagentStart" && pluginOnly.hookSpecificOutput.additionalContext.includes(`Read \`${bundledDebugging}\``), "plugin-only installs point subagents at the bundled skill files")
+  const sharedRoot = path.join(stateDir, "shared-skills")
+  fs.mkdirSync(path.join(sharedRoot, "ask-debugging"), { recursive: true })
+  fs.writeFileSync(path.join(sharedRoot, "ask-debugging", "SKILL.md"), "stub\n")
+  const sharedInstall = parseHookOutput(runWithSharedRoot("subagent-start", { agent_type: "Explore" }, sharedRoot).stdout)
+  expect(sharedInstall?.hookSpecificOutput?.additionalContext?.includes(`Read \`${path.join(sharedRoot, "ask-debugging", "SKILL.md")}\``), "a shared install takes precedence over the bundled skill files")
+  // A shared root with a space must stay one quoted token in the emitted action.
+  const spacedRoot = path.join(stateDir, "shared skills")
+  fs.mkdirSync(path.join(spacedRoot, "ask-debugging"), { recursive: true })
+  fs.writeFileSync(path.join(spacedRoot, "ask-debugging", "SKILL.md"), "stub\n")
+  const spaced = parseHookOutput(runWithSharedRoot("subagent-start", { agent_type: "Explore" }, spacedRoot).stdout)
+  expect(spaced?.hookSpecificOutput?.additionalContext?.includes(`Read \`${path.join(spacedRoot, "ask-debugging", "SKILL.md")}\``), "paths with spaces are backtick-quoted in read actions")
+  const sessionPluginOnly = parseHookOutput(runWithSharedRoot("session-start", {}, missingRoot).stdout)
+  expect(sessionPluginOnly?.hookSpecificOutput?.additionalContext?.includes(`Read \`${path.join(SKILLS_DIR, "ask-code-review", "SKILL.md")}\``), "SessionStart names a readable code-review file for plugin-only installs")
+  // Reading a file under a relocated shared root clears the review reminder just like the bundled copy.
+  runWithSharedRoot("post-edit", { session_id: "shared", tool_name: "Edit" }, sharedRoot)
+  fs.mkdirSync(path.join(sharedRoot, "ask-code-review"), { recursive: true })
+  fs.writeFileSync(path.join(sharedRoot, "ask-code-review", "SKILL.md"), "stub\n")
+  runWithSharedRoot("post-skill-read", { session_id: "shared", tool_input: { file_path: path.join(sharedRoot, "ask-code-review", "SKILL.md") } }, sharedRoot)
+  const sharedCleared = parseHookOutput(runWithSharedRoot("prompt", { session_id: "shared", prompt: "continue" }, sharedRoot).stdout)
+  expect(!sharedCleared?.hookSpecificOutput?.additionalContext?.includes("Code edited"), "reading ask-code-review from the shared root clears the reminder")
+  expect(!startContext.includes("Installed skill preview"), "SessionStart does not repeat the native skill listing")
+
+  const question = parseHookOutput(run("prompt", { prompt: "What does pageCount return for an empty list?", session_id: "question" }).stdout)
+  expect(!question, "a plain question gets no routing or workflow line")
+  const develop = parseHookOutput(run("prompt", { prompt: "Implement this: add pagination to the API", session_id: "develop" }).stdout)
+  expect(develop?.hookSpecificOutput?.additionalContext?.includes("ask-develop"), "a develop trigger produces an ask-develop hint")
+
+  run("prompt", { session_id: "compact", prompt: "implement the next step" })
+  run("session-start", { session_id: "compact", source: "compact" })
+  const afterCompact = parseHookOutput(run("prompt", { session_id: "compact", prompt: "implement the next step" }).stdout)
+  expect(afterCompact?.hookSpecificOutput?.additionalContext?.includes("Workflow risk="), "the workflow risk line is announced again after compaction")
   fs.rmSync(stateDir, { recursive: true, force: true })
 
   const slash = runHook("prompt", JSON.stringify({ prompt: "/clear" }))

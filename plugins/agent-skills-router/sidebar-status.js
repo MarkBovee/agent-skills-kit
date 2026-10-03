@@ -1,5 +1,6 @@
 import { lstatSync, realpathSync } from "node:fs"
 import { isAbsolute, relative, resolve, sep } from "node:path"
+import { homedir } from "node:os"
 
 // Normalize the live OpenCode V2 tool history into the sidebar's compact status shape.
 
@@ -116,6 +117,25 @@ function toolInput(part) {
   try {
     const parsed = JSON.parse(input)
     return parsed && typeof parsed === "object" ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+// Resolve a successful file-read input to a canonical ASK skill under the shared root.
+function askSkillNameFromRead(input) {
+  const rawPath = input?.path || input?.file_path || input?.filePath
+  if (typeof rawPath !== "string" || !rawPath.trim()) return null
+  const requestedPath = rawPath.startsWith("~/") ? resolve(homedir(), rawPath.slice(2)) : resolve(rawPath)
+
+  try {
+    const skillRoot = process.env.ASK_SKILLS_DIR || resolve(homedir(), ".agents", "skills")
+    const realRoot = realpathSync(skillRoot)
+    const realTarget = realpathSync(requestedPath)
+    const relativeTarget = relative(realRoot, realTarget)
+    if (!relativeTarget || relativeTarget.startsWith(`..${sep}`) || isAbsolute(relativeTarget)) return null
+    const match = /^ask-([a-z0-9-]+)\/SKILL\.md$/.exec(relativeTarget.split(sep).join("/"))
+    return match && ASK_SKILL_NAMES.has(match[1]) ? match[1] : null
   } catch {
     return null
   }
@@ -1005,7 +1025,7 @@ function skillLabel(skill) {
   return skill.split("-").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")
 }
 
-// Recover completed native skill calls that occurred after prompt metadata was recorded.
+// Recover completed native skill calls and router-directed skill reads after prompt metadata.
 function loadedSkillEntries(messages) {
   if (!Array.isArray(messages)) return []
   const entries = []
@@ -1015,9 +1035,11 @@ function loadedSkillEntries(messages) {
     if (!Array.isArray(content)) continue
     for (let contentIndex = content.length - 1; contentIndex >= 0; contentIndex -= 1) {
       const part = content[contentIndex]
-      if (part?.type !== "tool" || part.name !== "skill" || part.state?.status !== "completed") continue
+      if (part?.type !== "tool" || part.state?.status !== "completed" || part.state?.isError === true) continue
       const input = toolInput(part)
-      const skill = canonicalSkillName(input?.id ?? input?.name)
+      const skill = part.name === "skill"
+        ? canonicalSkillName(input?.id ?? input?.name)
+        : part.name === "read" ? askSkillNameFromRead(input) : null
       if (!skill || seen.has(skill)) continue
       seen.add(skill)
       entries.push({ skill, label: skillLabel(skill), current: entries.length === 0 })
@@ -1074,7 +1096,7 @@ function observedPendingItems(messages) {
       }
     }
     for (const part of message.content) {
-      if (part?.type !== "tool" || part.state?.status !== "completed") continue
+      if (part?.type !== "tool" || part.state?.status !== "completed" || part.state?.isError === true) continue
       const toolName = typeof part.name === "string" ? part.name : ""
       const input = toolInput(part)
       if (CODE_EDIT_TOOL_NAMES.has(toolName)) {
@@ -1090,8 +1112,10 @@ function observedPendingItems(messages) {
         completedWorkflowPhases = new Set()
         continue
       }
-      if (toolName === "skill") {
-        const skill = canonicalSkillName(input?.id ?? input?.name)
+      if (toolName === "skill" || toolName === "read") {
+        const skill = toolName === "skill"
+          ? canonicalSkillName(input?.id ?? input?.name)
+          : askSkillNameFromRead(input)
         if (skill === "design") {
           hasRelevantHistory = true
           needsDesignReview = true

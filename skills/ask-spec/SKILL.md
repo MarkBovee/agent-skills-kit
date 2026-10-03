@@ -1,5 +1,6 @@
 ---
 name: ask-spec
+disable-model-invocation: true
 description: "Spec: Use when non-trivial work needs a requirements spec or design brief before code: captured decisions, traceability, and validation gates."
 execution_tier: standard
 triggers:

@@ -1,6 +1,7 @@
 ---
 name: "ask-deep-research"
 description: "Deep Research: Use when a complex technical question needs autonomous multi-source investigation, contradiction analysis, and a cited handoff. Common triggers: deep research, exhaustive research, comprehensive investigation, complex technical investigation, complex contested high-stakes question, complex compatibility question, complex compatibility issue, complex question, contested research, high-stakes research, full compatibility investigation, compare competing implementations, compare local and upstream implementations, investigate historical changes, determine protocol behaviour, investigate protocol behavior, protocol behavior exhaustively, multiple sources, research everything relevant, investigate open issues, open issues comprehensively, compare against upstream."
+disable-model-invocation: true
 ---
 # ASK Deep Research
 

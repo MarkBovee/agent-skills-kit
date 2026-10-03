@@ -1,0 +1,69 @@
+# Coding Standards
+
+Language-agnostic. Applies to every file in every project unless an explicit repo-local convention overrides.
+
+## Repository Style Preservation (Hard Gate)
+
+Before formatting, refactoring, reviewing, or verifying code:
+
+1. Inspect the active file, nearby user-authored code, repository `.editorconfig`, and language/tool configuration.
+2. Treat the repository's valid local style as the baseline. Do not replace it with generic formatter defaults.
+3. Scope formatting to the intended language and file set. Keep C#, XML, project files, and IDE configuration on their own formatting paths.
+4. Preserve valid compact signatures, statements, fluent calls, brace placement, and meaningful workflow comments when they fit the repository's configured width. A repository's explicit `.editorconfig` width overrides any default; language defaults (for example C#'s 240 characters) live in the language rules file.
+5. If local style and tool defaults conflict, configure or constrain the tool. If the intended style remains ambiguous, stop and ask; never normalize by preference.
+6. After formatting, inspect a representative user-named example and validate the intended build, tests, or formatter check. Reject the change if it rewrites valid local style.
+7. Before handoff, inspect the complete Git tree and reject unintended generated output, including tracked `bin/` or `obj/` files.
+
+This gate is mandatory. A formatter run without the inspection, scoped execution, representative check, and clean-tree check above is an invalid workflow.
+
+## Core Principles
+
+- **DRY and SOLID.** Before adding code, check whether the behavior already exists. Refactor 3+ duplications into shared components. Single responsibility, open/closed, Liskov substitution, interface segregation, dependency inversion.
+- **Small focused functions.** One clear level of abstraction per function. Use guard clauses and early returns to keep control flow flat. Orchestrator functions may be larger when coordinating phases, but delegate real work to named helpers.
+- **Pure helpers.** Prefer side-effect-free helpers when practical. Keep orchestration separate from object construction, formatting, parsing, and normalization.
+- **Meaningful names.** Use intention-revealing names for identifiers, variables, parameters, and return values. Avoid generic `data`, `result`, `code`, `updated`.
+- **Intent comments above every function (hard rule).** Every function, method, helper, closure handler, route handler, protocol dispatcher, and static utility gets a short comment above it stating its purpose. This is non-negotiable for reviewability. For non-obvious behavior, add a brief docstring covering parameters, return value, side effects, and any preconditions or invariants.
+- **Prove comments, do not assume them.** Before a review, audit, or handoff passes, inspect every changed function-like construct against this rule and run the repository's source-comment check when one exists. A missing comment is a blocking finding, never a style nit or follow-up.
+- **Inline `why` comments are encouraged, not optional.** Comment on *why* a decision, workaround, non-obvious tradeoff, or non-trivial branch exists — but stay focused on intent, never line-by-line narration of what the code already says. When in doubt whether a future reader would ask "why", add the comment.
+- **File-level purpose comment (when applicable).** When a file has a non-obvious general purpose beyond its name (shared module, core router, platform export target, etc.), add a short comment near the top stating the file's intent. Skip when the filename and content already make it self-evident.
+- **Markup structure comments.** In HTML and other markup, add concise start/end comments around major sections and meaningful components. Label repeated groups or items when it improves navigation and maintenance, but do not annotate every element or repeat what the tag and class already make obvious. Keep source markup readable; generated output may be minified only when comments and content-sensitive blocks are preserved as required.
+- **Self-documenting body.** Use small named helpers, switch/pattern dispatch, and extracted builders instead of long `if/else` chains, deeply nested blocks, or growing parameter lists.
+- **Explicit data shapes.** Prefer named types, records, or DTOs over loose catch-all payloads, `object`, or `dynamic`. Three or more positional parameters belong in a request/options object.
+
+## Senior Delivery Patterns
+
+- **Domain naming over transport naming.** Rename models and helpers to business language when that improves intent and downstream readability.
+- **Structured diagnostics.** Log with business identifiers and operation context to make production troubleshooting deterministic.
+- **Refactor by extraction.** Reduce large services by moving object-building and report-aggregation logic into dedicated builders/helpers while keeping behavior unchanged.
+- **Keep generic builders generic.** Infrastructure helpers may assemble reusable templates, domain-specific logic stays in domain helpers.
+- **Centralize cross-cutting concerns.** Normalize paths, timestamps, locale, and other cross-cutting metadata at the boundary where they enter the system. Reuse existing core helpers before adding new utility layers.
+- **Reuse over reinvention.** Reuse existing core helpers, plan/spec systems, and patterns before introducing new utility layers, parallel doc trees, or alternative config systems.
+- **Keep public behavior narrow.** Public API and tool behavior changes are minimal and explicit. Avoid widening behavior accidentally when fixing path, session, routing, hook, or export bugs.
+
+## Language-Specific Rules
+
+### All typed languages
+
+Language-specific rules live in `coding-standards-<language>.md` and load when a matching file is read or edited. Extensionless scripts match no pattern, so read `coding-standards-shell.md` yourself before editing one.
+
+- **No fully qualified type names** where imports resolve them.
+- **No `dynamic` or its equivalents.** Use strongly-typed classes, `object` with safe casting, or language-native discriminated unions.
+- **Control flow.** Prefer switch/pattern matching over long `if/else` chains. Guard clauses and early returns.
+- **Constructor and initialization.** Prefer optional params with defaults, factory methods, or builders over touching many files.
+
+## Error Handling & Performance
+
+- **Fail fast.** Validate inputs early with clear error messages.
+- **Resource management.** Use language-native resource management (`using`, `with`, defer, etc.).
+- **Lazy loading.** Don't compute values until needed.
+- **Caching.** Cache expensive computations and frequently accessed data.
+
+## Quality Checklist (after every change)
+
+- No code duplication introduced.
+- Performance impact acceptable.
+- Error handling covers edge cases, not just happy path.
+- All existing tests passing.
+- If external integration changed: dry-run and idempotency are covered by an existing test or one new test within the test budget.
+- Code is self-documenting and has "why" comments at non-obvious decisions; file-level purpose comments present where applicable.
+- Relevant checks (lint, typecheck, tests) are warning-free and error-free.

@@ -2,6 +2,7 @@
 name: "spec"
 description: "Spec: Use when non-trivial work needs a requirements spec or design brief before code: captured decisions, traceability, and validation gates. Common triggers: spec, specify requirements, requirements spec, requirements capture, design brief, decision register, requirements traceability, traceable requirements, validation gate, readiness gate, handover package, spec before build, truth spine, requirements-driven, requirements engineering, formalize requirements, requirements specification, en..."
 whenToUse: "Common triggers: spec, specify requirements, requirements spec, requirements capture, design brief, decision register, requirements traceability, traceable requirements, validation gate, readiness gate, handover package, spec before build, truth spine, requirements-driven, requirements engineering, formalize requirements, requirements specification, engineering contract, invariant, proof obligation, counterexample, compatibility-sensitive, material requirement."
+disable-model-invocation: true
 ---
 # ASK Spec
 

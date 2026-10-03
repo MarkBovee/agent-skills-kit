@@ -1,7 +1,8 @@
 ---
 name: "debugging"
-description: "Debugging: Use when a bug, failing test, or broken build has no clear local cause, or a first fix did not work. Common triggers: bug, failing test, broken build, debug, debuggen, error, crash, stack trace, not working, does not work, broke, start debugging, start investigating, fout opsporen, slow startup, timeout, hangt, hanging, crash loop, None, target_temp, niet werkend, doet het niet, malfunction, storing."
-whenToUse: "Common triggers: bug, failing test, broken build, debug, debuggen, error, crash, stack trace, not working, does not work, broke, start debugging, start investigating, fout opsporen, slow startup, timeout, hangt, hanging, crash loop, None, target_temp, niet werkend, doet het niet, malfunction, storing."
+description: "Debugging: Use when a bug, failing test, crash, wrong result, or broken build needs a root cause, or when a first fix did not work. Common triggers: bug, failing test, broken build, debug, debuggen, error, crash, stack trace, not working, does not work, broke, start debugging, start investigating, fout opsporen, slow startup, timeout, hangt, hanging, crash loop, niet werkend, doet het niet, malfunction, returns the wrong, wrong result, wrong output, find the cause, find the root cause, starte..."
+whenToUse: "Common triggers: bug, failing test, broken build, debug, debuggen, error, crash, stack trace, not working, does not work, broke, start debugging, start investigating, fout opsporen, slow startup, timeout, hangt, hanging, crash loop, niet werkend, doet het niet, malfunction, returns the wrong, wrong result, wrong output, find the cause, find the root cause, started failing, unexpected behavior."
+disable-model-invocation: true
 ---
 # ASK Debugging
 

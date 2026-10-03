@@ -46,7 +46,7 @@ const {
   SKILL_DESIGN, SKILL_DESIGN_REVIEW,
   routingHintLines, cascadeRoute, hasPhraseSignal, COMPLETION_PHRASES,
   hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, reviewEvidenceAccepted, blockWorkflowForMissingDiffIdentity, INTERACTION_GUARD_THRESHOLD, buildWorkflowState, workflowHintLines,
-  workflowForSkill, invalidateWorkflowForDiff, parseWorkflowEvidence, recordWorkflowEvidence, buildRoutingStatus, isAskSkillName,
+  workflowForSkill, invalidateWorkflowForDiff, parseWorkflowEvidence, recordWorkflowEvidence, buildRoutingStatus, isAskSkillName, askSkillsRoot, askSkillNameFromPath, skillReadAction,
   workflowRequiresReview,
   reviewNudgeLines,
 } = routerCore
@@ -104,7 +104,7 @@ function steerReviewSkill(agent, skill) {
   try {
     if (typeof agent?.steer !== "function") return
     agent.steer(buildUserMessage(
-      `Load the '${skill}' skill via the skill tool and follow its full workflow.`,
+      `${askSkillReadCall(skill)} with the Read tool and follow its full workflow.`,
     ))
   } catch { /* steering is best-effort */ }
 }
@@ -196,6 +196,27 @@ function emptyState() {
   }
 }
 
+// Extract the requested skill name from skill-tool call arguments.
+function skillNameOf(args) {
+  const v = args?.name ?? args?.skill
+  if (typeof v !== "string") return ""
+  const skill = v.trim()
+  const canonicalName = skill.startsWith("ask-") ? skill.slice(4) : skill
+  return isAskSkillName(canonicalName) ? canonicalName : ""
+}
+
+// Resolve only a completed read of a canonical ASK skill file under the shared root.
+function askSkillNameFromRead(exec, result) {
+  if (exec?.name !== "read" || result?.isError === true) return ""
+  const args = exec?.arguments || exec?.input || {}
+  return askSkillNameFromPath(args?.path || args?.file_path || args?.filePath, [askSkillsRoot()])
+}
+
+// Build the shared path used by DSH router prompts for an ASK workflow.
+function askSkillReadCall(skill) {
+  return skillReadAction(skill, resolve(askSkillsRoot(), `ask-${skill}`, "SKILL.md"))
+}
+
 /**
  * Register event listeners that keep state fresh and inject the section.
  * @param ctx - the mounting preset's scope context.
@@ -272,8 +293,8 @@ export function apply(ctx, config) {
   function buildOverview(st) {
     const lines = ["╌ Agent Skills Kit ╌"]
     lines.push(st.skillsLoadedCount > 0
-      ? "Decision tree — load a different skill via `skill(name: '...')`:"
-      : "Load matching skill *now* via `skill(name: '...')` before tools:")
+      ? "Decision tree — read the selected workflow file before continuing:"
+      : "Read the matching workflow file before tools:")
     lines.push("")
     const hasSpecificMatch = st.lastMatch && st.lastMatch !== "develop"
     const showDevelopFallback = !hasSpecificMatch && st.skillsLoadedCount === 0
@@ -282,7 +303,7 @@ export function apply(ctx, config) {
     if (st.lastMatch) { lines.push(""); lines.push(`Active: ${st.lastMatch}`) }
     lines.push("", ...workflowHintLines(st.workflow))
     // Keep host-compatible nudge rows as local additions.
-    lines.push(...reviewNudgeLines(st, (name) => `\`skill(name: '${name}')\``))
+    lines.push(...reviewNudgeLines(st, askSkillReadCall))
     return lines.join("\n")
   }
 
@@ -301,15 +322,6 @@ export function apply(ctx, config) {
       if (typeof message?.text === "string" && message.text.trim()) return message.text
     } catch { /* shape drift, skip routing this message */ }
     return ""
-  }
-
-  // Extract the requested skill name from skill-tool call arguments.
-  function skillNameOf(args) {
-    const v = args?.name ?? args?.skill
-    if (typeof v !== "string") return ""
-    const skill = v.trim()
-    const canonicalName = skill.startsWith("ask-") ? skill.slice(4) : skill
-    return isAskSkillName(canonicalName) ? canonicalName : ""
   }
 
   // Apply the kit's review-flag flips for one successfully loaded skill.
@@ -387,7 +399,7 @@ export function apply(ctx, config) {
       const toolID = typeof exec?.name === "string" ? exec.name : ""
       if (!toolID) return next()
       if (blockUntilSkillLoaded && GATED_TOOLS.has(toolID) && stateFor(exec.agent?.id).skillsLoadedCount === 0) {
-        return { kind: "deny", reason: "Load a skill first via `skill(name: '...')`.\n" + routingHintLines().join("\n") }
+        return { kind: "deny", reason: `Read a routed ASK workflow file first, for example ${askSkillReadCall("develop")}.\n` + routingHintLines().join("\n") }
       }
       if (CODE_EDIT_TOOL_IDS.has(toolID)) {
         // Publish each edit because each edit creates a distinct review generation.
@@ -442,8 +454,9 @@ export function apply(ctx, config) {
         publishPanelState(exec?.agent, st)
         return
       }
-      if (exec?.name !== "skill") return
-      const loadedSkill = skillNameOf(exec.arguments)
+      const loadedSkill = exec?.name === "skill"
+        ? skillNameOf(exec.arguments)
+        : askSkillNameFromRead(exec, result)
       if (!loadedSkill) return
       st.lastMatch = loadedSkill
       st.currentSkill = loadedSkill
@@ -470,7 +483,7 @@ export function apply(ctx, config) {
         // argument. Per-workflow specifics stay in the skill body itself.
         handler: ({ agent, rawInput }) => {
           const focus = String(rawInput || "").trim()
-          const prompt = `Load the '${skill}' skill via the skill tool and follow its full workflow.`
+          const prompt = `${askSkillReadCall(skill)} with the Read tool and follow its full workflow.`
             + (focus ? ` Apply it to: ${focus}` : "")
           try {
             agent.steer(buildUserMessage(prompt))

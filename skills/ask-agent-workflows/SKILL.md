@@ -1,6 +1,7 @@
 ---
 name: ask-agent-workflows
-description: "Agent Workflows: Use when coordinating multi-agent or parallel work, subagent delegation, task handoff, shared context, or clean session shutdown."
+disable-model-invocation: true
+description: "Agent Workflows: Use when coordinating subagents or parallel work, handing off tasks, or running release chores (version bump, changelog, release notes, tag)."
 execution_tier: light
 delegation_default: prefer-subagent
 triggers:
@@ -71,36 +72,9 @@ Keep the audit assignment separate from validation. Provide the exact diff refer
 
 P0/P1 findings follow: reproduce → one regression proof within the test budget → minimal fix → validation → affected re-audit. Other findings are reported without new tests. Do not close a finding because code changed; re-prove its invariant.
 
-## Release audit convergence and stop rule
+## Release-sensitive work
 
-For release-sensitive work, keep one current candidate record in the task plan: an immutable diff reference plus a concise gate table for `VALIDATE`, `REVIEW`, `AUDIT`, and `RELEASE_GATE`, each with status and its matching evidence. When source changes, mark evidence for the prior diff stale immediately; rerun only checks affected by the change, not unrelated gates.
-
-Collect actionable findings into one bounded correction batch. After that batch, run focused validation and one delta review plus one separate delta audit limited to changed production paths and affected invariants. Do not restart broad candidate review or enumerate test suites on each delta. Once the candidate is stable, run the full required suite once, then independent final review, audit, and release-gate against that exact diff reference.
-
-If the owner asks to stop the audit loop, stop review/audit work immediately and return a blocked status naming the current diff, the missing required gate, and any unresolved findings. Do not keep cycling, push, release, or close issues around the gate, and do not imply tests or deployment substitute for an audit. A stop request does not waive mandatory evidence: release-sensitive work remains blocked while a required independent gate is missing, or a P0/P1 or safety blocker is unresolved.
-
-## Bounded narrow-fix release path
-
-Use this path only for a release-sensitive fix with one explicit requested invariant, an existing regression proof, and a localized change in one subsystem with a bounded set of direct callers. The primary agent records the invariant, in-scope files/callers, excluded adjacent behavior, and budgets before dispatch. Any change to or affecting an external contract or an existing or new security, privacy, or safety boundary—including creating, moving, strengthening, weakening, or removing that boundary—requires the significant path. Migrations, architecture or ownership changes, cross-module behavior, or unclear scope also require the significant path. An independent reviewer or auditor may reject the narrow classification; do not argue the scope down to fit the budget.
-
-This path bounds only the review/audit finding loop. It does not replace the normal release-sensitive intake, plan, plan-check, execution, final validation, review, audit, or release-gate requirements. Before dispatch, record an immutable reference for the exact diff, such as its commit SHA or a hash of the complete patch plus its base revision. Review, audit, validation, and release-gate evidence must name the same exact diff reference (for structured workflow markers, append `diff=<reference>`). If distinct contexts are unavailable, mark the missing gate blocked; one context cannot satisfy both roles. Any edit changes the diff reference and invalidates prior evidence for that diff; the delta passes must cover the new exact diff. The release-gate must consume evidence matching the final diff reference.
-
-Workflow-router phase/status is advisory and can lag edits. Never treat `DONE`, `RELEASE`, or phase markers alone as proof that the current diff passed its gates. Compare the immutable diff reference in the plan and each evidence record; if status disagrees or the current diff reference cannot be established, block release.
-
-Keep the release gates independent and bounded:
-
-1. Run one independent standard-tier review and one separate independent standard-tier audit of the requested behavior and its direct callers. Allow at most 5 minutes for each pass.
-2. Fix one batch of findings that directly violate the requested invariant or establish a release-blocking security, privacy, correctness, or safety issue. P0/P1 findings and established security, privacy, correctness, or safety blockers cannot be deferred, even when adjacent to the requested behavior. The independent reviewer and auditor must both confirm that any deferred finding is genuinely non-blocking and unrelated to the invariant; record it as a follow-up with evidence and a revisit trigger. If they disagree, block release and escalate.
-3. After each fix batch that changes the diff, run focused validation, then one separate delta review and one separate delta audit of the changed paths. Allow at most 3 minutes for each delta pass. If either pass finds actionable issues, return to step 2 and repeat the focused-validation and delta-review/audit cycle only while the cumulative review/audit budget remains. Do not run the full suite during this findings loop. If the budget is exhausted or a pass is partial or blocked, stop and present the evidence; do not claim a pass or release readiness.
-4. Once no actionable findings remain and the candidate diff is stable, run the full required check suite once on that exact diff. Only after validation passes may final review run; only after final review passes may the independent final audit and release-gate run. If a later review or audit finding changes code, all validation, review, audit, and release-gate evidence for the prior diff is stale: return to focused validation and delta review/audit; once the new candidate is stable, run the full suite and repeat final review, independent final audit, and release-gate on that exact diff.
-
-The review/audit timebox is 16 minutes total and cannot be reset by splitting findings, edits, commits, handoffs, sessions, or agents, or by reclassifying the same scope. Record the cumulative time and diff reference in the task plan; carry both across handoffs and escalation. A pass that reaches its timebox returns partial or blocked evidence, never a pass. These limits cover review and audit only; they do not waive implementation, validation, the full check suite, or the release-gate.
-
-Any unresolved violation of the requested invariant, P0/P1 finding, failed validation, security, privacy, correctness, or safety blocker, or missing/blocked required evidence blocks release, regardless of when it is found. If new evidence shows an invariant bypass or a blocker requires another fix batch, stop and present the evidence and minimal expanded scope to the task owner. Scope expansion requires explicit approval recorded in a revised plan from the requesting user or a named human delegate, never the implementing coordinator; any additional budget is additive, and prior evidence is historical context only unless it matches the new exact diff reference. Re-audit every affected path after an edit; do not carry stale evidence forward merely because an unaffected surface exists. Never turn a blocker into a follow-up to meet the budget. Independent validation, final review, final audit, and release-gate evidence remain mandatory for every release-sensitive change. A review or audit started before the latest validation is invalid.
-
-## Metadata-only release fast path
-
-When a release request changes only approved metadata files (`VERSION`, `CHANGELOG.md`, and synchronized plugin metadata) and the exact executable commit has already passed its required gates, validate the allowed file set, version monotonicity, and changelog consistency. Do not repeat code tests, delegated code review, or delegated audit for a metadata-only diff unless repository policy requires them or an executable file changed. A metadata-only change still needs the normal release ordering, release-readiness check, merge, tag-after-merge rule, and installed-artifact verification.
+Keep one immutable diff reference with a gate table (`VALIDATE`, `REVIEW`, `AUDIT`, `RELEASE_GATE`); any source change makes evidence for the prior diff stale. Fix findings in one bounded batch, then run only a delta review and delta audit of the changed paths before the final gates. A metadata-only release (`VERSION`, `CHANGELOG.md`, plugin metadata) on an already-gated executable commit needs validation only. Before starting release-sensitive work, read [references/release-gates.md](references/release-gates.md) for the convergence and stop rule, the bounded narrow-fix path with its timebox, and the metadata-only fast path.
 
 ## Handoff context
 
@@ -109,8 +83,7 @@ Give subagents requirements, acceptance criteria, repository state, and relevant
 ## Not a good fit
 
 - the steps are tightly coupled and need one shared thread of judgment
-  → Gebruik in plaats daarvan `develop` staged delegation, die sequentiële
-    dependency chains met per-stage validatie ondersteunt.
+  → use `develop` staged delegation instead; it handles sequential dependency chains with per-stage validation.
 - the next step depends directly on the exact output of the previous step
 - the reasoning or intermediate state is needed for the next step — losing it means re-deriving
 
@@ -139,6 +112,8 @@ Default to delegate. Only keep in main when the reasoning must survive — struc
 ## Subagent tier & budget
 
 Pick the smallest capable tier for the actual job; escalate only when evidence demands it, never by default.
+
+Execution tiers do not select a model. Before each delegation, choose a task-appropriate model and pass it per invocation when the host supports that. Do not rely on `inherit` or an omitted model for cost-sensitive work. See [references/model-routing.md](references/model-routing.md) for the routing policy, Claude Code behavior, and verification requirements.
 
 - **Start low.** Begin on `light`/`standard` (smallest capable subagent or model). Reserve `deep`/xhigh for broad, cross-cutting, release-critical analysis — and only with a stated time budget agreed with the owner thread up front.
 - **Delta re-checks are cheap.** A re-audit or follow-up check after fixes does not repeat the original deep pass: re-verify the touched surface on `standard`/general. Escalate to `deep` only if new counter-evidence or an open cross-cutting invariant demands it.

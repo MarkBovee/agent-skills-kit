@@ -1,5 +1,6 @@
 ---
 name: ask-write-skill
+disable-model-invocation: true
 description: "Write Skill: Use when creating or revising skills, or when agent behavior reveals a reusable workflow improvement, routing gap, or missing guardrail."
 execution_tier: standard
 triggers:

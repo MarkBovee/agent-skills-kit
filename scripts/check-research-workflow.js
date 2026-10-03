@@ -67,8 +67,8 @@ async function main() {
   check("deep research preserves evidence gaps", deepResearch.includes("evidence-blocked") && template.includes("Next Evidence Needed"))
   check("deep research yields a development handoff", template.includes("Implementation Handoff") && deepResearch.includes("develop"))
   check("deep research supports continuation", deepResearch.includes("resumes rather than restarts") && template.includes("Continuation State"))
-  check("research command loads research", researchCommand.includes("`ask-research` skill"))
-  check("deep-research command loads deep-research", deepResearchCommand.includes("`ask-deep-research` skill"))
+  check("research command loads research", researchCommand.includes("ask-research/SKILL.md"))
+  check("deep-research command loads deep-research", deepResearchCommand.includes("ask-deep-research/SKILL.md"))
   checkDeepResearchContract(deepResearch, template)
 
   if (failures > 0) process.exitCode = 1

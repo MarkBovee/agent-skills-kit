@@ -2,8 +2,8 @@
 
 import { createRequire } from "node:module"
 import { fileURLToPath } from "node:url"
-import { dirname, resolve } from "node:path"
-import { existsSync } from "node:fs"
+import { dirname, isAbsolute, relative, resolve, sep } from "node:path"
+import { existsSync, realpathSync } from "node:fs"
 import { homedir } from "node:os"
 import { Plugin } from "@opencode/plugin"
 
@@ -62,6 +62,33 @@ function resolveSkillName(input, output) {
   return ""
 }
 
+// Recognize a completed read of one canonical ASK skill file under the shared skill root.
+function resolveAskSkillRead(input, output) {
+  if (input?.tool !== "read" || input.status !== "completed" || output?.isError === true || output?.error) return ""
+  const nestedInput = input?.args || input?.arguments || input?.tool_input || {}
+  const requestedPath = [
+    input?.path, input?.filePath, input?.file_path,
+    nestedInput?.path, nestedInput?.filePath, nestedInput?.file_path,
+  // Keep the first non-empty path candidate.
+  ].find((candidate) => typeof candidate === "string" && candidate.trim())
+  if (!requestedPath) return ""
+
+  try {
+    const root = realpathSync(resolveSkillPath())
+    const requested = requestedPath.startsWith("~/")
+      ? resolve(homedir(), requestedPath.slice(2))
+      : resolve(requestedPath)
+    const target = realpathSync(requested)
+    const relativeTarget = relative(root, target)
+    if (!relativeTarget || relativeTarget.startsWith(`..${sep}`) || isAbsolute(relativeTarget)) return ""
+    const relativeSkillPath = relativeTarget.split(sep).join("/")
+    const match = /^ask-([a-z0-9-]+)\/SKILL\.md$/.exec(relativeSkillPath)
+    return match && isAskSkillName(match[1]) ? match[1] : ""
+  } catch {
+    return ""
+  }
+}
+
 const BLOCKED_BEFORE_SKILL = new Set(["edit", "write", "patch", "apply_patch", "bash"])
 
 // Keep router state scoped to the host session; older hook payloads fall back
@@ -77,6 +104,11 @@ function isDelegatedReviewCompletion(toolID, generation, output, currentReferenc
   return toolID === "task" && evidence?.status === "PASS"
     && (evidence.phase === "REVIEW" || evidence.phase === "AUDIT")
     && reviewCompletionMatches(output, generation, evidence.phase, currentReference)
+}
+
+// Render the exact file-read instruction the router uses for one ASK workflow.
+function readAskSkillCall(skillName) {
+  return `Read \`${resolve(resolveSkillPath(), `ask-${skillName}`, "SKILL.md")}\``
 }
 
 let skillsCache = null
@@ -128,7 +160,7 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
     const matchSkill = route?.matchedSkills?.[0]
     const loadedSkills = state.loadedSkills || []
     if (matchSkill && matchSkill.name !== SKILL_DEVELOP && !loadedSkills.includes(matchSkill.name)) {
-      extraLines.push(`→ Match: ${matchSkill.name} — call \`skill(id: 'ask-${matchSkill.name}')\` now`)
+      extraLines.push(`→ Match: ${matchSkill.name} — ${readAskSkillCall(matchSkill.name)} now`)
     }
 
     const workflow = buildWorkflowState(promptText, state)
@@ -143,18 +175,18 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
     })
 
     if (!state.hasDoneSessionAudit) {
-      const auditLines = ["FIRST ACTION: scan the decision tree, load matching skill before any code or tools:"]
+      const auditLines = ["FIRST ACTION: scan the decision tree, then read the matching ASK skill file before any code or tools:"]
       for (const s of skills) {
         auditLines.push(`  • ${s.name}: ${toSingleLine(s.description, 70)}`)
       }
-      auditLines.push("Call `skill(id: 'ask-<name>')` now to load the right workflow.")
+      auditLines.push(`Read the matching file with the Read tool, for example ${readAskSkillCall("develop").replace("Read ", "")}.`)
       save(input, { hasDoneSessionAudit: true })
-      const overview = buildSkillOverview(state)
+      const overview = buildSkillOverview(state, readAskSkillCall)
       const section = [...extraLines, ...auditLines].join("\n")
       return `\n--- Agent Skills Kit ---\n${section}\n\n${overview}`
     }
 
-    const lines = buildCompactSkillOverview(state)
+    const lines = buildCompactSkillOverview(state, readAskSkillCall)
     const section = [...extraLines, lines].join("\n")
     return `\n--- Agent Skills Kit ---\n${section}`
   }
@@ -215,7 +247,7 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
         const state = getSessionState(sessionState, sessionKey(input))
         if ((state.skillsLoadedCount || 0) === 0) {
           return {
-            tool_error: "Load a skill first via `skill(id: 'ask-<name>')`.\n"
+            tool_error: `Read the routed ASK file first, for example ${readAskSkillCall("develop")}.\n`
               + routingHintLines().join("\n"),
           }
         }
@@ -247,7 +279,9 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
         const state = getSessionState(sessionState, sessionKey(input))
         const recentToolIds = [...(state.recentToolIds || []), toolID].slice(-RECENT_TOOL_MAX)
         const toolCallCount = (state.toolCallCount || 0) + 1
-        const skillName = toolID === "skill" ? resolveSkillName(input, output) : ""
+        const skillName = toolID === "skill"
+          ? resolveSkillName(input, output)
+          : resolveAskSkillRead(input, output)
         const didLoadAskSkill = Boolean(skillName)
         const skillsLoadedCount = didLoadAskSkill ? (state.skillsLoadedCount || 0) + 1 : (state.skillsLoadedCount || 0)
         const loadedSkills = didLoadAskSkill ? unique([...(state.loadedSkills || []), skillName]) : (state.loadedSkills || [])
@@ -257,7 +291,7 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
           skillsLoadedCount,
           loadedSkills,
           currentSkill: state.currentSkill,
-          interactionCountSinceSkillLoad: toolID === "skill"
+          interactionCountSinceSkillLoad: didLoadAskSkill
             ? 0
             : (state.interactionCountSinceSkillLoad || 0),
           workflow: state.workflow,
@@ -287,8 +321,7 @@ export const AgentSkillsRouter = async ({ client } = {}) => {
           })
           return
         }
-        if (toolID !== "skill") { save(input, base); return }
-        if (!skillName) { save(input, base); return }
+        if (!didLoadAskSkill) { save(input, base); return }
         const skillWorkflow = workflowForSkill(state.workflow, skillName)
         if (skillName === SKILL_CODE_REVIEW) { save(input, { ...base, currentSkill: skillName, shouldCaptureImprovement: true, workflow: skillWorkflow }); return }
         if (skillName === SKILL_VERIFICATION) { save(input, { ...base, currentSkill: skillName, shouldCaptureImprovement: true, workflow: skillWorkflow }); return }
@@ -312,7 +345,7 @@ async function setupV2(context) {
   // review references, and other router fields survive the adapter boundary.
   function routerToolInput(event) {
     const toolInput = event?.input && typeof event.input === "object" ? event.input : {}
-    return { sessionID: event.sessionID, tool: event.tool, ...toolInput }
+    return { sessionID: event.sessionID, tool: event.tool, ...toolInput, status: event.status }
   }
 
   // Execute this callback within the surrounding workflow.

@@ -1,4 +1,6 @@
 const fs = require("node:fs/promises")
+const fsSync = require("node:fs")
+const os = require("node:os")
 const path = require("node:path")
 
 const DEFAULT_MAX_HINTS = 4
@@ -115,8 +117,9 @@ const BUG_PHRASES = [
   "start debugging", "start investigating", "fout opsporen", "crash",
   "stack trace", "race condition", "memory leak", "not working",
   "doesn't work", "broke", "regression",
-  "slow startup", "timeout", "hanging", "hangt", "crash loop",
-  "None", "target_temp", "malfunction", "storing",
+  "slow startup", "timeout", "hanging", "hangt", "crash loop", "malfunction",
+  "returns the wrong", "wrong result", "wrong output", "find the cause", "find the root cause",
+  "started failing", "unexpected behavior",
 ]
 const DESIGN_PHRASES = [
   "design a ui", "redesign this page", "improve ux", "polish the frontend",
@@ -139,6 +142,12 @@ const WRITE_SKILL_PHRASES = [
   "workflow improvement", "routing gap", "missing guardrail",
   "prompt pack improvement", "reusable improvement", "agent missed",
   "auto improvement", "new skill", "write a skill", "author skill",
+]
+// Checked before REVIEW_PHRASES: "review this design" must not fall through to code review.
+const DESIGN_REVIEW_PHRASES = [
+  "review this design", "check for ai slop", "ai slop", "does this look ai-generated",
+  "look ai-generated", "looks ai-generated", "design review", "audit the design",
+  "does this look premium",
 ]
 const REVIEW_PHRASES = [
   "review", "nakijken", "diff", "pull request", "code review",
@@ -489,13 +498,12 @@ function skillDisplayName(skillName) {
 }
 
 // Describe the router's outstanding review obligations so a panel can show
-// what ASK still needs and hide each item once its skill loads. The action is
-// the exact tool call that satisfies the obligation; improvement capture is
-// steered through the prompt surface, not the panel.
+// what ASK still needs and hide each item once its skill file is read. The
+// action names the exact shared file; improvement capture stays prompt-only.
 function pendingReviewRequirements(sessionState) {
   const pending = []
-  if (sessionState?.needsCodeReview) pending.push({ flag: "needsCodeReview", skill: SKILL_CODE_REVIEW, label: "Code review needed", action: `skill(name: '${SKILL_CODE_REVIEW}')` })
-  if (sessionState?.needsDesignReview) pending.push({ flag: "needsDesignReview", skill: SKILL_DESIGN_REVIEW, label: "Design review needed", action: `skill(name: '${SKILL_DESIGN_REVIEW}')` })
+  if (sessionState?.needsCodeReview) pending.push({ flag: "needsCodeReview", skill: SKILL_CODE_REVIEW, label: "Code review needed", action: skillReadAction(SKILL_CODE_REVIEW) })
+  if (sessionState?.needsDesignReview) pending.push({ flag: "needsDesignReview", skill: SKILL_DESIGN_REVIEW, label: "Design review needed", action: skillReadAction(SKILL_DESIGN_REVIEW) })
   return pending
 }
 
@@ -660,6 +668,42 @@ function isAskSkill(skill) {
     && path.basename(path.dirname(skill.filePath)) === `ask-${skill.name}`
 }
 
+// Resolve the shared skill root; ASK_SKILLS_DIR overrides the default so installs and tests can relocate it.
+function askSkillsRoot() {
+  return process.env.ASK_SKILLS_DIR ? path.resolve(process.env.ASK_SKILLS_DIR) : path.join(os.homedir(), ".agents", "skills")
+}
+
+// Name the SKILL.md for one ASK skill under the shared root; the default root keeps its portable `~/` form.
+function askSkillFileRef(skillName) {
+  return process.env.ASK_SKILLS_DIR
+    ? path.join(askSkillsRoot(), `ask-${skillName}`, "SKILL.md")
+    : `~/.agents/skills/ask-${skillName}/SKILL.md`
+}
+
+// Render the exact file-read action that loads one ASK skill. The path is backtick-quoted so a
+// directory with spaces (a Windows profile, a plugin cache) stays one unambiguous token.
+function skillReadAction(skillName, skillFile = askSkillFileRef(skillName)) {
+  return `Read \`${skillFile}\``
+}
+
+// Resolve a file path to the ASK skill it canonically loads, or "" when it is not `ask-<name>/SKILL.md`
+// directly under one of the trusted roots. Real paths on both sides defeat `..` and symlink escapes.
+function askSkillNameFromPath(filePath, roots) {
+  if (typeof filePath !== "string" || !filePath.trim()) return ""
+  const requestedPath = filePath.startsWith("~/") ? path.join(os.homedir(), filePath.slice(2)) : path.resolve(filePath)
+  for (const root of roots) {
+    try {
+      const relativeFile = path.relative(fsSync.realpathSync(root), fsSync.realpathSync(requestedPath))
+      if (!relativeFile || relativeFile.startsWith(`..${path.sep}`) || path.isAbsolute(relativeFile)) continue
+      const match = /^ask-([a-z0-9-]+)\/SKILL\.md$/.exec(relativeFile.split(path.sep).join("/"))
+      if (match && ASK_SKILL_NAMES.has(match[1])) return match[1]
+    } catch {
+      // The next root may contain the requested file.
+    }
+  }
+  return ""
+}
+
 // Check whether a native skill invocation belongs to this kit's canonical roster.
 function isAskSkillName(skillName) {
   return typeof skillName === "string" && ASK_SKILL_NAMES.has(skillName)
@@ -708,8 +752,7 @@ function routingHintLines() {
 }
 
 // Render the shared review/guard nudges once so both hosts derive identical
-// wording (anti-drift) while each passes its own host-correct load-call form:
-// OpenCode loads by the `ask-`-prefixed id, dsh by bare name.
+// wording while each passes the file-read form supported by its router.
 function reviewNudgeLines(sessionState, loadCall) {
   const interactionsSinceLoad = sessionState.interactionCountSinceSkillLoad || 0
   const lines = []
@@ -728,13 +771,14 @@ function reviewNudgeLines(sessionState, loadCall) {
   return lines
 }
 
-function buildSkillOverview(sessionState) {
+// Render the first-session decision tree with the host's router-only file-read action.
+function buildSkillOverview(sessionState, readSkill = skillReadAction) {
   const skillsLoaded = (sessionState.skillsLoadedCount || 0) > 0
   const lines = [
     "╌ Agent Skills Kit ╌",
     skillsLoaded
-      ? "Decision tree — load a different skill via `skill(id: 'ask-<name>')`:"
-      : "Load matching skill *now* via `skill(id: 'ask-<name>')` before tools:",
+      ? "Decision tree — read the selected workflow file before continuing:"
+      : "Read the matching workflow file before tools:",
     "",
   ]
   lines.push(...workflowHintLines(sessionState.workflow), "")
@@ -749,12 +793,12 @@ function buildSkillOverview(sessionState) {
     lines.push("")
     lines.push(`Active: ${matched.map(s => s.name).join("+")}${sessionState.executionProfile ? ` (${sessionState.executionProfile.executionTier}/${sessionState.executionProfile.delegationMode})` : ""}`)
   }
-  lines.push(...reviewNudgeLines(sessionState, (name) => `\`skill(id: 'ask-${name}')\``))
+  lines.push(...reviewNudgeLines(sessionState, readSkill))
   return lines.join("\n")
 }
 
 // Render only live routing state after OpenCode has completed its first-prompt audit.
-function buildCompactSkillOverview(sessionState) {
+function buildCompactSkillOverview(sessionState, readSkill = skillReadAction) {
   const lines = ["╌ Agent Skills Kit ╌", ...workflowHintLines(sessionState.workflow)]
   const loadedSkills = sessionState.loadedSkills || []
   if (loadedSkills.length > 0) {
@@ -762,7 +806,7 @@ function buildCompactSkillOverview(sessionState) {
     const profile = activeMatch ? sessionState.executionProfile : null
     lines.push(`Active: ${loadedSkills.join("+")}${profile ? ` (${profile.executionTier}/${profile.delegationMode})` : ""}`)
   }
-  lines.push(...reviewNudgeLines(sessionState, (name) => `\`skill(id: 'ask-${name}')\``))
+  lines.push(...reviewNudgeLines(sessionState, readSkill))
   return lines.join("\n")
 }
 
@@ -787,6 +831,7 @@ function cascadeRoute(query, skills, sessionState) {
     tryRoute(AMBIGUITY_PHRASES, SKILL_INTAKE) ||               // 6. Start
     tryRoute(COMPARATIVE_DEEP_RESEARCH_PHRASES, SKILL_DEEP_RESEARCH) || // 7. Research
     tryRoute(RESEARCH_PHRASES, SKILL_RESEARCH) ||              // 8. Research
+    tryRoute(DESIGN_REVIEW_PHRASES, SKILL_DESIGN_REVIEW) ||    // 9a. Product (before code review)
     tryRoute(REVIEW_PHRASES, SKILL_CODE_REVIEW) ||             // 9. Validate
     (sessionState.needsCodeReview && (() => {
       if (!hasPhraseSignal(q, COMPLETION_PHRASES)) return null
@@ -846,7 +891,7 @@ module.exports = {
  SKILL_TEXT_WRITING, SKILL_RESEARCH, SKILL_DEEP_RESEARCH, SKILL_OBSERVABILITY, REVIEW_COMPLETION_MARKER, hasReviewCompletionSignal, hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, reviewEvidenceAccepted, blockWorkflowForMissingDiffIdentity, reviewModeForRisk,
   buildSkillOverview, buildCompactSkillOverview, cascadeRoute, buildExecutionProfile, buildRoutingStatus, pendingReviewRequirements, activeSkillEntries, skillDisplayName, loadSkills, reviewNudgeLines,
   createEmptySessionState, getSessionState, setSessionState,
-    findSkill, isAskSkill, isAskSkillName, ASK_SKILL_NAMES, hasPhraseSignal, routingHintLines,
+    findSkill, isAskSkill, isAskSkillName, ASK_SKILL_NAMES, askSkillsRoot, askSkillFileRef, skillReadAction, askSkillNameFromPath, hasPhraseSignal, matchingPhrases, routingHintLines,
     classifyWorkflowRisk, hasWorkflowRiskSignal, workflowRiskRank, requiredWorkflowPhases, buildWorkflowState, invalidateWorkflowForDiff, workflowRequiresReview, workflowHintLines, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
   TEST_POLICY, toBareSkillName, stripFrontmatter, toSingleLine, normalizeStringList,
   parseBooleanField, parseFrontmatter, unique,

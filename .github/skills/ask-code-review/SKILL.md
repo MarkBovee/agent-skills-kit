@@ -1,6 +1,7 @@
 ---
 name: "ask-code-review"
 description: "Code Review: Use when a meaningful diff is ready and fresh eyes should catch requirement gaps, regressions, or risky design before handoff. Common triggers: review, nakijken, pull request, code review, fresh eyes, start reviewing, review deze wijziging, check de wijziging, review changes, second look, bekijk de diff, controleer de code, code check, diff review, PR review."
+disable-model-invocation: true
 ---
 # ASK Code Review
 

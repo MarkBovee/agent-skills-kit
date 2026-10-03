@@ -2,16 +2,18 @@
 
 ## Project
 
-Portable skill pack for OpenCode, Codex, GitHub Copilot, Claude Code, and dsh. Ships workflow skills, router plugins, generated exports, and installers. No build step or package manager.
+Workflow skill pack with Claude Code as the primary harness; it also supports OpenCode, Codex, GitHub Copilot, and dsh. Ships workflow skills, router plugins, generated exports, and installers. No build step or package manager.
 
 ## Layout
+
+How the pieces fit, which files are generated, and contributor gotchas: `ARCHITECTURE.md` (read it first).
 
 - `skills/<name>/SKILL.md`: source skill.
 - `commands/<name>.md`: source slash command.
 - `core/router-core.js`: shared routing, lifecycle, state, and frontmatter helpers.
 - `plugins/`: OpenCode and dsh routers plus TUI/widget code.
 - `scripts/`: install, update, export, and validation scripts.
-- `rules/`: shared coding and workflow guidance.
+- `rules/`: shared coding and workflow guidance. `rules/claude/` is generated from `rules/coding-standards.md` by `scripts/export-claude-coding-standards.js`; never hand-edit it.
 - `.github/`, `.dsh/`, `.opencode/`: generated exports; never hand-edit.
 - `.claude-plugin/`, `hooks/`, `agents/`: Claude Code plugin manifest, marketplace, hooks, and read-only subagents (hand-maintained).
 
@@ -21,7 +23,9 @@ Read `rules/coding-standards.md` before code edits. Every function-like construc
 
 ## Skills
 
-Every `skills/*/SKILL.md` needs frontmatter: `name` equal to its directory (`ask-<name>`), a one-sentence `description` that starts with the nice name (`Develop: ...`), and `triggers`. The router and exports keep using the bare name; `ask-` is the native id. Keep skills self-contained, normally 30–90 lines. Use `ask-` names for workflow/meta skills. Keep cross-references bidirectional where useful. Keep generic skills free of repository-specific paths.
+Every `skills/*/SKILL.md` needs frontmatter: `name` equal to its directory (`ask-<name>`), a one-sentence `description` that starts with the nice name (`Develop: ...`), and `triggers`. The router and exports keep using the bare name; `ask-` is the native id. Router prompts, pending actions, and commands load a skill by reading `~/.agents/skills/ask-<name>/SKILL.md`; the native id only serves Claude Code's own skill listing, and leaf skills are never invoked through a native Skill tool. Keep skills self-contained, normally 30–90 lines. Use `ask-` names for workflow/meta skills. Keep cross-references bidirectional where useful. Keep generic skills free of repository-specific paths.
+
+`triggers` feed only the ASK router; Claude Code selects skills from `description` alone, so the key use cases and terms belong in the description, which must stay at or under 160 characters to survive the shared listing budget. Keep each `SKILL.md` body compact and move procedures needed only in rare cases (for example release gates) to a one-level `references/` file. Measure activation changes with `node ./scripts/eval-skill-activation.js` (spends tokens; not part of CI).
 
 ## Router
 
@@ -35,16 +39,7 @@ Decision-tree rows come from `routingHintLines()`; never duplicate them manually
 
 ## Workflow mandate
 
-<!-- agent-skills-kit:opencode -->
-
-# ASK Workflow Mandate
-
-- Load most specific workflow skill before substantial work (OpenCode loads by its `ask-`-prefixed id: `skill(id: 'ask-<name>')`; dsh by bare name); router matches advise only.
-- Large, exhaustive, compatibility-sensitive, or release-sensitive work: load `intake`, create plan artifact, classify risk, set must/should/could, complete plan-check.
-- Delegate independent research, validation, review, and audit. Never self-declare release readiness; require independent evidence.
-- Release-sensitive work needs independent validation, review, audit, and release-gate evidence.
-
-<!-- /agent-skills-kit:opencode -->
+The canonical mandate is `rules/workflow.md`. Installers copy it into each host's rules, so it is not repeated here. In short: select the most specific workflow skill before substantial work, delegate independent research, validation, review, and audit, and never declare release readiness without independent evidence.
 
 ## Evidence reuse
 
@@ -67,18 +62,13 @@ Install/update scripts must keep `.sh` and `.ps1` behavior aligned and idempoten
 ```bash
 node -e "import('./plugins/agent-skills-router/server.mjs')"
 node ./scripts/export-platform-skills.js
-node ./scripts/check-router-nudges.js
-node ./scripts/check-workflow-lifecycle.js
-node ./scripts/check-dsh-plugin.js
-node ./scripts/check-widget-live-state.js
-node ./scripts/check-research-workflow.js
-node ./scripts/check-tier-vocabulary.js
+for check in router-nudges workflow-lifecycle dsh-plugin widget-live-state panel-widget opencode-v2-plugin research-workflow tier-vocabulary trigger-overlap claude-code test-policy tmp-usage code-comments evidence-aware-communication model-agnostic-guidance; do node "./scripts/check-$check.js"; done
+node ./scripts/export-claude-coding-standards.js --check
 node ./scripts/validate-plugin.js
-node ./scripts/check-claude-code.js
-node ./scripts/check-test-policy.js
-node ./scripts/check-tmp-usage.js
 node ./scripts/check-release-readiness.js --require-version-entry
 ./scripts/check-installed-artifacts.sh
 ```
+
+CI (`.github/workflows/ci.yml`) is the source of truth for this list; when a check is added there, add it here.
 
 Before handoff: inspect complete tree, run `git diff --check`, verify generated exports, installer parity, branch, remote, tag, and clean worktree. Run `session-review` when work exposes reusable workflow gaps.

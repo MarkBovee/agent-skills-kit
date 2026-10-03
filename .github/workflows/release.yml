@@ -50,6 +50,7 @@ jobs:
           node ./scripts/check-trigger-overlap.js
           node ./scripts/check-evidence-aware-communication.js
           node ./scripts/check-model-agnostic-guidance.js
+          node ./scripts/export-claude-coding-standards.js --check
           node ./scripts/check-tier-vocabulary.js
           node ./scripts/check-router-nudges.js
           node ./scripts/check-workflow-lifecycle.js

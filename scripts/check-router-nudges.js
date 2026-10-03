@@ -12,8 +12,9 @@ const {
   routingHintLines,
 } = require("../core/router-core")
 
-const PLUGIN_PATH = require("node:path").resolve(__dirname, "..", "plugins", "agent-skills-router.mjs")
-const SKILLS_PATH = require("node:path").resolve(__dirname, "..", "skills")
+const path = require("node:path")
+const PLUGIN_PATH = path.resolve(__dirname, "..", "plugins", "agent-skills-router.mjs")
+const SKILLS_PATH = path.resolve(__dirname, "..", "skills")
 
 let failedChecks = 0
 
@@ -26,6 +27,14 @@ function check(label, condition, detail) {
 
   failedChecks += 1
   console.error(`FAIL: ${label}${detail ? ` — ${detail}` : ""}`)
+}
+
+// Record a router load by simulating a successful read of the selected ASK file.
+function readSkill(plugin, skill, sessionID) {
+  return plugin["tool.execute.after"](
+    { tool: "read", status: "completed", sessionID, path: path.join(SKILLS_PATH, `ask-${skill}`, "SKILL.md") },
+    { content: `# ASK ${skill}` },
+  )
 }
 
 // Advance one edited workflow through its required pre-review gates.
@@ -60,7 +69,7 @@ async function main() {
   // Blocked-tool guard: bash before any skill load returns the derived hint rows.
   const blocked = await plugin["tool.execute.before"]({ tool: "bash" })
   const blockedError = typeof blocked?.tool_error === "string" ? blocked.tool_error : ""
-  check("blocked-tool message asks for a skill load", blockedError.includes("Load a skill first"))
+  check("blocked-tool message asks for a routed file read", blockedError.includes("Read the routed ASK file first"))
   const expectedHint = routingHintLines().join("\n")
   check(
     "blocked-tool hint matches routingHintLines() exactly",
@@ -133,7 +142,7 @@ async function main() {
       && !(smallPrompt?.append || "").includes("TODO:REVIEW"))
   check("small local code edit creates no review nudge",
     !smallWorkflowText.includes("Code edited")
-      && !smallWorkflowText.includes("skill(id: 'ask-code-review')"))
+      && !smallWorkflowText.includes("ask-code-review/SKILL.md"))
 
   // Interaction guard: use a fresh plugin so unrelated routing assertions do
   // not change the exact interaction count this check is proving.
@@ -153,8 +162,8 @@ async function main() {
     (guardAppend?.append || "").includes("Working through 5 actions"),
   )
 
-  // A successful skill load resets the interaction guard.
-  await guardPlugin["tool.execute.after"]({ tool: "skill" }, { args: { name: "develop" } })
+  // A successful router-directed file read resets the interaction guard.
+  await readSkill(guardPlugin, "develop")
   const afterSkillLoad = await guardPlugin["tui.prompt.append"]({ prompt: "reset check" })
   check(
     "skill load resets interaction guard",
@@ -166,32 +175,32 @@ async function main() {
   check("empty session routing state is safe", emptyStatus.activeSkills.length === 0
     && openCodeStatus.workflow === null && !("confidence" in emptyStatus))
 
-  // Load an ASK skill so the guarded native patch tool reaches edit tracking.
-  await plugin["tool.execute.after"]({ tool: "skill" }, { args: { name: "develop" } })
+  // Read an ASK workflow so the guarded native patch tool reaches edit tracking.
+  await readSkill(plugin, "develop")
   // Code-edit tracking: OpenCode V2's patch tool sets the code-review nudge.
   await plugin["tool.execute.before"]({ tool: "patch", diffIdentity: "HEAD" })
   await plugin["tool.execute.after"]({ tool: "patch" }, {})
   const afterEdit = await plugin["tui.prompt.append"]({ prompt: "volgende stap" })
   check(
     "code edit sets code-review nudge",
-    (afterEdit?.append || "").includes("`skill(id: 'ask-code-review')`"),
+    (afterEdit?.append || "").includes("ask-code-review/SKILL.md"),
   )
 
-  // Design gate: loading design arms the design-review nudge until it is loaded.
-  await plugin["tool.execute.after"]({ tool: "skill" }, { args: { name: "design" } })
+  // Design gate: reading design arms the design-review nudge until it is read.
+  await readSkill(plugin, "design")
   const afterDesign = await plugin["tui.prompt.append"]({ prompt: "check de pagina" })
   check(
     "design load sets design-review nudge",
-    (afterDesign?.append || "").includes("`skill(id: 'ask-design-review')`"),
+    (afterDesign?.append || "").includes("ask-design-review/SKILL.md"),
   )
-  await plugin["tool.execute.after"]({ tool: "skill" }, { args: { name: "design-review" } })
+  await readSkill(plugin, "design-review")
   const afterDesignReview = await plugin["tui.prompt.append"]({ prompt: "check de pagina" })
   check(
     "design-review load clears design-review nudge",
     !(afterDesignReview?.append || "").includes("Design produced"),
   )
 
-  await plugin["tool.execute.after"]({ tool: "skill" }, { args: { name: "code-review" } })
+  await readSkill(plugin, "code-review")
   const afterReviewLoad = await plugin["tui.prompt.append"]({ prompt: "review loaded" })
   check("code-review load does not falsely clear debt", (afterReviewLoad?.append || "").includes("Code edited"))
 
@@ -202,7 +211,7 @@ async function main() {
   const beforeCompletion = await plugin["tui.prompt.append"]({ prompt: "nog een ding" })
   check(
     "second edit keeps code-review nudge armed",
-    (beforeCompletion?.append || "").includes("`skill(id: 'ask-code-review')`"),
+    (beforeCompletion?.append || "").includes("ask-code-review/SKILL.md"),
   )
   const afterCompletion = await plugin["tui.prompt.append"]({ prompt: `ik ben ${completionWord}` })
   const postCompletion = await plugin["tui.prompt.append"]({ prompt: "en nu verder" })
@@ -261,11 +270,11 @@ async function main() {
   )
 
   // Loading session-review files the improvement, so the capture hint clears.
-  await plugin["tool.execute.after"]({ tool: "skill" }, { args: { name: "session-review" } })
+  await readSkill(plugin, "session-review")
   const afterSessionReview = await plugin["tui.prompt.append"]({ prompt: "en nu verder" })
   check(
     "session-review load clears improvement hint",
-    !(afterSessionReview?.append || "").includes("`skill(id: 'ask-session-review')`"),
+    !(afterSessionReview?.append || "").includes("ask-session-review/SKILL.md"),
   )
 
   const panelPlugin = await AgentSkillsRouter()

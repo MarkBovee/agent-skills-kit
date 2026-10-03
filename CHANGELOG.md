@@ -6,6 +6,33 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.5.2] - 2026-10-02
+
+### Fixed
+
+- **Design reviews no longer route to code review.** The router had no `design-review` route, so "does this look AI-generated? review it" matched `review` and the hook pointed at `ask-code-review`. A design-review route now runs before code review.
+- **Debugging catches wrong-result bugs.** "Returns the wrong", "wrong result", "find the cause", "find the root cause", and "started failing" route to `ask-debugging`. The repository-specific triggers `None` and `target_temp` and the Dutch `storing` (malfunction), which also matched English "storing", are gone; they pulled ordinary prompts into debugging.
+- **Generic skills stay generic.** `ask-develop` no longer names services from one repository, and stray Dutch text in `ask-intake` and `ask-agent-workflows` is now English.
+
+### Changed
+
+- **Cost-aware subagents.** Coordinators now choose a model for each supported delegation, with Haiku for bounded mechanical work, Sonnet as the custom-agent fallback, and Opus reserved for justified high-judgment tasks.
+- **Router actions read the skill file.** Pending-review actions, decision-tree lines, dsh steer prompts, and slash commands now say `Read ~/.agents/skills/ask-<name>/SKILL.md` instead of `skill(name: ...)`. The dsh router also clears review obligations when that file is read. The router, dsh, widget, research, and installed-artifact checks assert the new form.
+- **Plugin-only Claude Code installs work.** The hooks point the agent and subagents at the shared `SKILL.md` when it exists and otherwise at the copy bundled in the plugin, instead of always naming `~/.agents/skills`, which a plugin-only install lacks. `ASK_SKILLS_DIR` relocates the shared root. The reviewer, auditor, and researcher subagents follow the paths in their routing context.
+- **Rules stay in one place.** `AGENTS.md` no longer carries a second, stale copy of the workflow mandate (about 900 characters loaded twice in Claude sessions); it points at `rules/workflow.md`, whose first bullet now names the `SKILL.md` path the router shows instead of assuming `~/.agents/skills`. The required-checks list in `AGENTS.md` now matches CI, which also runs the code-comment, evidence-aware-communication, and model-agnostic checks.
+- **Read actions are quoted and relocatable.** Every host builds the file-read action with one shared helper, backtick-quotes the path so directories with spaces stay one token, and honors `ASK_SKILLS_DIR`.
+- **Path-scoped coding standards for Claude Code.** `scripts/export-claude-coding-standards.js` generates `rules/claude/` from `rules/coding-standards.md`: a core file (about 34% smaller) plus one file per language with `paths` frontmatter, so the C#, JS/TS, Python, Go, Rust, and Shell rules load only when a matching file is read or edited. `--check` fails CI on drift. The installers (`install.sh` and `install.ps1`) now write these files to `~/.claude/rules` instead of the full canonical file, and `--uninstall-claude` removes only files identical to the generated ones. Plugin-only users can run the script with `--install`, which skips a differing file unless `--force`. Other hosts keep the full canonical file.
+- **Claude Code is the primary harness.** The README tagline, overview, and platform matrix lead with Claude Code, and the OpenCode "reference implementation" wording is gone; OpenCode and dsh reuse the shared routing core. A new `ARCHITECTURE.md` documents how the pieces fit, which files are generated, and contributor gotchas; the README and `AGENTS.md` link to it, and the README Repo Map is corrected.
+- **Claude Code is first class in the docs and manifest.** The README opens the install section with a two-command Claude Code quick start, and the Claude Code section now covers the hooks, subagent cost routing, installer modes, and troubleshooting. The plugin manifest and marketplace entry describe the hooks and subagents.
+- **Leaner hook context.** SessionStart drops the skill preview that duplicated Claude Code's own listing (2267 to 1377 characters). A plain question with no routed skill gets no workflow line. The risk line is announced again after compaction, and an `ask-develop` hint appears when a develop trigger fires.
+- **Subagents get the routing table** through a new `SubagentStart` hook.
+- **Descriptions carry their triggers.** Claude Code ignores the `triggers` field, so `ask-agent-workflows` now names release chores in its description, and `ask-develop` and `ask-debugging` state when to use them.
+- **Release gates moved to a reference file.** `ask-agent-workflows` keeps a short release-sensitive summary and loads `references/release-gates.md` only for release work (214 to 186 lines).
+
+### Added
+
+- **`scripts/eval-skill-activation.js`.** Runs 20 realistic prompts through `claude -p` and scores which skill loads first. Manual tool; it spends tokens. With Sonnet and one run per case, the score went from 17/20 on 2.5.1 to 19/20 with no false positives on the two no-skill prompts.
+
 ## [2.5.1] - 2026-10-02
 
 ### Fixed

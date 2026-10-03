@@ -2,6 +2,7 @@
 name: "verification"
 description: "Verification: Use before claiming something works, is fixed, or is ready to hand off, and when changed repos need intentional cleanup before stopping. Common triggers: verify, verifiëren, prove, controleren of het werkt, bewijzen dat het werkt, claim success, done, finished, ready, handoff, klaar, gereed, wrap up, hand off, task complete, finishing work, workspace done, afronden, afgerond, inleveren, cleanup, test de fix, check result, prove it works, check of het klopt, validate, valideren,..."
 whenToUse: "Common triggers: verify, verifiëren, prove, controleren of het werkt, bewijzen dat het werkt, claim success, done, finished, ready, handoff, klaar, gereed, wrap up, hand off, task complete, finishing work, workspace done, afronden, afgerond, inleveren, cleanup, test de fix, check result, prove it works, check of het klopt, validate, valideren, werkt het, is het klaar."
+disable-model-invocation: true
 ---
 # ASK Verification
 

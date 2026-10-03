@@ -11,10 +11,14 @@ const {
   buildWorkflowState,
   cascadeRoute,
   createEmptySessionState,
+  matchingPhrases,
   loadSkills,
+  askSkillFileRef,
+  askSkillNameFromPath,
+  askSkillsRoot,
+  skillReadAction: routerSkillReadAction,
   reviewNudgeLines,
   routingHintLines,
-  toSingleLine,
   unique,
   workflowRequiresReview,
 } = require("../core/router-core")
@@ -23,7 +27,6 @@ const PLUGIN_ROOT = path.resolve(__dirname, "..")
 const SKILLS_ROOT = path.join(PLUGIN_ROOT, "skills")
 const WORKFLOW_RULES_PATH = path.join(PLUGIN_ROOT, "rules", "workflow.md")
 const RULES_MARKER = "<!-- agent-skills-kit:managed -->"
-const MAX_PREVIEW_SKILLS = 8
 const MAX_HINT_SKILLS = 4
 const STATE_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000
 
@@ -36,7 +39,9 @@ async function readInput() {
   if (!input.trim()) return {}
 
   try {
-    return JSON.parse(input)
+    const payload = JSON.parse(input)
+    // A JSON null, array, or scalar carries no hook fields; treat it as an empty payload.
+    return payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {}
   } catch {
     return {}
   }
@@ -100,10 +105,22 @@ function pruneStates() {
   }
 }
 
-// Render a routing-table line with ask-prefixed ids so it matches the native skill names.
+// Resolve the SKILL.md a Read should target: the shared install when present, otherwise the copy bundled
+// with the plugin, so a plugin-only Claude Code install works without `~/.agents/skills`.
+function skillFilePath(skillName) {
+  const sharedFile = path.join(askSkillsRoot(), `ask-${skillName}`, "SKILL.md")
+  return fs.existsSync(sharedFile) ? askSkillFileRef(skillName) : path.join(SKILLS_ROOT, `ask-${skillName}`, "SKILL.md")
+}
+
+// Render the exact file-read action for one skill, pointing at whichever copy exists.
+function skillReadAction(skillName) {
+  return routerSkillReadAction(skillName, skillFilePath(skillName))
+}
+
+// Render a routing-table line with a direct path to the selected skill file.
 function toAskIdLine(line) {
-  // Prefix the matched skill name with ask- to form its native id.
-  return line.replace(/→ ([a-z][a-z-]*)$/, (_match, skillName) => `→ ask-${skillName}`)
+  // Swap the trailing skill name for its file-read action.
+  return line.replace(/→ ([a-z][a-z-]*)$/, (_match, skillName) => `→ ${skillReadAction(skillName)}`)
 }
 
 // Read the workflow mandate unless the installer already wrote it into the user's Claude rules.
@@ -122,23 +139,23 @@ function readWorkflowMandate() {
   }
 }
 
-// Build compact session guidance so native Agent Skills stay responsible for loading bodies.
-function buildSessionContext(skills) {
-  const preview = skills
-    .slice(0, MAX_PREVIEW_SKILLS)
-    // Map each skill to a compact id and description preview.
-    .map((skill) => `ask-${skill.name}: ${toSingleLine(skill.description, 90)}`)
-    .join("; ")
-  const mandate = readWorkflowMandate()
-
+// Build the routing table shared by the main session and subagents, which do not inherit session context.
+function routingContextLines() {
   return [
-    "Agent Skills Kit (ASK) skills are native Agent Skills with the id `ask-<name>`; load the most specific one with the Skill tool before substantial work. Use `ask-develop` only when nothing more specific matches.",
+    "ASK workflow skills are router-only. Select the most specific route, then use Read on the SKILL.md path shown for it; never invoke an ASK leaf through the native Skill tool. Use `ask-develop` only when nothing more specific matches.",
     "Routing table:",
     ...routingHintLines().map(toAskIdLine),
-    "After code edits, complete risk-appropriate validation first; load `ask-code-review` only when the workflow includes a REVIEW gate.",
+  ]
+}
+
+// Build compact session guidance; the native skill listing already carries every description, so it is not repeated.
+function buildSessionContext() {
+  const mandate = readWorkflowMandate()
+  return [
+    ...routingContextLines(),
+    `After code edits, complete risk-appropriate validation first; ${skillReadAction(SKILL_CODE_REVIEW)} only when the workflow includes a REVIEW gate.`,
     "Cost-aware default: bounded mechanical chores such as version bumps, changelog edits, and release-prep updates start with a cheap subagent when available; escalate only when scope expands.",
     mandate ? `Workflow mandate:\n${mandate}` : "",
-    `Installed skill preview: ${preview}`,
   ].filter(Boolean).join("\n")
 }
 
@@ -146,6 +163,13 @@ function buildSessionContext(skills) {
 function workflowLine(workflow) {
   const gates = (workflow.requiredPhases || []).join(" → ")
   return `Workflow risk=${workflow.risk}; gates: ${gates}; tests: ${TEST_POLICY[workflow.risk] || TEST_POLICY.normal}.`
+}
+
+// Tell whether the prompt hits one of the develop skill's own frontmatter triggers.
+function developTriggerFired(prompt, skills) {
+  // Find the develop skill among the loaded skills.
+  const develop = skills.find((skill) => skill.name === SKILL_DEVELOP)
+  return Boolean(develop) && matchingPhrases(prompt, develop.triggers || []).length > 0
 }
 
 // Build the routing and lifecycle hints for one prompt and return them with the next state.
@@ -160,8 +184,8 @@ function buildPromptHint(prompt, skills, state) {
   const route = cascadeRoute(prompt, skills, sessionState)
   // Collect the matched skill names without duplicates.
   const names = unique(route.matchedSkills.map((skill) => skill.name))
-  // Drop the default develop skill so only specific matches produce a routing line.
-  const specificNames = names.filter((name) => name !== SKILL_DEVELOP).slice(0, MAX_HINT_SKILLS)
+  // Keep the fallback develop route only when one of its own triggers fired; a bare fallback is not a signal.
+  const specificNames = names.filter((name) => name !== SKILL_DEVELOP || developTriggerFired(prompt, skills)).slice(0, MAX_HINT_SKILLS)
 
   const lines = []
   if (specificNames.length > 0) {
@@ -170,13 +194,16 @@ function buildPromptHint(prompt, skills, state) {
     // Prefix each matched skill name with ask- to form its native id.
     lines.push(`Agent Skills Kit routing suggests: ${specificNames.map((name) => `ask-${name}`).join(", ")}.${profileText}`)
   }
-  if (workflow && state.announcedRisk !== workflow.risk) lines.push(workflowLine(workflow))
-  // Phrase each load call the way Claude Code loads native skills.
-  lines.push(...reviewNudgeLines(sessionState, (name) => `Skill tool with skill "ask-${name}"`))
+  // A plain question with no routed skill does not start a workflow, so its gates would only be noise.
+  const isPlainQuestion = specificNames.length === 0 && prompt.endsWith("?")
+  const announcesRisk = Boolean(workflow) && !isPlainQuestion && state.announcedRisk !== workflow.risk
+  if (announcesRisk) lines.push(workflowLine(workflow))
+  // Point review nudges at the router-only ASK files rather than hidden skill commands.
+  lines.push(...reviewNudgeLines(sessionState, skillReadAction))
 
   return {
     text: lines.join("\n"),
-    state: { ...state, workflow, announcedRisk: workflow ? workflow.risk : state.announcedRisk },
+    state: { ...state, workflow, announcedRisk: announcesRisk ? workflow.risk : state.announcedRisk },
   }
 }
 
@@ -191,6 +218,13 @@ function buildHookOutput(eventName, additionalContext) {
 function readLoadedSkill(payload) {
   const input = payload.tool_input || {}
   return String(input.skill || input.name || input.command || "").trim().split(":").pop()
+}
+
+// Recognize only a successful read of a canonical ASK skill file under a trusted skill root.
+function readLoadedSkillFile(payload) {
+  const input = payload.tool_input || {}
+  const skillName = askSkillNameFromPath(input.file_path || input.filePath || input.path, [askSkillsRoot(), SKILLS_ROOT])
+  return skillName ? `ask-${skillName}` : ""
 }
 
 // Handle one hook event and emit only the event-supported JSON shape.
@@ -211,13 +245,27 @@ async function main() {
     return
   }
 
-  const skills = await loadSkills([SKILLS_ROOT])
+  if (event === "post-skill-read") {
+    if (readLoadedSkillFile(payload) === `ask-${SKILL_CODE_REVIEW}`) {
+      saveState(sessionId, { ...loadState(sessionId), needsCodeReview: false })
+    }
+    return
+  }
 
   if (event === "session-start") {
     pruneStates()
-    process.stdout.write(buildHookOutput("SessionStart", buildSessionContext(skills)))
+    // Compaction drops earlier hook context, so the risk line must be announced again on the next prompt.
+    if (payload.source === "compact") saveState(sessionId, { ...loadState(sessionId), announcedRisk: undefined })
+    process.stdout.write(buildHookOutput("SessionStart", buildSessionContext()))
     return
   }
+
+  if (event === "subagent-start") {
+    process.stdout.write(buildHookOutput("SubagentStart", routingContextLines().join("\n")))
+    return
+  }
+
+  const skills = await loadSkills([SKILLS_ROOT])
 
   if (event === "prompt") {
     const result = buildPromptHint(readPrompt(payload), skills, loadState(sessionId))
