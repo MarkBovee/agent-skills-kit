@@ -520,29 +520,29 @@ resolve_marketplace_source() {
 # Print the directory path of a registered agent-skills-kit marketplace, or nothing for other source kinds.
 registered_marketplace_directory() {
   claude plugin marketplace list 2>/dev/null | awk '
-    /^[[:space:]]*❯ / { in_entry = ($2 == "agent-skills-kit") }
+    !/Source:/ && NF == 2 { in_entry = ($2 == "agent-skills-kit") }
     in_entry && /Source: Directory \(/ { sub(/^.*Source: Directory \(/, ""); sub(/\)[[:space:]]*$/, ""); print; exit }'
 }
 
-# Drop an agent-skills-kit marketplace whose directory vanished or is an ephemeral release worktree, so the add below
-# re-registers it. A live user-chosen directory is left alone.
-remove_stale_marketplace() {
-  local registered=""
-  registered="$(registered_marketplace_directory)"
-  [ -n "$registered" ] || return 0
+# True when a registered marketplace directory is a live, user-chosen path rather than a vanished or temporary one.
+is_live_user_marketplace() {
+  local registered="$1"
+  [ -n "$registered" ] || return 1
   case "$(basename -- "$registered")" in
-    agent-skills-kit-release-*) ;;
-    *) [ ! -d "$registered" ] || return 0 ;;
+    agent-skills-kit-release-*) return 1 ;;
   esac
-  claude plugin marketplace remove agent-skills-kit >/dev/null 2>&1 || true
+  [ -d "$registered" ]
 }
 
-# Install the ASK plugin through the claude CLI; returns non-zero when the CLI path fails.
+# Install the ASK plugin through the claude CLI; returns non-zero when the CLI path fails. A dangling or temporary
+# directory registration is replaced; a live user-chosen one is kept and not re-added.
 install_claude_plugin() {
-  local marketplace_source=""
-  marketplace_source="$(resolve_marketplace_source)"
-  remove_stale_marketplace
-  claude plugin marketplace add "$marketplace_source" >/dev/null 2>&1 || true
+  local registered=""
+  registered="$(registered_marketplace_directory)"
+  if ! is_live_user_marketplace "$registered"; then
+    [ -z "$registered" ] || claude plugin marketplace remove agent-skills-kit >/dev/null 2>&1 || true
+    claude plugin marketplace add "$(resolve_marketplace_source)" >/dev/null 2>&1 || true
+  fi
   claude plugin install "$CLAUDE_PLUGIN_ID" --scope user >/dev/null 2>&1
 }
 

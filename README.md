@@ -278,7 +278,7 @@ The slash name is always the skill id: `/ask-gh-inbox`, or `/agent-skills-kit:as
 
 * **Model vs user:** every skill sets `disable-model-invocation: true`. You can run it with a slash command; the agent never starts it through the Skill tool, it reads the `SKILL.md` the router names.
 * **`skillOverrides` in `settings.json`:** values are `on`, `name-only`, `user-invocable-only`, and `off` (`off` hides the skill from `/` autocomplete and blocks invoking it). Set them with Space in the `/skills` menu. Per the Claude Code docs they do not apply to plugin skills; manage those with `/plugin`. ASK never writes `skillOverrides`. If you linked skills (`ASK_CLAUDE_MODE=skills`) and want `/ask-<name>` hidden from the model but still typeable, use `"user-invocable-only"`, not `"off"`.
-* **No `/ask-*` commands at all?** Run `claude plugin list`. `failed to load: cache-miss` means the marketplace points at a deleted directory (older bootstrap and update runs registered a temporary release worktree). Rerun `scripts/update.sh`, or `claude plugin marketplace remove agent-skills-kit` then `claude plugin marketplace add MarkBovee/agent-skills-kit`.
+* **No `/ask-*` commands at all?** Run `claude plugin list`. `failed to load: cache-miss` means the marketplace points at a deleted directory (older bootstrap and update runs registered a temporary release worktree). Rerun `scripts/update.sh` (set `ASK_MARKETPLACE_SOURCE` to force another marketplace source), or `claude plugin marketplace remove agent-skills-kit` then `claude plugin marketplace add MarkBovee/agent-skills-kit`.
 
 #### Cost-aware subagents
 

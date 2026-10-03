@@ -194,27 +194,29 @@ function Resolve-MarketplaceSource {
 function Get-RegisteredMarketplaceDirectory {
     $inEntry = $false
     foreach ($line in @(& claude plugin marketplace list 2>$null)) {
-        if ($line -match '^\s*\S\s+(\S+)\s*$') { $inEntry = ($Matches[1] -eq "agent-skills-kit") }
+        if ($line -notmatch 'Source:' -and $line -match '^\s*\S+\s+(\S+)\s*$') { $inEntry = ($Matches[1] -eq "agent-skills-kit") }
         if ($inEntry -and $line -match 'Source: Directory \((.+)\)\s*$') { return $Matches[1] }
     }
     return $null
 }
 
-# Drop an agent-skills-kit marketplace whose directory vanished or is an ephemeral release worktree, so the add below
-# re-registers it. A live user-chosen directory is left alone.
-function Remove-StaleMarketplace {
-    $registered = Get-RegisteredMarketplaceDirectory
-    if (-not $registered) { return }
-    $ephemeral = (Split-Path -Leaf $registered) -like "agent-skills-kit-release-*"
-    if (-not $ephemeral -and (Test-Path -LiteralPath $registered)) { return }
-    & claude plugin marketplace remove agent-skills-kit *> $null
+# True when a registered marketplace directory is a live, user-chosen path rather than a vanished or temporary one.
+function Test-LiveUserMarketplace {
+    param([string]$Registered)
+    if (-not $Registered) { return $false }
+    if ((Split-Path -Leaf $Registered) -like "agent-skills-kit-release-*") { return $false }
+    return (Test-Path -LiteralPath $Registered)
 }
 
-# Install the ASK plugin through the claude CLI; returns $false when the CLI path fails.
+# Install the ASK plugin through the claude CLI; returns $false when the CLI path fails. A dangling or temporary
+# directory registration is replaced; a live user-chosen one is kept and not re-added.
 function Install-ClaudePlugin {
     try {
-        Remove-StaleMarketplace
-        & claude plugin marketplace add (Resolve-MarketplaceSource) *> $null
+        $registered = Get-RegisteredMarketplaceDirectory
+        if (-not (Test-LiveUserMarketplace -Registered $registered)) {
+            if ($registered) { & claude plugin marketplace remove agent-skills-kit *> $null }
+            & claude plugin marketplace add (Resolve-MarketplaceSource) *> $null
+        }
         & claude plugin install $claudePluginId --scope user *> $null
         return ($LASTEXITCODE -eq 0)
     }

@@ -334,7 +334,18 @@ check_claude_scenarios() {
   printf 'Configured marketplaces:\n\n  ❯ agent-skills-kit\n    Source: Directory (%s/mine)\n' "$h" > "$h/shim/marketplace-list.txt"
   run_claude_installer "$h" "$h/log" "$h/shim" || check "claude persistent checkout install succeeds" false "$(tail -5 "$h/log" | tr '\n' ' ')"
   assert_grep "claude persistent install keeps a live user marketplace" "$h/shim/calls.log" "plugin marketplace remove" absent
-  assert_grep "claude persistent install registers the checkout" "$h/shim/calls.log" "plugin marketplace add $REPO_ROOT" present
+  assert_grep "claude persistent install does not re-point a live user marketplace" "$h/shim/calls.log" "plugin marketplace add" absent
+  assert_grep "claude persistent install still installs the plugin" "$h/shim/calls.log" "plugin install agent-skills-kit@agent-skills-kit" present
+
+  # Scenario I: with no registration the persistent checkout itself is registered, and ASK_MARKETPLACE_SOURCE wins.
+  local i="$base/i"; mkdir -p "$i"
+  make_claude_shim "$i/shim" no
+  run_claude_installer "$i" "$i/log" "$i/shim" || check "claude fresh plugin install succeeds" false
+  assert_grep "claude fresh plugin install registers the checkout" "$i/shim/calls.log" "plugin marketplace add $REPO_ROOT" present
+  local j="$base/j"; mkdir -p "$j"
+  make_claude_shim "$j/shim" no
+  ASK_MARKETPLACE_SOURCE=example/override run_claude_installer "$j" "$j/log" "$j/shim" || check "claude override install succeeds" false
+  assert_grep "claude ASK_MARKETPLACE_SOURCE overrides the source" "$j/shim/calls.log" "plugin marketplace add example/override" present
 
   # Scenario F: uninstall removes only ASK-owned pieces.
   ASK_CLAUDE_MODE_OVERRIDE=skills run_claude_installer "$b" "$b/log3" "" --uninstall-claude || check "claude uninstall succeeds" false
