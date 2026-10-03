@@ -138,8 +138,26 @@ function checkHookBehavior() {
   const clearedNamespaced = parseHookOutput(run("prompt", { session_id: "state", prompt: "continue" }).stdout)
   expect(!clearedNamespaced?.hookSpecificOutput?.additionalContext?.includes("Code edited"), "loading the plugin-namespaced agent-skills-kit:ask-code-review clears the reminder")
 
-  const subagent = parseHookOutput(runHook("subagent-start", JSON.stringify({ agent_type: "Explore" })).stdout)
-  expect(subagent?.hookSpecificOutput?.hookEventName === "SubagentStart" && subagent.hookSpecificOutput.additionalContext.includes("Read ~/.agents/skills/ask-debugging/SKILL.md"), "SubagentStart gives subagents router-directed file paths")
+  // Run a hook with a chosen shared skill root so path resolution never depends on the developer's real home directory.
+  const runWithSharedRoot = (event, payload, sharedRoot) => spawnSync(process.execPath, [HOOK_SCRIPT, event], { input: JSON.stringify(payload), encoding: "utf8", env: { ...stateEnv, ASK_SKILLS_DIR: sharedRoot }, timeout: 10000 })
+  const bundledDebugging = path.join(SKILLS_DIR, "ask-debugging", "SKILL.md")
+  const missingRoot = path.join(stateDir, "no-shared-skills")
+  const pluginOnly = parseHookOutput(runWithSharedRoot("subagent-start", { agent_type: "Explore" }, missingRoot).stdout)
+  expect(pluginOnly?.hookSpecificOutput?.hookEventName === "SubagentStart" && pluginOnly.hookSpecificOutput.additionalContext.includes(`Read ${bundledDebugging}`), "plugin-only installs point subagents at the bundled skill files")
+  const sharedRoot = path.join(stateDir, "shared-skills")
+  fs.mkdirSync(path.join(sharedRoot, "ask-debugging"), { recursive: true })
+  fs.writeFileSync(path.join(sharedRoot, "ask-debugging", "SKILL.md"), "stub\n")
+  const sharedInstall = parseHookOutput(runWithSharedRoot("subagent-start", { agent_type: "Explore" }, sharedRoot).stdout)
+  expect(sharedInstall?.hookSpecificOutput?.additionalContext?.includes(`Read ${path.join(sharedRoot, "ask-debugging", "SKILL.md")}`), "a shared install takes precedence over the bundled skill files")
+  const sessionPluginOnly = parseHookOutput(runWithSharedRoot("session-start", {}, missingRoot).stdout)
+  expect(sessionPluginOnly?.hookSpecificOutput?.additionalContext?.includes(`read \`${path.join(SKILLS_DIR, "ask-code-review", "SKILL.md")}\``), "SessionStart names a readable code-review file for plugin-only installs")
+  // Reading a file under a relocated shared root clears the review reminder just like the bundled copy.
+  runWithSharedRoot("post-edit", { session_id: "shared", tool_name: "Edit" }, sharedRoot)
+  fs.mkdirSync(path.join(sharedRoot, "ask-code-review"), { recursive: true })
+  fs.writeFileSync(path.join(sharedRoot, "ask-code-review", "SKILL.md"), "stub\n")
+  runWithSharedRoot("post-skill-read", { session_id: "shared", tool_input: { file_path: path.join(sharedRoot, "ask-code-review", "SKILL.md") } }, sharedRoot)
+  const sharedCleared = parseHookOutput(runWithSharedRoot("prompt", { session_id: "shared", prompt: "continue" }, sharedRoot).stdout)
+  expect(!sharedCleared?.hookSpecificOutput?.additionalContext?.includes("Code edited"), "reading ask-code-review from the shared root clears the reminder")
   expect(!startContext.includes("Installed skill preview"), "SessionStart does not repeat the native skill listing")
 
   const question = parseHookOutput(run("prompt", { prompt: "What does pageCount return for an empty list?", session_id: "question" }).stdout)

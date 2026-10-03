@@ -102,9 +102,28 @@ function pruneStates() {
   }
 }
 
-// Render a routing-table line with a direct path to the selected shared skill file.
+// Resolve the shared skill root; ASK_SKILLS_DIR overrides the default so installs and tests can relocate it.
+function sharedSkillsRoot() {
+  return process.env.ASK_SKILLS_DIR ? path.resolve(process.env.ASK_SKILLS_DIR) : path.join(os.homedir(), ".agents", "skills")
+}
+
+// Resolve the SKILL.md a Read should target: the shared install when present, otherwise the copy bundled
+// with the plugin, so a plugin-only Claude Code install works without `~/.agents/skills`.
+function skillFilePath(skillName) {
+  const relativeFile = path.join(`ask-${skillName}`, "SKILL.md")
+  const sharedFile = path.join(sharedSkillsRoot(), relativeFile)
+  if (!fs.existsSync(sharedFile)) return path.join(SKILLS_ROOT, relativeFile)
+  return process.env.ASK_SKILLS_DIR ? sharedFile : `~/.agents/skills/${relativeFile}`
+}
+
+// Render the exact file-read action that loads one ASK workflow skill.
+function skillReadAction(skillName) {
+  return `Read ${skillFilePath(skillName)}`
+}
+
+// Render a routing-table line with a direct path to the selected skill file.
 function toAskIdLine(line) {
-  return line.replace(/→ ([a-z][a-z-]*)$/, (_match, skillName) => `→ Read ~/.agents/skills/ask-${skillName}/SKILL.md`)
+  return line.replace(/→ ([a-z][a-z-]*)$/, (_match, skillName) => `→ ${skillReadAction(skillName)}`)
 }
 
 // Read the workflow mandate unless the installer already wrote it into the user's Claude rules.
@@ -126,7 +145,7 @@ function readWorkflowMandate() {
 // Build the routing table shared by the main session and subagents, which do not inherit session context.
 function routingContextLines() {
   return [
-    "ASK workflow skills are router-only. Select the most specific route, then use Read on `~/.agents/skills/ask-<name>/SKILL.md`; never invoke an ASK leaf through the native Skill tool. Use `ask-develop` only when nothing more specific matches.",
+    "ASK workflow skills are router-only. Select the most specific route, then use Read on the SKILL.md path shown for it; never invoke an ASK leaf through the native Skill tool. Use `ask-develop` only when nothing more specific matches.",
     "Routing table:",
     ...routingHintLines().map(toAskIdLine),
   ]
@@ -137,7 +156,7 @@ function buildSessionContext() {
   const mandate = readWorkflowMandate()
   return [
     ...routingContextLines(),
-    "After code edits, complete risk-appropriate validation first; read `~/.agents/skills/ask-code-review/SKILL.md` only when the workflow includes a REVIEW gate.",
+    `After code edits, complete risk-appropriate validation first; read \`${skillFilePath(SKILL_CODE_REVIEW)}\` only when the workflow includes a REVIEW gate.`,
     "Cost-aware default: bounded mechanical chores such as version bumps, changelog edits, and release-prep updates start with a cheap subagent when available; escalate only when scope expands.",
     mandate ? `Workflow mandate:\n${mandate}` : "",
   ].filter(Boolean).join("\n")
@@ -183,7 +202,7 @@ function buildPromptHint(prompt, skills, state) {
   const announcesRisk = Boolean(workflow) && !isPlainQuestion && state.announcedRisk !== workflow.risk
   if (announcesRisk) lines.push(workflowLine(workflow))
   // Point review nudges at the router-only ASK files rather than hidden skill commands.
-  lines.push(...reviewNudgeLines(sessionState, (name) => `Read ~/.agents/skills/ask-${name}/SKILL.md`))
+  lines.push(...reviewNudgeLines(sessionState, skillReadAction))
 
   return {
     text: lines.join("\n"),
@@ -211,7 +230,7 @@ function readLoadedSkillFile(payload) {
   if (typeof rawPath !== "string" || !rawPath.trim()) return ""
   const requestedPath = rawPath.startsWith("~/") ? path.join(os.homedir(), rawPath.slice(2)) : rawPath
 
-  for (const root of [path.join(os.homedir(), ".agents", "skills"), SKILLS_ROOT]) {
+  for (const root of [sharedSkillsRoot(), SKILLS_ROOT]) {
     try {
       const realRoot = fs.realpathSync(root)
       const realFile = fs.realpathSync(path.resolve(requestedPath))
