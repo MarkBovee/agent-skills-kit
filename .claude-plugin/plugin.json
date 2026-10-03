@@ -1,7 +1,7 @@
 {
   "name": "agent-skills-kit",
   "displayName": "Agent Skills Kit",
-  "version": "2.5.4",
+  "version": "2.5.5",
   "description": "Workflow skills, routing hooks, and read-only review subagents for Claude Code. Also portable to GitHub Copilot, Codex, OpenCode, and dsh.",
   "author": {
     "name": "Mark Bovee",
@@ -20,5 +20,6 @@
     "subagents",
     "hooks"
   ],
-  "commands": []
+  "commands": [],
+  "types": "./types/index.d.ts"
 }

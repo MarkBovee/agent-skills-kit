@@ -75,5 +75,8 @@
         ]
       }
     ]
-  }
+  },
+  "modules": [
+    "./flow-pane.tsx"
+  ]
 }
