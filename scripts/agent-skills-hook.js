@@ -12,6 +12,7 @@ const {
   cascadeRoute,
   createEmptySessionState,
   matchingPhrases,
+  parseWorkflowEvidence,
   loadSkills,
   askSkillFileRef,
   askSkillNameFromPath,
@@ -227,6 +228,24 @@ function readLoadedSkillFile(payload) {
   return skillName ? `ask-${skillName}` : ""
 }
 
+// Tell whether an agent result is an independent REVIEW or AUDIT report on a diff; BLOCKED and FAILED never count.
+function reportsIndependentReview(payload) {
+  const response = payload.tool_response ?? payload.tool_result
+  // Read the agent's text parts directly so the diff identity is not polluted by JSON escaping.
+  const text = Array.isArray(response?.content) ? response.content.map((part) => part?.text || "").join("\n") : response
+  const evidence = parseWorkflowEvidence(text)
+  // A report without a diff identity cannot be tied to the edited diff, so it never clears the gate.
+  return Boolean(evidence?.diffIdentity) && ["PASS", "FINDINGS"].includes(evidence.status) && ["REVIEW", "AUDIT"].includes(evidence.phase)
+}
+
+// Remind a resumed session that summarized skill use is history, not loaded guidance.
+function buildResumeContext() {
+  return [
+    "Resumed from a summary: skill instructions read earlier are no longer in context, and a summary's claims about skill use are historical.",
+    `Before editing substantial work, re-check the request against the routing table, ${skillReadAction(SKILL_DEVELOP)} and any matching workflow skill again, then compare the plan and gate ledger with the repository state.`,
+  ].join("\n")
+}
+
 // Handle one hook event and emit only the event-supported JSON shape.
 async function main() {
   const event = process.argv[2]
@@ -245,6 +264,12 @@ async function main() {
     return
   }
 
+  // A REVIEW/AUDIT agent report already satisfies the gate for this diff; a later edit re-arms the reminder.
+  if (event === "post-agent") {
+    if (reportsIndependentReview(payload)) saveState(sessionId, { ...loadState(sessionId), needsCodeReview: false })
+    return
+  }
+
   if (event === "post-skill-read") {
     if (readLoadedSkillFile(payload) === `ask-${SKILL_CODE_REVIEW}`) {
       saveState(sessionId, { ...loadState(sessionId), needsCodeReview: false })
@@ -256,7 +281,8 @@ async function main() {
     pruneStates()
     // Compaction drops earlier hook context, so the risk line must be announced again on the next prompt.
     if (payload.source === "compact") saveState(sessionId, { ...loadState(sessionId), announcedRisk: undefined })
-    process.stdout.write(buildHookOutput("SessionStart", buildSessionContext()))
+    const resumed = payload.source === "compact" || payload.source === "resume"
+    process.stdout.write(buildHookOutput("SessionStart", [buildSessionContext(), resumed ? buildResumeContext() : ""].filter(Boolean).join("\n")))
     return
   }
 

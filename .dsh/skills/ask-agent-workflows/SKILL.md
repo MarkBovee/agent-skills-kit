@@ -60,7 +60,7 @@ P0/P1 findings follow: reproduce → one regression proof within the test budget
 
 ## Release-sensitive work
 
-Keep one immutable diff reference with a gate table (`VALIDATE`, `REVIEW`, `AUDIT`, `RELEASE_GATE`); any source change makes evidence for the prior diff stale. Fix findings in one bounded batch, then run only a delta review and delta audit of the changed paths before the final gates. A metadata-only release (`VERSION`, `CHANGELOG.md`, plugin metadata) on an already-gated executable commit needs validation only. Before starting release-sensitive work, read [references/release-gates.md](references/release-gates.md) for the convergence and stop rule, the bounded narrow-fix path with its timebox, and the metadata-only fast path.
+Freeze the audited diff: commit (or snapshot) before starting REVIEW or AUDIT, and make no edits to the audited paths until the verdict arrives; an auditor on a moving tree can only report a stale or mixed verdict, and fixes go in a follow-up commit. Keep one immutable diff reference with a gate table (`VALIDATE`, `REVIEW`, `AUDIT`, `RELEASE_GATE`); any source change makes evidence for the prior diff stale. Fix findings in one bounded batch, then run only a delta review and delta audit of the changed paths before the final gates. A metadata-only release (`VERSION`, `CHANGELOG.md`, plugin metadata) on an already-gated executable commit needs validation only. Before starting release-sensitive work, read [references/release-gates.md](references/release-gates.md) for the convergence and stop rule, the bounded narrow-fix path with its timebox, and the metadata-only fast path.
 
 ## Handoff context
 

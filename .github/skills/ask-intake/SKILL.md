@@ -51,9 +51,17 @@ Clarify enough to avoid wrong work, then move. One skill for the full pre-execut
 3. Treat this scope record as definition of done. Do not silently reduce requested evidence-backed scope to the smallest safe patch.
 4. For large multi-issue, exhaustive, compatibility-sensitive, or release-sensitive briefs, write the plan artifact and complete plan-check before execution. Delegate independent research tracks through `agent-workflows`.
 
-**Release-gate cost decision** — when planning a release-sensitive change, make the validation and audit cost a stated decision before executing, not a default. Choose the **tier** of the independent audit (a `standard`/general re-audit is enough for a tiny delta; escalate to `deep` only on open cross-cutting invariants or counter-evidence). This decision never waives the audit itself: release-sensitive work still requires an independent audit and release-gate with evidence from a context separate from the implementer — owner-thread verification never substitutes for it. Record the tier choice and its outcome so the next release does not re-pay the same cost.
+**Release-gate cost decision** — when planning a release-sensitive change, make the validation and audit cost a stated decision before executing, not a default. Choose the **tier** of the independent audit (a `standard`/general re-audit is enough for a tiny delta; escalate to `deep` only on open cross-cutting invariants or counter-evidence). This decision never waives the audit itself: release-sensitive work still requires an independent audit and release-gate with evidence from a context separate from the implementer — owner-thread verification never substitutes for it. Record the tier choice and its outcome so the next release does not re-pay the same cost. The plan for release-sensitive work must carry a required line `Gate cost: <validation>, <review tier>, <audit tier>, expected cost`; a plan without it fails plan-check.
 
 For significant or release-sensitive work, add a plan-check gate: challenge scope, affected callers, compatibility, fallback behavior, ambiguity, determinism, and proof gaps before execution.
+
+## Resuming from a summary
+
+A checkpoint or compaction summary can look like an uninterrupted session, but it does not restore skill instructions, and its claims about skill use are historical. Before editing in a resumed substantial task:
+
+1. Re-check the current request against the routing table and skill triggers.
+2. Read the matching workflow skills again in this session (`intake`, `develop`, plus `verification` and `code-review` for the gates ahead).
+3. Compare the durable plan and gate ledger with the repository state (`git status`, the diff identity) before the first edit.
 
 ## Pair programming flow
 

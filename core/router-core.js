@@ -121,6 +121,13 @@ const BUG_PHRASES = [
   "returns the wrong", "wrong result", "wrong output", "find the cause", "find the root cause",
   "started failing", "unexpected behavior",
 ]
+// Bug phrases that also appear in routine inbox, triage, and release prompts without describing a failure.
+const WEAK_BUG_PHRASES = new Set(["bug", "debug", "debuggen", "error", "regression", "timeout", "broke"])
+// Administrative contexts where a weak bug phrase is usually a topic, not a symptom.
+const ADMIN_CONTEXT_PHRASES = [
+  "gh inbox", "github inbox", "triage", "version bump", "release prep", "prepare a release", "cut a release",
+  "retrospective",
+]
 const DESIGN_PHRASES = [
   "design a ui", "redesign this page", "improve ux", "polish the frontend",
   "landing page design", "dashboard design", "mobile app ui", "design system",
@@ -295,6 +302,15 @@ function hasPhraseSignal(query, phrases) {
       return normalized.includes(phrase)
     }
   })
+}
+
+// Tell whether a prompt describes a failure: a strong bug phrase always counts, a weak one only outside administrative work.
+function describesFailure(query) {
+  const hits = matchingPhrases(query, BUG_PHRASES)
+  if (hits.length === 0) return false
+  // Any phrase outside the weak set is a failure symptom by itself.
+  if (hits.some((phrase) => !WEAK_BUG_PHRASES.has(phrase))) return true
+  return !hasPhraseSignal(query, ADMIN_CONTEXT_PHRASES)
 }
 
 // Count distinct phrase signals for one route so the cascade can tell whether a
@@ -823,7 +839,7 @@ function cascadeRoute(query, skills, sessionState) {
     return { matchedSkills: [skill], executionProfile: buildExecutionProfile(skill, q) }
   }
   return (
-    tryRoute(BUG_PHRASES, SKILL_DEBUGGING) ||                  // 1. Execute
+    (describesFailure(q) ? tryRoute(BUG_PHRASES, SKILL_DEBUGGING) : null) || // 1. Execute (only when a failure is described)
     tryRoute(IMPROVE_PHRASES, SKILL_IMPROVE) ||                // 2. Improve
     tryRoute(LARGE_BRIEF_PHRASES, SKILL_INTAKE) ||             // 3. Start (large brief)
     tryRoute(EXPLICIT_DEEP_RESEARCH_PHRASES, SKILL_DEEP_RESEARCH) || // 4. Research
@@ -881,6 +897,7 @@ function getSessionState(cache, sessionID) {
 }
 
 module.exports = {
+  describesFailure,
   CODE_EDIT_TOOL_IDS, CODE_WORK_TOOL_IDS, DEFAULT_MAX_HINTS, DEFAULT_MAX_LISTED_SKILLS,
   INTERACTION_GUARD_THRESHOLD, RECENT_TOOL_MAX,
   VALID_DELEGATION_MODES, VALID_EXECUTION_TIERS,

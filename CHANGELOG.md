@@ -6,6 +6,16 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.5.3] - 2026-10-03
+
+### Changed
+
+- **Review reminder follows independent reviews.** A REVIEW or AUDIT agent report (`ASK_WORKFLOW_PASS` or `_FINDINGS`) now clears the "Code edited" reminder through a new PostToolUse `Agent|Task` handler; a later edit re-arms it (#125).
+- **Debugging is suggested only for failures.** Weak words such as bug or error inside inbox, triage, or release-prep prompts no longer route to `ask-debugging`; described failures and strong phrases still do (#125).
+- **Resumed sessions reload skills.** Compacted or resumed sessions are told that summarized skill use is historical and the matching skills must be read again. `rules/workflow.md` carries the rule and `ask-intake` has a resume section (#117).
+- **gh-inbox sees the newest discussion comments.** `ask-gh-inbox` fetches `comments(last: 20)`, documents GitHub's node limit, and says to run the snippets in bash (#124).
+- **Gate discipline.** `ask-intake` requires a `Gate cost:` plan line for release-sensitive work, `ask-agent-workflows` requires freezing the audited diff during REVIEW and AUDIT, and `ask-session-review` records the actual cost per gate (#125).
+
 ## [2.5.2] - 2026-10-02
 
 ### Fixed
