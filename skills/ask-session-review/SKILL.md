@@ -45,7 +45,7 @@ Reconstruct relevant skill use from the transcript: explicit `skill` calls, load
 
 ### Record release-gate cost
 
-When the session ran a release gate, record what the validation/audit actually cost versus what was planned (see `intake`'s release-gate cost decision). Note the outcome: a delta re-check that a `standard` tier closed in seconds, or an over-scoped `deep` run that wasted minutes and was aborted. Feed that back as `skill:` guidance so the next release starts at the right tier instead of repeating the expensive default.
+When the session ran a release gate, record what the validation/audit actually cost versus what was planned (see `intake`'s release-gate cost decision). Note the outcome: a delta re-check that a `standard` tier closed in seconds, or an over-scoped `deep` run that wasted minutes and was aborted. List the actual cost per gate (reviewer, first audit, delta audit: wall time and tokens when known) next to the planned `Gate cost:` line, and name any gate that found a defect the previous gate missed. Feed that back as `skill:` guidance so the next release starts at the right tier instead of repeating the expensive default.
 
 ## Evidence-aware issue communication
 

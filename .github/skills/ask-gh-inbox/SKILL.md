@@ -52,8 +52,12 @@ gh issue list --state open --json number,title,updatedAt,comments,labels --limit
 ```bash
 OWNER=$(gh repo view --json owner --jq '.owner.login')
 NAME=$(gh repo view --json name --jq '.name')
-gh api graphql -f owner="$OWNER" -f name="$NAME" -f query='query($owner: String!, $name: String!) { repository(owner: $owner, name: $name) { discussions(first: 50, orderBy: {field: UPDATED_AT, direction: DESC}) { nodes { number title updatedAt url comments(first: 20) { totalCount nodes { id createdAt author { login } body replies(first: 20) { totalCount nodes { id createdAt author { login } body } } } } } } } }'
+gh api graphql -f owner="$OWNER" -f name="$NAME" -f query='query($owner: String!, $name: String!) { repository(owner: $owner, name: $name) { discussions(first: 50, orderBy: {field: UPDATED_AT, direction: DESC}) { nodes { number title updatedAt url comments(last: 20) { totalCount nodes { id createdAt author { login } body replies(first: 20) { totalCount nodes { id createdAt author { login } body } } } } } } } }'
 ```
+
+Run the snippets in `bash` (`bash -c '...'` from fish or zsh); the `$VAR` handling and quoting below assume bash.
+
+`comments(last: 20)` returns the newest top-level comments; `first` returns the oldest, so a busy discussion would hide its latest post. When `totalCount` exceeds the 20 fetched, page older comments with `comments(last: 20, before: <cursor>)` (request `pageInfo { startCursor hasPreviousPage }`) only if the state diff needs them. GitHub rejects a query that can return more than 500,000 nodes (`MAX_NODE_LIMIT_EXCEEDED`); keep `discussions(first: 50)` × `comments(last: 20)` × `replies(first: 20)` and lower one of the three instead of raising any.
 
 `Discussion.comments` returns only top-level comments; threaded replies hide under each comment's
 `replies` connection and do not bump `comments.totalCount`. When scanning, treat reply nodes as

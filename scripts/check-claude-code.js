@@ -108,6 +108,8 @@ function checkHooksFile() {
   const postToolHandlers = (hooks.PostToolUse || []).flatMap((entry) => entry.hooks || [])
   // Require a handler that tracks router-directed skill file reads.
   expect(postToolHandlers.some((handler) => handler.command.endsWith("agent-skills-hook.js\" post-skill-read")), "PostToolUse tracks router-directed skill file reads")
+  // Require a handler that records independent REVIEW/AUDIT agent reports.
+  expect(postToolHandlers.some((handler) => handler.command.endsWith("agent-skills-hook.js\" post-agent")), "PostToolUse tracks REVIEW/AUDIT agent reports")
 }
 
 // Smoke-test the hook script with real Claude Code payload shapes.
@@ -177,6 +179,39 @@ function checkHookBehavior() {
   run("session-start", { session_id: "compact", source: "compact" })
   const afterCompact = parseHookOutput(run("prompt", { session_id: "compact", prompt: "implement the next step" }).stdout)
   expect(afterCompact?.hookSpecificOutput?.additionalContext?.includes("Workflow risk="), "the workflow risk line is announced again after compaction")
+
+  // An independent REVIEW/AUDIT agent report satisfies the gate; BLOCKED, other phases, and later edits do not.
+  // Build the PostToolUse payload shape Claude Code sends for a finished Agent call.
+  const agentReport = (text) => ({ session_id: "agent", tool_name: "Agent", tool_response: { content: [{ type: "text", text }] } })
+  // Arm the reminder with an edit, optionally deliver one agent report, and tell whether the next prompt still reminds.
+  const reminderAfter = (text) => {
+    run("post-edit", { session_id: "agent", tool_name: "Edit" })
+    if (text) run("post-agent", agentReport(text))
+    return Boolean(parseHookOutput(run("prompt", { session_id: "agent", prompt: "continue" }).stdout)?.hookSpecificOutput?.additionalContext?.includes("Code edited"))
+  }
+  expect(reminderAfter("") === true, "the review reminder is armed before any agent reports")
+  expect(reminderAfter("ASK_WORKFLOW_PASS phase=REVIEW diff=abc123") === false, "an independent REVIEW pass clears the review reminder")
+  expect(reminderAfter("ASK_WORKFLOW_FINDINGS phase=AUDIT diff=abc123") === false, "an independent AUDIT report clears the review reminder")
+  expect(reminderAfter("ASK_WORKFLOW_BLOCKED phase=REVIEW") === true, "a BLOCKED review keeps the reminder")
+  expect(reminderAfter("ASK_WORKFLOW_PASS phase=VALIDATE diff=abc123") === true, "a non-review phase keeps the reminder")
+  run("post-agent", agentReport("ASK_WORKFLOW_PASS phase=REVIEW diff=abc123"))
+  run("post-edit", { session_id: "agent", tool_name: "Edit" })
+  expect(Boolean(parseHookOutput(run("prompt", { session_id: "agent", prompt: "continue" }).stdout)?.hookSpecificOutput?.additionalContext?.includes("Code edited")), "an edit after the review report re-arms the reminder")
+
+  // Debugging is suggested for a described failure, not for inbox triage or release prep that merely mention a bug or error.
+  // Tell whether the next prompt's routing line names ask-debugging.
+  const suggestsDebugging = (prompt) => Boolean(parseHookOutput(run("prompt", { session_id: `route-${prompt.length}`, prompt }).stdout)?.hookSpecificOutput?.additionalContext?.includes("ask-debugging"))
+  expect(suggestsDebugging("triage the bug reports in the gh inbox") === false, "inbox triage does not suggest ask-debugging")
+  expect(suggestsDebugging("prepare a release and update the changelog for the error handling fix") === false, "release prep does not suggest ask-debugging")
+  expect(suggestsDebugging("the build fails with an error on startup") === true, "a described error still suggests ask-debugging")
+  expect(suggestsDebugging("the server crash loop started after the update") === true, "a strong failure phrase still suggests ask-debugging")
+
+  // A resumed or compacted session is told that summarized skill use is historical and skills must be reloaded.
+  for (const source of ["compact", "resume"]) {
+    const resumed = parseHookOutput(run("session-start", { session_id: `resume-${source}`, source }).stdout)?.hookSpecificOutput?.additionalContext || ""
+    expect(resumed.includes("Resumed from a summary") && resumed.includes("historical"), `SessionStart source=${source} adds the skill reload reminder`)
+  }
+  expect(!startContext.includes("Resumed from a summary"), "a fresh SessionStart carries no resume reminder")
   fs.rmSync(stateDir, { recursive: true, force: true })
 
   const slash = runHook("prompt", JSON.stringify({ prompt: "/clear" }))
