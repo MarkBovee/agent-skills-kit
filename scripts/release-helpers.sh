@@ -431,7 +431,8 @@ is_live_user_marketplace() {
 heal_claude_marketplace() {
   local registered=""
   command -v claude >/dev/null 2>&1 || return 0
-  registered="$(registered_marketplace_directory)"
+  # Best effort: a failing or old claude CLI must never abort a finished install under set -e.
+  registered="$(registered_marketplace_directory)" || registered=""
   [ -n "$registered" ] || return 0
   ! is_live_user_marketplace "$registered" || return 0
   echo "Repairing the agent-skills-kit Claude marketplace (it pointed at $registered)."

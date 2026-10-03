@@ -351,15 +351,20 @@ check_claude_scenarios() {
   local k="$base/k"; mkdir -p "$k/live"
   make_claude_shim "$k/shim" no
   printf 'Configured marketplaces:\n\n  ❯ agent-skills-kit\n    Source: Directory (%s/agent-skills-kit-release-gone)\n' "$k" > "$k/shim/marketplace-list.txt"
-  PATH="$k/shim:$PATH" bash -c ". '$REPO_ROOT/scripts/release-helpers.sh'; heal_claude_marketplace" >"$k/log" 2>&1 || check "claude marketplace heal succeeds" false
+  PATH="$k/shim:$PATH" bash -c "set -euo pipefail; . '$REPO_ROOT/scripts/release-helpers.sh'; heal_claude_marketplace" >"$k/log" 2>&1 || check "claude marketplace heal succeeds" false
   assert_grep "claude heal re-registers the GitHub source" "$k/shim/calls.log" "plugin marketplace add MarkBovee/agent-skills-kit" present
   assert_grep "claude heal reinstalls the plugin" "$k/shim/calls.log" "plugin install agent-skills-kit@agent-skills-kit" present
   local l="$base/l"; mkdir -p "$l/live"
   make_claude_shim "$l/shim" no
   printf 'Configured marketplaces:\n\n  ❯ agent-skills-kit\n    Source: Directory (%s/live)\n' "$l" > "$l/shim/marketplace-list.txt"
-  PATH="$l/shim:$PATH" bash -c ". '$REPO_ROOT/scripts/release-helpers.sh'; heal_claude_marketplace" >"$l/log" 2>&1 || check "claude heal with live marketplace succeeds" false
+  PATH="$l/shim:$PATH" bash -c "set -euo pipefail; . '$REPO_ROOT/scripts/release-helpers.sh'; heal_claude_marketplace" >"$l/log" 2>&1 || check "claude heal with live marketplace succeeds" false
   assert_grep "claude heal leaves a live user marketplace untouched" "$l/shim/calls.log" "plugin marketplace remove" absent
 
+  # A failing claude CLI must not abort bootstrap/update under set -euo pipefail.
+  local m="$base/m"; mkdir -p "$m/shim"
+  printf '#!/usr/bin/env sh\nexit 1\n' > "$m/shim/claude"; chmod +x "$m/shim/claude"
+  PATH="$m/shim:$PATH" bash -c "set -euo pipefail; . '$REPO_ROOT/scripts/release-helpers.sh'; heal_claude_marketplace; echo survived" >"$m/log" 2>&1 || true
+  assert_grep "claude heal survives a failing claude CLI under set -e" "$m/log" "survived" present
   assert_grep "claude bootstrap.sh runs the marketplace heal after installing" "$REPO_ROOT/scripts/bootstrap.sh" "heal_claude_marketplace" present
   assert_grep "claude update.sh runs the marketplace heal after installing" "$REPO_ROOT/scripts/update.sh" "heal_claude_marketplace" present
   assert_grep "claude bootstrap.ps1 runs the marketplace heal after installing" "$REPO_ROOT/scripts/bootstrap.ps1" "Repair-ClaudeMarketplace" present

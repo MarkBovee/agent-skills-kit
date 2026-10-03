@@ -484,11 +484,14 @@ function Test-LiveUserMarketplace {
 # source and reinstall the plugin. Runs after the installer so it also covers a release whose installer predates the fix.
 function Repair-ClaudeMarketplace {
     if (-not (Get-Command claude -ErrorAction SilentlyContinue)) { return }
-    $registered = Get-RegisteredMarketplaceDirectory
-    if (-not $registered -or (Test-LiveUserMarketplace -Registered $registered)) { return }
-    Write-Host "Repairing the agent-skills-kit Claude marketplace (it pointed at $registered)."
-    & claude plugin marketplace remove agent-skills-kit *> $null
-    & claude plugin marketplace add $askMarketplaceGitHubSource *> $null
-    & claude plugin install $askClaudePluginId --scope user *> $null
-    if ($LASTEXITCODE -ne 0) { Write-Warning "Run: claude plugin install $askClaudePluginId" }
+    try {
+        $registered = Get-RegisteredMarketplaceDirectory
+        if (-not $registered -or (Test-LiveUserMarketplace -Registered $registered)) { return }
+        Write-Host "Repairing the agent-skills-kit Claude marketplace (it pointed at $registered)."
+        & claude plugin marketplace remove agent-skills-kit *> $null
+        & claude plugin marketplace add $askMarketplaceGitHubSource *> $null
+        & claude plugin install $askClaudePluginId --scope user *> $null
+        if ($LASTEXITCODE -ne 0) { Write-Warning "Run: claude plugin install $askClaudePluginId" }
+    }
+    catch { Write-Warning "Could not repair the agent-skills-kit Claude marketplace: $($_.Exception.Message)" }
 }

@@ -518,7 +518,7 @@ resolve_marketplace_source() {
 # directory registration is replaced; a live user-chosen one is kept and not re-added.
 install_claude_plugin() {
   local registered=""
-  registered="$(registered_marketplace_directory)"
+  registered="$(registered_marketplace_directory)" || registered=""
   if ! is_live_user_marketplace "$registered"; then
     [ -z "$registered" ] || claude plugin marketplace remove agent-skills-kit >/dev/null 2>&1 || true
     claude plugin marketplace add "$(resolve_marketplace_source)" >/dev/null 2>&1 || true
