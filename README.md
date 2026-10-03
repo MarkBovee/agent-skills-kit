@@ -532,7 +532,7 @@ Hard boundaries:
 | GitHub Copilot         | Supported      | VS Code Agent Plugin, native skills, lifecycle hooks, generated skills, reusable instructions | `.claude-plugin/plugin.json`, `skills/`, `hooks/hooks.json`, `.github/skills/`, `.github/copilot-instructions.md`, `~/.agents/skills/`, `~/.copilot/instructions/` |
 | DeepSeek Harness (dsh) | Experimental   | generated skills, routing guidance, optional router agent preset, preview API exposure docs   | `.dsh/skills/`, `~/.dsh/skills/`, `~/.dsh/AGENTS.md`, `~/.dsh/.agent-presets/ask-kit/`                                                                             |
 
-Claude Code is the primary harness: new workflow behavior is designed and validated there first. The routing logic in `core/router-core.js` is shared with the OpenCode and dsh routers, which were built before the Claude plugin. Codex uses native discovery of the canonical workflow source. GitHub Copilot, OpenCode, and dsh exports and adapters are generated or maintained from the same canonical workflow source. dsh remains experimental.
+Claude Code is the primary harness: new workflow behavior is designed and validated there first. The routing logic in `core/router-core.js` is shared with the OpenCode and dsh routers. Codex uses native discovery of the canonical workflow source. GitHub Copilot, OpenCode, and dsh exports and adapters are generated or maintained from the same canonical workflow source. dsh remains experimental.
 
 ---
 

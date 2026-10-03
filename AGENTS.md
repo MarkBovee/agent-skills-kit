@@ -6,6 +6,8 @@ Workflow skill pack with Claude Code as the primary harness; it also supports Op
 
 ## Layout
 
+Session notes, state, and lessons from earlier sessions: `SESSION-NOTES.md` (read it first).
+
 - `skills/<name>/SKILL.md`: source skill.
 - `commands/<name>.md`: source slash command.
 - `core/router-core.js`: shared routing, lifecycle, state, and frontmatter helpers.
