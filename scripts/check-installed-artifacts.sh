@@ -119,7 +119,7 @@ assert_installed_strings() {
   assert_grep "installed router row carries the decision-tree header line" \
     "$DSH_HOME/.agent-presets/ask-kit/plugins/ask-kit-router.mjs" "╌ Agent Skills Kit ╌" present
   assert_grep "vendored router-core carries the English decision-tree line" \
-    "$DSH_HOME/.agent-presets/ask-kit/vendor/router-core.js" "Decision tree — load a different skill" present
+    "$DSH_HOME/.agent-presets/ask-kit/vendor/router-core.js" "Decision tree — read the selected workflow file" present
   assert_grep "installed widget shows the ASK status title" \
     "$DSH_HOME/client-plugins/ask-kit-panel/client.js" "Agent Skills Kit" present
   assert_grep "installed widget shows active skill hierarchy" \

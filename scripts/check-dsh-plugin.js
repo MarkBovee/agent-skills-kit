@@ -147,7 +147,7 @@ async function main() {
         const msg = steered[0]
         const steeredText = msg?.content?.[0]?.text ?? ""
         check("handler steers a load-the-skill prompt", steered.length === 1
-          && steeredText.includes("'debugging'") && steeredText.includes("Apply it to: login crash bij start"))
+          && steeredText.includes("ask-debugging") && steeredText.includes("Apply it to: login crash bij start"))
         // The loop forwards inbox items verbatim into the model request, so the
         // steered value must be a full user message, not a bare string.
         check("steered payload is a proper user message", Boolean(msg) && typeof msg === "object"
@@ -318,7 +318,7 @@ async function main() {
       needsCodeReview: true, needsDesignReview: false,
       shouldCaptureImprovement: false, interactionCountSinceSkillLoad: 0, skillsLoadedCount: 1,
     // Derive each dsh-form nudge row via the shared helper to prove anti-drift.
-    }, (name) => `\`skill(name: '${name}')\``).join("\n")
+    }, (name) => `Read \`${path.join(os.homedir(), ".agents", "skills", `ask-${name}`, "SKILL.md")}\``).join("\n")
     // Keep items that satisfy the local predicate.
     for (const line of coreDebtOverview.split("\n").filter((l) => l.startsWith("→"))) {
       check(`nudge derives from router-core (${line.slice(0, 40)}…)`, flaggedText.includes(line))
@@ -417,7 +417,7 @@ async function main() {
     await pre({ name: "edit", agent: steerAgent, diffIdentity: "HEAD" }, async () => ({ kind: "allow" }))
     inbox({ agent: steerAgent, message: { text: "ik ben klaar" } })
     const firstSteerText = steered[0]?.content?.[0]?.text ?? ""
-    check("completion steers code-review once", steered.length === 1 && firstSteerText.includes("'code-review'"))
+    check("completion steers code-review once", steered.length === 1 && firstSteerText.includes("ask-code-review"))
     inbox({ agent: steerAgent, message: { text: "nogmaals klaar" } })
     check("repeat completion does not re-steer", steered.length === 1)
     // Execute the steered assembly callback.
@@ -436,7 +436,7 @@ async function main() {
      listeners.get("tools/result")[0]({ name: "task", agent: steerAgent }, { isError: false, output: "ASK_WORKFLOW_PASS phase=REVIEW diff=HEAD:edit-1\nreview-generation: 1\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" })
      inbox({ agent: steerAgent, message: { text: "klaar" } })
     const secondSteerText = steered[1]?.content?.[0]?.text ?? ""
-    check("completion steers session-review once", steered.length === 2 && secondSteerText.includes("'session-review'"))
+    check("completion steers session-review once", steered.length === 2 && secondSteerText.includes("ask-session-review"))
     // write-skill resolves improvement intent, so a fresh improvement episode
     // later can steer toward session-review again.
     const steeredWrite = []
@@ -456,7 +456,7 @@ async function main() {
     listeners.get("tools/result")[0]({ name: "skill", agent: designAgent, arguments: { name: "design" } }, { isError: false })
     inbox({ agent: designAgent, message: { text: "done" } })
     const designSteerText = designSteered[0]?.content?.[0]?.text ?? ""
-    check("completion steers design-review once", designSteered.length === 1 && designSteerText.includes("'design-review'"))
+    check("completion steers design-review once", designSteered.length === 1 && designSteerText.includes("ask-design-review"))
 
     // Panel state bridge (dsh-panel-widget): mutations append whole-value
     // ask-kit/state events and the askKit projection unit folds them.

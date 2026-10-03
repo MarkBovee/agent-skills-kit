@@ -379,7 +379,7 @@ function checkRoutingStatus() {
   const reviewDebt = buildRoutingStatus(null, { ...state, needsCodeReview: true, needsDesignReview: true, shouldCaptureImprovement: true })
   // Map each item through the local transformation.
   check("pending obligations expose code and design review only", reviewDebt.pending.map((entry) => entry.skill).join(",") === "code-review,design-review")
-  check("pending obligations expose concrete load actions", reviewDebt.pending[0]?.action === "skill(name: 'code-review')" && reviewDebt.pending[1]?.action === "skill(name: 'design-review')")
+  check("pending obligations expose concrete load actions", reviewDebt.pending[0]?.action === "Read ~/.agents/skills/ask-code-review/SKILL.md" && reviewDebt.pending[1]?.action === "Read ~/.agents/skills/ask-design-review/SKILL.md")
   check("cleared flags leave no pending obligations", buildRoutingStatus(null, { ...state, needsCodeReview: false }).pending.length === 0)
 
   const workflowCases = [

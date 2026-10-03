@@ -17,6 +17,7 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 ### Changed
 
 - **Cost-aware subagents.** Coordinators now choose a model for each supported delegation, with Haiku for bounded mechanical work, Sonnet as the custom-agent fallback, and Opus reserved for justified high-judgment tasks.
+- **Router actions read the skill file.** Pending-review actions, decision-tree lines, dsh steer prompts, and slash commands now say `Read ~/.agents/skills/ask-<name>/SKILL.md` instead of `skill(name: ...)`. The dsh router also clears review obligations when that file is read. The router, dsh, widget, research, and installed-artifact checks assert the new form.
 - **Leaner hook context.** SessionStart drops the skill preview that duplicated Claude Code's own listing (2267 to 1377 characters). A plain question with no routed skill gets no workflow line. The risk line is announced again after compaction, and an `ask-develop` hint appears when a develop trigger fires.
 - **Subagents get the routing table** through a new `SubagentStart` hook.
 - **Descriptions carry their triggers.** Claude Code ignores the `triggers` field, so `ask-agent-workflows` now names release chores in its description, and `ask-develop` and `ask-debugging` state when to use them.

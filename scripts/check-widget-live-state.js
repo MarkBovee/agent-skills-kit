@@ -244,7 +244,7 @@ async function openCodeLifecycle() {
   const codeReviewNeeded = plugin.status({ sessionID })
   check("step 2 keeps Spec current and requests code review", JSON.stringify(codeReviewNeeded) === JSON.stringify({
     activeSkills: [{ skill: "spec", label: "Spec", current: true }],
-    pending: [{ flag: "needsCodeReview", skill: "code-review", label: "Code review needed", action: "skill(name: 'code-review')" }],
+    pending: [{ flag: "needsCodeReview", skill: "code-review", label: "Code review needed", action: "Read ~/.agents/skills/ask-code-review/SKILL.md" }],
   }))
 
   // Step 3: loading code-review records context but does not prove review completion.
@@ -256,7 +256,7 @@ async function openCodeLifecycle() {
       { skill: "code-review", label: "Code Review", current: true },
       { skill: "spec", label: "Spec", current: false },
     ],
-    pending: [{ flag: "needsCodeReview", skill: "code-review", label: "Code review needed", action: "skill(name: 'code-review')" }],
+    pending: [{ flag: "needsCodeReview", skill: "code-review", label: "Code review needed", action: "Read ~/.agents/skills/ask-code-review/SKILL.md" }],
   }))
 
   for (const phase of ["PLAN", "EXECUTE", "VALIDATE"]) {
@@ -281,7 +281,7 @@ async function openCodeLifecycle() {
       { skill: "code-review", label: "Code Review", current: false },
       { skill: "spec", label: "Spec", current: false },
     ],
-    pending: [{ flag: "needsDesignReview", skill: "design-review", label: "Design review needed", action: "skill(name: 'design-review')" }],
+    pending: [{ flag: "needsDesignReview", skill: "design-review", label: "Design review needed", action: "Read ~/.agents/skills/ask-design-review/SKILL.md" }],
   }))
 
   // Step 5: Design Review is current; prior loaded skills remain once, newest first.
@@ -372,7 +372,7 @@ async function dshWidgetLifecycle() {
     neutral.includes("Not matched") && !neutral.includes("WORKFLOW"))
   check("dsh widget surfaces the real review obligation without a predicted route",
     neutral.includes("PENDING") && neutral.includes("Code review needed"))
-  check("dsh widget surfaces the concrete pending action", neutral.includes("skill(name: 'code-review')"))
+  check("dsh widget surfaces the concrete pending action", neutral.includes("Read ~/.agents/skills/ask-code-review/SKILL.md"))
   check("dsh widget never renders a confidence meter", !neutral.includes("CONFIDENCE") && !neutral.includes("%"))
 
   inbox({ agent, message: { text: "fix this bug in the parser" } })

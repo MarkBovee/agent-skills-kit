@@ -198,6 +198,46 @@ function emptyState() {
   }
 }
 
+// Extract the requested skill name from skill-tool call arguments.
+function skillNameOf(args) {
+  const v = args?.name ?? args?.skill
+  if (typeof v !== "string") return ""
+  const skill = v.trim()
+  const canonicalName = skill.startsWith("ask-") ? skill.slice(4) : skill
+  return isAskSkillName(canonicalName) ? canonicalName : ""
+}
+
+// Resolve only a completed read of a canonical ASK skill file under the shared root.
+function askSkillNameFromRead(exec, result) {
+  if (exec?.name !== "read" || result?.isError === true) return ""
+  const args = exec?.arguments || exec?.input || {}
+  const rawPath = args?.path || args?.file_path || args?.filePath
+  if (typeof rawPath !== "string" || !rawPath.trim()) return ""
+  const requestedPath = rawPath.startsWith("~/") ? resolve(homedir(), rawPath.slice(2)) : resolve(rawPath)
+
+  try {
+    const skillRoot = process.env.ASK_SKILLS_DIR
+      ? resolve(process.env.ASK_SKILLS_DIR)
+      : resolve(homedir(), ".agents", "skills")
+    const root = realpathSync(skillRoot)
+    const target = realpathSync(requestedPath)
+    const relativeTarget = relative(root, target)
+    if (!relativeTarget || relativeTarget.startsWith(`..${sep}`) || isAbsolute(relativeTarget)) return ""
+    const match = /^ask-([a-z0-9-]+)\/SKILL\.md$/.exec(relativeTarget.split(sep).join("/"))
+    return match && isAskSkillName(match[1]) ? match[1] : ""
+  } catch {
+    return ""
+  }
+}
+
+// Build the shared path used by DSH router prompts for an ASK workflow.
+function askSkillReadCall(skill) {
+  const skillRoot = process.env.ASK_SKILLS_DIR
+    ? resolve(process.env.ASK_SKILLS_DIR)
+    : resolve(homedir(), ".agents", "skills")
+  return `Read \`${resolve(skillRoot, `ask-${skill}`, "SKILL.md")}\``
+}
+
 /**
  * Register event listeners that keep state fresh and inject the section.
  * @param ctx - the mounting preset's scope context.
@@ -305,45 +345,6 @@ export function apply(ctx, config) {
     return ""
   }
 
-  // Extract the requested skill name from skill-tool call arguments.
-function skillNameOf(args) {
-  const v = args?.name ?? args?.skill
-  if (typeof v !== "string") return ""
-  const skill = v.trim()
-  const canonicalName = skill.startsWith("ask-") ? skill.slice(4) : skill
-  return isAskSkillName(canonicalName) ? canonicalName : ""
-}
-
-// Resolve only a completed read of a canonical ASK skill file under the shared root.
-function askSkillNameFromRead(exec, result) {
-  if (exec?.name !== "read" || result?.isError === true) return ""
-  const args = exec?.arguments || exec?.input || {}
-  const rawPath = args?.path || args?.file_path || args?.filePath
-  if (typeof rawPath !== "string" || !rawPath.trim()) return ""
-  const requestedPath = rawPath.startsWith("~/") ? resolve(homedir(), rawPath.slice(2)) : resolve(rawPath)
-
-  try {
-    const skillRoot = process.env.ASK_SKILLS_DIR
-      ? resolve(process.env.ASK_SKILLS_DIR)
-      : resolve(homedir(), ".agents", "skills")
-    const root = realpathSync(skillRoot)
-    const target = realpathSync(requestedPath)
-    const relativeTarget = relative(root, target)
-    if (!relativeTarget || relativeTarget.startsWith(`..${sep}`) || isAbsolute(relativeTarget)) return ""
-    const match = /^ask-([a-z0-9-]+)\/SKILL\.md$/.exec(relativeTarget.split(sep).join("/"))
-    return match && isAskSkillName(match[1]) ? match[1] : ""
-  } catch {
-    return ""
-  }
-}
-
-// Build the shared path used by DSH router prompts for an ASK workflow.
-function askSkillReadCall(skill) {
-  const skillRoot = process.env.ASK_SKILLS_DIR
-    ? resolve(process.env.ASK_SKILLS_DIR)
-    : resolve(homedir(), ".agents", "skills")
-  return `Read \`${resolve(skillRoot, `ask-${skill}`, "SKILL.md")}\``
-}
 
   // Apply the kit's review-flag flips for one successfully loaded skill.
   // Loading a review skill also resets its steer guard, so a fresh debt
