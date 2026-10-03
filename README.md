@@ -86,7 +86,7 @@ Canonical skills are the directories under `skills/`. Commands, generated platfo
 
 ## Architecture
 
-ASK separates **where the agent runs** from **what the agent needs to do**.
+ASK separates **where the agent runs** from **what the agent needs to do**. File-level detail (hook events, path resolution, generated output, rules pipeline, checks) lives in [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ```mermaid
 flowchart LR
@@ -250,7 +250,7 @@ The plugin hook routes requests to the appropriate skill file; it does not invok
 
 ### Claude Code Details
 
-ASK ships as a native Claude Code plugin. Skills carry the id `ask-<name>` (for example `/ask-develop`, or `/agent-skills-kit:ask-develop` when installed as a plugin); descriptions start with the nice name (`Develop: ...`) and carry the use cases, because Claude Code selects skills from `description` alone.
+ASK ships as a native Claude Code plugin. Skills carry the id `ask-<name>` (for example `/ask-develop`, or `/agent-skills-kit:ask-develop` when installed as a plugin); descriptions start with the nice name (`Develop: ...`) and carry the use cases, because Claude Code selects skills from `description` alone. Hook internals and path resolution are documented in [ARCHITECTURE.md](./ARCHITECTURE.md#claude-code-runtime).
 
 Install as a plugin (recommended):
 
@@ -651,21 +651,19 @@ GitHub Actions runs the same validation on every push and pull request. A push t
 ## Repo Map
 
 ```text
-skills/                     Canonical workflow skills
-.github/skills/             Generated GitHub Copilot export
-
-core/router-core.js         Shared scoring, frontmatter, and session helpers
-plugins/agent-skills-router/  OpenCode server/TUI router package
-
-scripts/bootstrap.*
-scripts/install.*
-scripts/update.*
-scripts/tag-release.*
-
-VERSION                      Canonical release version
-CHANGELOG.md                 Human-readable release history
-scripts/check-release-readiness.js
+skills/                      Canonical workflow skills (17 ask-* skills)
+commands/                    Canonical slash commands
+core/router-core.js          Shared routing, lifecycle, and skill-path helpers
+hooks/, agents/              Claude Code hooks and read-only subagents
+.claude-plugin/              Claude Code plugin manifest and marketplace entry
+plugins/                     OpenCode router, dsh router preset, dsh widget
+rules/                       Workflow mandate and coding standards; rules/claude/ is generated
+scripts/                     Installers, exporters, and checks
+.github/skills, .dsh/, .opencode/commands   Generated exports (never hand-edit)
+VERSION, CHANGELOG.md        Release version and history
 ```
+
+Which files are hand-edited versus generated, how the hooks and router work, and the contributor gotchas are in [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ---
 

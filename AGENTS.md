@@ -6,7 +6,7 @@ Workflow skill pack with Claude Code as the primary harness; it also supports Op
 
 ## Layout
 
-Session notes, state, and lessons from earlier sessions: `SESSION-NOTES.md` (read it first).
+How the pieces fit, which files are generated, and contributor gotchas: `ARCHITECTURE.md` (read it first).
 
 - `skills/<name>/SKILL.md`: source skill.
 - `commands/<name>.md`: source slash command.
