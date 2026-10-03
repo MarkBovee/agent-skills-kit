@@ -21,7 +21,7 @@ Read `rules/coding-standards.md` before code edits. Every function-like construc
 
 ## Skills
 
-Every `skills/*/SKILL.md` needs frontmatter: `name` equal to its directory (`ask-<name>`), a one-sentence `description` that starts with the nice name (`Develop: ...`), and `triggers`. The router and exports keep using the bare name; `ask-` is the native id. Keep skills self-contained, normally 30–90 lines. Use `ask-` names for workflow/meta skills. Keep cross-references bidirectional where useful. Keep generic skills free of repository-specific paths.
+Every `skills/*/SKILL.md` needs frontmatter: `name` equal to its directory (`ask-<name>`), a one-sentence `description` that starts with the nice name (`Develop: ...`), and `triggers`. The router and exports keep using the bare name; `ask-` is the native id. Router prompts, pending actions, and commands load a skill by reading `~/.agents/skills/ask-<name>/SKILL.md`; the native id only serves Claude Code's own skill listing, and leaf skills are never invoked through a native Skill tool. Keep skills self-contained, normally 30–90 lines. Use `ask-` names for workflow/meta skills. Keep cross-references bidirectional where useful. Keep generic skills free of repository-specific paths.
 
 `triggers` feed only the ASK router; Claude Code selects skills from `description` alone, so the key use cases and terms belong in the description, which must stay at or under 160 characters to survive the shared listing budget. Keep each `SKILL.md` body compact and move procedures needed only in rare cases (for example release gates) to a one-level `references/` file. Measure activation changes with `node ./scripts/eval-skill-activation.js` (spends tokens; not part of CI).
 
