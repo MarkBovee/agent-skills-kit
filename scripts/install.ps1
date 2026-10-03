@@ -179,10 +179,23 @@ function Link-ClaudeSkills {
     }
 }
 
-# Install the ASK plugin through the claude CLI; returns $false when the CLI path fails.
+# Choose the marketplace source: ASK_MARKETPLACE_SOURCE wins, a temporary release worktree must not be registered
+# (Claude Code keeps the path and the plugin fails to load once it is gone), anything else registers the checkout.
+function Resolve-MarketplaceSource {
+    if ($env:ASK_MARKETPLACE_SOURCE) { return $env:ASK_MARKETPLACE_SOURCE }
+    if ((Split-Path -Leaf $repoRoot) -like "agent-skills-kit-release-*") { return $askMarketplaceGitHubSource }
+    return $repoRoot
+}
+
+# Install the ASK plugin through the claude CLI; returns $false when the CLI path fails. A dangling or temporary
+# directory registration is replaced; a live user-chosen one is kept and not re-added.
 function Install-ClaudePlugin {
     try {
-        & claude plugin marketplace add $repoRoot *> $null
+        $registered = Get-RegisteredMarketplaceDirectory
+        if (-not (Test-LiveUserMarketplace -Registered $registered)) {
+            if ($registered) { & claude plugin marketplace remove agent-skills-kit *> $null }
+            & claude plugin marketplace add (Resolve-MarketplaceSource) *> $null
+        }
         & claude plugin install $claudePluginId --scope user *> $null
         return ($LASTEXITCODE -eq 0)
     }

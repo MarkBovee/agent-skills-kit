@@ -501,9 +501,28 @@ link_claude_skills() {
   done < "$CURRENT_MANAGED_SKILLS"
 }
 
-# Install the ASK plugin through the claude CLI; returns non-zero when the CLI path fails.
+# Choose the marketplace source: ASK_MARKETPLACE_SOURCE wins, a temporary release worktree must not be registered
+# (Claude Code keeps the path and the plugin fails to load once it is gone), anything else registers the checkout.
+resolve_marketplace_source() {
+  if [ -n "${ASK_MARKETPLACE_SOURCE:-}" ]; then
+    printf '%s\n' "$ASK_MARKETPLACE_SOURCE"
+    return 0
+  fi
+  case "$(basename -- "$REPO_ROOT")" in
+    agent-skills-kit-release-*) printf '%s\n' "$ASK_MARKETPLACE_GITHUB_SOURCE" ;;
+    *) printf '%s\n' "$REPO_ROOT" ;;
+  esac
+}
+
+# Install the ASK plugin through the claude CLI; returns non-zero when the CLI path fails. A dangling or temporary
+# directory registration is replaced; a live user-chosen one is kept and not re-added.
 install_claude_plugin() {
-  claude plugin marketplace add "$REPO_ROOT" >/dev/null 2>&1 || true
+  local registered=""
+  registered="$(registered_marketplace_directory)" || registered=""
+  if ! is_live_user_marketplace "$registered"; then
+    [ -z "$registered" ] || claude plugin marketplace remove agent-skills-kit >/dev/null 2>&1 || true
+    claude plugin marketplace add "$(resolve_marketplace_source)" >/dev/null 2>&1 || true
+  fi
   claude plugin install "$CLAUDE_PLUGIN_ID" --scope user >/dev/null 2>&1
 }
 

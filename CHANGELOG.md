@@ -6,6 +6,17 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.5.5] - 2026-10-03
+
+### Fixed
+
+- **Plugin no longer breaks after bootstrap/update.** The installer registered the temporary release worktree as the `agent-skills-kit` marketplace; once deleted, Claude Code reported `failed to load: cache-miss` and no `/ask-*` skills appeared. Release runs now register `MarkBovee/agent-skills-kit`, bootstrap and update repair a dangling registration left by an earlier release even when that release's installer predates the fix, and a dangling or temporary directory registration is replaced (`install.sh` and `install.ps1`).
+
+### Added
+
+- Checks: `check-claude-code` asserts every skill stays slash-invocable with `disable-model-invocation: true`; `check-installed-artifacts` covers the release-worktree and live-user-marketplace paths.
+- README: slash command names, `skillOverrides` values, and plugin troubleshooting.
+
 ## [2.5.4] - 2026-10-03
 
 ### Added

@@ -76,6 +76,9 @@ function checkSkills() {
     } catch {
       description = ""
     }
+    // Slash-only contract: the user can run /ask-<name>, the model cannot start it through the Skill tool.
+    expect(/^disable-model-invocation:\s*true\s*$/m.test(raw), `${dirName} blocks model invocation (disable-model-invocation: true)`)
+    expect(!/^user-invocable:\s*false\s*$/m.test(raw), `${dirName} stays user-invocable as a slash command`)
     expect(description.length > 0, `${dirName} description is a quoted YAML string`)
     expect(description.length <= MAX_DESCRIPTION_LENGTH, `${dirName} description stays within ${MAX_DESCRIPTION_LENGTH} characters`)
     listingChars += description.length + dirName.length

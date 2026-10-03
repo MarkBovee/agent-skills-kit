@@ -457,3 +457,41 @@ function Write-InstallMetadata {
 
     Set-Content -LiteralPath $OutputPath -Value $lines
 }
+
+# GitHub source used when the installer runs from an ephemeral release worktree that is deleted after the run.
+$askMarketplaceGitHubSource = "MarkBovee/agent-skills-kit"
+$askClaudePluginId = "agent-skills-kit@agent-skills-kit"
+
+# Return the directory path of a registered agent-skills-kit marketplace, or $null for other source kinds.
+function Get-RegisteredMarketplaceDirectory {
+    $inEntry = $false
+    foreach ($line in @(& claude plugin marketplace list 2>$null)) {
+        if ($line -notmatch 'Source:' -and $line -match '^\s*\S+\s+(\S+)\s*$') { $inEntry = ($Matches[1] -eq "agent-skills-kit") }
+        if ($inEntry -and $line -match 'Source: Directory \((.+)\)\s*$') { return $Matches[1] }
+    }
+    return $null
+}
+
+# True when a registered marketplace directory is a live, user-chosen path rather than a vanished or temporary one.
+function Test-LiveUserMarketplace {
+    param([string]$Registered)
+    if (-not $Registered) { return $false }
+    if ((Split-Path -Leaf $Registered) -like "agent-skills-kit-release-*") { return $false }
+    return (Test-Path -LiteralPath $Registered)
+}
+
+# Repair a dangling or temporary agent-skills-kit marketplace left by an older installer run: re-register the GitHub
+# source and reinstall the plugin. Runs after the installer so it also covers a release whose installer predates the fix.
+function Repair-ClaudeMarketplace {
+    if (-not (Get-Command claude -ErrorAction SilentlyContinue)) { return }
+    try {
+        $registered = Get-RegisteredMarketplaceDirectory
+        if (-not $registered -or (Test-LiveUserMarketplace -Registered $registered)) { return }
+        Write-Host "Repairing the agent-skills-kit Claude marketplace (it pointed at $registered)."
+        & claude plugin marketplace remove agent-skills-kit *> $null
+        & claude plugin marketplace add $askMarketplaceGitHubSource *> $null
+        & claude plugin install $askClaudePluginId --scope user *> $null
+        if ($LASTEXITCODE -ne 0) { Write-Warning "Run: claude plugin install $askClaudePluginId" }
+    }
+    catch { Write-Warning "Could not repair the agent-skills-kit Claude marketplace: $($_.Exception.Message)" }
+}

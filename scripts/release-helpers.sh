@@ -404,3 +404,39 @@ installed_at: $installed_at
 install_root: $install_root
 EOF
 }
+
+# GitHub source used when the installer runs from an ephemeral release worktree that is deleted after the run.
+ASK_MARKETPLACE_GITHUB_SOURCE="MarkBovee/agent-skills-kit"
+ASK_CLAUDE_PLUGIN_ID="agent-skills-kit@agent-skills-kit"
+
+# Print the directory path of a registered agent-skills-kit marketplace, or nothing for other source kinds.
+registered_marketplace_directory() {
+  claude plugin marketplace list 2>/dev/null | awk '
+    !/Source:/ && NF == 2 { in_entry = ($2 == "agent-skills-kit") }
+    in_entry && /Source: Directory \(/ { sub(/^.*Source: Directory \(/, ""); sub(/\)[[:space:]]*$/, ""); print; exit }'
+}
+
+# True when a registered marketplace directory is a live, user-chosen path rather than a vanished or temporary one.
+is_live_user_marketplace() {
+  local registered="$1"
+  [ -n "$registered" ] || return 1
+  case "$(basename -- "$registered")" in
+    agent-skills-kit-release-*) return 1 ;;
+  esac
+  [ -d "$registered" ]
+}
+
+# Repair a dangling or temporary agent-skills-kit marketplace left by an older installer run: re-register the GitHub
+# source and reinstall the plugin. Runs after the installer so it also covers a release whose installer predates the fix.
+heal_claude_marketplace() {
+  local registered=""
+  command -v claude >/dev/null 2>&1 || return 0
+  # Best effort: a failing or old claude CLI must never abort a finished install under set -e.
+  registered="$(registered_marketplace_directory)" || registered=""
+  [ -n "$registered" ] || return 0
+  ! is_live_user_marketplace "$registered" || return 0
+  echo "Repairing the agent-skills-kit Claude marketplace (it pointed at $registered)."
+  claude plugin marketplace remove agent-skills-kit >/dev/null 2>&1 || true
+  claude plugin marketplace add "$ASK_MARKETPLACE_GITHUB_SOURCE" >/dev/null 2>&1 || true
+  claude plugin install "$ASK_CLAUDE_PLUGIN_ID" --scope user >/dev/null 2>&1 || echo "Run: claude plugin install $ASK_CLAUDE_PLUGIN_ID" >&2
+}
