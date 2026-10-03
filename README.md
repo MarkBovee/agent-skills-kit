@@ -268,6 +268,7 @@ Install as a plugin (recommended):
 | `SubagentStart` hook | Hands the same routing table to subagents, which do not inherit session context. |
 | `UserPromptSubmit` hook | One routing suggestion, the workflow risk and its gates, the test budget, and the review reminder. Plain questions and slash commands get nothing. |
 | `PostToolUse` hooks | Edits arm the review reminder; reading the `ask-code-review` file (or loading it through the Skill tool) clears it. Session state lives in `${CLAUDE_PLUGIN_DATA}`. |
+| `/ask-flow` pane | A Claude Code mod (`hooks/flow-pane.tsx`) that opens a side pane with the workflow gates, the loaded `ask-` skills, pending review, and subagent results. Needs a Claude Code build with mods; it reads the hook's session state and changes nothing. |
 | Subagents | Read-only `ask-reviewer`, `ask-auditor`, and `ask-researcher` return `ASK_WORKFLOW_*` evidence markers and default to Sonnet. |
 
 Skill files resolve in this order: the shared install (`~/.agents/skills`, or `ASK_SKILLS_DIR`) when it exists, otherwise the copy bundled in the plugin. A plugin-only install therefore works without running the installer.

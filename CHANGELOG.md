@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.5.4] - 2026-10-03
+
+### Added
+
+- **`/ask-flow` pane.** A Claude Code mod shipped with the plugin opens a side pane with the workflow risk and gates (REVIEW and AUDIT marked by subagent results), loaded `ask-` skills, the pending code-review flag, and subagent outcomes. It reads the routing hook's session state and never writes it. Needs a Claude Code build with mods.
+
 ## [2.5.3] - 2026-10-03
 
 ### Changed
