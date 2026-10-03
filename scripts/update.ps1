@@ -51,6 +51,9 @@ try {
     }
 
     & (Join-Path $installSourceRoot "scripts\install.ps1")
+
+    # Repair a marketplace left dangling by an installer that predates the fix; a no-op otherwise.
+    Repair-ClaudeMarketplace
 }
 finally {
     if ($releaseWorktree) {

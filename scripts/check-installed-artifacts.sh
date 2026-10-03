@@ -347,6 +347,24 @@ check_claude_scenarios() {
   ASK_MARKETPLACE_SOURCE=example/override run_claude_installer "$j" "$j/log" "$j/shim" || check "claude override install succeeds" false
   assert_grep "claude ASK_MARKETPLACE_SOURCE overrides the source" "$j/shim/calls.log" "plugin marketplace add example/override" present
 
+  # Scenario K: bootstrap/update heal a dangling registration even when the installer that ran predates the fix.
+  local k="$base/k"; mkdir -p "$k/live"
+  make_claude_shim "$k/shim" no
+  printf 'Configured marketplaces:\n\n  ❯ agent-skills-kit\n    Source: Directory (%s/agent-skills-kit-release-gone)\n' "$k" > "$k/shim/marketplace-list.txt"
+  PATH="$k/shim:$PATH" bash -c ". '$REPO_ROOT/scripts/release-helpers.sh'; heal_claude_marketplace" >"$k/log" 2>&1 || check "claude marketplace heal succeeds" false
+  assert_grep "claude heal re-registers the GitHub source" "$k/shim/calls.log" "plugin marketplace add MarkBovee/agent-skills-kit" present
+  assert_grep "claude heal reinstalls the plugin" "$k/shim/calls.log" "plugin install agent-skills-kit@agent-skills-kit" present
+  local l="$base/l"; mkdir -p "$l/live"
+  make_claude_shim "$l/shim" no
+  printf 'Configured marketplaces:\n\n  ❯ agent-skills-kit\n    Source: Directory (%s/live)\n' "$l" > "$l/shim/marketplace-list.txt"
+  PATH="$l/shim:$PATH" bash -c ". '$REPO_ROOT/scripts/release-helpers.sh'; heal_claude_marketplace" >"$l/log" 2>&1 || check "claude heal with live marketplace succeeds" false
+  assert_grep "claude heal leaves a live user marketplace untouched" "$l/shim/calls.log" "plugin marketplace remove" absent
+
+  assert_grep "claude bootstrap.sh runs the marketplace heal after installing" "$REPO_ROOT/scripts/bootstrap.sh" "heal_claude_marketplace" present
+  assert_grep "claude update.sh runs the marketplace heal after installing" "$REPO_ROOT/scripts/update.sh" "heal_claude_marketplace" present
+  assert_grep "claude bootstrap.ps1 runs the marketplace heal after installing" "$REPO_ROOT/scripts/bootstrap.ps1" "Repair-ClaudeMarketplace" present
+  assert_grep "claude update.ps1 runs the marketplace heal after installing" "$REPO_ROOT/scripts/update.ps1" "Repair-ClaudeMarketplace" present
+
   # Scenario F: uninstall removes only ASK-owned pieces.
   ASK_CLAUDE_MODE_OVERRIDE=skills run_claude_installer "$b" "$b/log3" "" --uninstall-claude || check "claude uninstall succeeds" false
   check "claude uninstall removes ASK skill links" "$([ ! -e "$b/claude/skills/ask-intake" ] && printf true || printf false)"

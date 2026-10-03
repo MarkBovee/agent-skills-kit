@@ -50,3 +50,6 @@ fi
 
 # Delegate the actual install step through bash so execution does not depend on file mode bits.
 bash "$INSTALL_SOURCE_ROOT/scripts/install.sh"
+
+# Repair a marketplace left dangling by an installer that predates the fix; a no-op otherwise.
+heal_claude_marketplace

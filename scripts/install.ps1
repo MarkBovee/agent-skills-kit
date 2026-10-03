@@ -179,33 +179,12 @@ function Link-ClaudeSkills {
     }
 }
 
-# GitHub source used when the installer runs from an ephemeral release worktree that is deleted after the run.
-$askMarketplaceGitHubSource = "MarkBovee/agent-skills-kit"
-
 # Choose the marketplace source: ASK_MARKETPLACE_SOURCE wins, a temporary release worktree must not be registered
 # (Claude Code keeps the path and the plugin fails to load once it is gone), anything else registers the checkout.
 function Resolve-MarketplaceSource {
     if ($env:ASK_MARKETPLACE_SOURCE) { return $env:ASK_MARKETPLACE_SOURCE }
     if ((Split-Path -Leaf $repoRoot) -like "agent-skills-kit-release-*") { return $askMarketplaceGitHubSource }
     return $repoRoot
-}
-
-# Return the directory path of a registered agent-skills-kit marketplace, or $null for other source kinds.
-function Get-RegisteredMarketplaceDirectory {
-    $inEntry = $false
-    foreach ($line in @(& claude plugin marketplace list 2>$null)) {
-        if ($line -notmatch 'Source:' -and $line -match '^\s*\S+\s+(\S+)\s*$') { $inEntry = ($Matches[1] -eq "agent-skills-kit") }
-        if ($inEntry -and $line -match 'Source: Directory \((.+)\)\s*$') { return $Matches[1] }
-    }
-    return $null
-}
-
-# True when a registered marketplace directory is a live, user-chosen path rather than a vanished or temporary one.
-function Test-LiveUserMarketplace {
-    param([string]$Registered)
-    if (-not $Registered) { return $false }
-    if ((Split-Path -Leaf $Registered) -like "agent-skills-kit-release-*") { return $false }
-    return (Test-Path -LiteralPath $Registered)
 }
 
 # Install the ASK plugin through the claude CLI; returns $false when the CLI path fails. A dangling or temporary
