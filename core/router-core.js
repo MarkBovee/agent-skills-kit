@@ -125,8 +125,8 @@ const BUG_PHRASES = [
 const WEAK_BUG_PHRASES = new Set(["bug", "debug", "debuggen", "error", "regression", "timeout", "broke"])
 // Administrative contexts where a weak bug phrase is usually a topic, not a symptom.
 const ADMIN_CONTEXT_PHRASES = [
-  "inbox", "gh inbox", "triage", "changelog", "version bump", "release prep", "release notes",
-  "prepare a release", "cut a release", "retro", "retrospective",
+  "gh inbox", "github inbox", "triage", "version bump", "release prep", "prepare a release", "cut a release",
+  "retrospective",
 ]
 const DESIGN_PHRASES = [
   "design a ui", "redesign this page", "improve ux", "polish the frontend",

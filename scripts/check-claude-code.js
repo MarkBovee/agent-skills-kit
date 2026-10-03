@@ -192,6 +192,7 @@ function checkHookBehavior() {
   expect(reminderAfter("") === true, "the review reminder is armed before any agent reports")
   expect(reminderAfter("ASK_WORKFLOW_PASS phase=REVIEW diff=abc123") === false, "an independent REVIEW pass clears the review reminder")
   expect(reminderAfter("ASK_WORKFLOW_FINDINGS phase=AUDIT diff=abc123") === false, "an independent AUDIT report clears the review reminder")
+  expect(reminderAfter("ASK_WORKFLOW_PASS phase=REVIEW") === true, "a review report without a diff identity keeps the reminder")
   expect(reminderAfter("ASK_WORKFLOW_BLOCKED phase=REVIEW") === true, "a BLOCKED review keeps the reminder")
   expect(reminderAfter("ASK_WORKFLOW_PASS phase=VALIDATE diff=abc123") === true, "a non-review phase keeps the reminder")
   run("post-agent", agentReport("ASK_WORKFLOW_PASS phase=REVIEW diff=abc123"))
@@ -203,6 +204,8 @@ function checkHookBehavior() {
   const suggestsDebugging = (prompt) => Boolean(parseHookOutput(run("prompt", { session_id: `route-${prompt.length}`, prompt }).stdout)?.hookSpecificOutput?.additionalContext?.includes("ask-debugging"))
   expect(suggestsDebugging("triage the bug reports in the gh inbox") === false, "inbox triage does not suggest ask-debugging")
   expect(suggestsDebugging("prepare a release and update the changelog for the error handling fix") === false, "release prep does not suggest ask-debugging")
+  expect(suggestsDebugging("fix the bug in the release notes generator") === true, "a bug in code that merely mentions release notes still suggests ask-debugging")
+  expect(suggestsDebugging("timeout when I open the inbox page") === true, "a timeout on an inbox page still suggests ask-debugging")
   expect(suggestsDebugging("the build fails with an error on startup") === true, "a described error still suggests ask-debugging")
   expect(suggestsDebugging("the server crash loop started after the update") === true, "a strong failure phrase still suggests ask-debugging")
 

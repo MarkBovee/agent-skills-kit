@@ -230,8 +230,12 @@ function readLoadedSkillFile(payload) {
 
 // Tell whether an agent result is an independent REVIEW or AUDIT report on a diff; BLOCKED and FAILED never count.
 function reportsIndependentReview(payload) {
-  const evidence = parseWorkflowEvidence(payload.tool_response ?? payload.tool_result)
-  return Boolean(evidence) && ["PASS", "FINDINGS"].includes(evidence.status) && ["REVIEW", "AUDIT"].includes(evidence.phase)
+  const response = payload.tool_response ?? payload.tool_result
+  // Read the agent's text parts directly so the diff identity is not polluted by JSON escaping.
+  const text = Array.isArray(response?.content) ? response.content.map((part) => part?.text || "").join("\n") : response
+  const evidence = parseWorkflowEvidence(text)
+  // A report without a diff identity cannot be tied to the edited diff, so it never clears the gate.
+  return Boolean(evidence?.diffIdentity) && ["PASS", "FINDINGS"].includes(evidence.status) && ["REVIEW", "AUDIT"].includes(evidence.phase)
 }
 
 // Remind a resumed session that summarized skill use is history, not loaded guidance.
