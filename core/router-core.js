@@ -1,4 +1,6 @@
 const fs = require("node:fs/promises")
+const fsSync = require("node:fs")
+const os = require("node:os")
 const path = require("node:path")
 
 const DEFAULT_MAX_HINTS = 4
@@ -666,6 +668,29 @@ function isAskSkill(skill) {
     && path.basename(path.dirname(skill.filePath)) === `ask-${skill.name}`
 }
 
+// Resolve the shared skill root; ASK_SKILLS_DIR overrides the default so installs and tests can relocate it.
+function askSkillsRoot() {
+  return process.env.ASK_SKILLS_DIR ? path.resolve(process.env.ASK_SKILLS_DIR) : path.join(os.homedir(), ".agents", "skills")
+}
+
+// Resolve a file path to the ASK skill it canonically loads, or "" when it is not `ask-<name>/SKILL.md`
+// directly under one of the trusted roots. Real paths on both sides defeat `..` and symlink escapes.
+function askSkillNameFromPath(filePath, roots) {
+  if (typeof filePath !== "string" || !filePath.trim()) return ""
+  const requestedPath = filePath.startsWith("~/") ? path.join(os.homedir(), filePath.slice(2)) : path.resolve(filePath)
+  for (const root of roots) {
+    try {
+      const relativeFile = path.relative(fsSync.realpathSync(root), fsSync.realpathSync(requestedPath))
+      if (!relativeFile || relativeFile.startsWith(`..${path.sep}`) || path.isAbsolute(relativeFile)) continue
+      const match = /^ask-([a-z0-9-]+)\/SKILL\.md$/.exec(relativeFile.split(path.sep).join("/"))
+      if (match && ASK_SKILL_NAMES.has(match[1])) return match[1]
+    } catch {
+      // The next root may contain the requested file.
+    }
+  }
+  return ""
+}
+
 // Check whether a native skill invocation belongs to this kit's canonical roster.
 function isAskSkillName(skillName) {
   return typeof skillName === "string" && ASK_SKILL_NAMES.has(skillName)
@@ -853,7 +878,7 @@ module.exports = {
  SKILL_TEXT_WRITING, SKILL_RESEARCH, SKILL_DEEP_RESEARCH, SKILL_OBSERVABILITY, REVIEW_COMPLETION_MARKER, hasReviewCompletionSignal, hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, reviewEvidenceAccepted, blockWorkflowForMissingDiffIdentity, reviewModeForRisk,
   buildSkillOverview, buildCompactSkillOverview, cascadeRoute, buildExecutionProfile, buildRoutingStatus, pendingReviewRequirements, activeSkillEntries, skillDisplayName, loadSkills, reviewNudgeLines,
   createEmptySessionState, getSessionState, setSessionState,
-    findSkill, isAskSkill, isAskSkillName, ASK_SKILL_NAMES, hasPhraseSignal, matchingPhrases, routingHintLines,
+    findSkill, isAskSkill, isAskSkillName, ASK_SKILL_NAMES, askSkillsRoot, askSkillNameFromPath, hasPhraseSignal, matchingPhrases, routingHintLines,
     classifyWorkflowRisk, hasWorkflowRiskSignal, workflowRiskRank, requiredWorkflowPhases, buildWorkflowState, invalidateWorkflowForDiff, workflowRequiresReview, workflowHintLines, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
   TEST_POLICY, toBareSkillName, stripFrontmatter, toSingleLine, normalizeStringList,
   parseBooleanField, parseFrontmatter, unique,

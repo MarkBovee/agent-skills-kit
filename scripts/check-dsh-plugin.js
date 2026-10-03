@@ -147,7 +147,7 @@ async function main() {
         const msg = steered[0]
         const steeredText = msg?.content?.[0]?.text ?? ""
         check("handler steers a load-the-skill prompt", steered.length === 1
-          && steeredText.includes("ask-debugging") && steeredText.includes("Apply it to: login crash bij start"))
+          && steeredText.includes("ask-debugging/SKILL.md") && steeredText.includes("Apply it to: login crash bij start"))
         // The loop forwards inbox items verbatim into the model request, so the
         // steered value must be a full user message, not a bare string.
         check("steered payload is a proper user message", Boolean(msg) && typeof msg === "object"
@@ -318,7 +318,7 @@ async function main() {
       needsCodeReview: true, needsDesignReview: false,
       shouldCaptureImprovement: false, interactionCountSinceSkillLoad: 0, skillsLoadedCount: 1,
     // Derive each dsh-form nudge row via the shared helper to prove anti-drift.
-    }, (name) => `Read \`${path.join(os.homedir(), ".agents", "skills", `ask-${name}`, "SKILL.md")}\``).join("\n")
+    }, (name) => `Read \`${path.join(routerCore.askSkillsRoot(), `ask-${name}`, "SKILL.md")}\``).join("\n")
     // Keep items that satisfy the local predicate.
     for (const line of coreDebtOverview.split("\n").filter((l) => l.startsWith("→"))) {
       check(`nudge derives from router-core (${line.slice(0, 40)}…)`, flaggedText.includes(line))
@@ -336,6 +336,40 @@ async function main() {
     // Find the first item that matches the local condition.
     const improvementClearedText = improvementCleared.sections.find((entry) => entry.name === "ask-kit:router").text
     check("session-review load clears improvement nudge", !improvementClearedText.includes("→ Improvement found?"))
+
+    // Reading the canonical skill file counts as a load; traversal and symlink escapes must not.
+    const readRoot = fs.mkdtempSync(path.join(workDir, "read-root-"))
+    const outsideRoot = fs.mkdtempSync(path.join(workDir, "read-outside-"))
+    for (const skill of ["code-review", "session-review", "write-skill"]) {
+      fs.mkdirSync(path.join(readRoot, `ask-${skill}`), { recursive: true })
+      fs.writeFileSync(path.join(readRoot, `ask-${skill}`, "SKILL.md"), "stub\n")
+    }
+    fs.mkdirSync(path.join(outsideRoot, "ask-session-review"), { recursive: true })
+    fs.writeFileSync(path.join(outsideRoot, "ask-session-review", "SKILL.md"), "stub\n")
+    fs.rmSync(path.join(readRoot, "ask-write-skill"), { recursive: true })
+    fs.symlinkSync(path.join(outsideRoot, "ask-session-review"), path.join(readRoot, "ask-write-skill"))
+    const previousSkillsDir = process.env.ASK_SKILLS_DIR
+    process.env.ASK_SKILLS_DIR = readRoot
+    try {
+      const readAgent = { id: "read-track-check" }
+      const toolResult = listeners.get("tools/result")[0]
+      // Render the router section text for the read-tracking agent.
+      const readText = async () => (await assemble({ sections: [] }, { agent: readAgent }, async () => ({ sections: [] }))).sections.find((entry) => entry.name === "ask-kit:router").text
+      toolResult({ name: "skill", agent: readAgent, arguments: { name: "develop" } }, { isError: false })
+      await pre({ name: "patch", agent: readAgent, diffIdentity: "HEAD" }, async () => ({ kind: "allow" }))
+      toolResult({ name: "read", agent: readAgent, arguments: { path: path.join(readRoot, "ask-code-review", "SKILL.md") } }, { isError: false })
+      check("reading the code-review file arms improvement capture", (await readText()).includes("→ Improvement found?"))
+      toolResult({ name: "read", agent: readAgent, arguments: { path: path.join(readRoot, "ask-session-review", "..", "..", path.basename(outsideRoot), "ask-session-review", "SKILL.md") } }, { isError: false })
+      toolResult({ name: "read", agent: readAgent, arguments: { path: path.join(readRoot, "ask-write-skill", "SKILL.md") } }, { isError: false })
+      check("traversal and symlink reads do not count as a skill load", (await readText()).includes("→ Improvement found?"))
+      toolResult({ name: "read", agent: readAgent, arguments: { path: path.join(readRoot, "ask-session-review", "SKILL.md") } }, { isError: true })
+      check("a failed read does not count as a skill load", (await readText()).includes("→ Improvement found?"))
+      toolResult({ name: "read", agent: readAgent, arguments: { path: path.join(readRoot, "ask-session-review", "SKILL.md") } }, { isError: false })
+      check("reading the session-review file clears improvement capture", !(await readText()).includes("→ Improvement found?"))
+    } finally {
+      if (previousSkillsDir === undefined) delete process.env.ASK_SKILLS_DIR
+      else process.env.ASK_SKILLS_DIR = previousSkillsDir
+    }
 
     // Delegated review completion clears parent debt through its explicit handoff marker.
     const delegatedAgent = { id: "delegated-review-check" }
@@ -417,7 +451,7 @@ async function main() {
     await pre({ name: "edit", agent: steerAgent, diffIdentity: "HEAD" }, async () => ({ kind: "allow" }))
     inbox({ agent: steerAgent, message: { text: "ik ben klaar" } })
     const firstSteerText = steered[0]?.content?.[0]?.text ?? ""
-    check("completion steers code-review once", steered.length === 1 && firstSteerText.includes("ask-code-review"))
+    check("completion steers code-review once", steered.length === 1 && firstSteerText.includes("ask-code-review/SKILL.md"))
     inbox({ agent: steerAgent, message: { text: "nogmaals klaar" } })
     check("repeat completion does not re-steer", steered.length === 1)
     // Execute the steered assembly callback.
@@ -436,7 +470,7 @@ async function main() {
      listeners.get("tools/result")[0]({ name: "task", agent: steerAgent }, { isError: false, output: "ASK_WORKFLOW_PASS phase=REVIEW diff=HEAD:edit-1\nreview-generation: 1\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" })
      inbox({ agent: steerAgent, message: { text: "klaar" } })
     const secondSteerText = steered[1]?.content?.[0]?.text ?? ""
-    check("completion steers session-review once", steered.length === 2 && secondSteerText.includes("ask-session-review"))
+    check("completion steers session-review once", steered.length === 2 && secondSteerText.includes("ask-session-review/SKILL.md"))
     // write-skill resolves improvement intent, so a fresh improvement episode
     // later can steer toward session-review again.
     const steeredWrite = []
@@ -456,7 +490,7 @@ async function main() {
     listeners.get("tools/result")[0]({ name: "skill", agent: designAgent, arguments: { name: "design" } }, { isError: false })
     inbox({ agent: designAgent, message: { text: "done" } })
     const designSteerText = designSteered[0]?.content?.[0]?.text ?? ""
-    check("completion steers design-review once", designSteered.length === 1 && designSteerText.includes("ask-design-review"))
+    check("completion steers design-review once", designSteered.length === 1 && designSteerText.includes("ask-design-review/SKILL.md"))
 
     // Panel state bridge (dsh-panel-widget): mutations append whole-value
     // ask-kit/state events and the askKit projection unit folds them.

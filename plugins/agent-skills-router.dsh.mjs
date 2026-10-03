@@ -10,9 +10,7 @@
 import { createRequire } from "node:module"
 import { randomUUID } from "node:crypto"
 import { fileURLToPath } from "node:url"
-import { dirname, isAbsolute, relative, resolve, sep } from "node:path"
-import { realpathSync } from "node:fs"
-import { homedir } from "node:os"
+import { dirname, resolve } from "node:path"
 
 const require = createRequire(import.meta.url)
 const here = dirname(fileURLToPath(import.meta.url))
@@ -48,7 +46,7 @@ const {
   SKILL_DESIGN, SKILL_DESIGN_REVIEW,
   routingHintLines, cascadeRoute, hasPhraseSignal, COMPLETION_PHRASES,
   hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, reviewEvidenceAccepted, blockWorkflowForMissingDiffIdentity, INTERACTION_GUARD_THRESHOLD, buildWorkflowState, workflowHintLines,
-  workflowForSkill, invalidateWorkflowForDiff, parseWorkflowEvidence, recordWorkflowEvidence, buildRoutingStatus, isAskSkillName,
+  workflowForSkill, invalidateWorkflowForDiff, parseWorkflowEvidence, recordWorkflowEvidence, buildRoutingStatus, isAskSkillName, askSkillsRoot, askSkillNameFromPath,
   workflowRequiresReview,
   reviewNudgeLines,
 } = routerCore
@@ -211,31 +209,12 @@ function skillNameOf(args) {
 function askSkillNameFromRead(exec, result) {
   if (exec?.name !== "read" || result?.isError === true) return ""
   const args = exec?.arguments || exec?.input || {}
-  const rawPath = args?.path || args?.file_path || args?.filePath
-  if (typeof rawPath !== "string" || !rawPath.trim()) return ""
-  const requestedPath = rawPath.startsWith("~/") ? resolve(homedir(), rawPath.slice(2)) : resolve(rawPath)
-
-  try {
-    const skillRoot = process.env.ASK_SKILLS_DIR
-      ? resolve(process.env.ASK_SKILLS_DIR)
-      : resolve(homedir(), ".agents", "skills")
-    const root = realpathSync(skillRoot)
-    const target = realpathSync(requestedPath)
-    const relativeTarget = relative(root, target)
-    if (!relativeTarget || relativeTarget.startsWith(`..${sep}`) || isAbsolute(relativeTarget)) return ""
-    const match = /^ask-([a-z0-9-]+)\/SKILL\.md$/.exec(relativeTarget.split(sep).join("/"))
-    return match && isAskSkillName(match[1]) ? match[1] : ""
-  } catch {
-    return ""
-  }
+  return askSkillNameFromPath(args?.path || args?.file_path || args?.filePath, [askSkillsRoot()])
 }
 
 // Build the shared path used by DSH router prompts for an ASK workflow.
 function askSkillReadCall(skill) {
-  const skillRoot = process.env.ASK_SKILLS_DIR
-    ? resolve(process.env.ASK_SKILLS_DIR)
-    : resolve(homedir(), ".agents", "skills")
-  return `Read \`${resolve(skillRoot, `ask-${skill}`, "SKILL.md")}\``
+  return `Read \`${resolve(askSkillsRoot(), `ask-${skill}`, "SKILL.md")}\``
 }
 
 /**
@@ -344,7 +323,6 @@ export function apply(ctx, config) {
     } catch { /* shape drift, skip routing this message */ }
     return ""
   }
-
 
   // Apply the kit's review-flag flips for one successfully loaded skill.
   // Loading a review skill also resets its steer guard, so a fresh debt

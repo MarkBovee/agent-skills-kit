@@ -13,7 +13,8 @@ const {
   createEmptySessionState,
   matchingPhrases,
   loadSkills,
-  ASK_SKILL_NAMES,
+  askSkillNameFromPath,
+  askSkillsRoot,
   reviewNudgeLines,
   routingHintLines,
   unique,
@@ -102,18 +103,13 @@ function pruneStates() {
   }
 }
 
-// Resolve the shared skill root; ASK_SKILLS_DIR overrides the default so installs and tests can relocate it.
-function sharedSkillsRoot() {
-  return process.env.ASK_SKILLS_DIR ? path.resolve(process.env.ASK_SKILLS_DIR) : path.join(os.homedir(), ".agents", "skills")
-}
-
 // Resolve the SKILL.md a Read should target: the shared install when present, otherwise the copy bundled
 // with the plugin, so a plugin-only Claude Code install works without `~/.agents/skills`.
 function skillFilePath(skillName) {
-  const relativeFile = path.join(`ask-${skillName}`, "SKILL.md")
-  const sharedFile = path.join(sharedSkillsRoot(), relativeFile)
-  if (!fs.existsSync(sharedFile)) return path.join(SKILLS_ROOT, relativeFile)
-  return process.env.ASK_SKILLS_DIR ? sharedFile : `~/.agents/skills/${relativeFile}`
+  const sharedFile = path.join(askSkillsRoot(), `ask-${skillName}`, "SKILL.md")
+  if (!fs.existsSync(sharedFile)) return path.join(SKILLS_ROOT, `ask-${skillName}`, "SKILL.md")
+  // The default root keeps its portable `~/` form, always with forward slashes.
+  return process.env.ASK_SKILLS_DIR ? sharedFile : `~/.agents/skills/ask-${skillName}/SKILL.md`
 }
 
 // Render the exact file-read action that loads one ASK workflow skill.
@@ -226,24 +222,8 @@ function readLoadedSkill(payload) {
 // Recognize only a successful read of a canonical ASK skill file under a trusted skill root.
 function readLoadedSkillFile(payload) {
   const input = payload.tool_input || {}
-  const rawPath = input.file_path || input.filePath || input.path
-  if (typeof rawPath !== "string" || !rawPath.trim()) return ""
-  const requestedPath = rawPath.startsWith("~/") ? path.join(os.homedir(), rawPath.slice(2)) : rawPath
-
-  for (const root of [sharedSkillsRoot(), SKILLS_ROOT]) {
-    try {
-      const realRoot = fs.realpathSync(root)
-      const realFile = fs.realpathSync(path.resolve(requestedPath))
-      const relativeFile = path.relative(realRoot, realFile)
-      if (!relativeFile || relativeFile.startsWith(`..${path.sep}`) || path.isAbsolute(relativeFile)) continue
-      const match = /^ask-([a-z0-9-]+)\/SKILL\.md$/.exec(relativeFile.split(path.sep).join("/"))
-      if (!match || !ASK_SKILL_NAMES.has(match[1])) continue
-      return `ask-${match[1]}`
-    } catch {
-      // The next root may contain the requested file.
-    }
-  }
-  return ""
+  const skillName = askSkillNameFromPath(input.file_path || input.filePath || input.path, [askSkillsRoot(), SKILLS_ROOT])
+  return skillName ? `ask-${skillName}` : ""
 }
 
 // Handle one hook event and emit only the event-supported JSON shape.
