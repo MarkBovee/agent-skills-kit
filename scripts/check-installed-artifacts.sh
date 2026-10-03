@@ -252,7 +252,7 @@ run_claude_installer() {
     CLAUDE_DIR="$root/claude" \
     ASK_CLAUDE_MODE="${ASK_CLAUDE_MODE_OVERRIDE:-auto}" \
     PATH="${shim_dir:+$shim_dir:}$PATH" \
-    bash "$REPO_ROOT/scripts/install.sh" "$@" >"$log" 2>&1
+    bash "${INSTALLER_ROOT:-$REPO_ROOT}/scripts/install.sh" "$@" >"$log" 2>&1
 }
 
 # Create a fake claude CLI that logs its arguments and fails the install subcommand when asked.
@@ -262,6 +262,7 @@ make_claude_shim() {
   cat > "$dir/claude" <<EOF
 #!/usr/bin/env sh
 printf '%s\n' "\$*" >> "$dir/calls.log"
+if [ "\$2 \$3" = "marketplace list" ] && [ -f "$dir/marketplace-list.txt" ]; then cat "$dir/marketplace-list.txt"; fi
 if [ "$fail_install" = "yes" ] && [ "\$2" = "install" ]; then exit 1; fi
 exit 0
 EOF
@@ -315,6 +316,25 @@ check_claude_scenarios() {
   make_claude_shim "$e/shim" yes
   run_claude_installer "$e" "$e/log" "$e/shim" || check "claude plugin fallback install succeeds" false "$(tail -5 "$e/log" | tr '\n' ' ')"
   check "claude plugin failure falls back to per-skill links" "$([ -L "$e/claude/skills/ask-develop" ] && printf true || printf false)"
+
+  # Scenario G: an ephemeral release worktree is never registered as a directory marketplace, and a dangling
+  # registration left by an earlier run is replaced.
+  local g="$base/g"; mkdir -p "$g"
+  make_claude_shim "$g/shim" no
+  printf 'Configured marketplaces:\n\n  ❯ agent-skills-kit\n    Source: Directory (%s/agent-skills-kit-release-gone)\n' "$g" > "$g/shim/marketplace-list.txt"
+  ln -s "$REPO_ROOT" "$g/agent-skills-kit-release-abc123"
+  INSTALLER_ROOT="$g/agent-skills-kit-release-abc123" run_claude_installer "$g" "$g/log" "$g/shim" || check "claude release-worktree install succeeds" false "$(tail -5 "$g/log" | tr '\n' ' ')"
+  assert_grep "claude release install registers the GitHub source" "$g/shim/calls.log" "plugin marketplace add MarkBovee/agent-skills-kit" present
+  assert_grep "claude release install never registers the temporary path" "$g/shim/calls.log" "marketplace add $g" absent
+  assert_grep "claude release install removes the dangling marketplace" "$g/shim/calls.log" "plugin marketplace remove agent-skills-kit" present
+
+  # Scenario H: a live user-chosen directory marketplace is left registered.
+  local h="$base/h"; mkdir -p "$h/mine"
+  make_claude_shim "$h/shim" no
+  printf 'Configured marketplaces:\n\n  ❯ agent-skills-kit\n    Source: Directory (%s/mine)\n' "$h" > "$h/shim/marketplace-list.txt"
+  run_claude_installer "$h" "$h/log" "$h/shim" || check "claude persistent checkout install succeeds" false "$(tail -5 "$h/log" | tr '\n' ' ')"
+  assert_grep "claude persistent install keeps a live user marketplace" "$h/shim/calls.log" "plugin marketplace remove" absent
+  assert_grep "claude persistent install registers the checkout" "$h/shim/calls.log" "plugin marketplace add $REPO_ROOT" present
 
   # Scenario F: uninstall removes only ASK-owned pieces.
   ASK_CLAUDE_MODE_OVERRIDE=skills run_claude_installer "$b" "$b/log3" "" --uninstall-claude || check "claude uninstall succeeds" false

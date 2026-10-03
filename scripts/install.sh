@@ -501,9 +501,48 @@ link_claude_skills() {
   done < "$CURRENT_MANAGED_SKILLS"
 }
 
+# GitHub source used when the installer runs from an ephemeral release worktree that is deleted after the run.
+ASK_MARKETPLACE_GITHUB_SOURCE="MarkBovee/agent-skills-kit"
+
+# Choose the marketplace source: ASK_MARKETPLACE_SOURCE wins, a temporary release worktree must not be registered
+# (Claude Code keeps the path and the plugin fails to load once it is gone), anything else registers the checkout.
+resolve_marketplace_source() {
+  if [ -n "${ASK_MARKETPLACE_SOURCE:-}" ]; then
+    printf '%s\n' "$ASK_MARKETPLACE_SOURCE"
+    return 0
+  fi
+  case "$(basename -- "$REPO_ROOT")" in
+    agent-skills-kit-release-*) printf '%s\n' "$ASK_MARKETPLACE_GITHUB_SOURCE" ;;
+    *) printf '%s\n' "$REPO_ROOT" ;;
+  esac
+}
+
+# Print the directory path of a registered agent-skills-kit marketplace, or nothing for other source kinds.
+registered_marketplace_directory() {
+  claude plugin marketplace list 2>/dev/null | awk '
+    /^[[:space:]]*❯ / { in_entry = ($2 == "agent-skills-kit") }
+    in_entry && /Source: Directory \(/ { sub(/^.*Source: Directory \(/, ""); sub(/\)[[:space:]]*$/, ""); print; exit }'
+}
+
+# Drop an agent-skills-kit marketplace whose directory vanished or is an ephemeral release worktree, so the add below
+# re-registers it. A live user-chosen directory is left alone.
+remove_stale_marketplace() {
+  local registered=""
+  registered="$(registered_marketplace_directory)"
+  [ -n "$registered" ] || return 0
+  case "$(basename -- "$registered")" in
+    agent-skills-kit-release-*) ;;
+    *) [ ! -d "$registered" ] || return 0 ;;
+  esac
+  claude plugin marketplace remove agent-skills-kit >/dev/null 2>&1 || true
+}
+
 # Install the ASK plugin through the claude CLI; returns non-zero when the CLI path fails.
 install_claude_plugin() {
-  claude plugin marketplace add "$REPO_ROOT" >/dev/null 2>&1 || true
+  local marketplace_source=""
+  marketplace_source="$(resolve_marketplace_source)"
+  remove_stale_marketplace
+  claude plugin marketplace add "$marketplace_source" >/dev/null 2>&1 || true
   claude plugin install "$CLAUDE_PLUGIN_ID" --scope user >/dev/null 2>&1
 }
 

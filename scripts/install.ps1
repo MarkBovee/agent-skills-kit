@@ -179,10 +179,42 @@ function Link-ClaudeSkills {
     }
 }
 
+# GitHub source used when the installer runs from an ephemeral release worktree that is deleted after the run.
+$askMarketplaceGitHubSource = "MarkBovee/agent-skills-kit"
+
+# Choose the marketplace source: ASK_MARKETPLACE_SOURCE wins, a temporary release worktree must not be registered
+# (Claude Code keeps the path and the plugin fails to load once it is gone), anything else registers the checkout.
+function Resolve-MarketplaceSource {
+    if ($env:ASK_MARKETPLACE_SOURCE) { return $env:ASK_MARKETPLACE_SOURCE }
+    if ((Split-Path -Leaf $repoRoot) -like "agent-skills-kit-release-*") { return $askMarketplaceGitHubSource }
+    return $repoRoot
+}
+
+# Return the directory path of a registered agent-skills-kit marketplace, or $null for other source kinds.
+function Get-RegisteredMarketplaceDirectory {
+    $inEntry = $false
+    foreach ($line in @(& claude plugin marketplace list 2>$null)) {
+        if ($line -match '^\s*\S\s+(\S+)\s*$') { $inEntry = ($Matches[1] -eq "agent-skills-kit") }
+        if ($inEntry -and $line -match 'Source: Directory \((.+)\)\s*$') { return $Matches[1] }
+    }
+    return $null
+}
+
+# Drop an agent-skills-kit marketplace whose directory vanished or is an ephemeral release worktree, so the add below
+# re-registers it. A live user-chosen directory is left alone.
+function Remove-StaleMarketplace {
+    $registered = Get-RegisteredMarketplaceDirectory
+    if (-not $registered) { return }
+    $ephemeral = (Split-Path -Leaf $registered) -like "agent-skills-kit-release-*"
+    if (-not $ephemeral -and (Test-Path -LiteralPath $registered)) { return }
+    & claude plugin marketplace remove agent-skills-kit *> $null
+}
+
 # Install the ASK plugin through the claude CLI; returns $false when the CLI path fails.
 function Install-ClaudePlugin {
     try {
-        & claude plugin marketplace add $repoRoot *> $null
+        Remove-StaleMarketplace
+        & claude plugin marketplace add (Resolve-MarketplaceSource) *> $null
         & claude plugin install $claudePluginId --scope user *> $null
         return ($LASTEXITCODE -eq 0)
     }
