@@ -37,16 +37,7 @@ Decision-tree rows come from `routingHintLines()`; never duplicate them manually
 
 ## Workflow mandate
 
-<!-- agent-skills-kit:opencode -->
-
-# ASK Workflow Mandate
-
-- Use router matches to select the most specific workflow skill before substantial work, then read `~/.agents/skills/ask-<name>/SKILL.md` directly. Do not invoke model-invocation-disabled leaf skills through the native Skill tool; plugins may use their own dispatch paths.
-- Large, exhaustive, compatibility-sensitive, or release-sensitive work: load `intake`, create plan artifact, classify risk, set must/should/could, complete plan-check.
-- Delegate independent research, validation, review, and audit. Never self-declare release readiness; require independent evidence.
-- Release-sensitive work needs independent validation, review, audit, and release-gate evidence.
-
-<!-- /agent-skills-kit:opencode -->
+The canonical mandate is `rules/workflow.md`. Installers copy it into each host's rules, so it is not repeated here. In short: select the most specific workflow skill before substantial work, delegate independent research, validation, review, and audit, and never declare release readiness without independent evidence.
 
 ## Evidence reuse
 
@@ -69,18 +60,12 @@ Install/update scripts must keep `.sh` and `.ps1` behavior aligned and idempoten
 ```bash
 node -e "import('./plugins/agent-skills-router/server.mjs')"
 node ./scripts/export-platform-skills.js
-node ./scripts/check-router-nudges.js
-node ./scripts/check-workflow-lifecycle.js
-node ./scripts/check-dsh-plugin.js
-node ./scripts/check-widget-live-state.js
-node ./scripts/check-research-workflow.js
-node ./scripts/check-tier-vocabulary.js
+for check in router-nudges workflow-lifecycle dsh-plugin widget-live-state panel-widget opencode-v2-plugin research-workflow tier-vocabulary trigger-overlap claude-code test-policy tmp-usage code-comments evidence-aware-communication model-agnostic-guidance; do node "./scripts/check-$check.js"; done
 node ./scripts/validate-plugin.js
-node ./scripts/check-claude-code.js
-node ./scripts/check-test-policy.js
-node ./scripts/check-tmp-usage.js
 node ./scripts/check-release-readiness.js --require-version-entry
 ./scripts/check-installed-artifacts.sh
 ```
+
+CI (`.github/workflows/ci.yml`) is the source of truth for this list; when a check is added there, add it here.
 
 Before handoff: inspect complete tree, run `git diff --check`, verify generated exports, installer parity, branch, remote, tag, and clean worktree. Run `session-review` when work exposes reusable workflow gaps.

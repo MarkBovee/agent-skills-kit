@@ -89,7 +89,7 @@ async function checkEvidenceAwareCommunication() {
   }
 
   for (const phrase of [
-    "Load the most specific matching workflow skill",
+    "select the most specific matching workflow skill",
     "must, should, could",
     "Delegate independent research",
     "Never declare merge, release, or tag readiness from self-review alone",

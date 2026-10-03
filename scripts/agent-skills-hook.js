@@ -119,6 +119,7 @@ function skillReadAction(skillName) {
 
 // Render a routing-table line with a direct path to the selected skill file.
 function toAskIdLine(line) {
+  // Swap the trailing skill name for its file-read action.
   return line.replace(/→ ([a-z][a-z-]*)$/, (_match, skillName) => `→ ${skillReadAction(skillName)}`)
 }
 

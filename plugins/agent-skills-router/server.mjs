@@ -69,6 +69,7 @@ function resolveAskSkillRead(input, output) {
   const requestedPath = [
     input?.path, input?.filePath, input?.file_path,
     nestedInput?.path, nestedInput?.filePath, nestedInput?.file_path,
+  // Keep the first non-empty path candidate.
   ].find((candidate) => typeof candidate === "string" && candidate.trim())
   if (!requestedPath) return ""
 

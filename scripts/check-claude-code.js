@@ -104,7 +104,9 @@ function checkHooksFile() {
     // Require command handlers that quote the plugin root variable.
     expect(handlers.every((handler) => handler.type === "command" && handler.command.includes('"${CLAUDE_PLUGIN_ROOT}')), `${eventName} handlers quote \${CLAUDE_PLUGIN_ROOT}`)
   }
+  // Flatten the handler lists of every PostToolUse entry.
   const postToolHandlers = (hooks.PostToolUse || []).flatMap((entry) => entry.hooks || [])
+  // Require a handler that tracks router-directed skill file reads.
   expect(postToolHandlers.some((handler) => handler.command.endsWith("agent-skills-hook.js\" post-skill-read")), "PostToolUse tracks router-directed skill file reads")
 }
 

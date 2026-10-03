@@ -356,6 +356,7 @@ async function main() {
       // Render the router section text for the read-tracking agent.
       const readText = async () => (await assemble({ sections: [] }, { agent: readAgent }, async () => ({ sections: [] }))).sections.find((entry) => entry.name === "ask-kit:router").text
       toolResult({ name: "skill", agent: readAgent, arguments: { name: "develop" } }, { isError: false })
+      // Allow the patch so review debt is armed for the read-tracking agent.
       await pre({ name: "patch", agent: readAgent, diffIdentity: "HEAD" }, async () => ({ kind: "allow" }))
       toolResult({ name: "read", agent: readAgent, arguments: { path: path.join(readRoot, "ask-code-review", "SKILL.md") } }, { isError: false })
       check("reading the code-review file arms improvement capture", (await readText()).includes("→ Improvement found?"))
