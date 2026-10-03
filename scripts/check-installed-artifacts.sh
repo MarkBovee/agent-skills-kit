@@ -281,6 +281,8 @@ check_claude_scenarios() {
   check "claude skill root stays a real directory" "$([ -d "$a/claude/skills" ] && [ ! -L "$a/claude/skills" ] && printf true || printf false)"
   assert_grep "claude rules come from the shared workflow mandate" "$a/claude/rules/agent-skills-kit.md" "# ASK Workflow Mandate" present
   assert_grep "claude rules explain the ask- ids" "$a/claude/rules/agent-skills-kit.md" 'the id `ask-<name>`' present
+  assert_grep "claude install writes the path-scoped C# standards" "$a/claude/rules/coding-standards-csharp.md" 'paths:' present
+  assert_grep "claude core standards leave language sections to scoped files" "$a/claude/rules/coding-standards.md" '### .NET/C#' absent
   check "claude install writes no duplicate workflow.md" "$([ ! -e "$a/claude/rules/workflow.md" ] && printf true || printf false)"
 
   # Scenario B: a user-owned skill in the Claude skill root must survive install and refresh.
@@ -318,6 +320,7 @@ check_claude_scenarios() {
   ASK_CLAUDE_MODE_OVERRIDE=skills run_claude_installer "$b" "$b/log3" "" --uninstall-claude || check "claude uninstall succeeds" false
   check "claude uninstall removes ASK skill links" "$([ ! -e "$b/claude/skills/ask-intake" ] && printf true || printf false)"
   check "claude uninstall removes generated rules" "$([ ! -e "$b/claude/rules/agent-skills-kit.md" ] && printf true || printf false)"
+  check "claude uninstall removes generated coding standards" "$([ ! -e "$b/claude/rules/coding-standards.md" ] && [ ! -e "$b/claude/rules/coding-standards-csharp.md" ] && printf true || printf false)"
   check "claude uninstall keeps the user-owned skill" "$([ -f "$b/claude/skills/my-own/SKILL.md" ] && printf true || printf false)"
 
   rm -rf "$base"

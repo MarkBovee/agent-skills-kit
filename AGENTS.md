@@ -2,7 +2,7 @@
 
 ## Project
 
-Portable skill pack for OpenCode, Codex, GitHub Copilot, Claude Code, and dsh. Ships workflow skills, router plugins, generated exports, and installers. No build step or package manager.
+Workflow skill pack with Claude Code as the primary harness; it also supports OpenCode, Codex, GitHub Copilot, and dsh. Ships workflow skills, router plugins, generated exports, and installers. No build step or package manager.
 
 ## Layout
 
@@ -11,7 +11,7 @@ Portable skill pack for OpenCode, Codex, GitHub Copilot, Claude Code, and dsh. S
 - `core/router-core.js`: shared routing, lifecycle, state, and frontmatter helpers.
 - `plugins/`: OpenCode and dsh routers plus TUI/widget code.
 - `scripts/`: install, update, export, and validation scripts.
-- `rules/`: shared coding and workflow guidance.
+- `rules/`: shared coding and workflow guidance. `rules/claude/` is generated from `rules/coding-standards.md` by `scripts/export-claude-coding-standards.js`; never hand-edit it.
 - `.github/`, `.dsh/`, `.opencode/`: generated exports; never hand-edit.
 - `.claude-plugin/`, `hooks/`, `agents/`: Claude Code plugin manifest, marketplace, hooks, and read-only subagents (hand-maintained).
 
@@ -61,6 +61,7 @@ Install/update scripts must keep `.sh` and `.ps1` behavior aligned and idempoten
 node -e "import('./plugins/agent-skills-router/server.mjs')"
 node ./scripts/export-platform-skills.js
 for check in router-nudges workflow-lifecycle dsh-plugin widget-live-state panel-widget opencode-v2-plugin research-workflow tier-vocabulary trigger-overlap claude-code test-policy tmp-usage code-comments evidence-aware-communication model-agnostic-guidance; do node "./scripts/check-$check.js"; done
+node ./scripts/export-claude-coding-standards.js --check
 node ./scripts/validate-plugin.js
 node ./scripts/check-release-readiness.js --require-version-entry
 ./scripts/check-installed-artifacts.sh

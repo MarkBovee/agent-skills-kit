@@ -4,7 +4,7 @@
 
 <p align="center">
   <strong>ASK — Agent Skills Kit.</strong><br />
-  Portable workflow skills and routing support for coding agents. One canonical skill system for OpenCode, Codex, GitHub Copilot, Claude Code, and DeepSeek Harness (dsh).
+  Workflow skills and routing support for coding agents, built Claude Code first. One canonical skill system that also runs on OpenCode, Codex, GitHub Copilot, and DeepSeek Harness (dsh).
 </p>
 
 <p align="center">
@@ -49,7 +49,7 @@
 | Signal               | What it means                                                                                         |
 | -------------------- | ----------------------------------------------------------------------------------------------------- |
 | One canonical source | Skills live once under `skills/` and export into native platform formats.                             |
-| Claude Code first    | Ships as a native plugin: 17 skills, routing hooks, review reminders, and cost-aware subagents.      |
+| Claude Code primary  | The primary harness: a native plugin with 17 skills, routing hooks, review reminders, cost-aware subagents, and path-scoped rules. |
 | Multi-platform       | The same skill system works across OpenCode, Codex, GitHub Copilot, Claude Code, and dsh.            |
 | Codex native         | Codex discovers the canonical skills from `~/.agents/skills/`; no duplicate Codex skill tree ships.   |
 | Smart routing        | The router helps the agent select the right skill for the current task without taking over execution. |
@@ -292,6 +292,7 @@ Rules are generated into `~/.claude/rules/agent-skills-kit.md` from `rules/workf
 * Validate locally with `node scripts/check-claude-code.js` and, when the CLI is installed, `claude plugin validate . --strict`.
 * No routing hint appears: run `/plugin` and confirm `agent-skills-kit` is enabled, then start a new session. Slash commands and plain questions intentionally get no hint.
 * The review reminder never clears: it clears when the agent reads the `ask-code-review` `SKILL.md` or loads the skill. Both the plugin and shared paths count.
+* Coding standards are path-scoped for Claude: the installer writes `rules/claude/*.md` into `~/.claude/rules/` instead of the full `rules/coding-standards.md`. The always-loaded core is about a third smaller, and each language file loads only when Claude reads or edits a matching file. Without the installer (plugin-only), run `node ./scripts/export-claude-coding-standards.js --install`; it skips a differing file unless you add `--force`. Edit `rules/coding-standards.md` and rerun the script without flags to regenerate `rules/claude/`; CI fails on drift. Uninstall removes only files identical to the generated ones.
 * Measure skill activation with `node ./scripts/eval-skill-activation.js`. It runs 20 realistic prompts through `claude -p` and spends tokens, so it is manual and not part of CI.
 
 ### Codex Details
@@ -525,13 +526,13 @@ Hard boundaries:
 
 | Platform               | Status         | Ships                                                                                         | Generated assets or install target                                                                                                                                 |
 | ---------------------- | -------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| OpenCode               | Reference      | router plugin, routing support, bootstrap/install/update tooling                              | installs managed skills plus `core/router-core.js` and `plugins/agent-skills-router/`                                                                              |
+| Claude Code            | Primary        | plugin + marketplace, lifecycle hooks, cost-aware read-only subagents, native skills, rules | `.claude-plugin/`, `hooks/hooks.json`, `agents/`, `~/.claude/rules/`                                                                                    |
+| OpenCode               | Supported      | router plugin, routing support, bootstrap/install/update tooling                              | installs managed skills plus `core/router-core.js` and `plugins/agent-skills-router/`                                                                              |
 | Codex                  | Supported      | native Agent Skills discovery from shared root                                                | `~/.agents/skills/`; no Codex config or duplicate skill copy                                                                                                      |
 | GitHub Copilot         | Supported      | VS Code Agent Plugin, native skills, lifecycle hooks, generated skills, reusable instructions | `.claude-plugin/plugin.json`, `skills/`, `hooks/hooks.json`, `.github/skills/`, `.github/copilot-instructions.md`, `~/.agents/skills/`, `~/.copilot/instructions/` |
-| Claude Code            | First class    | plugin + marketplace, lifecycle hooks, cost-aware read-only subagents, native skills, rules | `.claude-plugin/`, `hooks/hooks.json`, `agents/`, `~/.claude/rules/`                                                                                    |
 | DeepSeek Harness (dsh) | Experimental   | generated skills, routing guidance, optional router agent preset, preview API exposure docs   | `.dsh/skills/`, `~/.dsh/skills/`, `~/.dsh/AGENTS.md`, `~/.dsh/.agent-presets/ask-kit/`                                                                             |
 
-OpenCode remains the reference implementation for routing behavior. Codex uses native discovery of the canonical workflow source. GitHub Copilot, Claude Code, and dsh exports and adapters are generated or maintained from the same canonical workflow source. dsh remains experimental.
+Claude Code is the primary harness: new workflow behavior is designed and validated there first. The routing logic in `core/router-core.js` is shared with the OpenCode and dsh routers, which were built before the Claude plugin. Codex uses native discovery of the canonical workflow source. GitHub Copilot, OpenCode, and dsh exports and adapters are generated or maintained from the same canonical workflow source. dsh remains experimental.
 
 ---
 
@@ -670,7 +671,7 @@ scripts/check-release-readiness.js
 
 ## Notes
 
-* OpenCode is the routing reference implementation.
+* Claude Code is the primary harness; OpenCode and dsh reuse the shared routing core.
 * Codex support is native skill discovery only; no supported Codex widget/router hook is currently available to ASK.
 * dsh support is experimental.
 * Visual assets live in `assets/social-preview.png`.

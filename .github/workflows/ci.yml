@@ -51,6 +51,9 @@ jobs:
       - name: Validate evidence-aware communication guidance
         run: node ./scripts/check-evidence-aware-communication.js
 
+      - name: Validate generated Claude coding standards
+        run: node ./scripts/export-claude-coding-standards.js --check
+
       - name: Validate model-agnostic guidance
         run: node ./scripts/check-model-agnostic-guidance.js
 
