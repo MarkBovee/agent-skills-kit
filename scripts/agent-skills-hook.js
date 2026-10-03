@@ -13,8 +13,10 @@ const {
   createEmptySessionState,
   matchingPhrases,
   loadSkills,
+  askSkillFileRef,
   askSkillNameFromPath,
   askSkillsRoot,
+  skillReadAction: routerSkillReadAction,
   reviewNudgeLines,
   routingHintLines,
   unique,
@@ -107,14 +109,12 @@ function pruneStates() {
 // with the plugin, so a plugin-only Claude Code install works without `~/.agents/skills`.
 function skillFilePath(skillName) {
   const sharedFile = path.join(askSkillsRoot(), `ask-${skillName}`, "SKILL.md")
-  if (!fs.existsSync(sharedFile)) return path.join(SKILLS_ROOT, `ask-${skillName}`, "SKILL.md")
-  // The default root keeps its portable `~/` form, always with forward slashes.
-  return process.env.ASK_SKILLS_DIR ? sharedFile : `~/.agents/skills/ask-${skillName}/SKILL.md`
+  return fs.existsSync(sharedFile) ? askSkillFileRef(skillName) : path.join(SKILLS_ROOT, `ask-${skillName}`, "SKILL.md")
 }
 
-// Render the exact file-read action that loads one ASK workflow skill.
+// Render the exact file-read action for one skill, pointing at whichever copy exists.
 function skillReadAction(skillName) {
-  return `Read ${skillFilePath(skillName)}`
+  return routerSkillReadAction(skillName, skillFilePath(skillName))
 }
 
 // Render a routing-table line with a direct path to the selected skill file.
@@ -152,7 +152,7 @@ function buildSessionContext() {
   const mandate = readWorkflowMandate()
   return [
     ...routingContextLines(),
-    `After code edits, complete risk-appropriate validation first; read \`${skillFilePath(SKILL_CODE_REVIEW)}\` only when the workflow includes a REVIEW gate.`,
+    `After code edits, complete risk-appropriate validation first; ${skillReadAction(SKILL_CODE_REVIEW)} only when the workflow includes a REVIEW gate.`,
     "Cost-aware default: bounded mechanical chores such as version bumps, changelog edits, and release-prep updates start with a cheap subagent when available; escalate only when scope expands.",
     mandate ? `Workflow mandate:\n${mandate}` : "",
   ].filter(Boolean).join("\n")

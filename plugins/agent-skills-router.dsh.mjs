@@ -46,7 +46,7 @@ const {
   SKILL_DESIGN, SKILL_DESIGN_REVIEW,
   routingHintLines, cascadeRoute, hasPhraseSignal, COMPLETION_PHRASES,
   hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, reviewEvidenceAccepted, blockWorkflowForMissingDiffIdentity, INTERACTION_GUARD_THRESHOLD, buildWorkflowState, workflowHintLines,
-  workflowForSkill, invalidateWorkflowForDiff, parseWorkflowEvidence, recordWorkflowEvidence, buildRoutingStatus, isAskSkillName, askSkillsRoot, askSkillNameFromPath,
+  workflowForSkill, invalidateWorkflowForDiff, parseWorkflowEvidence, recordWorkflowEvidence, buildRoutingStatus, isAskSkillName, askSkillsRoot, askSkillNameFromPath, skillReadAction,
   workflowRequiresReview,
   reviewNudgeLines,
 } = routerCore
@@ -214,7 +214,7 @@ function askSkillNameFromRead(exec, result) {
 
 // Build the shared path used by DSH router prompts for an ASK workflow.
 function askSkillReadCall(skill) {
-  return `Read \`${resolve(askSkillsRoot(), `ask-${skill}`, "SKILL.md")}\``
+  return skillReadAction(skill, resolve(askSkillsRoot(), `ask-${skill}`, "SKILL.md"))
 }
 
 /**

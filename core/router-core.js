@@ -502,8 +502,8 @@ function skillDisplayName(skillName) {
 // action names the exact shared file; improvement capture stays prompt-only.
 function pendingReviewRequirements(sessionState) {
   const pending = []
-  if (sessionState?.needsCodeReview) pending.push({ flag: "needsCodeReview", skill: SKILL_CODE_REVIEW, label: "Code review needed", action: `Read ~/.agents/skills/ask-${SKILL_CODE_REVIEW}/SKILL.md` })
-  if (sessionState?.needsDesignReview) pending.push({ flag: "needsDesignReview", skill: SKILL_DESIGN_REVIEW, label: "Design review needed", action: `Read ~/.agents/skills/ask-${SKILL_DESIGN_REVIEW}/SKILL.md` })
+  if (sessionState?.needsCodeReview) pending.push({ flag: "needsCodeReview", skill: SKILL_CODE_REVIEW, label: "Code review needed", action: skillReadAction(SKILL_CODE_REVIEW) })
+  if (sessionState?.needsDesignReview) pending.push({ flag: "needsDesignReview", skill: SKILL_DESIGN_REVIEW, label: "Design review needed", action: skillReadAction(SKILL_DESIGN_REVIEW) })
   return pending
 }
 
@@ -673,6 +673,19 @@ function askSkillsRoot() {
   return process.env.ASK_SKILLS_DIR ? path.resolve(process.env.ASK_SKILLS_DIR) : path.join(os.homedir(), ".agents", "skills")
 }
 
+// Name the SKILL.md for one ASK skill under the shared root; the default root keeps its portable `~/` form.
+function askSkillFileRef(skillName) {
+  return process.env.ASK_SKILLS_DIR
+    ? path.join(askSkillsRoot(), `ask-${skillName}`, "SKILL.md")
+    : `~/.agents/skills/ask-${skillName}/SKILL.md`
+}
+
+// Render the exact file-read action that loads one ASK skill. The path is backtick-quoted so a
+// directory with spaces (a Windows profile, a plugin cache) stays one unambiguous token.
+function skillReadAction(skillName, skillFile = askSkillFileRef(skillName)) {
+  return `Read \`${skillFile}\``
+}
+
 // Resolve a file path to the ASK skill it canonically loads, or "" when it is not `ask-<name>/SKILL.md`
 // directly under one of the trusted roots. Real paths on both sides defeat `..` and symlink escapes.
 function askSkillNameFromPath(filePath, roots) {
@@ -759,7 +772,7 @@ function reviewNudgeLines(sessionState, loadCall) {
 }
 
 // Render the first-session decision tree with the host's router-only file-read action.
-function buildSkillOverview(sessionState, readSkill = (name) => `Read ~/.agents/skills/ask-${name}/SKILL.md`) {
+function buildSkillOverview(sessionState, readSkill = skillReadAction) {
   const skillsLoaded = (sessionState.skillsLoadedCount || 0) > 0
   const lines = [
     "╌ Agent Skills Kit ╌",
@@ -785,7 +798,7 @@ function buildSkillOverview(sessionState, readSkill = (name) => `Read ~/.agents/
 }
 
 // Render only live routing state after OpenCode has completed its first-prompt audit.
-function buildCompactSkillOverview(sessionState, readSkill = (name) => `Read ~/.agents/skills/ask-${name}/SKILL.md`) {
+function buildCompactSkillOverview(sessionState, readSkill = skillReadAction) {
   const lines = ["╌ Agent Skills Kit ╌", ...workflowHintLines(sessionState.workflow)]
   const loadedSkills = sessionState.loadedSkills || []
   if (loadedSkills.length > 0) {
@@ -878,7 +891,7 @@ module.exports = {
  SKILL_TEXT_WRITING, SKILL_RESEARCH, SKILL_DEEP_RESEARCH, SKILL_OBSERVABILITY, REVIEW_COMPLETION_MARKER, hasReviewCompletionSignal, hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, reviewEvidenceAccepted, blockWorkflowForMissingDiffIdentity, reviewModeForRisk,
   buildSkillOverview, buildCompactSkillOverview, cascadeRoute, buildExecutionProfile, buildRoutingStatus, pendingReviewRequirements, activeSkillEntries, skillDisplayName, loadSkills, reviewNudgeLines,
   createEmptySessionState, getSessionState, setSessionState,
-    findSkill, isAskSkill, isAskSkillName, ASK_SKILL_NAMES, askSkillsRoot, askSkillNameFromPath, hasPhraseSignal, matchingPhrases, routingHintLines,
+    findSkill, isAskSkill, isAskSkillName, ASK_SKILL_NAMES, askSkillsRoot, askSkillFileRef, skillReadAction, askSkillNameFromPath, hasPhraseSignal, matchingPhrases, routingHintLines,
     classifyWorkflowRisk, hasWorkflowRiskSignal, workflowRiskRank, requiredWorkflowPhases, buildWorkflowState, invalidateWorkflowForDiff, workflowRequiresReview, workflowHintLines, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
   TEST_POLICY, toBareSkillName, stripFrontmatter, toSingleLine, normalizeStringList,
   parseBooleanField, parseFrontmatter, unique,
