@@ -9,7 +9,7 @@ How agent-skills-kit (ASK) fits together. Claude Code is the primary harness; Op
 | `skills/<name>/SKILL.md` | The 17 canonical workflow skills (`ask-<name>` ids; `references/` for rare-case detail) | Yes |
 | `commands/<name>.md` | Canonical slash commands | Yes |
 | `core/router-core.js` | Shared routing, lifecycle, state, frontmatter, and skill-path helpers | Yes |
-| `hooks/hooks.json`, `scripts/agent-skills-hook.js` | Claude Code hooks | Yes |
+| `hooks/hooks.json`, `scripts/agent-skills-hook.js`, `hooks/flow-pane.tsx`, `types/` | Claude Code hooks and the `/ask-flow` mod | Yes |
 | `agents/` | Claude Code read-only subagents (`ask-reviewer`, `ask-auditor`, `ask-researcher`, default `model: sonnet`) | Yes |
 | `.claude-plugin/` | Plugin manifest and marketplace entry | Yes |
 | `plugins/agent-skills-router/`, `plugins/agent-skills-router.dsh.mjs`, `plugins/dsh-*` | OpenCode server/TUI router and dsh router preset, widget, panel prototype | Yes |
@@ -32,6 +32,8 @@ CI regenerates both exports and fails on a diff, so commit regenerated output wi
 | `PostToolUse` (Edit, Write, MultiEdit, NotebookEdit) | Arms the code-review reminder (`needsCodeReview`). |
 | `PostToolUse` (Agent, Task) | Clears the reminder when a subagent reports `ASK_WORKFLOW_PASS` or `_FINDINGS` for phase `REVIEW` or `AUDIT`; `BLOCKED`, `FAILED`, and other phases do not count, and a later edit re-arms it. |
 | `PostToolUse` (Skill, Read) | Clears the reminder when `ask-code-review` is loaded through the Skill tool, or when its `SKILL.md` is read from a trusted root. |
+
+The plugin also ships one Claude Code mod: `hooks/hooks.json` lists `./flow-pane.tsx` under `modules`, with its state contract in `types/index.d.ts` (named in `plugin.json`). `/ask-flow` opens a pane that tracks `Read` of `ask-*/SKILL.md` and `Agent` results itself and reads the gates and review flag from the session state below; it never writes that state. `hooks/flow-pane.test.ts` runs with `claude plugin test .`.
 
 Session state is a JSON file per session under `${CLAUDE_PLUGIN_DATA}/sessions`, falling back to `~/.cache/agent-skills-kit/sessions`, pruned after 14 days. It never lives in a shared temp directory.
 
