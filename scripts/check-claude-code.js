@@ -202,6 +202,16 @@ function checkHookBehavior() {
   run("post-edit", { session_id: "agent", tool_name: "Edit" })
   expect(Boolean(parseHookOutput(run("prompt", { session_id: "agent", prompt: "continue" }).stdout)?.hookSpecificOutput?.additionalContext?.includes("Code edited")), "an edit after the review report re-arms the reminder")
 
+  // The reminder explains how to close the gate once per arming, then stays short until the gate is cleared and re-armed.
+  // Fetch the next prompt's additional context for the hint session.
+  const hintContext = () => parseHookOutput(run("prompt", { session_id: "hint", prompt: "continue" }).stdout)?.hookSpecificOutput?.additionalContext || ""
+  run("post-edit", { session_id: "hint", tool_name: "Edit" })
+  expect(hintContext().includes("ASK_WORKFLOW_PASS phase=REVIEW diff=<ref>"), "the first review reminder says how to close the gate")
+  expect(hintContext().includes("Code edited") && !hintContext().includes("ASK_WORKFLOW_PASS phase=REVIEW diff=<ref>"), "later reminders omit the close hint")
+  run("post-agent", { ...agentReport("ASK_WORKFLOW_PASS phase=REVIEW diff=abc123"), session_id: "hint" })
+  run("post-edit", { session_id: "hint", tool_name: "Edit" })
+  expect(hintContext().includes("ASK_WORKFLOW_PASS phase=REVIEW diff=<ref>"), "the close hint returns after the gate was cleared and re-armed")
+
   // Debugging is suggested for a described failure, not for inbox triage or release prep that merely mention a bug or error.
   // Tell whether the next prompt's routing line names ask-debugging.
   const suggestsDebugging = (prompt) => Boolean(parseHookOutput(run("prompt", { session_id: `route-${prompt.length}`, prompt }).stdout)?.hookSpecificOutput?.additionalContext?.includes("ask-debugging"))
