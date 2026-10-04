@@ -275,7 +275,7 @@ Skill files resolve in this order: the shared install (`~/.agents/skills`, or `A
 
 #### Slash commands and turning skills on or off
 
-The slash name is always the skill id: `/ask-gh-inbox`, or `/agent-skills-kit:ask-gh-inbox` when ASK is installed as a plugin (plugin skills are namespaced). `/gh-inbox` exists only on OpenCode, which uses `commands/`. The plugin ships no `commands/` on purpose, so entries are not duplicated.
+Every workflow has two slash names. The short command is unprefixed: `/gh-inbox`, `/research`, `/develop` (`/agent-skills-kit:gh-inbox` when two plugins collide). It comes from `commands/`, which the plugin loads, and it reads `~/.agents/skills/ask-<name>/SKILL.md`, so the shared skills install (the installer always provides it) must be present; a plugin-only install still has the `/ask-*` skill entries. A user-owned file with the same name is never overwritten or removed. The skill id still works too: `/ask-gh-inbox`, or `/agent-skills-kit:ask-gh-inbox` when ASK is installed as a plugin (plugin skills are namespaced). Without the plugin (`ASK_CLAUDE_MODE=skills`) the installer copies the short commands into `~/.claude/commands/` and tracks them in `.ask-managed-commands.txt`, so retired ones are removed on update.
 
 * **Model vs user:** every skill sets `disable-model-invocation: true`. You can run it with a slash command; the agent never starts it through the Skill tool, it reads the `SKILL.md` the router names.
 * **`skillOverrides` in `settings.json`:** values are `on`, `name-only`, `user-invocable-only`, and `off` (`off` hides the skill from `/` autocomplete and blocks invoking it). Set them with Space in the `/skills` menu. Per the Claude Code docs they do not apply to plugin skills; manage those with `/plugin`. ASK never writes `skillOverrides`. If you linked skills (`ASK_CLAUDE_MODE=skills`) and want `/ask-<name>` hidden from the model but still typeable, use `"user-invocable-only"`, not `"off"`.
@@ -409,10 +409,10 @@ Each workflow command routes to and reads its skill file, then applies the workf
 | ------------------------ | ------------------------------------ | ----------------------------------------------------- |
 | OpenCode                 | `.md` command files                  | `~/.config/opencode/commands/` (global)               |
 | GitHub Copilot / VS Code | prompt files                         | `.github/prompts/*.prompt.md` + `~/.copilot/prompts/` |
-| Claude Code              | skills are commands (2026)           | no separate file — `skill` → `/name`                  |
+| Claude Code              | plugin `commands/` (or `.md` files)  | plugin-loaded, or `~/.claude/commands/` in skills mode |
 | DeepSeek Harness (dsh)   | registered by the ask-kit preset row | no files — `ctx.commands.register()` at runtime       |
 
-Commands are authored once under `commands/` and exported by `export-platform-skills.js` into `.opencode/commands/` (OpenCode) and `.github/prompts/*.prompt.md` (Copilot/VS Code). Each command reads the router-selected `SKILL.md`; it does not invoke a hidden native leaf skill. dsh has no file-based command discovery; its picker entries are registered programmatically by the ask-kit router preset and steer the session to read the corresponding file.
+Commands are authored once under `commands/` and exported by `export-platform-skills.js` into `.opencode/commands/` (OpenCode) and `.github/prompts/*.prompt.md` (Copilot/VS Code). Claude Code loads `commands/` straight from the plugin (`plugin.json` sets `"commands": "./commands/"`), so `/gh-inbox` works next to the `/ask-gh-inbox` skill entry; in skills mode the installer copies them into `~/.claude/commands/`. Each command reads the router-selected `SKILL.md`; it does not invoke a hidden native leaf skill. dsh has no file-based command discovery; its picker entries are registered programmatically by the ask-kit router preset and steer the session to read the corresponding file.
 
 ---
 

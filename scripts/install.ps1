@@ -37,6 +37,8 @@ $opencodePluginsTarget = Join-Path $OpencodeDir "plugins"
 $opencodeRulesTarget = Join-Path $OpencodeDir "rules"
 $opencodeAgentsFile = Join-Path $OpencodeDir "AGENTS.md"
 $claudeSkillsTarget = Join-Path $ClaudeDir "skills"
+$claudeCommandsSource = Join-Path $repoRoot "commands"
+$claudeCommandsTarget = Join-Path $ClaudeDir "commands"
 $claudeRulesTarget = Join-Path $ClaudeDir "rules"
 $claudeRulesFile = Join-Path $claudeRulesTarget "agent-skills-kit.md"
 $claudePluginId = "agent-skills-kit@agent-skills-kit"
@@ -179,6 +181,37 @@ function Link-ClaudeSkills {
     }
 }
 
+# Copy the unprefixed slash commands (/gh-inbox) into ~/.claude/commands for skills mode, tracked by manifest so
+# retired commands disappear and user-owned commands stay. Plugin mode gets them from the plugin instead.
+function Install-ClaudeCommands {
+    if (-not (Test-Path -LiteralPath $claudeCommandsSource)) { return }
+    New-Item -ItemType Directory -Force -Path $claudeCommandsTarget | Out-Null
+    $currentNames = @(Get-ChildItem -LiteralPath $claudeCommandsSource -File | ForEach-Object { $_.Name })
+    $manifestPath = Join-Path $claudeCommandsTarget $managedCommandsManifest
+    $previousNames = @(Get-Content -LiteralPath $manifestPath -ErrorAction SilentlyContinue)
+    Remove-MissingManagedFiles -TargetPath $claudeCommandsTarget -PreviousManifestPath $manifestPath -CurrentFileNames $currentNames
+    $installedNames = @()
+    foreach ($commandFile in Get-ChildItem -LiteralPath $claudeCommandsSource -File) {
+        # A same-named file we never installed is the user's: keep it, and leave it out of the manifest so it is never removed.
+        if ((Test-Path -LiteralPath (Join-Path $claudeCommandsTarget $commandFile.Name)) -and ($previousNames -notcontains $commandFile.Name)) {
+            Write-Warning "Skipped Claude command $($commandFile.Name): a user-owned file already exists."
+            continue
+        }
+        Copy-Item -LiteralPath $commandFile.FullName -Destination $claudeCommandsTarget -Force
+        $installedNames += $commandFile.Name
+    }
+    $installedNames | Set-Content -LiteralPath $manifestPath
+}
+
+# Remove only the commands this installer copied (plugin mode and uninstall); user-owned files stay.
+function Remove-ClaudeCommands {
+    if (-not (Test-Path -LiteralPath $claudeCommandsTarget)) { return }
+    $manifestPath = Join-Path $claudeCommandsTarget $managedCommandsManifest
+    Remove-MissingManagedFiles -TargetPath $claudeCommandsTarget -PreviousManifestPath $manifestPath -CurrentFileNames @()
+    Remove-Item -LiteralPath $manifestPath -Force -ErrorAction SilentlyContinue
+    if (-not (Get-ChildItem -LiteralPath $claudeCommandsTarget -Force)) { Remove-Item -LiteralPath $claudeCommandsTarget -Force }
+}
+
 # Choose the marketplace source: ASK_MARKETPLACE_SOURCE wins, a temporary release worktree must not be registered
 # (Claude Code keeps the path and the plugin fails to load once it is gone), anything else registers the checkout.
 function Resolve-MarketplaceSource {
@@ -239,8 +272,9 @@ function Uninstall-Claude {
         & claude plugin marketplace remove agent-skills-kit *> $null
     }
     Remove-AskClaudeSkillLinks
+    Remove-ClaudeCommands
     Remove-ClaudeRules
-    "Removed ASK from Claude Code (plugin, skill links, generated rules)."
+    "Removed ASK from Claude Code (plugin, skill links, commands, generated rules)."
 }
 
 # Append managed workflow guidance without replacing user-owned OpenCode rules.
@@ -803,11 +837,13 @@ try {
             Remove-Item -LiteralPath $legacyClaudeWorkflow -Force
         }
         if ($claudeResolvedMode -eq "plugin" -and (Install-ClaudePlugin)) {
+            Remove-ClaudeCommands
             $claudeResult = "plugin"
         }
         else {
             if ($claudeResolvedMode -eq "plugin") { Write-Warning "Claude plugin install failed; falling back to per-skill links." }
             Link-ClaudeSkills -SkillNames $currentSkillNames
+            Install-ClaudeCommands
             $claudeResult = "skills"
         }
     }
