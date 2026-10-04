@@ -30,6 +30,7 @@ const WORKFLOW_RULES_PATH = path.join(PLUGIN_ROOT, "rules", "workflow.md")
 const RULES_MARKER = "<!-- agent-skills-kit:managed -->"
 const MAX_HINT_SKILLS = 4
 const STATE_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000
+const REVIEW_CLOSE_HINT = "  Close it with an independent reviewer/auditor report ending `ASK_WORKFLOW_PASS phase=REVIEW diff=<ref>` (or `phase=AUDIT`), or by reading the code-review skill; a later edit re-arms it."
 
 // Read the hook payload without making malformed input fatal to the agent session.
 async function readInput() {
@@ -200,11 +201,20 @@ function buildPromptHint(prompt, skills, state) {
   const announcesRisk = Boolean(workflow) && !isPlainQuestion && state.announcedRisk !== workflow.risk
   if (announcesRisk) lines.push(workflowLine(workflow))
   // Point review nudges at the router-only ASK files rather than hidden skill commands.
-  lines.push(...reviewNudgeLines(sessionState, skillReadAction))
+  const nudges = reviewNudgeLines(sessionState, skillReadAction)
+  lines.push(...nudges)
+  // Say how to close the review gate once per arming, so the reminder stops costing tokens on later prompts.
+  const showsCloseHint = sessionState.needsCodeReview && nudges.length > 0 && !state.reviewHintShown
+  if (showsCloseHint) lines.push(REVIEW_CLOSE_HINT)
 
   return {
     text: lines.join("\n"),
-    state: { ...state, workflow, announcedRisk: announcesRisk ? workflow.risk : state.announcedRisk },
+    state: {
+      ...state,
+      workflow,
+      announcedRisk: announcesRisk ? workflow.risk : state.announcedRisk,
+      reviewHintShown: Boolean(state.reviewHintShown) || showsCloseHint,
+    },
   }
 }
 
@@ -238,6 +248,11 @@ function reportsIndependentReview(payload) {
   return Boolean(evidence?.diffIdentity) && ["PASS", "FINDINGS"].includes(evidence.status) && ["REVIEW", "AUDIT"].includes(evidence.phase)
 }
 
+// Mark the review gate satisfied for the current diff and allow the close hint to show again after the next edit.
+function clearReviewGate(sessionId) {
+  saveState(sessionId, { ...loadState(sessionId), needsCodeReview: false, reviewHintShown: false })
+}
+
 // Remind a resumed session that summarized skill use is history, not loaded guidance.
 function buildResumeContext() {
   return [
@@ -258,22 +273,18 @@ async function main() {
   }
 
   if (event === "post-skill") {
-    if (readLoadedSkill(payload) === `ask-${SKILL_CODE_REVIEW}`) {
-      saveState(sessionId, { ...loadState(sessionId), needsCodeReview: false })
-    }
+    if (readLoadedSkill(payload) === `ask-${SKILL_CODE_REVIEW}`) clearReviewGate(sessionId)
     return
   }
 
   // A REVIEW/AUDIT agent report already satisfies the gate for this diff; a later edit re-arms the reminder.
   if (event === "post-agent") {
-    if (reportsIndependentReview(payload)) saveState(sessionId, { ...loadState(sessionId), needsCodeReview: false })
+    if (reportsIndependentReview(payload)) clearReviewGate(sessionId)
     return
   }
 
   if (event === "post-skill-read") {
-    if (readLoadedSkillFile(payload) === `ask-${SKILL_CODE_REVIEW}`) {
-      saveState(sessionId, { ...loadState(sessionId), needsCodeReview: false })
-    }
+    if (readLoadedSkillFile(payload) === `ask-${SKILL_CODE_REVIEW}`) clearReviewGate(sessionId)
     return
   }
 

@@ -62,6 +62,16 @@ P0/P1 findings follow: reproduce → one regression proof within the test budget
 
 Freeze the audited diff: commit (or snapshot) before starting REVIEW or AUDIT, and make no edits to the audited paths until the verdict arrives; an auditor on a moving tree can only report a stale or mixed verdict, and fixes go in a follow-up commit. Keep one immutable diff reference with a gate table (`VALIDATE`, `REVIEW`, `AUDIT`, `RELEASE_GATE`); any source change makes evidence for the prior diff stale. Fix findings in one bounded batch, then run only a delta review and delta audit of the changed paths before the final gates. A metadata-only release (`VERSION`, `CHANGELOG.md`, plugin metadata) on an already-gated executable commit needs validation only. Before starting release-sensitive work, read [references/release-gates.md](references/release-gates.md) for the convergence and stop rule, the bounded narrow-fix path with its timebox, and the metadata-only fast path.
 
+## Subagent brief
+
+Input and report size repeat per agent, so cap both.
+
+1. Brief each agent with the task, the 5 to 10 rules that apply, and the exact files or diff; never "read the whole instruction file".
+2. Set a hard report cap (for example 40 lines) and the sections: finding, evidence, confidence, not determined.
+3. Send mechanical search and table work to the cheaper tier; keep the strong tier for review and audit.
+4. When a follow-up depends on a finished agent's context, `SendMessage` it instead of starting a new agent.
+5. Have agents save reusable scratch scripts to a named scratchpad path and report the path.
+
 ## Handoff context
 
 Give subagents requirements, acceptance criteria, repository state, and relevant diff. Do not pass the primary agent's conclusion as authoritative. Include the decision tree so the subagent can load the matching workflow itself.

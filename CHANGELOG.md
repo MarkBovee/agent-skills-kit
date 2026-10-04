@@ -6,6 +6,17 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.5.7] - 2026-10-04
+
+### Added
+
+- **Subagent brief guidance.** `agent-workflows` now covers distilled briefs, hard report caps, cheaper tiers for mechanical work, `SendMessage` follow-ups, and named scratchpad scripts (#131).
+- **Windows / Git Bash notes in `develop`.** Script files instead of inline heredocs, OS-specific virtualenv paths, `git status` around bulk downloads, a failing-test baseline under `autocrlf`, and no foreground `sleep` (#132).
+
+### Changed
+
+- **Review reminder explains how to close the gate.** The first reminder after an edit names the `ASK_WORKFLOW_PASS phase=REVIEW diff=<ref>` report that clears it, shown once per arming so later prompts stay short (#130). The `ask-debugging` suggestion already requires a described failure.
+
 ## [2.5.6] - 2026-10-04
 
 ### Added

@@ -10,9 +10,17 @@ Default to steady progress: inspect, create, test, review, continue. If the next
 
 ## Mandatory style gate
 
-Before any formatting or refactoring, inspect the active file, nearby user-authored code, `.editorconfig`, and language/tool configuration. Establish the repository's valid local style before invoking a tool. Use 240 characters as ASK's default C# maximum line width unless `.editorconfig` explicitly overrides it. Scope formatting to the intended language and file set, preserve valid compact code, newline brace placement, and workflow-boundary comments, and keep C#, XML, project files, and IDE configuration on separate paths. Keep fitting method signatures and calls compact instead of wrapping them to a generic width. If the style is ambiguous or a formatter would rewrite valid local style, stop and ask or constrain the tool; never apply generic defaults. Afterward, inspect a representative example and the complete Git tree for unintended generated output, including tracked `bin/` or `obj/` files. This is a hard gate, not a suggestion.
+Before any formatting or refactoring, inspect the active file, nearby user-authored code, `.editorconfig`, and language/tool configuration. Establish the repository's valid local style before invoking a tool. Use 240 characters as ASK's default C# maximum line width unless `.editorconfig` explicitly overrides it. Scope formatting to the intended language and file set, preserve valid compact code, newline brace placement, and workflow-boundary comments, and keep C#, XML, project files, and IDE configuration on separate paths. Keep fitting method signatures and calls compact instead of wrapping them to a generic width. If the style is ambiguous or a formatter would rewrite valid local style, stop and ask or constrain the tool; never apply generic defaults. Afterward, inspect a representative example and the complete Git tree for unintended generated output, including tracked `bin/` or `obj/` files. This is a hard gate, not a suggestion. On Windows, also follow the Windows / Git Bash rules below.
 
 Before finishing any code change, inspect every changed function-like construct (functions, methods, callbacks, closures, and handlers) for the repository's required intent comment. Run its source-comment check when present. Do not defer or waive a missing required comment as a cosmetic review item.
+
+## Windows / Git Bash
+
+- Multi-line Python or text with backslashes, quotes, or `$`: write a script file with the Write tool and run it; inline heredocs silently change escapes (`"\n"` becomes a real newline) or fail on an apostrophe.
+- Use the OS-specific virtualenv interpreter (`.venv/Scripts/python` on Windows, `.venv/bin/python` elsewhere).
+- Run `git status` before and after bulk downloads; never download over a tracked path.
+- With `autocrlf`, some digest or fixture tests fail for environment reasons: record the failing-test baseline before editing.
+- A foreground `sleep` can be blocked; wait with a background run or monitor.
 
 ## Choose the mode
 
