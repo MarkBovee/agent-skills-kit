@@ -6,6 +6,13 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.5.6] - 2026-10-04
+
+### Added
+
+- **Unprefixed Claude Code commands.** The plugin now loads `commands/`, so `/gh-inbox`, `/research`, `/develop`, and the other workflows work without the `ask-` prefix. Each reads the shared `~/.agents/skills/ask-<name>/SKILL.md`. The `/ask-*` skill entries stay available.
+- **Skills-mode installs get the same commands.** `install.sh` and `install.ps1` copy `commands/` into `~/.claude/commands/` (manifest-managed, user-owned commands untouched) when Claude is wired per skill, and remove them again in plugin mode and on `--uninstall-claude`.
+
 ## [2.5.5] - 2026-10-03
 
 ### Fixed

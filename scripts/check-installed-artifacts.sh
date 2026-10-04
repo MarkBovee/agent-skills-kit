@@ -285,14 +285,19 @@ check_claude_scenarios() {
   assert_grep "claude install writes the path-scoped C# standards" "$a/claude/rules/coding-standards-csharp.md" 'paths:' present
   assert_grep "claude core standards leave language sections to scoped files" "$a/claude/rules/coding-standards.md" '### .NET/C#' absent
   check "claude install writes no duplicate workflow.md" "$([ ! -e "$a/claude/rules/workflow.md" ] && printf true || printf false)"
+  check "claude skills mode installs unprefixed commands" "$([ -f "$a/claude/commands/gh-inbox.md" ] && [ -f "$a/claude/commands/research.md" ] && [ ! -e "$a/claude/commands/ask-gh-inbox.md" ] && printf true || printf false)"
+  assert_grep "claude command reads the shared skill file" "$a/claude/commands/gh-inbox.md" "ask-gh-inbox/SKILL.md" present
 
   # Scenario B: a user-owned skill in the Claude skill root must survive install and refresh.
-  local b="$base/b"; mkdir -p "$b/claude/skills/my-own"
+  local b="$base/b"; mkdir -p "$b/claude/skills/my-own" "$b/claude/commands"
+  printf 'mine\n' > "$b/claude/commands/my-own.md"
+  printf 'mine\n' > "$b/claude/commands/research.md"
   printf 'mine\n' > "$b/claude/skills/my-own/SKILL.md"
   ASK_CLAUDE_MODE_OVERRIDE=skills run_claude_installer "$b" "$b/log" "" || check "claude install with user skill succeeds" false
   ASK_CLAUDE_MODE_OVERRIDE=skills run_claude_installer "$b" "$b/log2" "" || check "claude refresh with user skill succeeds" false
   check "claude install preserves a user-owned skill" "$([ -f "$b/claude/skills/my-own/SKILL.md" ] && printf true || printf false)"
   check "claude install still links ASK skills next to it" "$([ -L "$b/claude/skills/ask-intake" ] && printf true || printf false)"
+  check "claude install preserves a user-owned command" "$([ -f "$b/claude/commands/my-own.md" ] && [ -f "$b/claude/commands/intake.md" ] && [ "$(cat "$b/claude/commands/research.md")" = mine ] && printf true || printf false)"
 
   # Scenario C: legacy whole-directory link to the shared root is migrated without touching the shared root.
   local c="$base/c"; mkdir -p "$c/agents/skills/other-tool-skill" "$c/claude"
@@ -310,6 +315,7 @@ check_claude_scenarios() {
   assert_grep "claude plugin route registers the marketplace" "$d/shim/calls.log" "plugin marketplace add" present
   assert_grep "claude plugin route installs the plugin" "$d/shim/calls.log" "plugin install agent-skills-kit@agent-skills-kit" present
   check "claude plugin route creates no duplicate skill links" "$([ ! -e "$d/claude/skills/ask-develop" ] && printf true || printf false)"
+  check "claude plugin route copies no duplicate commands" "$([ ! -e "$d/claude/commands/gh-inbox.md" ] && printf true || printf false)"
 
   # Scenario E: a failing plugin install falls back to per-skill links.
   local e="$base/e"; mkdir -p "$e"
@@ -373,6 +379,7 @@ check_claude_scenarios() {
   # Scenario F: uninstall removes only ASK-owned pieces.
   ASK_CLAUDE_MODE_OVERRIDE=skills run_claude_installer "$b" "$b/log3" "" --uninstall-claude || check "claude uninstall succeeds" false
   check "claude uninstall removes ASK skill links" "$([ ! -e "$b/claude/skills/ask-intake" ] && printf true || printf false)"
+  check "claude uninstall removes ASK commands and keeps user-owned ones" "$([ ! -e "$b/claude/commands/intake.md" ] && [ -f "$b/claude/commands/my-own.md" ] && [ -f "$b/claude/commands/research.md" ] && printf true || printf false)"
   check "claude uninstall removes generated rules" "$([ ! -e "$b/claude/rules/agent-skills-kit.md" ] && printf true || printf false)"
   check "claude uninstall removes generated coding standards" "$([ ! -e "$b/claude/rules/coding-standards.md" ] && [ ! -e "$b/claude/rules/coding-standards-csharp.md" ] && printf true || printf false)"
   check "claude uninstall keeps the user-owned skill" "$([ -f "$b/claude/skills/my-own/SKILL.md" ] && printf true || printf false)"
