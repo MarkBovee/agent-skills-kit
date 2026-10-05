@@ -152,4 +152,7 @@ function main() {
   console.log(`\nscore ${hits}/${total} (model ${options.model}, runs ${options.runs}) output-tokens ${outputTokens} cost $${costUsd.toFixed(2)}`)
 }
 
-main()
+// Run only when executed directly so the behavior eval can reuse the fixture helpers.
+if (require.main === module) main()
+
+module.exports = { createFixture, CASE_TIMEOUT_MS, INSTALLED_PLUGIN_ID, REPO_ROOT }
