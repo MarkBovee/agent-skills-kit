@@ -1,5 +1,13 @@
 # Common Rules for Professional UI + Pre-Delivery Checklist
 
+## Contents
+
+- Icons & Visual Elements
+- Interaction (App)
+- Light/Dark Mode Contrast
+- Layout & Spacing
+- Pre-Delivery Checklist (canonical — the only one)
+
 Load this file before final delivery of native/mobile app UI (iOS/Android/React Native/Flutter), or when the user reports the UI "doesn't look professional" and the cause isn't obvious from the priority table in SKILL.md.
 
 **Scope notice:** everything below targets native/mobile app UI. For web/desktop interaction patterns, use `references/quick-reference.md` (stack-agnostic) instead — these tables assume touch targets, safe areas, and platform gesture conventions that don't apply 1:1 to desktop web.

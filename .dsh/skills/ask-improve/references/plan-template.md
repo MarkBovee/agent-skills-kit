@@ -1,5 +1,26 @@
 # Handoff Plan Template
 
+## Contents
+
+- Template
+- Status
+- Why this matters
+- Current state
+- Commands you will need
+- Suggested executor toolkit
+- Scope
+- Git workflow
+- Steps
+- Test plan
+- Done criteria
+- STOP conditions
+- Maintenance notes
+- Index file: `plans/README.md`
+- Execution order & status
+- Dependency notes
+- Findings considered and rejected
+- Quality bar — check before finishing each plan
+
 Every plan is written for an executor model that has **zero context**: it has not seen the advisor session, the audit, the other plans, or any prior conversation. It may be a smaller/cheaper model. Assume it is competent at following explicit instructions and weak at filling gaps, recovering from ambiguity, or knowing when to stop.
 
 Three properties make a plan executable by a weaker model:

@@ -1,7 +1,7 @@
 ---
 name: ask-design
 disable-model-invocation: true
-description: "Design: Use to design, redesign, polish, or implement UI/UX for web or mobile interfaces, landing pages, dashboards, flows, or visual systems."
+description: "Design: Designs, redesigns, polishes, and implements UI/UX for web or mobile, landing pages, dashboards, flows, and visual systems. Use for any interface work."
 triggers:
   - design a ui
   - redesign this page

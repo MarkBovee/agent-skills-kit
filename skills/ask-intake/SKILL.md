@@ -1,7 +1,7 @@
 ---
 name: ask-intake
 disable-model-invocation: true
-description: "Intake: Use when the goal, constraints, or success criteria are not yet crisp: brainstorming, scoping ambiguous work, and multi-file execution planning."
+description: "Intake: Clarifies goals, constraints, and success criteria and plans multi-file work. Use for brainstorming or scoping ambiguous work."
 execution_tier: standard
 triggers:
   - brainstorm

@@ -1,7 +1,7 @@
 ---
 name: ask-agent-workflows
 disable-model-invocation: true
-description: "Agent Workflows: Use when coordinating subagents or parallel work, handing off tasks, or running release chores (version bump, changelog, release notes, tag)."
+description: "Agent Workflows: Coordinates subagents and parallel work, handoffs, and release chores (version bump, changelog, tag). Use when delegating or releasing."
 execution_tier: light
 delegation_default: prefer-subagent
 triggers:

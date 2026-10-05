@@ -1,7 +1,7 @@
 ---
 name: ask-debugging
 disable-model-invocation: true
-description: "Debugging: Use when a bug, failing test, crash, wrong result, or broken build needs a root cause, or when a first fix did not work."
+description: "Debugging: Finds root causes of bugs, failing tests, crashes, wrong results, and broken builds. Use when something fails or a first fix did not work."
 execution_tier: standard
 delegation_default: auto
 triggers:

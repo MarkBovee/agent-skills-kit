@@ -1,7 +1,7 @@
 ---
 name: ask-deep-research
 disable-model-invocation: true
-description: "Deep Research: Use when a complex technical question needs autonomous multi-source investigation, contradiction analysis, and a cited handoff."
+description: "Deep Research: Runs autonomous multi-source investigation with contradiction analysis and a cited handoff. Use for complex technical questions."
 execution_tier: deep
 delegation_default: prefer-subagent
 triggers:

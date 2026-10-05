@@ -1,7 +1,7 @@
 ---
 name: ask-improve
 disable-model-invocation: true
-description: "Improve: Use for a codebase audit (correctness, security, performance, tech debt), audit-driven plans and their execution, or a focused refactor or cleanup."
+description: "Improve: Audits a codebase (correctness, security, performance, tech debt), plans and runs fixes, or does a focused refactor. Use for audits and cleanups."
 execution_tier: standard
 delegation_default: prefer-subagent
 triggers:

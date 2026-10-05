@@ -1,7 +1,7 @@
 ---
 name: ask-session-review
 disable-model-invocation: true
-description: "Session Review: Use after completing work to reflect on skill usage and gaps, and to file GitHub issues from bugs, review findings, or follow-ups."
+description: "Session Review: Reflects on skill usage and gaps and files GitHub issues from bugs, findings, or follow-ups. Use after completing work."
 execution_tier: light
 delegation_default: prefer-subagent
 triggers:

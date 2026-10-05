@@ -1,6 +1,6 @@
 ---
 name: "develop"
-description: "Develop: Use for normal implementation work (add, fix, refactor, build a feature) when no more specific ASK skill fits; small safe iterations with validation. Common triggers: develop, kaizen, autopilot, keep going, continue without waiting, do not stop, don't stop, ga door, werk door, volgende logische stap, volgende stap, start working, start coding, get started, zonder te wachten, niet stoppen, gewoon doorgaan, ga verder, implement this, fix this, add this, pas dit aan, maak dit af, implem..."
+description: "Develop: Drives normal implementation work in small, validated iterations. Use to add, fix, refactor, or build a feature when no more specific ASK skill fits. Common triggers: develop, kaizen, autopilot, keep going, continue without waiting, do not stop, don't stop, ga door, werk door, volgende logische stap, volgende stap, start working, start coding, get started, zonder te wachten, niet stoppen, gewoon doorgaan, ga verder, implement this, fix this, add this, pas dit aan, maak dit af, implem..."
 whenToUse: "Common triggers: develop, kaizen, autopilot, keep going, continue without waiting, do not stop, don't stop, ga door, werk door, volgende logische stap, volgende stap, start working, start coding, get started, zonder te wachten, niet stoppen, gewoon doorgaan, ga verder, implement this, fix this, add this, pas dit aan, maak dit af, implement, implementeer dit, keep coding, continue implementation, work through steps, code change, start implementing, start implementation, batch edits, delegate work, subagent, maak dit werkend, rewrite, herbouw, coordinator, coördinator, omwerken, entity rewrite, refactor, code aanpassen, werk dit bij, build this, development."
 disable-model-invocation: true
 ---
@@ -31,7 +31,7 @@ Before finishing any code change, inspect every changed function-like construct 
 
 ## Cheap-first escalation
 
-1. Before each delegation, select a task-appropriate model and pass it per invocation when the host supports it; tiers alone do not select a model. See `agent-workflows`' [model routing reference](../ask-agent-workflows/references/model-routing.md).
+1. Before each delegation, select a task-appropriate model and pass it per invocation when the host supports it; tiers alone do not select a model. Default to Haiku for mechanical work, Sonnet for standard work, and Opus only with a stated reason.
 2. Start bounded mechanical chores on the smallest viable agent or subagent.
 3. Validate the result before widening context.
 4. Escalate to default agent only if scope grows beyond the original bounded task.

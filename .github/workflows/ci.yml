@@ -29,6 +29,9 @@ jobs:
       - name: Validate plugin, hooks, and skills
         run: node ./scripts/validate-plugin.js
 
+      - name: Validate skill authoring best practices
+        run: node ./scripts/check-skill-best-practices.js
+
       - name: Validate trigger routing
         run: node ./scripts/check-trigger-overlap.js
 

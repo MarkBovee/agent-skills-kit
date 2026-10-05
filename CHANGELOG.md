@@ -6,6 +6,13 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.5.8] - 2026-10-05
+
+### Changed
+
+- **Skills follow Anthropic's authoring best practices.** Descriptions are third person with what and when, long reference files have a `## Contents` list, and `develop` no longer links into another skill.
+- **New `check-skill-best-practices` check** enforces size, description style, one-level self-contained references, contents lists, and forward-slash paths; `AGENTS.md` rules updated to match.
+
 ## [2.5.7] - 2026-10-04
 
 ### Added

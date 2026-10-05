@@ -23,7 +23,7 @@ Read `rules/coding-standards.md` before code edits. Every function-like construc
 
 ## Skills
 
-Every `skills/*/SKILL.md` needs frontmatter: `name` equal to its directory (`ask-<name>`), a one-sentence `description` that starts with the nice name (`Develop: ...`), and `triggers`. The router and exports keep using the bare name; `ask-` is the native id. Router prompts, pending actions, and commands load a skill by reading `~/.agents/skills/ask-<name>/SKILL.md`; the native id only serves Claude Code's own skill listing, and leaf skills are never invoked through a native Skill tool. Keep skills self-contained, normally 30–90 lines. Use `ask-` names for workflow/meta skills. Keep cross-references bidirectional where useful. Keep generic skills free of repository-specific paths.
+Every `skills/*/SKILL.md` needs frontmatter: `name` equal to its directory (`ask-<name>`), a third-person `description` that starts with the nice name and says what the skill does and when to use it (`Develop: Drives normal implementation work ... Use when ...`), and `triggers`. The router and exports keep using the bare name; `ask-` is the native id. Router prompts, pending actions, and commands load a skill by reading `~/.agents/skills/ask-<name>/SKILL.md`; the native id only serves Claude Code's own skill listing, and leaf skills are never invoked through a native Skill tool. Keep skills self-contained (no links into other skills), normally 30–90 lines and never over 500. Reference files stay one level deep from `SKILL.md`, and any over 100 lines start with a `## Contents` list. Use forward slashes in paths. Use `ask-` names for workflow/meta skills. Keep cross-references bidirectional where useful. Keep generic skills free of repository-specific paths.
 
 `triggers` feed only the ASK router; Claude Code selects skills from `description` alone, so the key use cases and terms belong in the description, which must stay at or under 160 characters to survive the shared listing budget. Keep each `SKILL.md` body compact and move procedures needed only in rare cases (for example release gates) to a one-level `references/` file. Measure activation changes with `node ./scripts/eval-skill-activation.js` (spends tokens; not part of CI).
 
@@ -62,7 +62,7 @@ Install/update scripts must keep `.sh` and `.ps1` behavior aligned and idempoten
 ```bash
 node -e "import('./plugins/agent-skills-router/server.mjs')"
 node ./scripts/export-platform-skills.js
-for check in router-nudges workflow-lifecycle dsh-plugin widget-live-state panel-widget opencode-v2-plugin research-workflow tier-vocabulary trigger-overlap claude-code test-policy tmp-usage code-comments evidence-aware-communication model-agnostic-guidance; do node "./scripts/check-$check.js"; done
+for check in router-nudges workflow-lifecycle dsh-plugin widget-live-state panel-widget opencode-v2-plugin research-workflow tier-vocabulary skill-best-practices trigger-overlap claude-code test-policy tmp-usage code-comments evidence-aware-communication model-agnostic-guidance; do node "./scripts/check-$check.js"; done
 node ./scripts/export-claude-coding-standards.js --check
 node ./scripts/validate-plugin.js
 node ./scripts/check-release-readiness.js --require-version-entry

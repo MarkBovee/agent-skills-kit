@@ -1,6 +1,6 @@
 ---
 name: "ask-improve"
-description: "Improve: Use for a codebase audit (correctness, security, performance, tech debt), audit-driven plans and their execution, or a focused refactor or cleanup. Common triggers: improve, audit, tech debt, tech debt audit, audit codebase, improve codebase, direction, audit and plan, refactor this, refactoren, code cleanup, opschonen, simplify this code, vereenvoudigen, remove over-engineering, deduplicate logic, restructure this code, reduce complexity, untangle this, clean architecture mess."
+description: "Improve: Audits a codebase (correctness, security, performance, tech debt), plans and runs fixes, or does a focused refactor. Use for audits and cleanups. Common triggers: improve, audit, tech debt, tech debt audit, audit codebase, improve codebase, direction, audit and plan, refactor this, refactoren, code cleanup, opschonen, simplify this code, vereenvoudigen, remove over-engineering, deduplicate logic, restructure this code, reduce complexity, untangle this, clean architecture mess."
 disable-model-invocation: true
 ---
 # ASK Improve

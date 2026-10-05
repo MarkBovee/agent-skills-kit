@@ -250,7 +250,7 @@ The plugin hook routes requests to the appropriate skill file; it does not invok
 
 ### Claude Code Details
 
-ASK ships as a native Claude Code plugin. Skills carry the id `ask-<name>` (for example `/ask-develop`, or `/agent-skills-kit:ask-develop` when installed as a plugin); descriptions start with the nice name (`Develop: ...`) and carry the use cases, because Claude Code selects skills from `description` alone. Hook internals and path resolution are documented in [ARCHITECTURE.md](./ARCHITECTURE.md#claude-code-runtime).
+ASK ships as a native Claude Code plugin. Skills carry the id `ask-<name>` (for example `/ask-develop`, or `/agent-skills-kit:ask-develop` when installed as a plugin); descriptions are third person, start with the nice name (`Develop: ...`), and carry what the skill does and when to use it, because Claude Code selects skills from `description` alone. Hook internals and path resolution are documented in [ARCHITECTURE.md](./ARCHITECTURE.md#claude-code-runtime).
 
 Install as a plugin (recommended):
 
