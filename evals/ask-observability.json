@@ -1,0 +1,38 @@
+[
+  {
+    "skills": [
+      "ask-observability"
+    ],
+    "query": "Add structured logging and metrics to src/pager.js.",
+    "files": [],
+    "expected_behavior": [
+      "Chooses events and metrics that answer real questions",
+      "Avoids logging secrets or personal data",
+      "Keeps overhead low"
+    ]
+  },
+  {
+    "skills": [
+      "ask-observability"
+    ],
+    "query": "We cannot explain why checkout is slow in production.",
+    "files": [],
+    "expected_behavior": [
+      "Identifies what telemetry is missing",
+      "Proposes tracing at the slow boundary",
+      "Defines how to verify the new signals"
+    ]
+  },
+  {
+    "skills": [
+      "ask-observability"
+    ],
+    "query": "Set up alerting for the queue backlog.",
+    "files": [],
+    "expected_behavior": [
+      "Alerts on symptoms users feel",
+      "Sets thresholds with a justification",
+      "Includes an owner or runbook note"
+    ]
+  }
+]

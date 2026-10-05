@@ -1,0 +1,38 @@
+[
+  {
+    "skills": [
+      "ask-intake"
+    ],
+    "query": "I want to build something around pagination but I am not sure what yet.",
+    "files": [],
+    "expected_behavior": [
+      "Asks clarifying questions about goal and constraints",
+      "Proposes success criteria",
+      "Does not start coding"
+    ]
+  },
+  {
+    "skills": [
+      "ask-intake"
+    ],
+    "query": "Plan a multi-file change to move config loading to a new module.",
+    "files": [],
+    "expected_behavior": [
+      "Lists affected files and ordering",
+      "Names risks and validation steps",
+      "Confirms scope before execution"
+    ]
+  },
+  {
+    "skills": [
+      "ask-intake"
+    ],
+    "query": "Brainstorm options for rate limiting.",
+    "files": [],
+    "expected_behavior": [
+      "Offers distinct options with trade-offs",
+      "Recommends one",
+      "States assumptions"
+    ]
+  }
+]

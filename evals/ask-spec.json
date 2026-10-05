@@ -1,0 +1,38 @@
+[
+  {
+    "skills": [
+      "ask-spec"
+    ],
+    "query": "Write a requirements spec with acceptance criteria for a pagination API.",
+    "files": [],
+    "expected_behavior": [
+      "Captures decisions and assumptions",
+      "Gives testable acceptance criteria",
+      "Maps requirements to validation gates"
+    ]
+  },
+  {
+    "skills": [
+      "ask-spec"
+    ],
+    "query": "Create a design brief for the new onboarding flow before we code.",
+    "files": [],
+    "expected_behavior": [
+      "States goals and non-goals",
+      "Records open questions",
+      "Does not write implementation code"
+    ]
+  },
+  {
+    "skills": [
+      "ask-spec"
+    ],
+    "query": "Update the spec after we dropped cursor support.",
+    "files": [],
+    "expected_behavior": [
+      "Edits only the affected requirements",
+      "Keeps traceability intact",
+      "Notes the decision and reason"
+    ]
+  }
+]

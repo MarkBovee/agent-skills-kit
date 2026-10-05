@@ -1,0 +1,38 @@
+[
+  {
+    "skills": [
+      "ask-research"
+    ],
+    "query": "Does node --test support --test-name-pattern on Node 18? Cite the source.",
+    "files": [],
+    "expected_behavior": [
+      "Finds a primary source",
+      "Answers directly with the citation",
+      "States uncertainty if sources conflict"
+    ]
+  },
+  {
+    "skills": [
+      "ask-research"
+    ],
+    "query": "Where is footer() used across the repo and docs?",
+    "files": [],
+    "expected_behavior": [
+      "Searches code and docs",
+      "Reports locations precisely",
+      "Stays bounded"
+    ]
+  },
+  {
+    "skills": [
+      "ask-research"
+    ],
+    "query": "Which library should we use for date parsing?",
+    "files": [],
+    "expected_behavior": [
+      "Compares candidates on stated criteria",
+      "Cites docs or repositories",
+      "Gives a recommendation"
+    ]
+  }
+]

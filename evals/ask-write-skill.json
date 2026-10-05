@@ -1,0 +1,38 @@
+[
+  {
+    "skills": [
+      "ask-write-skill"
+    ],
+    "query": "Create a skill that teaches the agent our release checklist.",
+    "files": [],
+    "expected_behavior": [
+      "Writes frontmatter with name and a third-person description",
+      "Keeps SKILL.md compact and moves rare detail to references",
+      "Adds validation and an eval"
+    ]
+  },
+  {
+    "skills": [
+      "ask-write-skill"
+    ],
+    "query": "Revise the debugging skill; agents keep skipping reproduction.",
+    "files": [],
+    "expected_behavior": [
+      "Strengthens the specific missing guardrail",
+      "Does not bloat the skill",
+      "Re-measures activation or behavior"
+    ]
+  },
+  {
+    "skills": [
+      "ask-write-skill"
+    ],
+    "query": "We keep re-explaining the same workflow; capture it.",
+    "files": [],
+    "expected_behavior": [
+      "Extracts only what Claude does not already know",
+      "Provides a default instead of many options",
+      "Checks overlap with existing skills"
+    ]
+  }
+]

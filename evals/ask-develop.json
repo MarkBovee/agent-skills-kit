@@ -1,0 +1,38 @@
+[
+  {
+    "skills": [
+      "ask-develop"
+    ],
+    "query": "Add a lastPage(items, pageSize) function to src/pager.js and export it.",
+    "files": [],
+    "expected_behavior": [
+      "Inspects existing code and style first",
+      "Implements in a small validated step",
+      "Runs the relevant tests"
+    ]
+  },
+  {
+    "skills": [
+      "ask-develop"
+    ],
+    "query": "Refactor format.js to remove duplication.",
+    "files": [],
+    "expected_behavior": [
+      "Preserves behavior and checks it with tests",
+      "Keeps the diff focused",
+      "Does not pause for routine check-ins"
+    ]
+  },
+  {
+    "skills": [
+      "ask-develop"
+    ],
+    "query": "Fix this: pageCount returns NaN for empty lists.",
+    "files": [],
+    "expected_behavior": [
+      "Reproduces or reasons to the cause",
+      "Makes a minimal fix",
+      "Validates before declaring done"
+    ]
+  }
+]

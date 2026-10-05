@@ -12,6 +12,7 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 - **Skills follow Anthropic's authoring best practices.** Descriptions are third person with what and when, long reference files have a `## Contents` list, and `develop` no longer links into another skill.
 - **New `check-skill-best-practices` check** enforces size, description style, one-level self-contained references, contents lists, and forward-slash paths; `AGENTS.md` rules updated to match.
+- **Behavior evals.** `evals/ask-<name>.json` holds three scenarios per skill (`query` plus `expected_behavior`), and the check requires them.
 
 ## [2.5.7] - 2026-10-04
 

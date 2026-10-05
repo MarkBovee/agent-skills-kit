@@ -1,0 +1,38 @@
+[
+  {
+    "skills": [
+      "ask-code-review"
+    ],
+    "query": "I finished the pagination change. Review it before I push.",
+    "files": [],
+    "expected_behavior": [
+      "Reviews the actual diff, not a summary",
+      "Reports findings ranked by severity with file and line",
+      "Checks requirement gaps and regressions"
+    ]
+  },
+  {
+    "skills": [
+      "ask-code-review"
+    ],
+    "query": "Review my last commit for risky design.",
+    "files": [],
+    "expected_behavior": [
+      "Reads the commit diff and its surrounding code",
+      "Separates blocking findings from optional ones",
+      "Ends with an explicit pass or findings verdict"
+    ]
+  },
+  {
+    "skills": [
+      "ask-code-review"
+    ],
+    "query": "Quick look at this one-line typo fix.",
+    "files": [],
+    "expected_behavior": [
+      "Keeps the review proportional to the change",
+      "Does not invent findings",
+      "States the verdict plainly"
+    ]
+  }
+]

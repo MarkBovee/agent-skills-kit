@@ -1,0 +1,38 @@
+[
+  {
+    "skills": [
+      "ask-improve"
+    ],
+    "query": "Audit this codebase for tech debt and correctness issues and plan the fixes.",
+    "files": [],
+    "expected_behavior": [
+      "Covers correctness, security, and performance",
+      "Produces a prioritized plan with evidence",
+      "Does not start fixing before the plan is agreed"
+    ]
+  },
+  {
+    "skills": [
+      "ask-improve"
+    ],
+    "query": "Clean up the utils module without changing behavior.",
+    "files": [],
+    "expected_behavior": [
+      "Keeps the scope focused",
+      "Validates behavior is unchanged",
+      "Delivers small reviewable steps"
+    ]
+  },
+  {
+    "skills": [
+      "ask-improve"
+    ],
+    "query": "Execute step 2 of the improvement plan.",
+    "files": [],
+    "expected_behavior": [
+      "Reads the plan first",
+      "Implements only that step",
+      "Records the result against the plan"
+    ]
+  }
+]

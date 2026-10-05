@@ -1,0 +1,38 @@
+[
+  {
+    "skills": [
+      "ask-design-review"
+    ],
+    "query": "Review this hero copy: 'Unlock seamless pagination. Elevate your workflow.'",
+    "files": [],
+    "expected_behavior": [
+      "Names the AI-default patterns found",
+      "Gives concrete replacements",
+      "Does not rewrite beyond the review scope"
+    ]
+  },
+  {
+    "skills": [
+      "ask-design-review"
+    ],
+    "query": "Check this dashboard UI before we ship.",
+    "files": [],
+    "expected_behavior": [
+      "Reviews against concrete quality criteria",
+      "Reports issues by severity",
+      "Notes accessibility problems"
+    ]
+  },
+  {
+    "skills": [
+      "ask-design-review"
+    ],
+    "query": "Does this landing page look AI-generated?",
+    "files": [],
+    "expected_behavior": [
+      "Gives a verdict with specific evidence",
+      "Points to exact elements",
+      "Suggests deliberate alternatives to the defaults"
+    ]
+  }
+]

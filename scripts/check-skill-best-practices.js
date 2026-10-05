@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 // Checks every skill against Anthropic's skill authoring best practices: bounded SKILL.md size,
 // third-person descriptions, one-level self-contained references, tables of contents for long
-// reference files, and forward-slash paths.
+// reference files, forward-slash paths, and three behavior evals per skill.
 
 const fs = require("node:fs")
 const path = require("node:path")
 
 const REPO_ROOT = path.resolve(__dirname, "..")
 const SKILLS_DIR = path.join(REPO_ROOT, "skills")
+const EVALS_DIR = path.join(REPO_ROOT, "evals")
+const MIN_EVAL_CASES = 3
 const MAX_BODY_LINES = 500
 const TOC_THRESHOLD_LINES = 100
 const FIRST_PERSON = /\b(?:I|I'll|I can|you can|you will|we)\b/
@@ -56,11 +58,29 @@ function checkReferenceFile(file, raw) {
   if (WINDOWS_PATH.test(raw)) fail(file, "use forward slashes in paths")
 }
 
+// Validate the skill's behavior evals: at least three cases with a query and expected behaviors.
+function checkEvals(skillName) {
+  const file = path.join(EVALS_DIR, `${skillName}.json`)
+  if (!fs.existsSync(file)) return fail(file, "missing behavior evals")
+  let cases
+  try {
+    cases = JSON.parse(fs.readFileSync(file, "utf8"))
+  } catch (error) {
+    return fail(file, `invalid JSON: ${error.message}`)
+  }
+  if (!Array.isArray(cases) || cases.length < MIN_EVAL_CASES) return fail(file, `needs at least ${MIN_EVAL_CASES} cases`)
+  for (const entry of cases) {
+    const complete = typeof entry.query === "string" && Array.isArray(entry.expected_behavior) && entry.expected_behavior.length > 0
+    if (!complete) fail(file, "each case needs a query and expected_behavior")
+  }
+}
+
 for (const name of fs.readdirSync(SKILLS_DIR)) {
   const skillDir = path.join(SKILLS_DIR, name)
   const skillFile = path.join(skillDir, "SKILL.md")
   if (!fs.existsSync(skillFile)) continue
   checkSkillFile(skillFile, fs.readFileSync(skillFile, "utf8"))
+  checkEvals(name)
   for (const file of referenceFiles(skillDir)) checkReferenceFile(file, fs.readFileSync(file, "utf8"))
 }
 

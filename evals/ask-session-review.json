@@ -1,0 +1,38 @@
+[
+  {
+    "skills": [
+      "ask-session-review"
+    ],
+    "query": "Reflect on how skills were used this session and file an improvement issue.",
+    "files": [],
+    "expected_behavior": [
+      "Names skills used and gaps found",
+      "Files issues only for real reusable gaps",
+      "Links evidence from the session"
+    ]
+  },
+  {
+    "skills": [
+      "ask-session-review"
+    ],
+    "query": "File issues for the follow-ups we found.",
+    "files": [],
+    "expected_behavior": [
+      "Searches for duplicates before filing",
+      "Writes one focused issue per follow-up",
+      "Reports the created issue links"
+    ]
+  },
+  {
+    "skills": [
+      "ask-session-review"
+    ],
+    "query": "Did anything in this session reveal a missing guardrail?",
+    "files": [],
+    "expected_behavior": [
+      "Answers from observed behavior",
+      "Separates one-off mistakes from patterns",
+      "Proposes a concrete skill change"
+    ]
+  }
+]
