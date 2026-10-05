@@ -37,11 +37,15 @@ const CASES = [
   { id: "locate", expected: "none", prompt: "Which file defines footer()?" },
 ]
 
-// Small fixture project the prompts refer to: two modules with a typo and an off-by-one bug, plus one test.
+// Small fixture project the prompts refer to: two modules with a typo and an off-by-one bug, one passing test, and one test that fails on the off-by-one.
 const FIXTURE_FILES = {
   "package.json": "{ \"name\": \"activation-fixture\", \"version\": \"1.0.0\", \"private\": true, \"scripts\": { \"test\": \"node --test\" } }\n",
   "src/pager.js": "// Return the items of one 1-based page.\nfunction page(items, pageNumber, pageSize) {\n  const start = pageNumber * pageSize\n  return items.slice(start, start + pageSize)\n}\n\n// Count the pages needed for a list.\nfunction pageCount(items, pageSize) {\n  return Math.ceil(items.length / pageSize)\n}\n\nmodule.exports = { page, pageCount }\n",
   "src/format.js": "// Format a page indicator for the footer.\nfunction footer(pageNumber, total) {\n  return `Paeg ${pageNumber} of ${total}`\n}\n\nmodule.exports = { footer }\n",
+  "README.md": "# activation-fixture\n\nSmall pagination helpers.\n",
+  "VERSION": "1.0.0\n",
+  "CHANGELOG.md": "# Changelog\n\n## Unreleased\n",
+  "test/page.test.js": "const test = require(\"node:test\")\nconst assert = require(\"node:assert\")\nconst { page } = require(\"../src/pager\")\n\ntest(\"page returns the first page\", () => {\n  assert.deepStrictEqual(page([1, 2, 3, 4], 1, 2), [1, 2])\n})\n",
   "test/pager.test.js": "const test = require(\"node:test\")\nconst assert = require(\"node:assert\")\nconst { pageCount } = require(\"../src/pager\")\n\ntest(\"pageCount rounds up\", () => {\n  assert.strictEqual(pageCount([1, 2, 3], 2), 2)\n})\n",
 }
 

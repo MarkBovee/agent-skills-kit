@@ -2,7 +2,7 @@
 // Behavior eval for Claude Code: runs each evals/ask-<name>.json query through `claude -p` with this
 // checkout as the plugin (or without it for --baseline), then has a judge model grade the transcript
 // against expected_behavior. It spends real tokens, so it is a manual tool, not a CI check. Usage:
-//   node ./scripts/eval-skill-behavior.js [--model haiku|sonnet|opus] [--judge sonnet] [--skill debugging] [--baseline] [--max-turns 6]
+//   node ./scripts/eval-skill-behavior.js [--model haiku|sonnet|opus] [--judge sonnet] [--skill debugging] [--baseline] [--max-turns 8] [--dump dir]
 
 const fs = require("node:fs")
 const os = require("node:os")
@@ -11,12 +11,14 @@ const { spawnSync } = require("node:child_process")
 const { createFixture, CASE_TIMEOUT_MS, INSTALLED_PLUGIN_ID, REPO_ROOT } = require("./eval-skill-activation.js")
 
 const EVALS_DIR = path.join(REPO_ROOT, "evals")
+// Built-in tools (web reads included) only, and no MCP servers, so an eval can never post to GitHub or other external services.
+const ALLOWED_TOOLS = "Read,Glob,Grep,Edit,Write,Bash,WebSearch,WebFetch"
 const MAX_TRANSCRIPT_CHARS = 24000
 const JUDGE_TIMEOUT_MS = 2 * 60 * 1000
 
 // Parse the command-line flags into a typed options object with defaults.
 function parseOptions(argv) {
-  const options = { model: "sonnet", judge: "sonnet", skill: "", baseline: false, maxTurns: 6 }
+  const options = { model: "sonnet", judge: "sonnet", skill: "", baseline: false, maxTurns: 8, dumpDir: "" }
   for (let index = 0; index < argv.length; index += 1) {
     const flag = argv[index]
     if (flag === "--baseline") {
@@ -28,6 +30,7 @@ function parseOptions(argv) {
     else if (flag === "--judge") options.judge = value
     else if (flag === "--skill") options.skill = value.replace(/^ask-/, "")
     else if (flag === "--max-turns") options.maxTurns = Number(value)
+    else if (flag === "--dump") options.dumpDir = value
     else continue
     index += 1
   }
@@ -71,7 +74,8 @@ function runQuery(query, options, parentDir) {
   const workDir = createFixture(parentDir)
   const settings = JSON.stringify({ enabledPlugins: { [INSTALLED_PLUGIN_ID]: false } })
   const args = ["-p", query, "--settings", settings,
-    "--model", options.model, "--max-turns", String(options.maxTurns), "--output-format", "stream-json", "--verbose"]
+    "--model", options.model, "--max-turns", String(options.maxTurns), "--output-format", "stream-json", "--verbose",
+    "--allowedTools", ALLOWED_TOOLS, "--strict-mcp-config"]
   if (!options.baseline) args.push("--plugin-dir", REPO_ROOT)
   const run = spawnSync("claude", args, { cwd: workDir, encoding: "utf8", input: "", timeout: CASE_TIMEOUT_MS, maxBuffer: 64 * 1024 * 1024 })
   return renderTranscript(run.stdout || "")
@@ -101,6 +105,13 @@ function gradeTranscript(evalCase, transcript, options) {
   }
 }
 
+// Save one transcript and its verdicts so a miss can be inspected.
+function dumpTranscript(dir, skill, evalCase, transcript, verdicts) {
+  fs.mkdirSync(dir, { recursive: true })
+  const name = `${skill}-${evalCase.query.slice(0, 24).replace(/\W+/g, "-")}.txt`
+  fs.writeFileSync(path.join(dir, name), `${evalCase.query}\n${JSON.stringify(verdicts)}\n\n${transcript}\n`)
+}
+
 // Run every selected case, print a per-case line, and finish with a total score.
 function main() {
   const options = parseOptions(process.argv.slice(2))
@@ -115,7 +126,9 @@ function main() {
   try {
     for (const { skill, cases } of evals) {
       for (const evalCase of cases) {
-        const verdicts = gradeTranscript(evalCase, runQuery(evalCase.query, options, parentDir), options)
+        const transcript = runQuery(evalCase.query, options, parentDir)
+        const verdicts = gradeTranscript(evalCase, transcript, options)
+        if (options.dumpDir) dumpTranscript(options.dumpDir, skill, evalCase, transcript, verdicts)
         const hits = verdicts.filter(Boolean).length // count the behaviors the judge confirmed
         passed += hits
         total += verdicts.length

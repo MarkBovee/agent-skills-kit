@@ -27,7 +27,7 @@
     "skills": [
       "ask-develop"
     ],
-    "query": "Fix this: pageCount returns NaN for empty lists.",
+    "query": "Fix this: pageCount returns NaN when pageSize is 0.",
     "files": [],
     "expected_behavior": [
       "Reproduces or reasons to the cause",

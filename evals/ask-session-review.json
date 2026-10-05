@@ -7,8 +7,8 @@
     "files": [],
     "expected_behavior": [
       "Names skills used and gaps found",
-      "Files issues only for real reusable gaps",
-      "Links evidence from the session"
+      "Drafts issues only for real reusable gaps",
+      "Does not file issues without access or approval"
     ]
   },
   {
@@ -18,9 +18,9 @@
     "query": "File issues for the follow-ups we found.",
     "files": [],
     "expected_behavior": [
-      "Searches for duplicates before filing",
+      "Checks for duplicates or states it cannot",
       "Writes one focused issue per follow-up",
-      "Reports the created issue links"
+      "Reports what was drafted versus filed"
     ]
   },
   {

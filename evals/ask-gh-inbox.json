@@ -6,8 +6,8 @@
     "query": "Check the GitHub inbox for this repo and triage new issues.",
     "files": [],
     "expected_behavior": [
-      "Lists open issues and discussions",
-      "Classifies each with a proposed action",
+      "Reads the inbox with available tools or states it has no access",
+      "Never invents issues or discussions",
       "Does not post replies without approval"
     ]
   },
@@ -18,7 +18,7 @@
     "query": "Catch me up on repo activity this week.",
     "files": [],
     "expected_behavior": [
-      "Summarizes by item, newest first",
+      "Summarizes only activity it can actually read",
       "Flags items needing a decision",
       "Stays within the named repository"
     ]
@@ -30,9 +30,9 @@
     "query": "Reply to the open question in issue 12.",
     "files": [],
     "expected_behavior": [
-      "Reads the full thread first",
-      "Drafts a factual reply",
-      "Ends the post with the attribution footer"
+      "Reads the thread first or states it cannot",
+      "Drafts a factual reply without posting it unapproved",
+      "Ends any post with the attribution footer"
     ]
   }
 ]

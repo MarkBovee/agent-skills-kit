@@ -3,7 +3,7 @@
     "skills": [
       "ask-debugging"
     ],
-    "query": "test/pager.test.js started failing after my change. Find out why.",
+    "query": "test/page.test.js started failing after my change. Find out why and fix it.",
     "files": [],
     "expected_behavior": [
       "Reproduces the failure before changing code",
@@ -15,7 +15,7 @@
     "skills": [
       "ask-debugging"
     ],
-    "query": "My first fix did not work; the page() output is still wrong.",
+    "query": "I changed page() to use pageNumber + 1 but page([1, 2, 3, 4], 1, 2) still returns the wrong items. Find the real cause and fix it.",
     "files": [],
     "expected_behavior": [
       "Discards the failed hypothesis explicitly",
@@ -27,7 +27,7 @@
     "skills": [
       "ask-debugging"
     ],
-    "query": "The build is broken after a dependency update.",
+    "query": "npm test is failing and I do not know which change broke it. Find the cause and fix it.",
     "files": [],
     "expected_behavior": [
       "Reads the actual error output",
