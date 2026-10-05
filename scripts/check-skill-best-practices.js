@@ -10,6 +10,7 @@ const REPO_ROOT = path.resolve(__dirname, "..")
 const SKILLS_DIR = path.join(REPO_ROOT, "skills")
 const EVALS_DIR = path.join(REPO_ROOT, "evals")
 const MIN_EVAL_CASES = 3
+const MAX_DESCRIPTION_CHARS = 160
 const MAX_BODY_LINES = 500
 const TOC_THRESHOLD_LINES = 100
 const FIRST_PERSON = /\b(?:I|I'll|I can|you can|you will|we)\b/
@@ -36,9 +37,15 @@ function referenceFiles(skillDir) {
 function checkDescription(file, raw) {
   const match = raw.match(/^description:\s*(.*)$/m)
   if (!match) return fail(file, "missing description")
-  const description = match[1]
+  let description = match[1]
+  try {
+    description = JSON.parse(description)
+  } catch {
+    fail(file, "description must be a quoted YAML string")
+  }
+  if (description.length > MAX_DESCRIPTION_CHARS) fail(file, `description is ${description.length} characters, over ${MAX_DESCRIPTION_CHARS}`)
   if (FIRST_PERSON.test(description)) fail(file, "description must be third person")
-  if (!/\bUse\b/.test(description)) fail(file, 'description must say when to use the skill ("Use when/for/before/after ...")')
+  if (!/\bUse (?:when|for|before|after|to)\b/.test(description)) fail(file, 'description must say when to use the skill ("Use when/for/before/after ...")')
 }
 
 // Validate a SKILL.md body: size and Windows-style paths.
@@ -48,6 +55,8 @@ function checkSkillFile(file, raw) {
   if (WINDOWS_PATH.test(raw)) fail(file, "use forward slashes in paths")
   if (/\]\(\.\.\/ask-/.test(raw)) fail(file, "skills must be self-contained: no links into other skills")
   checkDescription(file, raw)
+  const name = raw.match(/^name:\s*(\S+)/m)
+  if (!name || name[1] !== path.basename(path.dirname(file))) fail(file, "name must equal the skill directory")
 }
 
 // Validate a reference file: contents list when long, no nested reference chains, no cross-skill links.
@@ -82,6 +91,11 @@ for (const name of fs.readdirSync(SKILLS_DIR)) {
   checkSkillFile(skillFile, fs.readFileSync(skillFile, "utf8"))
   checkEvals(name)
   for (const file of referenceFiles(skillDir)) checkReferenceFile(file, fs.readFileSync(file, "utf8"))
+}
+
+// Flag eval files whose skill directory no longer exists.
+for (const file of fs.readdirSync(EVALS_DIR)) {
+  if (!fs.existsSync(path.join(SKILLS_DIR, file.replace(/\.json$/, "")))) fail(path.join(EVALS_DIR, file), "eval has no matching skill")
 }
 
 if (errors.length > 0) {

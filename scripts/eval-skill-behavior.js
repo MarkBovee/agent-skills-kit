@@ -11,7 +11,8 @@ const { spawnSync } = require("node:child_process")
 const { createFixture, CASE_TIMEOUT_MS, INSTALLED_PLUGIN_ID, REPO_ROOT } = require("./eval-skill-activation.js")
 
 const EVALS_DIR = path.join(REPO_ROOT, "evals")
-// Built-in tools (web reads included) only, and no MCP servers, so an eval can never post to GitHub or other external services.
+// Built-in tools (web reads included) and no MCP servers. Bash is unrestricted and inherits the real HOME and
+// credentials, so run this only in a disposable environment.
 const ALLOWED_TOOLS = "Read,Glob,Grep,Edit,Write,Bash,WebSearch,WebFetch"
 const MAX_TRANSCRIPT_CHARS = 24000
 const JUDGE_TIMEOUT_MS = 2 * 60 * 1000
@@ -26,6 +27,7 @@ function parseOptions(argv) {
       continue
     }
     const value = argv[index + 1]
+    if (value === undefined) throw new Error(`${flag} needs a value`)
     if (flag === "--model") options.model = value
     else if (flag === "--judge") options.judge = value
     else if (flag === "--skill") options.skill = value.replace(/^ask-/, "")
@@ -78,6 +80,7 @@ function runQuery(query, options, parentDir) {
     "--allowedTools", ALLOWED_TOOLS, "--strict-mcp-config"]
   if (!options.baseline) args.push("--plugin-dir", REPO_ROOT)
   const run = spawnSync("claude", args, { cwd: workDir, encoding: "utf8", input: "", timeout: CASE_TIMEOUT_MS, maxBuffer: 64 * 1024 * 1024 })
+  if (run.error) return `RUN FAILED: ${run.error.message}`
   return renderTranscript(run.stdout || "")
 }
 
@@ -93,7 +96,7 @@ function gradeTranscript(evalCase, transcript, options) {
   const prompt = `Grade this agent transcript. For each numbered expected behavior answer true only if the transcript clearly shows it.\n` +
     `Reply with a JSON array of ${expected.length} booleans and nothing else.\n\nTask: ${evalCase.query}\n\nExpected:\n${rubric}\n\nTranscript:\n${transcript}`
   const run = spawnSync("claude", ["-p", prompt, "--model", options.judge, "--max-turns", "1", "--output-format", "text"],
-    { encoding: "utf8", input: "", timeout: JUDGE_TIMEOUT_MS })
+    { cwd: os.tmpdir(), encoding: "utf8", input: "", timeout: JUDGE_TIMEOUT_MS })
   const match = (run.stdout || "").match(/\[[^\]]*\]/)
   try {
     const verdicts = JSON.parse(match ? match[0] : "[]")
@@ -108,7 +111,8 @@ function gradeTranscript(evalCase, transcript, options) {
 // Save one transcript and its verdicts so a miss can be inspected.
 function dumpTranscript(dir, skill, evalCase, transcript, verdicts) {
   fs.mkdirSync(dir, { recursive: true })
-  const name = `${skill}-${evalCase.query.slice(0, 24).replace(/\W+/g, "-")}.txt`
+  const slug = evalCase.query.slice(0, 40).replace(/\W+/g, "-")
+  const name = `${skill}-${slug}-${Date.now()}.txt`
   fs.writeFileSync(path.join(dir, name), `${evalCase.query}\n${JSON.stringify(verdicts)}\n\n${transcript}\n`)
 }
 
