@@ -78,6 +78,8 @@ function createFixture(parentDir) {
   git(["init", "-q"])
   git(["add", "-A"])
   git(["-c", "user.email=eval@example.invalid", "-c", "user.name=eval", "commit", "-qm", "fixture"])
+  // Leave one untracked scratch file so cleanup prompts have something real to find.
+  fs.writeFileSync(path.join(workDir, "notes.tmp"), "scratch\n")
   return workDir
 }
 

@@ -27,12 +27,12 @@
     "skills": [
       "ask-verification"
     ],
-    "query": "Clean up before we stop.",
+    "query": "Clean up before we stop: I left a scratch file notes.tmp in the repo.",
     "files": [],
     "expected_behavior": [
       "Inspects git status and the full tree",
-      "Removes only its own leftovers",
-      "Confirms a clean worktree"
+      "Removes only the leftover it can identify as scratch",
+      "Confirms a clean worktree afterwards"
     ]
   }
 ]

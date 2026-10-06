@@ -3,12 +3,12 @@
     "skills": [
       "ask-code-review"
     ],
-    "query": "I finished the pagination change. Review it before I push.",
+    "query": "Review src/pager.js before I push.",
     "files": [],
     "expected_behavior": [
-      "Reviews the actual diff, not a summary",
-      "Reports findings ranked by severity with file and line",
-      "Checks requirement gaps and regressions"
+      "Reads the actual code, not a summary",
+      "Reports findings with file and line, most severe first",
+      "Checks for requirement gaps and regressions"
     ]
   },
   {
@@ -27,7 +27,7 @@
     "skills": [
       "ask-code-review"
     ],
-    "query": "Quick look at this one-line typo fix.",
+    "query": "Quick look at this one-line fix: src/format.js 'Paeg' should be 'Page'.",
     "files": [],
     "expected_behavior": [
       "Keeps the review proportional to the change",

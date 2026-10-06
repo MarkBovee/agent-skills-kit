@@ -7,8 +7,8 @@
     "files": [],
     "expected_behavior": [
       "Finds a primary source",
-      "Answers directly with the citation",
-      "States uncertainty if sources conflict"
+      "Answers directly and cites the source",
+      "Names the Node version that introduced the flag or states uncertainty"
     ]
   },
   {
@@ -31,7 +31,7 @@
     "files": [],
     "expected_behavior": [
       "Compares candidates on stated criteria",
-      "Cites docs or repositories",
+      "Names the sources used for the comparison",
       "Gives a recommendation"
     ]
   }

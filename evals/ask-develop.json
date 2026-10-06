@@ -6,21 +6,21 @@
     "query": "Add a lastPage(items, pageSize) function to src/pager.js and export it.",
     "files": [],
     "expected_behavior": [
-      "Inspects existing code and style first",
-      "Implements in a small validated step",
-      "Runs the relevant tests"
+      "Reads the existing pager.js and its style first",
+      "Implements the function and exports it",
+      "Runs the tests and reports the result"
     ]
   },
   {
     "skills": [
       "ask-develop"
     ],
-    "query": "Refactor format.js to remove duplication.",
+    "query": "Add a header(pageNumber, total) function to src/format.js that reuses the wording of footer(), export it, and add a test for it.",
     "files": [],
     "expected_behavior": [
-      "Preserves behavior and checks it with tests",
-      "Keeps the diff focused",
-      "Does not pause for routine check-ins"
+      "Reads the existing format.js and its style first",
+      "Keeps the diff focused on the requested function and its test",
+      "Runs the tests and reports the result"
     ]
   },
   {

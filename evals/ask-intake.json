@@ -15,12 +15,12 @@
     "skills": [
       "ask-intake"
     ],
-    "query": "Plan a multi-file change to move config loading to a new module.",
+    "query": "Plan a change that moves the footer formatting from src/format.js into src/pager.js.",
     "files": [],
     "expected_behavior": [
-      "Lists affected files and ordering",
+      "Lists the affected files and the order of changes",
       "Names risks and validation steps",
-      "Confirms scope before execution"
+      "Confirms scope before executing"
     ]
   },
   {
