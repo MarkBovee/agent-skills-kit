@@ -89,14 +89,14 @@ function numberedLine(text, index) {
   return `${index + 1}. ${text}`
 }
 
-// Ask the judge model which expected behaviors the transcript shows; returns an array of booleans.
-function gradeTranscript(evalCase, transcript, options) {
+// Ask the judge model which expected behaviors the transcript shows, from a private scratch directory; returns an array of booleans.
+function gradeTranscript(evalCase, transcript, options, judgeDir) {
   const expected = evalCase.expected_behavior
   const rubric = expected.map(numberedLine).join("\n")
   const prompt = `Grade this agent transcript. For each numbered expected behavior answer true only if the transcript clearly shows it.\n` +
     `Reply with a JSON array of ${expected.length} booleans and nothing else.\n\nTask: ${evalCase.query}\n\nExpected:\n${rubric}\n\nTranscript:\n${transcript}`
   const run = spawnSync("claude", ["-p", prompt, "--model", options.judge, "--max-turns", "1", "--output-format", "text"],
-    { cwd: os.tmpdir(), encoding: "utf8", input: "", timeout: JUDGE_TIMEOUT_MS })
+    { cwd: judgeDir, encoding: "utf8", input: "", timeout: JUDGE_TIMEOUT_MS })
   const match = (run.stdout || "").match(/\[[^\]]*\]/)
   try {
     const verdicts = JSON.parse(match ? match[0] : "[]")
@@ -131,7 +131,7 @@ function main() {
     for (const { skill, cases } of evals) {
       for (const evalCase of cases) {
         const transcript = runQuery(evalCase.query, options, parentDir)
-        const verdicts = gradeTranscript(evalCase, transcript, options)
+        const verdicts = gradeTranscript(evalCase, transcript, options, parentDir)
         if (options.dumpDir) dumpTranscript(options.dumpDir, skill, evalCase, transcript, verdicts)
         const hits = verdicts.filter(Boolean).length // count the behaviors the judge confirmed
         passed += hits
