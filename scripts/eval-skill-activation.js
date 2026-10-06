@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Live skill-activation eval for Claude Code: runs realistic prompts through `claude -p` with this
-// checkout as the plugin and records which ASK skill the model loads first. It spends real tokens, so it
+// checkout as the plugin and records which ASK skill the model loads first (Read of its SKILL.md or the Skill tool). It spends real tokens, so it
 // is a manual measurement tool, not a CI check. Usage:
 //   node ./scripts/eval-skill-activation.js [--model sonnet] [--runs 1] [--max-turns 3] [--case <id>]
 
@@ -115,13 +115,17 @@ function parseRun(stdout) {
   return { skills, outputTokens, costUsd }
 }
 
-// Return the bare ASK names of the Skill tool calls in one assistant message.
+// Return the bare ASK names loaded in one assistant message, through the Skill tool or a Read of its SKILL.md.
 function skillCalls(content) {
-  return content
-    // Keep only Skill tool calls.
-    .filter((block) => block.type === "tool_use" && block.name === "Skill")
-    // Strip the plugin namespace and the ask- prefix to compare against the expected bare name.
-    .map((block) => String(block.input?.skill || "").split(":").pop().replace(/^ask-/, ""))
+  const names = []
+  for (const block of content) {
+    if (block.type !== "tool_use") continue
+    // Router-only skills load by reading ask-<name>/SKILL.md; the native Skill tool is kept for older hosts.
+    const readMatch = block.name === "Read" ? String(block.input?.file_path || "").match(/ask-([a-z-]+)\/SKILL\.md$/) : null
+    if (readMatch) names.push(readMatch[1])
+    if (block.name === "Skill") names.push(String(block.input?.skill || "").split(":").pop().replace(/^ask-/, ""))
+  }
+  return names
 }
 
 // Run every selected case the requested number of times and print a per-case line plus a summary.
