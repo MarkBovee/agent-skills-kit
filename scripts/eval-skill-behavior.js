@@ -15,7 +15,7 @@ const EVALS_DIR = path.join(REPO_ROOT, "evals")
 // credentials, so run this only in a disposable environment.
 const ALLOWED_TOOLS = "Read,Glob,Grep,Edit,Write,Bash,WebSearch,WebFetch"
 // Replies that mean the account ran out of quota; grading them would score a dead run as a miss.
-const LIMIT_PATTERN = /hit your (?:session|usage|weekly) limit|rate limit/i
+const LIMIT_PATTERN = /hit your (?:session|usage|weekly) limit|usage limit reached|rate limit exceeded/i
 const MAX_TRANSCRIPT_CHARS = 24000
 const JUDGE_TIMEOUT_MS = 2 * 60 * 1000
 
@@ -42,7 +42,7 @@ function parseOptions(argv) {
     else continue
     index += 1
   }
-  if (/opus/i.test(options.model) && !options.allowOpus) throw new Error("Opus runs are expensive; pass --allow-opus to use it")
+  if ((/opus/i.test(options.model) || /opus/i.test(options.judge)) && !options.allowOpus) throw new Error("Opus runs are expensive; pass --allow-opus to use it")
   if (!Number.isInteger(options.maxTurns) || options.maxTurns < 1) throw new Error("--max-turns must be a positive integer")
   return options
 }
