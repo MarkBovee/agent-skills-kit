@@ -144,7 +144,7 @@ function readWorkflowMandate() {
 // Build the routing table shared by the main session and subagents, which do not inherit session context.
 function routingContextLines() {
   return [
-    "ASK workflow skills are router-only. Before substantial work, select the most specific route and Read its SKILL.md path first; never invoke an ASK leaf through the native Skill tool. For code changes with no more specific route, Read `ask-develop`.",
+    "ASK workflow skills are router-only. Select the most specific route, then use Read on the SKILL.md path shown for it; never invoke an ASK leaf through the native Skill tool. Use `ask-develop` only when nothing more specific matches.",
     "Routing table:",
     ...routingHintLines().map(toAskIdLine),
   ]
