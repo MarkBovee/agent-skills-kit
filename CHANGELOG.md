@@ -6,6 +6,10 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+### Changed
+
+- **README rewritten as a short front door.** What ASK is, a two-command quick start, how routing works, the skill table, and supported hosts now fit on one screen (706 → ~140 lines). Host install details, the router and lifecycle model, and maintenance and release steps moved to `docs/hosts.md`, `docs/workflow.md`, and `docs/maintenance.md`.
+
 ## [2.5.8] - 2026-10-06
 
 ### Changed
