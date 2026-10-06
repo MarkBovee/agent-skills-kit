@@ -6,13 +6,15 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
-## [2.5.8] - 2026-10-05
+## [2.5.8] - 2026-10-06
 
 ### Changed
 
 - **Skills follow Anthropic's authoring best practices.** Descriptions are third person with what and when, long reference files have a `## Contents` list, and `develop` no longer links into another skill.
 - **New `check-skill-best-practices` check** enforces size, description style, one-level self-contained references, contents lists, and forward-slash paths; `AGENTS.md` rules updated to match.
-- **Behavior evals.** `evals/ask-<name>.json` holds three scenarios per skill (`query` plus `expected_behavior`), and the check requires them. `scripts/eval-skill-behavior.js` runs them per model (`--model`) or without skills (`--baseline`) and grades transcripts with a judge model.
+- **Behavior evals.** `evals/ask-<name>.json` holds three scenarios per skill (`query` plus `expected_behavior`), and the check requires them. `scripts/eval-skill-behavior.js` runs them per model (`--model`) or without skills (`--baseline`) and grades transcripts with a judge model. It stops on usage-limit replies instead of scoring them as misses, and Opus runs need `--allow-opus`.
+- **Activation eval counts Read-loaded skills.** `eval-skill-activation.js` now recognizes a `Read` of `ask-<name>/SKILL.md`, the router-only load path, and its fixture has a failing test and a scratch file.
+- **Sharper routing descriptions.** `text-writing` no longer claims "any copy" and `design-review` names the "AI-generated look" case.
 
 ## [2.5.7] - 2026-10-04
 
