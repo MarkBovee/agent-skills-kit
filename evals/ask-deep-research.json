@@ -1,0 +1,38 @@
+[
+  {
+    "skills": [
+      "ask-deep-research"
+    ],
+    "query": "Compare cursor and offset pagination across major libraries with citations.",
+    "files": [],
+    "expected_behavior": [
+      "Consults multiple independent sources",
+      "Flags contradictions between sources",
+      "Hands off a cited summary with confidence per claim"
+    ]
+  },
+  {
+    "skills": [
+      "ask-deep-research"
+    ],
+    "query": "Investigate whether this vendor claim about throughput holds up.",
+    "files": [],
+    "expected_behavior": [
+      "Seeks counter-evidence, not only support",
+      "Cites every claim to a source",
+      "Separates verified facts from inference"
+    ]
+  },
+  {
+    "skills": [
+      "ask-deep-research"
+    ],
+    "query": "Do an exhaustive survey of approaches to idempotent webhooks.",
+    "files": [],
+    "expected_behavior": [
+      "Scopes the question before searching",
+      "Covers more than one source type",
+      "Reports gaps and unknowns"
+    ]
+  }
+]

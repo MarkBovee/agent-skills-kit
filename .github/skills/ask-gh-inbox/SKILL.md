@@ -1,6 +1,6 @@
 ---
 name: "ask-gh-inbox"
-description: "GitHub Inbox: Use when asked to check the GitHub inbox, triage or reply to the repository's issues and discussions, or catch up on repo activity. Common triggers: github inbox, gh inbox, triage issues, check issues, check discussions, reply to issue, process inbox, gh-inbox."
+description: "GitHub Inbox: Triages and replies to a repository's issues and discussions. Use when asked to check the GitHub inbox or catch up on repo activity. Common triggers: github inbox, gh inbox, triage issues, check issues, check discussions, reply to issue, process inbox, gh-inbox."
 disable-model-invocation: true
 ---
 # ASK GitHub Inbox

@@ -1,6 +1,6 @@
 ---
 name: "spec"
-description: "Spec: Use when non-trivial work needs a requirements spec or design brief before code: captured decisions, traceability, and validation gates. Common triggers: spec, specify requirements, requirements spec, requirements capture, design brief, decision register, requirements traceability, traceable requirements, validation gate, readiness gate, handover package, spec before build, truth spine, requirements-driven, requirements engineering, formalize requirements, requirements specification, en..."
+description: "Spec: Writes a requirements spec or design brief with decisions, traceability, and validation gates. Use when non-trivial work needs one before code. Common triggers: spec, specify requirements, requirements spec, requirements capture, design brief, decision register, requirements traceability, traceable requirements, validation gate, readiness gate, handover package, spec before build, truth spine, requirements-driven, requirements engineering, formalize requirements, requirements specificat..."
 whenToUse: "Common triggers: spec, specify requirements, requirements spec, requirements capture, design brief, decision register, requirements traceability, traceable requirements, validation gate, readiness gate, handover package, spec before build, truth spine, requirements-driven, requirements engineering, formalize requirements, requirements specification, engineering contract, invariant, proof obligation, counterexample, compatibility-sensitive, material requirement."
 disable-model-invocation: true
 ---

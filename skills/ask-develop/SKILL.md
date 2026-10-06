@@ -1,7 +1,7 @@
 ---
 name: ask-develop
 disable-model-invocation: true
-description: "Develop: Use for normal implementation work (add, fix, refactor, build a feature) when no more specific ASK skill fits; small safe iterations with validation."
+description: "Develop: Drives normal implementation work in small, validated iterations. Use to add, fix, refactor, or build a feature when no more specific ASK skill fits."
 default: true
 execution_tier: standard
 delegation_default: auto
@@ -81,7 +81,7 @@ Before finishing any code change, inspect every changed function-like construct 
 
 ## Cheap-first escalation
 
-1. Before each delegation, select a task-appropriate model and pass it per invocation when the host supports it; tiers alone do not select a model. See `agent-workflows`' [model routing reference](../ask-agent-workflows/references/model-routing.md).
+1. Before each delegation, select a task-appropriate model and pass it per invocation when the host supports it; tiers alone do not select a model. Default to Haiku for mechanical work, Sonnet for standard work, and Opus only with a stated reason.
 2. Start bounded mechanical chores on the smallest viable agent or subagent.
 3. Validate the result before widening context.
 4. Escalate to default agent only if scope grows beyond the original bounded task.

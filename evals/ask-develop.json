@@ -1,0 +1,38 @@
+[
+  {
+    "skills": [
+      "ask-develop"
+    ],
+    "query": "Add a lastPage(items, pageSize) function to src/pager.js and export it.",
+    "files": [],
+    "expected_behavior": [
+      "Reads the existing pager.js and its style first",
+      "Implements the function and exports it",
+      "Runs the tests and reports the result"
+    ]
+  },
+  {
+    "skills": [
+      "ask-develop"
+    ],
+    "query": "Add a header(pageNumber, total) function to src/format.js that reuses the wording of footer(), export it, and add a test for it.",
+    "files": [],
+    "expected_behavior": [
+      "Reads the existing format.js and its style first",
+      "Keeps the diff focused on the requested function and its test",
+      "Runs the tests and reports the result"
+    ]
+  },
+  {
+    "skills": [
+      "ask-develop"
+    ],
+    "query": "Fix this: pageCount returns NaN when pageSize is 0.",
+    "files": [],
+    "expected_behavior": [
+      "Reproduces or reasons to the cause",
+      "Makes a minimal fix",
+      "Validates before declaring done"
+    ]
+  }
+]

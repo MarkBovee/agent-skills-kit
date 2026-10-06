@@ -1,0 +1,38 @@
+[
+  {
+    "skills": [
+      "ask-text-writing"
+    ],
+    "query": "Write a LinkedIn post announcing this library. It must not sound AI-generated.",
+    "files": [],
+    "expected_behavior": [
+      "Avoids banned words and openers",
+      "Uses concrete specifics",
+      "Reads as a human voice"
+    ]
+  },
+  {
+    "skills": [
+      "ask-text-writing"
+    ],
+    "query": "Draft a README intro for the project.",
+    "files": [],
+    "expected_behavior": [
+      "Leads with what it does",
+      "Keeps sentences plain and varied",
+      "Avoids filler"
+    ]
+  },
+  {
+    "skills": [
+      "ask-text-writing"
+    ],
+    "query": "Rewrite this email so it sounds less robotic.",
+    "files": [],
+    "expected_behavior": [
+      "Preserves the meaning",
+      "Removes AI-pattern phrasing",
+      "Keeps it short"
+    ]
+  }
+]

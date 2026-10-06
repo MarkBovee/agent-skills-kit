@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Live skill-activation eval for Claude Code: runs realistic prompts through `claude -p` with this
-// checkout as the plugin and records which ASK skill the model loads first. It spends real tokens, so it
+// checkout as the plugin and records which ASK skill the model loads first (Read of its SKILL.md or the Skill tool). It spends real tokens, so it
 // is a manual measurement tool, not a CI check. Usage:
 //   node ./scripts/eval-skill-activation.js [--model sonnet] [--runs 1] [--max-turns 3] [--case <id>]
 
@@ -37,11 +37,15 @@ const CASES = [
   { id: "locate", expected: "none", prompt: "Which file defines footer()?" },
 ]
 
-// Small fixture project the prompts refer to: two modules with a typo and an off-by-one bug, plus one test.
+// Small fixture project the prompts refer to: two modules with a typo and an off-by-one bug, one passing test, and one test that fails on the off-by-one.
 const FIXTURE_FILES = {
   "package.json": "{ \"name\": \"activation-fixture\", \"version\": \"1.0.0\", \"private\": true, \"scripts\": { \"test\": \"node --test\" } }\n",
   "src/pager.js": "// Return the items of one 1-based page.\nfunction page(items, pageNumber, pageSize) {\n  const start = pageNumber * pageSize\n  return items.slice(start, start + pageSize)\n}\n\n// Count the pages needed for a list.\nfunction pageCount(items, pageSize) {\n  return Math.ceil(items.length / pageSize)\n}\n\nmodule.exports = { page, pageCount }\n",
   "src/format.js": "// Format a page indicator for the footer.\nfunction footer(pageNumber, total) {\n  return `Paeg ${pageNumber} of ${total}`\n}\n\nmodule.exports = { footer }\n",
+  "README.md": "# activation-fixture\n\nSmall pagination helpers.\n",
+  "VERSION": "1.0.0\n",
+  "CHANGELOG.md": "# Changelog\n\n## Unreleased\n",
+  "test/page.test.js": "const test = require(\"node:test\")\nconst assert = require(\"node:assert\")\nconst { page } = require(\"../src/pager\")\n\ntest(\"page returns the first page\", () => {\n  assert.deepStrictEqual(page([1, 2, 3, 4], 1, 2), [1, 2])\n})\n",
   "test/pager.test.js": "const test = require(\"node:test\")\nconst assert = require(\"node:assert\")\nconst { pageCount } = require(\"../src/pager\")\n\ntest(\"pageCount rounds up\", () => {\n  assert.strictEqual(pageCount([1, 2, 3], 2), 2)\n})\n",
 }
 
@@ -74,6 +78,8 @@ function createFixture(parentDir) {
   git(["init", "-q"])
   git(["add", "-A"])
   git(["-c", "user.email=eval@example.invalid", "-c", "user.name=eval", "commit", "-qm", "fixture"])
+  // Leave one untracked scratch file so cleanup prompts have something real to find.
+  fs.writeFileSync(path.join(workDir, "notes.tmp"), "scratch\n")
   return workDir
 }
 
@@ -109,13 +115,17 @@ function parseRun(stdout) {
   return { skills, outputTokens, costUsd }
 }
 
-// Return the bare ASK names of the Skill tool calls in one assistant message.
+// Return the bare ASK names loaded in one assistant message, through the Skill tool or a Read of its SKILL.md.
 function skillCalls(content) {
-  return content
-    // Keep only Skill tool calls.
-    .filter((block) => block.type === "tool_use" && block.name === "Skill")
-    // Strip the plugin namespace and the ask- prefix to compare against the expected bare name.
-    .map((block) => String(block.input?.skill || "").split(":").pop().replace(/^ask-/, ""))
+  const names = []
+  for (const block of content) {
+    if (block.type !== "tool_use") continue
+    // Router-only skills load by reading ask-<name>/SKILL.md; the native Skill tool is kept for older hosts.
+    const readMatch = block.name === "Read" ? String(block.input?.file_path || "").match(/ask-([a-z-]+)\/SKILL\.md$/) : null
+    if (readMatch) names.push(readMatch[1])
+    if (block.name === "Skill") names.push(String(block.input?.skill || "").split(":").pop().replace(/^ask-/, ""))
+  }
+  return names
 }
 
 // Run every selected case the requested number of times and print a per-case line plus a summary.
@@ -152,4 +162,7 @@ function main() {
   console.log(`\nscore ${hits}/${total} (model ${options.model}, runs ${options.runs}) output-tokens ${outputTokens} cost $${costUsd.toFixed(2)}`)
 }
 
-main()
+// Run only when executed directly so the behavior eval can reuse the fixture helpers.
+if (require.main === module) main()
+
+module.exports = { createFixture, CASE_TIMEOUT_MS, INSTALLED_PLUGIN_ID, REPO_ROOT }

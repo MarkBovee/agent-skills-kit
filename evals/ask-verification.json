@@ -1,0 +1,38 @@
+[
+  {
+    "skills": [
+      "ask-verification"
+    ],
+    "query": "I think the pager fix is done. Prove it works before handoff.",
+    "files": [],
+    "expected_behavior": [
+      "Runs the real checks and shows output",
+      "Reports failures honestly",
+      "Does not claim readiness without evidence"
+    ]
+  },
+  {
+    "skills": [
+      "ask-verification"
+    ],
+    "query": "Is this ready to hand off?",
+    "files": [],
+    "expected_behavior": [
+      "Checks tests, diff, and worktree state",
+      "Lists what was and was not verified",
+      "Gives a plain yes or no"
+    ]
+  },
+  {
+    "skills": [
+      "ask-verification"
+    ],
+    "query": "Clean up before we stop: I left a scratch file notes.tmp in the repo.",
+    "files": [],
+    "expected_behavior": [
+      "Inspects git status and the full tree",
+      "Removes only the leftover it can identify as scratch",
+      "Confirms a clean worktree afterwards"
+    ]
+  }
+]

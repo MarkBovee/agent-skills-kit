@@ -1,0 +1,38 @@
+[
+  {
+    "skills": [
+      "ask-design"
+    ],
+    "query": "Design a landing page for this pagination library.",
+    "files": [],
+    "expected_behavior": [
+      "Asks or infers audience and goal before styling",
+      "Picks a deliberate type, color, and layout system",
+      "Covers responsive and accessibility basics"
+    ]
+  },
+  {
+    "skills": [
+      "ask-design"
+    ],
+    "query": "Redesign the settings screen of our mobile app.",
+    "files": [],
+    "expected_behavior": [
+      "Follows native mobile conventions",
+      "Checks touch targets and safe areas",
+      "Runs the pre-delivery checklist"
+    ]
+  },
+  {
+    "skills": [
+      "ask-design"
+    ],
+    "query": "Polish this dashboard so it looks professional.",
+    "files": [],
+    "expected_behavior": [
+      "Improves hierarchy and spacing first",
+      "Keeps changes consistent with the existing system",
+      "Avoids generic AI-default patterns"
+    ]
+  }
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "skills": [
+      "ask-debugging"
+    ],
+    "query": "test/page.test.js started failing after my change. Find out why and fix it.",
+    "files": [],
+    "expected_behavior": [
+      "Reproduces the failure before changing code",
+      "States a root cause backed by evidence",
+      "Re-runs the test to confirm the fix"
+    ]
+  },
+  {
+    "skills": [
+      "ask-debugging"
+    ],
+    "query": "I changed page() to use pageNumber + 1 but page([1, 2, 3, 4], 1, 2) still returns the wrong items. Find the real cause and fix it.",
+    "files": [],
+    "expected_behavior": [
+      "Discards the failed hypothesis explicitly",
+      "Gathers new evidence instead of guessing again",
+      "Verifies the final fix against the original failure"
+    ]
+  },
+  {
+    "skills": [
+      "ask-debugging"
+    ],
+    "query": "npm test is failing and I do not know which change broke it. Find the cause and fix it.",
+    "files": [],
+    "expected_behavior": [
+      "Reads the actual error output",
+      "Isolates the offending change",
+      "Does not skip or disable checks to get green"
+    ]
+  }
+]

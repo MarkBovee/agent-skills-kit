@@ -1,7 +1,7 @@
 ---
 name: ask-text-writing
 disable-model-invocation: true
-description: "Text Writing: Use for emails, posts, articles, bios, READMEs, or any copy that must sound human and avoid detectable AI writing patterns."
+description: "Text Writing: Writes emails, posts, articles, bios, and READMEs that sound human and avoid AI writing patterns. Use when drafting or rewriting prose."
 triggers:
   - anti-slop
   - make this sound human

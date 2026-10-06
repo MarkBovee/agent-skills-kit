@@ -1,7 +1,7 @@
 ---
 name: ask-gh-inbox
 disable-model-invocation: true
-description: "GitHub Inbox: Use when asked to check the GitHub inbox, triage or reply to the repository's issues and discussions, or catch up on repo activity."
+description: "GitHub Inbox: Triages and replies to a repository's issues and discussions. Use when asked to check the GitHub inbox or catch up on repo activity."
 execution_tier: standard
 delegation_default: owner-only
 triggers:

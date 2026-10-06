@@ -1,0 +1,38 @@
+[
+  {
+    "skills": [
+      "ask-agent-workflows"
+    ],
+    "query": "Split the README update and the format.js tests across parallel subagents, then merge.",
+    "files": [],
+    "expected_behavior": [
+      "Gives each subagent a narrow brief with an output contract",
+      "Chooses a task-appropriate model per delegation instead of inheriting",
+      "Validates each result before merging"
+    ]
+  },
+  {
+    "skills": [
+      "ask-agent-workflows"
+    ],
+    "query": "Cut a patch release: bump the version, update the changelog, and tag it.",
+    "files": [],
+    "expected_behavior": [
+      "Bumps VERSION and adds a matching CHANGELOG entry",
+      "Does not tag before the change is merged to main",
+      "Cites independent gate evidence before declaring readiness"
+    ]
+  },
+  {
+    "skills": [
+      "ask-agent-workflows"
+    ],
+    "query": "Hand this refactor to a helper agent and keep working on something else.",
+    "files": [],
+    "expected_behavior": [
+      "Writes a distilled handoff, not the whole conversation",
+      "Caps the expected report size",
+      "Does not edit the delegated paths while the helper works"
+    ]
+  }
+]

@@ -1,6 +1,6 @@
 ---
 name: "agent-workflows"
-description: "Agent Workflows: Use when coordinating subagents or parallel work, handing off tasks, or running release chores (version bump, changelog, release notes, tag). Common triggers: multi-agent, parallel work, agent coordination, task handoff, subagent delegation, version bump, bump version, release notes, changelog, tag release, release prep."
+description: "Agent Workflows: Coordinates subagents and parallel work, handoffs, and release chores (version bump, changelog, tag). Use when delegating or releasing. Common triggers: multi-agent, parallel work, agent coordination, task handoff, subagent delegation, version bump, bump version, release notes, changelog, tag release, release prep."
 whenToUse: "Common triggers: multi-agent, parallel work, agent coordination, task handoff, subagent delegation, version bump, bump version, release notes, changelog, tag release, release prep."
 disable-model-invocation: true
 ---

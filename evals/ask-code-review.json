@@ -1,0 +1,38 @@
+[
+  {
+    "skills": [
+      "ask-code-review"
+    ],
+    "query": "Review src/pager.js before I push.",
+    "files": [],
+    "expected_behavior": [
+      "Reads the actual code, not a summary",
+      "Reports findings with file and line, most severe first",
+      "Checks for requirement gaps and regressions"
+    ]
+  },
+  {
+    "skills": [
+      "ask-code-review"
+    ],
+    "query": "Review my last commit for risky design.",
+    "files": [],
+    "expected_behavior": [
+      "Reads the commit diff and its surrounding code",
+      "Separates blocking findings from optional ones",
+      "Ends with an explicit pass or findings verdict"
+    ]
+  },
+  {
+    "skills": [
+      "ask-code-review"
+    ],
+    "query": "Quick look at this one-line fix: src/format.js 'Paeg' should be 'Page'.",
+    "files": [],
+    "expected_behavior": [
+      "Keeps the review proportional to the change",
+      "Does not invent findings",
+      "States the verdict plainly"
+    ]
+  }
+]

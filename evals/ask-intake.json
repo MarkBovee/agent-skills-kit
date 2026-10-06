@@ -1,0 +1,38 @@
+[
+  {
+    "skills": [
+      "ask-intake"
+    ],
+    "query": "I want to build something around pagination but I am not sure what yet.",
+    "files": [],
+    "expected_behavior": [
+      "Asks clarifying questions about goal and constraints",
+      "Proposes success criteria",
+      "Does not start coding"
+    ]
+  },
+  {
+    "skills": [
+      "ask-intake"
+    ],
+    "query": "Plan a change that moves the footer formatting from src/format.js into src/pager.js.",
+    "files": [],
+    "expected_behavior": [
+      "Lists the affected files and the order of changes",
+      "Names risks and validation steps",
+      "Confirms scope before executing"
+    ]
+  },
+  {
+    "skills": [
+      "ask-intake"
+    ],
+    "query": "Brainstorm options for rate limiting.",
+    "files": [],
+    "expected_behavior": [
+      "Offers distinct options with trade-offs",
+      "Recommends one",
+      "States assumptions"
+    ]
+  }
+]
