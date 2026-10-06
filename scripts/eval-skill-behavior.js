@@ -2,7 +2,7 @@
 // Behavior eval for Claude Code: runs each evals/ask-<name>.json query through `claude -p` with this
 // checkout as the plugin (or without it for --baseline), then has a judge model grade the transcript
 // against expected_behavior. It spends real tokens, so it is a manual tool, not a CI check. Usage:
-//   node ./scripts/eval-skill-behavior.js [--model haiku|sonnet|opus] [--judge sonnet] [--skill debugging,develop] [--baseline] [--max-turns 8] [--dump dir]
+//   node ./scripts/eval-skill-behavior.js [--model haiku|sonnet|opus] [--judge sonnet] [--skill debugging,develop] [--baseline] [--allow-opus] [--max-turns 8] [--dump dir]
 
 const fs = require("node:fs")
 const os = require("node:os")
@@ -14,6 +14,8 @@ const EVALS_DIR = path.join(REPO_ROOT, "evals")
 // Built-in tools (web reads included) and no MCP servers. Bash is unrestricted and inherits the real HOME and
 // credentials, so run this only in a disposable environment.
 const ALLOWED_TOOLS = "Read,Glob,Grep,Edit,Write,Bash,WebSearch,WebFetch"
+// Replies that mean the account ran out of quota; grading them would score a dead run as a miss.
+const LIMIT_PATTERN = /hit your (?:session|usage|weekly) limit|rate limit/i
 const MAX_TRANSCRIPT_CHARS = 24000
 const JUDGE_TIMEOUT_MS = 2 * 60 * 1000
 
@@ -26,6 +28,10 @@ function parseOptions(argv) {
       options.baseline = true
       continue
     }
+    if (flag === "--allow-opus") {
+      options.allowOpus = true
+      continue
+    }
     const value = argv[index + 1]
     if (value === undefined) throw new Error(`${flag} needs a value`)
     if (flag === "--model") options.model = value
@@ -36,6 +42,7 @@ function parseOptions(argv) {
     else continue
     index += 1
   }
+  if (/opus/i.test(options.model) && !options.allowOpus) throw new Error("Opus runs are expensive; pass --allow-opus to use it")
   if (!Number.isInteger(options.maxTurns) || options.maxTurns < 1) throw new Error("--max-turns must be a positive integer")
   return options
 }
@@ -132,6 +139,7 @@ function main() {
     for (const { skill, cases } of evals) {
       for (const evalCase of cases) {
         const transcript = runQuery(evalCase.query, options, parentDir)
+        if (LIMIT_PATTERN.test(transcript)) throw new Error(`usage limit reached at "${evalCase.query.slice(0, 50)}"; scores so far are partial`)
         const verdicts = gradeTranscript(evalCase, transcript, options, parentDir)
         if (options.dumpDir) dumpTranscript(options.dumpDir, skill, evalCase, transcript, verdicts)
         const hits = verdicts.filter(Boolean).length // count the behaviors the judge confirmed
