@@ -1,7 +1,7 @@
 ---
 name: ask-design-review
 disable-model-invocation: true
-description: "Design Review: Reviews an existing design, UI, or page copy for an AI-generated look and quality issues. Use when asked if it looks AI-generated or before shipping."
+description: "Design Review: Reviews an existing design, UI, or page copy for an AI-generated look and quality issues. Use when asked if it looks AI-made or before shipping."
 triggers:
   - review this design
   - check for AI slop
