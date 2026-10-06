@@ -2,7 +2,7 @@
 // Behavior eval for Claude Code: runs each evals/ask-<name>.json query through `claude -p` with this
 // checkout as the plugin (or without it for --baseline), then has a judge model grade the transcript
 // against expected_behavior. It spends real tokens, so it is a manual tool, not a CI check. Usage:
-//   node ./scripts/eval-skill-behavior.js [--model haiku|sonnet|opus] [--judge sonnet] [--skill debugging] [--baseline] [--max-turns 8] [--dump dir]
+//   node ./scripts/eval-skill-behavior.js [--model haiku|sonnet|opus] [--judge sonnet] [--skill debugging,develop] [--baseline] [--max-turns 8] [--dump dir]
 
 const fs = require("node:fs")
 const os = require("node:os")
@@ -30,7 +30,7 @@ function parseOptions(argv) {
     if (value === undefined) throw new Error(`${flag} needs a value`)
     if (flag === "--model") options.model = value
     else if (flag === "--judge") options.judge = value
-    else if (flag === "--skill") options.skill = value.replace(/^ask-/, "")
+    else if (flag === "--skill") options.skill = value.replace(/ask-/g, "")
     else if (flag === "--max-turns") options.maxTurns = Number(value)
     else if (flag === "--dump") options.dumpDir = value
     else continue
@@ -42,10 +42,11 @@ function parseOptions(argv) {
 
 // Load the selected eval files as { skill, cases } entries.
 function loadEvals(skillFilter) {
+  const wanted = skillFilter ? skillFilter.split(",") : []
   const entries = []
   for (const file of fs.readdirSync(EVALS_DIR).sort()) {
     const skill = file.replace(/^ask-/, "").replace(/\.json$/, "")
-    if (skillFilter && skill !== skillFilter) continue
+    if (wanted.length > 0 && !wanted.includes(skill)) continue
     entries.push({ skill, cases: JSON.parse(fs.readFileSync(path.join(EVALS_DIR, file), "utf8")) })
   }
   return entries
