@@ -88,6 +88,17 @@ your request
 * After code edits, a review reminder stays until review evidence arrives.
 * Risk decides the gates: a small fix needs `EXECUTE → VALIDATE`; release-sensitive work adds `AUDIT` and `RELEASE_GATE`.
 
+A typical session:
+
+```text
+You:  "test/page.test.js started failing after my change."
+ASK:  suggests debugging → the agent reads ask-debugging → reproduces, finds the root cause,
+      fixes it, and re-runs the test before saying it works.
+
+You:  "Review it before I push."
+ASK:  suggests code-review → findings ranked by severity, with file and line.
+```
+
 Details: the decision tree, risk lifecycle, and cost-aware execution profile are in [docs/workflow.md](./docs/workflow.md).
 
 ## Skills
