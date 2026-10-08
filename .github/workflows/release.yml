@@ -55,20 +55,20 @@ jobs:
           node ./scripts/check-router-nudges.js
           node ./scripts/check-workflow-lifecycle.js
           node ./scripts/check-research-workflow.js
-           node ./scripts/check-dsh-plugin.js
-           node ./scripts/check-opencode-v2-plugin.js
-           node ./scripts/check-panel-widget.js
+          node ./scripts/check-dsh-plugin.js
+          node ./scripts/check-opencode-v2-plugin.js
+          node ./scripts/check-panel-widget.js
           node ./scripts/check-widget-live-state.js
-           node ./scripts/export-platform-skills.js
-           ./scripts/check-installed-artifacts.sh
-           rm -f node_modules
-           git status --short --untracked-files=all
-           git diff --name-only
-           git diff --cached --name-only
-           git diff --exit-code -- .github/skills .dsh/skills .opencode/commands .github/prompts .github/copilot-instructions.md
-           test -z "$(git status --porcelain -- .github/skills .dsh/skills .opencode/commands .github/prompts .github/copilot-instructions.md)"
-           git diff --cached --exit-code
-           test -z "$(git status --porcelain --untracked-files=all)"
+          node ./scripts/export-platform-skills.js
+          ./scripts/check-installed-artifacts.sh
+          rm -f node_modules
+          git status --short --untracked-files=all
+          git diff --name-only
+          git diff --cached --name-only
+          git diff --exit-code -- .github/skills .dsh/skills .opencode/commands .github/prompts .github/copilot-instructions.md
+          test -z "$(git status --porcelain -- .github/skills .dsh/skills .opencode/commands .github/prompts .github/copilot-instructions.md)"
+          git diff --cached --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
 
       - name: Read release version
         id: version
@@ -85,12 +85,16 @@ jobs:
         run: |
           git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG" 2>/dev/null || true
           if git show-ref --tags --verify --quiet "refs/tags/$TAG"; then
-            if [ "$(git rev-list -n 1 "$TAG")" != "$GITHUB_SHA" ]; then
-              echo "Tag $TAG already exists on a different commit."
-              exit 1
-            fi
-            if [ "$(git rev-list -n 1 "$TAG")" = "$GITHUB_SHA" ]; then
+            tag_commit="$(git rev-list -n 1 "$TAG")"
+            if [ "$tag_commit" = "$GITHUB_SHA" ]; then
               echo "Tag $TAG already points to this commit."
+            elif git merge-base --is-ancestor "$tag_commit" "$GITHUB_SHA"; then
+              # CHANGELOG-only push without a version bump: keep the tag and let the
+              # later steps refresh the release notes instead of failing the run.
+              echo "Tag $TAG already published at $tag_commit; keeping it and refreshing release notes."
+            else
+              echo "Tag $TAG already exists on a commit that is not an ancestor of this one."
+              exit 1
             fi
           else
             git config user.name "github-actions[bot]"

@@ -7,6 +7,11 @@ on:
 permissions:
   contents: read
 
+# Supersede stale runs on the same ref so quick pushes do not queue duplicates.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -71,6 +76,9 @@ jobs:
 
       - name: Validate research workflows
         run: node ./scripts/check-research-workflow.js
+
+      - name: Validate dsh plugin
+        run: node ./scripts/check-dsh-plugin.js
 
       - name: Validate ASK panel widget
         run: node ./scripts/check-panel-widget.js
