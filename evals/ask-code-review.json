@@ -34,5 +34,17 @@
       "Does not invent findings",
       "States the verdict plainly"
     ]
+  },
+  {
+    "skills": [
+      "ask-code-review"
+    ],
+    "query": "Review this branch against issue #42 before I open the PR.",
+    "files": [],
+    "expected_behavior": [
+      "Pins the review base and finds the spec from the issue reference",
+      "Reports Standards and Spec findings side by side",
+      "Flags changes that nobody asked for as scope creep"
+    ]
   }
 ]

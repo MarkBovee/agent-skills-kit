@@ -3,8 +3,8 @@
 </p>
 
 <p align="center">
-  <strong>ASK — Agent Skills Kit.</strong><br />
-  Workflow skills and routing support for coding agents, built Claude Code first. One canonical skill system that also runs on OpenCode, Codex, GitHub Copilot, and DeepSeek Harness (dsh).
+  <strong>Do you own your vibe-coded app?</strong><br />
+  ASK — Agent Skills Kit makes your coding agent write code you can defend: professional, KISS, and fast. Built Claude Code first; also runs on OpenCode, Codex, GitHub Copilot, and DeepSeek Harness (dsh).
 </p>
 
 <p align="center">
@@ -23,13 +23,15 @@
 
 <p align="center">
   <code>ASK</code>
-  <code>17 skills</code>
+  <code>19 skills</code>
   <code>1 router</code>
   <code>5 agent hosts</code>
   <code>review + verification</code>
 </p>
 
 <p align="center">
+  <a href="#why">Why</a> •
+  <a href="#see-it-work">Examples</a> •
   <a href="#quick-start">Quick start</a> •
   <a href="#how-it-works">How it works</a> •
   <a href="#skills">Skills</a> •
@@ -40,14 +42,61 @@
 
 ---
 
-## What it is
+## Why
 
-ASK is a set of **17 workflow skills** for coding agents: debugging, code review, verification, research, design, and more. Each skill is a short, focused playbook the agent reads right before it does that kind of work.
+Agents ship code that passes its own tests and that you cannot explain a week later. The usual symptoms:
+
+* The same logic is rewritten inline instead of reusing a helper that already exists.
+* One file grows until nobody wants to open it.
+* Comments either vanish or narrate the obvious, and never say *why*.
+* Layers, factories, and wrappers appear for needs nobody has.
+* "Done" means "I ran something".
+
+You can ship that fast. You cannot own it. ASK makes the agent work the way a careful senior engineer does, without the ceremony.
+
+## What you get
+
+| You get | How |
+| --- | --- |
+| **Code you can read** | Small functions, named helpers, pure builders, an intent comment above every function, and *why* comments at real decisions. The rules live in `rules/coding-standards.md`, and review treats a missing comment as a blocking finding. |
+| **Code that stays small (KISS)** | Reuse before adding, three duplications become one helper, and no repositories, wrappers, or factories without a demonstrated need. Review flags speculative abstraction and pass-through layers. |
+| **Speed by default** | `develop` is the default. A small fix goes `EXECUTE → VALIDATE`: targeted validation, no separate review, no audit. New tests follow a budget instead of a reflex. |
+| **Proof, not claims** | `verification` ties the claim to evidence from this session. `/summary` splits **Proven** from **Not proven** and points at the spots to read yourself. |
+| **A safety net** | A git guard blocks `reset --hard`, force pushes, and pushes to `main` before they run. |
+| **Ownership** | `/summary` explains the change, `/handoff` briefs the next agent, and an optional `GLOSSARY.md` and short ADRs keep terms and decisions findable. |
+
+## See it work
+
+Illustrative examples of what the standards ask for. The rules are language-agnostic; the full code (C#) is in [docs/examples.md](./docs/examples.md).
+
+| Concern | Typical agent output | With ASK |
+| --- | --- | --- |
+| **Helpers** | A 15-line route handler that parses, normalizes, and saves inline | The handler orchestrates; a named `OrderLineParser.Parse` does the parsing, and existing helpers are reused first |
+| **Files** | `Orders.cs` with five types and 600 lines | One public type per file, named for the type |
+| **Comments** | None, or `// add 1 to retries` | An intent comment above every function, and a *why* where it matters: `// The carrier API allows 5 requests per second, so retry with backoff` |
+| **KISS** | An interface, a factory, a decorator, and an options class for one cached lookup | One method with a one-hour cache; review flags the single-implementation factory as possible speculative generality |
+| **Proof** | "Done, tests pass." | A summary that splits what was run from what was not |
+
+What `/summary` hands you afterwards, derived from the diff and not from the conversation:
+
+```text
+What:          CSV import now skips malformed lines and reports the stored count.
+Changes:       OrderLineParser.cs (new), OrderEndpoints.cs (uses the parser).
+Decisions:     skip bad lines instead of rejecting the file; rejecting loses good rows.
+Proven:        dotnet test --filter OrderImport: 6 passed; dotnet format --verify-no-changes: clean.
+Not proven:    imports over 10 MB.
+Read yourself: OrderLineParser.cs:23 (int.Parse throws on a bad quantity).
+Watch:         no new dependencies.
+```
+
+You know what changed, what was run, and where to look first.
+
+## How it is built
 
 * **One source, many hosts.** Skills live once under `skills/` and export to Claude Code, OpenCode, Codex, GitHub Copilot, and dsh.
-* **Claude Code first.** A native plugin with routing hooks, review reminders, cost-aware subagents, and path-scoped rules.
+* **Claude Code first.** A native plugin with routing hooks, review reminders, cost-aware subagents, path-scoped rules, and the git guard.
 * **Hints, not control.** The router suggests one skill per task. It never rewrites commands, runs tools, or takes over a session.
-* **Proof that matches the claim.** Normal work stays light (`develop` is the default); bigger changes get review, verification, and independent audit in proportion to their risk.
+* **Proof that matches the claim.** Bigger changes get review, verification, and independent audit in proportion to their risk.
 
 ## Quick start
 
@@ -106,9 +155,10 @@ Details: the decision tree, risk lifecycle, and cost-aware execution profile are
 | Stage | Skills | What they do |
 | --- | --- | --- |
 | Research | `research`, `deep-research` | Answer a bounded question with sources, or run a multi-source investigation with contradictions and a cited handoff. |
-| Start | `intake`, `spec` | Clarify fuzzy work and plan it; write a traceable requirements spec. |
+| Start | `intake`, `spec` | Clarify fuzzy work with grill rounds and plan it; write a traceable requirements spec. |
 | Execute | `develop`, `debugging` | Make normal changes in small validated steps; find root causes. |
-| Validate | `code-review`, `verification` | Review a diff; prove a claim before saying it works. |
+| Validate | `code-review`, `verification` | Review a diff against standards and spec; prove a claim before saying it works. |
+| Hand over | `summary`, `handoff` | Explain what changed and what is proven so you own the result; brief the next agent. |
 | Improve | `improve`, `session-review` | Audit and refactor; reflect on a session and file follow-ups. |
 | Coordinate | `agent-workflows`, `write-skill` | Coordinate subagents and release chores; write and revise skills. |
 | Product | `design`, `design-review` | Build interfaces beyond bland defaults; filter them for AI-default patterns. |
@@ -133,6 +183,7 @@ Claude Code is where new workflow behavior is designed and validated first. The 
 
 | Read | For |
 | --- | --- |
+| [docs/examples.md](./docs/examples.md) | Before and after examples: helpers, files, comments, KISS, proof, grill rounds |
 | [docs/hosts.md](./docs/hosts.md) | Install paths, installer modes, per-host details, troubleshooting, updates |
 | [docs/workflow.md](./docs/workflow.md) | Routing, decision tree, risk-based lifecycle, cost-aware execution |
 | [docs/maintenance.md](./docs/maintenance.md) | Regenerating exports, validation commands, release flow |

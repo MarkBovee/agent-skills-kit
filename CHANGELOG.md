@@ -6,10 +6,25 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.6.0] - 2026-10-08
+
+### Added
+
+- **`ask-summary` skill.** Owner-facing change summary derived from the diff: what changed, decisions with rejected alternatives, what is proven and not proven, the spots to read yourself, and what to watch. Also a code walkthrough and a plain-language re-pitch of output that did not land. Slash command `/summary`.
+- **`ask-handoff` skill.** Writes a short brief so a fresh agent can continue: state from the repository, decisions, proof so far with its diff reference, open items, next step, and suggested skills. Saved outside the workspace. Slash command `/handoff`.
+- **Git guard.** A Claude Code `PreToolUse` hook denies destructive git commands before they run (`reset --hard`, `clean -f`, `branch -D`, `checkout .`, `restore .`, force pushes, pushes to `main` or `master`). `ASK_GIT_GUARD=strict` blocks every push and `off` disables it. Logic lives in `core/git-guard.js`; it is a safety net, not a security boundary (`bash -c`, `eval`, and substitutions inside quotes are out of scope).
+- **Grill rounds in `intake`.** Open decisions are asked as one numbered round of the whole frontier, each with a recommended answer that "yes" accepts; facts are looked up, not asked.
+- **Lazy glossary and ADRs.** `intake` gets a `references/domain-language.md` for a `GLOSSARY.md` and short decision records, written only when a term or a hard-to-reverse, surprising, trade-off decision calls for it.
+- **Two-axis code review.** `code-review` judges a separate review on Standards (including a Fowler smell baseline in `references/smell-baseline.md`, where the repository overrides and smells are judgment calls) and Spec (does the diff do what was asked, no more and no less).
+- **Skill authoring rules.** `write-skill` adds context-pointer wording, checkable and exhaustive completion criteria, and the context-load versus cognitive-load trade-off.
+- **Router routes for the new skills.** Prompts such as "what did you change", "walk me through", or "write a handoff" route to `summary` and `handoff` (English and Dutch phrases), ahead of the review and completion routes, and "grill me" routes to `intake`.
+
 ### Changed
 
-- **README rewritten as a short front door.** What ASK is, a two-command quick start, how routing works, the skill table, and supported hosts now fit on one screen (706 → ~140 lines). Host install details, the router and lifecycle model, and maintenance and release steps moved to `docs/hosts.md`, `docs/workflow.md`, and `docs/maintenance.md`. A typical-session example shows the routing flow.
+- **README opens with the ownership hook.** "Do you own your vibe-coded app?" leads, followed by a problem-first Why, a value table (readable code, KISS, speed, proof, safety net, ownership), and a compact before and after table for helpers, files, comments, KISS, and proof. Full examples with code live in `docs/examples.md`.
+- **README rewritten as a short front door.** What ASK is, a two-command quick start, how routing works, the skill table, and supported hosts now fit on one screen (706 → ~200 lines). Host install details, the router and lifecycle model, and maintenance and release steps moved to `docs/hosts.md`, `docs/workflow.md`, and `docs/maintenance.md`. A typical-session example shows the routing flow.
 - **Retired old release plans.** Removed `plans/release-2.2.19.md`, `plans/release-2.4.0.md`, `docs/plans/opencode-sidebar-color-regression-release.md`, `docs/release-2.4.1.md`, and `docs/release-2.4.2.md`; the changelog keeps the history.
+- **CI and release workflow fixes.** A changelog-only push to `main` keeps the existing release tag when it points at an ancestor commit and refreshes the release notes; a tag on a non-ancestor commit still fails. CI now also runs the dsh plugin check and cancels superseded runs per ref (#137).
 
 ## [2.5.8] - 2026-10-06
 

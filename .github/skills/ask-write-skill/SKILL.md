@@ -18,12 +18,16 @@ Two modes: (1) create or revise skills that improve agent judgment, (2) capture 
 5. Make autonomous progress the default when the goal is clear.
 6. General skills should not hardcode branded artifact trees or repo-local folder conventions.
 7. Encode hard gates only for failures that are expensive and common.
+8. Treat the description and any always-loaded pointer line as a context pointer: its wording decides when the material is reached. Front-load the leading word, give one trigger per distinct branch (synonyms are one branch written twice), and cut identity the body already carries. Sharpen a weak pointer before inlining its target.
+9. End every step with a completion criterion the agent can check and that demands full coverage ("every changed function has an intent comment"). A vague bound ("understanding reached") invites stopping early; sharpen the bound before hiding later steps.
+10. Spend the two loads on purpose. Always-loaded text costs context on every turn, and a document with no pointer costs the human an index of what exists. Keep the steps in `SKILL.md`, and push reference that only some branches need behind a pointer to a one-level `references/` file.
 
 ### Design test
 
 - What mistake will the model make without this skill?
 - What is the smallest guidance that prevents that mistake?
 - Does this skill help discovery, or does it just add ceremony?
+- Can the agent tell done from not done at the end of each step?
 
 ## Capturing workflow improvements
 

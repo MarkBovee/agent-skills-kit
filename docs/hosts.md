@@ -115,13 +115,20 @@ Install as a plugin (recommended):
 
 | Piece | Behavior |
 | --- | --- |
-| 17 `ask-` skills | Hidden from automatic model invocation (`disable-model-invocation`). The router picks one and the agent reads its `SKILL.md`; you can also run any of them as a slash command. |
+| 19 `ask-` skills | Hidden from automatic model invocation (`disable-model-invocation`). The router picks one and the agent reads its `SKILL.md`; you can also run any of them as a slash command. |
 | `SessionStart` hook | Routing table with the exact `SKILL.md` path per workflow plus the workflow mandate. Announced again after compaction. |
 | `SubagentStart` hook | Hands the same routing table to subagents, which do not inherit session context. |
 | `UserPromptSubmit` hook | One routing suggestion, the workflow risk and its gates, the test budget, and the review reminder. Plain questions and slash commands get nothing. |
+| `PreToolUse` hook | The git guard: denies destructive `git` commands in Bash before they run (see below). |
 | `PostToolUse` hooks | Edits arm the review reminder; reading the `ask-code-review` file (or loading it through the Skill tool) clears it. Session state lives in `${CLAUDE_PLUGIN_DATA}`. |
 | `/ask-flow` pane | A Claude Code mod (`hooks/flow-pane.tsx`) that opens a side pane with the workflow gates, the loaded `ask-` skills, pending review, and subagent results. Needs a Claude Code build with mods; it reads the hook's session state and changes nothing. |
 | Subagents | Read-only `ask-reviewer`, `ask-auditor`, and `ask-researcher` return `ASK_WORKFLOW_*` evidence markers and default to Sonnet. |
+
+### Git guard
+
+The `PreToolUse` hook on Bash denies destructive git commands and tells the agent to ask you instead. By default it blocks `reset --hard`, `clean -f` (not `-n`), `branch -D`, `checkout .`, `restore .` (not `--staged`), force, delete, and mirror pushes, forced or deleting refspecs, and any push to `main` or `master` (including a bare `git push` while one of them is checked out). Other pushes go through.
+
+Set `ASK_GIT_GUARD` in the environment (for example in the `env` block of `settings.json`): `strict` blocks every push, `off` disables the guard. It is a safety net against agent mistakes, not a security boundary: it does not look inside `bash -c` strings or scripts. It is part of the plugin, so a skills-mode install (`ASK_CLAUDE_MODE=skills`) does not have it.
 
 Skill files resolve in this order: the shared install (`~/.agents/skills`, or `ASK_SKILLS_DIR`) when it exists, otherwise the copy bundled in the plugin. A plugin-only install therefore works without running the installer.
 

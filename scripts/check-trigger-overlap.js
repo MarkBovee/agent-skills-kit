@@ -54,6 +54,16 @@ const ROUTING_CASES = [
   ["ambiguous scope", "intake"],
   ["multiple issues with maximum compatibility", "intake"],
   ["plan an end-to-end implementation", "intake"],
+  ["grill me on this plan", "intake"],
+  ["stress-test this plan before we start", "intake"],
+  // Validate — summary and handoff
+  ["summarize the changes you made", "summary"],
+  ["what did you change in the parser", "summary"],
+  ["wait what, explain that simpler", "summary"],
+  ["walk me through the retry logic", "summary"],
+  ["write a handoff document for the next session", "handoff"],
+  ["my context is full, hand over to a fresh agent", "handoff"],
+  ["this is ready for handoff", "verification"],
   // Execute — debugging
   ["fix this bug", "debugging"],
   ["start debugging", "debugging"],

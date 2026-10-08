@@ -100,13 +100,17 @@ function checkAgents() {
 // Check the hooks file uses the nested Claude Code shape with a quoted plugin root.
 function checkHooksFile() {
   const hooks = readJson("hooks/hooks.json").hooks || {}
-  for (const eventName of ["SessionStart", "SubagentStart", "UserPromptSubmit", "PostToolUse"]) {
+  for (const eventName of ["SessionStart", "SubagentStart", "UserPromptSubmit", "PreToolUse", "PostToolUse"]) {
     // Flatten the handler lists of every hook entry for one event.
     const handlers = (hooks[eventName] || []).flatMap((entry) => entry.hooks || [])
     expect(handlers.length > 0, `${eventName} defines nested hook handlers`)
     // Require command handlers that quote the plugin root variable.
     expect(handlers.every((handler) => handler.type === "command" && handler.command.includes('"${CLAUDE_PLUGIN_ROOT}')), `${eventName} handlers quote \${CLAUDE_PLUGIN_ROOT}`)
   }
+  // Require a Bash-matched PreToolUse handler that runs the git guard.
+  const guardEntry = (hooks.PreToolUse || []).find((entry) => entry.matcher === "Bash")
+  // Require one of the Bash entry's handlers to call the guard-bash event.
+  expect((guardEntry?.hooks || []).some((handler) => handler.command.endsWith("agent-skills-hook.js\" guard-bash")), "PreToolUse runs the git guard for Bash")
   // Flatten the handler lists of every PostToolUse entry.
   const postToolHandlers = (hooks.PostToolUse || []).flatMap((entry) => entry.hooks || [])
   // Require a handler that tracks router-directed skill file reads.
@@ -230,11 +234,34 @@ function checkHookBehavior() {
   expect(!startContext.includes("Resumed from a summary"), "a fresh SessionStart carries no resume reminder")
   fs.rmSync(stateDir, { recursive: true, force: true })
 
+  checkGitGuard()
+
   const slash = runHook("prompt", JSON.stringify({ prompt: "/clear" }))
   expect(slash.status === 0 && slash.stdout.trim() === "", "slash-command prompts produce no hint")
 
   const garbage = runHook("prompt", "not json")
   expect(garbage.status === 0 && garbage.stdout.trim() === "", "malformed payload exits 0 without output")
+}
+
+// Check that the PreToolUse git guard denies destructive git commands, allows normal ones, and honors ASK_GIT_GUARD.
+function checkGitGuard() {
+  // Run the guard for one Bash command with an optional ASK_GIT_GUARD value and parse its decision.
+  const guard = (command, mode) => {
+    const env = { ...process.env, ASK_GIT_GUARD: mode || "" }
+    const result = spawnSync(process.execPath, [HOOK_SCRIPT, "guard-bash"], { input: JSON.stringify({ tool_name: "Bash", tool_input: { command }, cwd: REPO_ROOT }), encoding: "utf8", env, timeout: 10000 })
+    return { status: result.status, decision: parseHookOutput(result.stdout)?.hookSpecificOutput }
+  }
+  // Tell whether the guard denies one command in the given mode.
+  const denied = (command, mode) => guard(command, mode).decision?.permissionDecision === "deny"
+  const blocked = ["git reset --hard HEAD~1", "git clean -fd", "git branch -D old", "git checkout .", "git restore .", "git push --force origin feature", "git push origin main", "cd app && git push -f", "(cd app && git reset --hard)", "{ git reset --hard; }", "command git reset --hard", "sudo git clean -fd", "/usr/bin/git reset --hard", "echo hi &git reset --hard", "git push -o ci.skip origin main", 'git push origin "HEAD:main"', 'git push origin "+feature"', "cat <<EOF; git reset --hard\nx\nEOF", "git reset --hard \\\n  HEAD", "if true; then git reset --hard; fi"]
+  for (const command of blocked) expect(denied(command), `git guard denies \`${command}\``)
+  const allowed = ["git status", "git push origin feature/x", "git reset --soft HEAD~1", "git clean -n", "git branch -d merged", "git restore --staged .", "git checkout -b topic", 'git commit -m "docs: mention git push --force"', 'git commit -m "say \\"hi\\"; git reset --hard"', "git commit -F - <<'EOF'\nfix\ngit push --force origin main\nEOF", "git push origin feature # main", "git push -o ci.skip origin feature"]
+  for (const command of allowed) expect(!denied(command), `git guard allows \`${command}\``)
+  expect(denied("git push origin feature/x", "strict"), "ASK_GIT_GUARD=strict denies every push")
+  expect(!denied("git reset --hard", "off"), "ASK_GIT_GUARD=off disables the guard")
+  const reason = guard("git reset --hard").decision?.permissionDecisionReason || ""
+  expect(reason.includes("do not have authority") && !reason.includes("ASK_GIT_GUARD"), "the denial tells the agent to ask the user and does not advertise the off switch")
+  expect(guard("").status === 0 && guard("git status").status === 0, "the guard exits 0 for empty and allowed commands")
 }
 
 // Run the real `claude plugin validate --strict` on each manifest/component target when the CLI is installed.

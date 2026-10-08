@@ -55,6 +55,8 @@ flowchart TD
     B -->|Debug bug, crash, failing test, error| D[debugging]
     B -->|Review code changes before handoff| CR[code-review]
     B -->|Verify claim, prove it works| V[verification]
+    B -->|Summarize changes, walk through code, re-pitch| SU[summary]
+    B -->|Hand off to a fresh agent or session| HO[handoff]
     B -->|Audit, refactor, reduce tech debt| R[improve]
     B -->|Reflect on session, file improvement| G[session-review]
     B -->|Coordinate multi-agent, parallel tasks| A2[agent-workflows]
@@ -72,6 +74,8 @@ flowchart TD
     style DE fill:#1a1a2e,stroke:#e94560,color:#fff
     style CR fill:#1a1a2e,stroke:#2ecc71,color:#fff
     style V fill:#1a1a2e,stroke:#2ecc71,color:#fff
+    style SU fill:#1a1a2e,stroke:#2ecc71,color:#fff
+    style HO fill:#1a1a2e,stroke:#2ecc71,color:#fff
     style R fill:#1a1a2e,stroke:#f39c12,color:#fff
     style G fill:#1a1a2e,stroke:#f39c12,color:#fff
     style A2 fill:#1a1a2e,stroke:#1abc9c,color:#fff
@@ -86,7 +90,7 @@ flowchart TD
 | **Research**   | `research`, `deep-research`      | `#00bcd4` cyan   |
 | **Start**      | `spec`, `intake`                 | `#7C5CFF` purple |
 | **Execute**    | `debugging`, `develop`           | `#e94560` red    |
-| **Validate**   | `code-review`, `verification`    | `#2ecc71` green  |
+| **Validate**   | `code-review`, `verification`, `summary`, `handoff` | `#2ecc71` green  |
 | **Improve**    | `improve`, `session-review`      | `#f39c12` orange |
 | **Coordinate** | `agent-workflows`, `write-skill` | `#1abc9c` teal   |
 | **Product**    | `design`, `design-review`        | `#e91e8c` pink   |

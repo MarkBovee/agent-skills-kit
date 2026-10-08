@@ -49,6 +49,11 @@ triggers:
   - pair programming
   - samenwerken
   - samen aanpakken
+  - grill me
+  - grill this plan
+  - stress-test this plan
+  - challenge my plan
+  - scherp mijn plan
 ---
 
 # ASK Kickoff
@@ -61,7 +66,7 @@ Clarify enough to avoid wrong work, then move. One skill for the full pre-execut
 
 **Design exploration** (fuzzy/exploratory):
 1. Read existing code, docs, plans, and constraints first.
-2. Ask one focused question at a time; prefer multiple choice when it fits. Attach your current guess to each question ("I think X because Y — is that right?") so the user can react faster than generating an answer.
+2. Ask the open questions as one grill round (see Grill rounds); a single open question is just one question. Prefer multiple choice when it fits and attach your recommended answer to each question so the user can react faster than generating an answer.
 3. Probe for what the user actually wants, not what they think they should want; "whatever you think" or "sounds good" is not a yes — confirm the intent explicitly.
 4. Make assumptions explicit, especially around non-goals, scale, security, and ownership.
 5. Propose 2-3 viable approaches with a recommendation and clear tradeoffs.
@@ -102,6 +107,20 @@ Clarify enough to avoid wrong work, then move. One skill for the full pre-execut
 **Release-gate cost decision** — when planning a release-sensitive change, make the validation and audit cost a stated decision before executing, not a default. Choose the **tier** of the independent audit (a `standard`/general re-audit is enough for a tiny delta; escalate to `deep` only on open cross-cutting invariants or counter-evidence). This decision never waives the audit itself: release-sensitive work still requires an independent audit and release-gate with evidence from a context separate from the implementer — owner-thread verification never substitutes for it. Record the tier choice and its outcome so the next release does not re-pay the same cost. The plan for release-sensitive work must carry a required line `Gate cost: <validation>, <review tier>, <audit tier>, expected cost`; a plan without it fails plan-check.
 
 For significant or release-sensitive work, add a plan-check gate: challenge scope, affected callers, compatibility, fallback behavior, ambiguity, determinism, and proof gaps before execution.
+
+## Grill rounds
+
+Use when the user asks to be grilled or a plan has several open decisions. Treat the plan as a decision tree where each decision unlocks the ones below it.
+
+1. The frontier is every open decision whose prerequisites are already settled. Ask the whole frontier in one round, numbered, each with your recommended answer.
+2. Word each question so "yes" accepts your recommendation. A question that depends on another open one in the same round waits for a later round.
+3. Look up facts yourself (code, config, docs) instead of asking; delegate a long lookup to a subagent and ask the questions that do not depend on it meanwhile.
+4. After each answer round, recompute the frontier. Done means the frontier is empty and nothing is silently assumed; wait for the user to confirm shared understanding before acting.
+5. Cap rounds at three unless the user keeps opening new branches; unanswered low-risk branches become stated assumptions.
+
+## Shared language and decisions
+
+Read `references/domain-language.md` when a plan introduces or contradicts domain terms, or when a decision is hard to reverse, surprising without context, and the result of a real trade-off. It covers the lazy `GLOSSARY.md` and ADR files; write them only when that bar is met.
 
 ## Resuming from a summary
 

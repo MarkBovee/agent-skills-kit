@@ -8,8 +8,8 @@ import { homedir } from "node:os"
 // OpenCode's TUI loader does not synthesize CommonJS named exports.
 export const ASK_SKILL_NAMES = new Set([
   "agent-workflows", "code-review", "debugging", "deep-research", "design",
-  "design-review", "develop", "gh-inbox", "improve", "intake", "observability",
-  "research", "session-review", "spec", "text-writing", "verification", "write-skill",
+  "design-review", "develop", "gh-inbox", "handoff", "improve", "intake", "observability",
+  "research", "session-review", "spec", "summary", "text-writing", "verification", "write-skill",
 ])
 
 const CODE_EDIT_TOOL_NAMES = new Set(["edit", "write", "patch", "apply_patch"])

@@ -1,0 +1,50 @@
+[
+  {
+    "skills": [
+      "ask-summary"
+    ],
+    "query": "Summarize what you changed.",
+    "files": [],
+    "expected_behavior": [
+      "Derives the summary from the diff rather than from memory",
+      "Separates what was proven from what was not run",
+      "Names one to three file:line spots the owner should read"
+    ]
+  },
+  {
+    "skills": [
+      "ask-summary"
+    ],
+    "query": "Quick recap of this small typo fix before I commit.",
+    "files": [],
+    "expected_behavior": [
+      "Keeps the summary to a few lines",
+      "Omits empty sections",
+      "Does not review or praise the change"
+    ]
+  },
+  {
+    "skills": [
+      "ask-summary"
+    ],
+    "query": "Walk me through how the retry logic works so I can own it.",
+    "files": [],
+    "expected_behavior": [
+      "Reads the code before explaining it",
+      "Explains from the entry point with file:line references",
+      "States uncertainty instead of guessing"
+    ]
+  },
+  {
+    "skills": [
+      "ask-summary"
+    ],
+    "query": "Wait, what? I don't understand where you ended up. Explain it again.",
+    "files": [],
+    "expected_behavior": [
+      "Restates in short plain sentences without repeating the original wording",
+      "Gives two sentences of context and one concrete example",
+      "Ends with the decision or next step needed"
+    ]
+  }
+]

@@ -3,7 +3,9 @@
 const fs = require("node:fs")
 const os = require("node:os")
 const path = require("node:path")
+const { spawnSync } = require("node:child_process")
 
+const { evaluateGitCommand, needsCurrentBranch, resolveGuardMode } = require("../core/git-guard")
 const {
   SKILL_CODE_REVIEW,
   SKILL_DEVELOP,
@@ -261,11 +263,47 @@ function buildResumeContext() {
   ].join("\n")
 }
 
+// Look up the checked-out branch of the session's working directory; empty when git is unavailable or HEAD is detached.
+function currentGitBranch(cwd) {
+  try {
+    const result = spawnSync("git", ["symbolic-ref", "--short", "HEAD"], { cwd: cwd || process.cwd(), encoding: "utf8", timeout: 3000 })
+    return result.status === 0 ? result.stdout.trim() : ""
+  } catch {
+    return ""
+  }
+}
+
+// Build the PreToolUse output that denies a tool call and tells the agent to ask the user instead.
+function buildDenyOutput(reason) {
+  return JSON.stringify({
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+      permissionDecisionReason: `Blocked by the Agent Skills Kit git guard: ${reason}. You do not have authority to run this. Tell the user what you intended and let them run it or approve it.`,
+    },
+  })
+}
+
+// Deny destructive git commands before the Bash tool runs them; ASK_GIT_GUARD=off disables, =strict blocks every push.
+function guardBash(payload) {
+  const mode = resolveGuardMode(process.env.ASK_GIT_GUARD)
+  const command = payload.tool_input?.command
+  if (mode === "off" || typeof command !== "string" || !command.trim()) return
+  const currentBranch = needsCurrentBranch(command) ? currentGitBranch(payload.cwd) : ""
+  const reason = evaluateGitCommand(command, { mode, currentBranch })
+  if (reason) process.stdout.write(buildDenyOutput(reason))
+}
+
 // Handle one hook event and emit only the event-supported JSON shape.
 async function main() {
   const event = process.argv[2]
   const payload = await readInput()
   const sessionId = readSessionId(payload)
+
+  if (event === "guard-bash") {
+    guardBash(payload)
+    return
+  }
 
   if (event === "post-edit") {
     saveState(sessionId, { ...loadState(sessionId), needsCodeReview: true })
