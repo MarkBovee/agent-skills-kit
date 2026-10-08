@@ -108,7 +108,7 @@ Default to delegate. Only keep in main when the reasoning must survive — struc
 
 Pick the smallest capable tier for the actual job; escalate only when evidence demands it, never by default.
 
-Execution tiers do not select a model. Before each delegation, choose a task-appropriate model and pass it per invocation when the host supports that. Do not rely on `inherit` or an omitted model for cost-sensitive work. See [references/model-routing.md](references/model-routing.md) for the routing policy, Claude Code behavior, and verification requirements.
+Execution tiers do not select a model. For Claude Code the mapping is `light` → Haiku, `standard` → Sonnet (user term: medium), `deep` → Opus only with a stated reason (user term: heavy). Workflow skills run in the Sonnet `ask-worker`; intake and spec stay on the session model because they ask the user questions. Before each delegation, choose a task-appropriate model and pass it per invocation when the host supports that; the worker is always Sonnet. Do not rely on `inherit` or an omitted model for cost-sensitive work. See [references/model-routing.md](references/model-routing.md) for the routing policy, Claude Code behavior, and verification requirements.
 
 - **Start low.** Begin on `light`/`standard` (smallest capable subagent or model). Reserve `deep`/xhigh for broad, cross-cutting, release-critical analysis — and only with a stated time budget agreed with the owner thread up front.
 - **Delta re-checks are cheap.** A re-audit or follow-up check after fixes does not repeat the original deep pass: re-verify the touched surface on `standard`/general. Escalate to `deep` only if new counter-evidence or an open cross-cutting invariant demands it.
