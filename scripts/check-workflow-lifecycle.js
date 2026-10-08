@@ -222,10 +222,13 @@ function checkModelRoutingGuidance() {
       && routingSection.includes("references/model-routing.md"))
   check("develop requires per-delegation model selection",
     developSection.includes("select a task-appropriate model and pass it per invocation"))
-  check("model routing distinguishes Haiku, Sonnet, and selective Opus",
-    routingGuidance.includes("| Mechanical / light | Haiku |")
-      && routingGuidance.includes("| Standard | Sonnet |")
-      && routingGuidance.includes("| High-judgment / deep | Opus, selectively |"))
+  check("model routing maps tiers to Haiku, Sonnet, and selective Opus",
+    routingGuidance.includes("| `light` (user term: light) | Haiku |")
+      && routingGuidance.includes("| `standard` (user term: medium) | Sonnet |")
+      && routingGuidance.includes("| `deep` (user term: heavy) | Opus, selectively |"))
+  check("model routing keeps workflow skills on the Sonnet worker floor",
+    routingGuidance.includes("## Workflow floor")
+      && routingGuidance.includes("Workflow skills run in the Sonnet worker (`ask-worker`)"))
   check("model routing treats model selection as a request until verified",
     routingGuidance.includes("a request, not proof of the model actually used")
       && routingGuidance.includes("Verify the active model in `/tasks`"))

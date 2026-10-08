@@ -10,7 +10,7 @@ How agent-skills-kit (ASK) fits together. Claude Code is the primary harness; Op
 | `commands/<name>.md` | Canonical slash commands | Yes |
 | `core/router-core.js` | Shared routing, lifecycle, state, frontmatter, and skill-path helpers | Yes |
 | `hooks/hooks.json`, `scripts/agent-skills-hook.js`, `hooks/flow-pane.tsx`, `types/` | Claude Code hooks and the `/ask-flow` mod | Yes |
-| `agents/` | Claude Code read-only subagents (`ask-reviewer`, `ask-auditor`, `ask-researcher`, default `model: sonnet`) | Yes |
+| `agents/` | Claude Code subagents: `ask-worker` (Sonnet, runs routed workflow skills and may edit) and read-only `ask-reviewer`, `ask-auditor`, `ask-researcher`; all default to `model: sonnet` | Yes |
 | `.claude-plugin/` | Plugin manifest and marketplace entry | Yes |
 | `plugins/agent-skills-router/`, `plugins/agent-skills-router.dsh.mjs`, `plugins/dsh-*` | OpenCode server/TUI router and dsh router preset, widget, panel prototype | Yes |
 | `rules/workflow.md`, `rules/coding-standards.md`, `rules/agent-skills-kit.md` | Shared workflow mandate, full coding standards, OpenCode router rules | Yes |
@@ -68,7 +68,7 @@ Other hosts reuse this core:
 
 ## Subagent cost routing
 
-`skills/ask-agent-workflows/references/model-routing.md` is the policy: Haiku for bounded mechanical work, Sonnet for standard work and review, Opus only with a stated reason. The agent files default to Sonnet; the coordinator should still pass a model per delegation, and an alias can be remapped by organization policy, so confirm the model that actually ran.
+`skills/ask-agent-workflows/references/model-routing.md` is the policy. On Claude Code the tiers map `light` → Haiku, `standard` (medium) → Sonnet, `deep` (heavy) → Opus only with a stated reason. Workflow skills in `WORKER_SKILL_NAMES` (`scripts/agent-skills-hook.js`) get a routing line that sends them to `ask-worker` on Sonnet, so a Haiku session still runs them on Sonnet; intake and spec stay on the session model because they ask the user questions. Prompts ending in `?` get no worker line, and `deep-research` stays on the session model. The coordinator dispatches the review and audit gates itself; the worker reports `BLOCKED` rather than starting subagents. The agent files default to Sonnet; an alias can be remapped by organization policy, so confirm the model that actually ran.
 
 ## Installation
 

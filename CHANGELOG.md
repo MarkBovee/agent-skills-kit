@@ -6,6 +6,24 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.6.2] - 2026-10-08
+
+### Changed
+
+- Move `/ask-flow` from a separate pane into a collapsible status band above the prompt.
+
+## [2.6.1] - 2026-10-08
+
+### Added
+
+- **`ask-worker` subagent (Sonnet).** Workflow skills `develop`, `debugging`, `research`, `improve`, `verification`, `observability`, and `design` run in a Sonnet worker that can edit files and reports `ASK_WORKFLOW_*` evidence. The session model stays on the conversation, so a Haiku session still gets Sonnet-level workflow work. Prompts that end in `?` get no worker line; `intake`, `spec`, and `deep-research` stay on the session model.
+- **Tier-to-model mapping for Claude Code.** `light` → Haiku, `standard` (medium) → Sonnet, `deep` (heavy) → Opus only with a stated reason. Documented in `README.md`, `docs/workflow.md`, `docs/hosts.md`, and `model-routing.md`.
+
+### Changed
+
+- `check-claude-code` exempts only `ask-worker` from the read-only agent rule; every agent still requests `model: sonnet`.
+- Plugin and marketplace descriptions mention the worker.
+
 ## [2.6.0] - 2026-10-08
 
 ### Added

@@ -122,7 +122,7 @@ Install as a plugin (recommended):
 | `PreToolUse` hook | The git guard: denies destructive `git` commands in Bash before they run (see below). |
 | `PostToolUse` hooks | Edits arm the review reminder; reading the `ask-code-review` file (or loading it through the Skill tool) clears it. Session state lives in `${CLAUDE_PLUGIN_DATA}`. |
 | `/ask-flow` pane | A Claude Code mod (`hooks/flow-pane.tsx`) that draws a band above the prompt: a one-line summary when collapsed, and the workflow gates, loaded `ask-` skills, pending review, and subagent results when expanded (`/ask-flow` or the band's toggle). Needs a Claude Code build with mods; it reads the hook's session state and changes nothing. |
-| Subagents | Read-only `ask-reviewer`, `ask-auditor`, and `ask-researcher` return `ASK_WORKFLOW_*` evidence markers and default to Sonnet. |
+| Subagents | `ask-worker` (Sonnet, can edit) runs a routed workflow skill end to end. Read-only `ask-reviewer`, `ask-auditor`, and `ask-researcher` return `ASK_WORKFLOW_*` evidence markers. All four default to Sonnet. |
 
 ### Git guard
 
@@ -142,7 +142,7 @@ Every workflow has two slash names. The short command is unprefixed: `/gh-inbox`
 
 ### Cost-aware subagents
 
-The coordinator picks a model per delegated task: Haiku for bounded mechanical work, Sonnet for standard work and as the agent fallback, Opus only for justified high-judgment tasks. The invocation choice beats agent frontmatter, and an alias can still be remapped by your organization, so confirm the model that actually ran in `/tasks`. Avoid `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1`; it forces one model onto every subagent. The full table is in `skills/ask-agent-workflows/references/model-routing.md`.
+On Claude Code the tiers map to models: `light` → Haiku, `standard` (medium) → Sonnet, `deep` (heavy) → Opus, only for justified high-judgment tasks. You choose the model for your own conversation; the workflow skills run in the Sonnet `ask-worker` so a Haiku session still gets Sonnet-level work. The coordinator picks a model per other delegated task. The invocation choice beats agent frontmatter, and an alias can still be remapped by your organization, so confirm the model that actually ran in `/tasks`. Avoid `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1`; it forces one model onto every subagent. The full table is in `skills/ask-agent-workflows/references/model-routing.md`.
 
 ### Installer modes
 
@@ -258,4 +258,3 @@ pwsh -NoLogo -NoProfile -File .\scripts\update.ps1 -SkipPull
 The unified installer writes one local metadata file after each run:
 
 * Shared managed root: `~/.agents/.agent-skills-kit-install.txt`
-

@@ -2,11 +2,17 @@
 
 Choose a model for the delegated task, not by inheriting the coordinator's default. Complexity tiers guide the decision but do not select a model by themselves.
 
-| Task | Starting model | Examples | Escalate when |
-| --- | --- | --- | --- |
-| Mechanical / light | Haiku | Locate files, bounded grep, straightforward extraction, summarize routine command output | The result is ambiguous, incomplete, or needs material judgment. |
-| Standard | Sonnet | Bounded research, ordinary implementation support, validation, normal code review | Evidence shows cross-cutting reasoning, unresolved correctness/security risk, or a cheaper pass failed. |
-| High-judgment / deep | Opus, selectively | Architecture tradeoffs, difficult root-cause analysis, ambiguous invariants, broad counterexample analysis | This is a deliberate starting choice; state why Sonnet is insufficient. |
+| Tier | Claude model | Task | Examples | Escalate when |
+| --- | --- | --- | --- | --- |
+| `light` (user term: light) | Haiku | Mechanical | Locate files, bounded grep, straightforward extraction, summarize routine command output | The result is ambiguous, incomplete, or needs material judgment. |
+| `standard` (user term: medium) | Sonnet | Workflow work and review | Workflow skills (develop, debugging, research, verification, improve), bounded research, implementation, validation, normal code review | Evidence shows cross-cutting reasoning, unresolved correctness/security risk, or a cheaper pass failed. |
+| `deep` (user term: heavy) | Opus, selectively | High-judgment | Architecture tradeoffs, difficult root-cause analysis, ambiguous invariants, broad counterexample analysis | This is a deliberate starting choice; state why Sonnet is insufficient. |
+
+The tier names stay `light`, `standard`, and `deep` in every file. The "user term" column is the vocabulary people use in conversation.
+
+## Workflow floor
+
+Workflow skills run in the Sonnet worker (`ask-worker`), not on the session model. The exception is `deep-research` (tier `deep`), which stays on the session model because it dispatches its own subagents; the worker cannot start agents. Questions (prompts ending in `?`) get no worker line. The session model, which the user chooses, stays on the conversation: it routes, asks the user questions, and reports results. Haiku handles only bounded mechanical sub-steps the coordinator runs itself, such as search, grep, or summarizing command output. Intake and spec stay on the session model because they ask the user questions, and a subagent cannot answer them interactively.
 
 Use the lowest capable model, a narrow handoff, and a concise output contract. Do not spawn redundant workers or retry unchanged work on a more expensive model. Escalate only for a concrete gap, failed validation, or increased scope. `deep` describes task complexity; it is not an automatic Opus assignment.
 

@@ -86,13 +86,21 @@ function checkSkills() {
   expect(listingChars <= MAX_LISTING_BUDGET, `skill listing stays within ${MAX_LISTING_BUDGET} characters (${listingChars})`)
 }
 
-// Check the agent definitions use ask- names, read-only tools, and a Sonnet fallback.
+// Agents that only read and report; the worker is the one agent allowed to edit, and it must stay on Sonnet too.
+const WRITING_AGENT_FILES = new Set(["ask-worker.md"])
+
+// Check the agent definitions use ask- names, read-only tools except the worker, and a Sonnet model.
 function checkAgents() {
   const agentsDir = path.join(REPO_ROOT, "agents")
   for (const fileName of fs.readdirSync(agentsDir)) {
     const raw = fs.readFileSync(path.join(agentsDir, fileName), "utf8")
     expect(/^name: ask-[a-z-]+$/m.test(raw) && raw.includes(`name: ${fileName.replace(/\.md$/, "")}`), `${fileName} agent name matches its file and the ask- prefix`)
-    expect(/^tools:/m.test(raw) && !/^tools:.*\b(Edit|Write|MultiEdit)\b/m.test(raw), `${fileName} agent is read-only`)
+    expect(/^tools:/m.test(raw), `${fileName} agent declares its tools`)
+    if (WRITING_AGENT_FILES.has(fileName)) {
+      expect(/^tools:.*\b(Edit|Write)\b/m.test(raw), `${fileName} worker agent can edit files`)
+    } else {
+      expect(!/^tools:.*\b(Edit|Write|MultiEdit)\b/m.test(raw), `${fileName} agent is read-only`)
+    }
     expect(/^model:\s*sonnet\s*$/m.test(raw), `${fileName} agent requests Sonnet rather than inheriting the session model`)
   }
 }
