@@ -8,8 +8,8 @@ const MODE_OFF = "off"
 const MODE_STRICT = "strict"
 // Global git options that take a separate value argument, so the subcommand is the token after that value.
 const OPTIONS_WITH_VALUE = new Set(["-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path"])
-// Commands that run another command; the guard looks through them to the git call that follows.
-const COMMAND_WRAPPERS = new Set(["command", "env", "sudo", "nice", "time", "exec", "nohup", "xargs", "builtin"])
+// Commands and shell keywords that precede another command; the guard looks through them to the git call that follows.
+const COMMAND_WRAPPERS = new Set(["command", "env", "sudo", "nice", "time", "exec", "nohup", "xargs", "builtin", "then", "do", "else", "elif", "if", "while", "until", "!"])
 // Push options whose value is a separate argument and must not be read as a remote or refspec.
 const PUSH_OPTIONS_WITH_VALUE = new Set(["-o", "--push-option", "--repo", "--receive-pack", "--exec"])
 const FORCE_PUSH_FLAGS = new Set(["--force", "-f", "--delete", "-d", "--mirror"])
@@ -40,7 +40,8 @@ function skipHeredocBody(command, from, delimiter) {
 }
 
 // Scan a command once, honoring backslash escapes, quotes, comments, and heredocs: quoted text is flattened into one
-// inert word, comments and heredoc bodies are dropped, so only real shell syntax is left to split into segments.
+// inert word (separators masked, refspec characters kept), comments and heredoc bodies are dropped, so only real
+// shell syntax is left to split into segments.
 function neutralizeQuotes(command) {
   const source = String(command || "")
   let output = ""
@@ -49,11 +50,12 @@ function neutralizeQuotes(command) {
     const char = source[index]
     const atWordStart = index === 0 || /[\s;&|(){}]/.test(source[index - 1])
     if (char === "\\") {
-      output += "_"
+      // A backslash-newline is a line continuation (a word break); any other escaped character becomes inert text.
+      output += source[index + 1] === "\n" ? " " : "_"
       index += 2
     } else if (char === "'" || char === '"') {
       const closing = findClosingQuote(source, index)
-      output += `"${source.slice(index + 1, closing).replace(/[^A-Za-z0-9]/g, "_")}"`
+      output += `"${source.slice(index + 1, closing).replace(/[\s;&|(){}`#<>$]/g, "_")}"`
       index = closing + 1
     } else if (char === "#" && atWordStart) {
       const newline = source.indexOf("\n", index)
@@ -67,7 +69,7 @@ function neutralizeQuotes(command) {
       }
       // Keep the rest of the command line, then drop the body that follows the next newline.
       const lineEnd = source.indexOf("\n", heredoc.end)
-      output += source.slice(index, lineEnd === -1 ? source.length : lineEnd).replace(/<<-?\s*\S+/, "")
+      output += source.slice(heredoc.end, lineEnd === -1 ? source.length : lineEnd)
       index = lineEnd === -1 ? source.length : skipHeredocBody(source, heredoc.end, heredoc.delimiter)
       output += "\n"
     } else {
