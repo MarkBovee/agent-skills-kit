@@ -34,5 +34,17 @@
       "Provides a default instead of many options",
       "Checks overlap with existing skills"
     ]
+  },
+  {
+    "skills": [
+      "ask-write-skill"
+    ],
+    "query": "Write a skill for preparing a release; the agent keeps stopping halfway through the steps.",
+    "files": [],
+    "expected_behavior": [
+      "Gives each step a checkable and exhaustive completion criterion",
+      "Sharpens vague criteria before splitting or hiding later steps",
+      "Keeps the description to when to use, not how the skill works"
+    ]
   }
 ]

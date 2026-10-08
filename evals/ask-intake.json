@@ -34,5 +34,17 @@
       "Recommends one",
       "States assumptions"
     ]
+  },
+  {
+    "skills": [
+      "ask-intake"
+    ],
+    "query": "Grill me on this migration plan before we start.",
+    "files": [],
+    "expected_behavior": [
+      "Asks the whole open frontier in one numbered round",
+      "Gives a recommended answer per question worded so yes accepts it",
+      "Looks up facts in the repository instead of asking the user"
+    ]
   }
 ]

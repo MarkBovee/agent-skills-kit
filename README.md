@@ -23,7 +23,7 @@
 
 <p align="center">
   <code>ASK</code>
-  <code>17 skills</code>
+  <code>19 skills</code>
   <code>1 router</code>
   <code>5 agent hosts</code>
   <code>review + verification</code>
@@ -42,10 +42,10 @@
 
 ## What it is
 
-ASK is a set of **17 workflow skills** for coding agents: debugging, code review, verification, research, design, and more. Each skill is a short, focused playbook the agent reads right before it does that kind of work.
+ASK is a set of **19 workflow skills** for coding agents: debugging, code review, verification, research, design, and more. Each skill is a short, focused playbook the agent reads right before it does that kind of work.
 
 * **One source, many hosts.** Skills live once under `skills/` and export to Claude Code, OpenCode, Codex, GitHub Copilot, and dsh.
-* **Claude Code first.** A native plugin with routing hooks, review reminders, cost-aware subagents, and path-scoped rules.
+* **Claude Code first.** A native plugin with routing hooks, review reminders, cost-aware subagents, path-scoped rules, and a git guard that blocks destructive commands.
 * **Hints, not control.** The router suggests one skill per task. It never rewrites commands, runs tools, or takes over a session.
 * **Proof that matches the claim.** Normal work stays light (`develop` is the default); bigger changes get review, verification, and independent audit in proportion to their risk.
 
@@ -106,9 +106,10 @@ Details: the decision tree, risk lifecycle, and cost-aware execution profile are
 | Stage | Skills | What they do |
 | --- | --- | --- |
 | Research | `research`, `deep-research` | Answer a bounded question with sources, or run a multi-source investigation with contradictions and a cited handoff. |
-| Start | `intake`, `spec` | Clarify fuzzy work and plan it; write a traceable requirements spec. |
+| Start | `intake`, `spec` | Clarify fuzzy work with grill rounds and plan it; write a traceable requirements spec. |
 | Execute | `develop`, `debugging` | Make normal changes in small validated steps; find root causes. |
-| Validate | `code-review`, `verification` | Review a diff; prove a claim before saying it works. |
+| Validate | `code-review`, `verification` | Review a diff against standards and spec; prove a claim before saying it works. |
+| Hand over | `summary`, `handoff` | Explain what changed and what is proven so you own the result; brief the next agent. |
 | Improve | `improve`, `session-review` | Audit and refactor; reflect on a session and file follow-ups. |
 | Coordinate | `agent-workflows`, `write-skill` | Coordinate subagents and release chores; write and revise skills. |
 | Product | `design`, `design-review` | Build interfaces beyond bland defaults; filter them for AI-default patterns. |

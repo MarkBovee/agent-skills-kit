@@ -26,13 +26,15 @@ const SKILL_RESEARCH = "research"
 const SKILL_DEEP_RESEARCH = "deep-research"
 const SKILL_OBSERVABILITY = "observability"
 const SKILL_GH_INBOX = "gh-inbox"
+const SKILL_SUMMARY = "summary"
+const SKILL_HANDOFF = "handoff"
 const REVIEW_COMPLETION_MARKER = "ASK_REVIEW_COMPLETE"
 
 const ASK_SKILL_NAMES = new Set([
   SKILL_AGENT_WORKFLOWS, SKILL_CODE_REVIEW, SKILL_DEBUGGING, SKILL_DEEP_RESEARCH,
   SKILL_DESIGN, SKILL_DESIGN_REVIEW, SKILL_DEVELOP, SKILL_GH_INBOX, SKILL_IMPROVE,
   SKILL_INTAKE, SKILL_OBSERVABILITY, SKILL_RESEARCH, SKILL_SESSION_REVIEW,
-  SKILL_SPEC, SKILL_TEXT_WRITING, SKILL_VERIFICATION, SKILL_WRITE_SKILL,
+  SKILL_SPEC, SKILL_SUMMARY, SKILL_HANDOFF, SKILL_TEXT_WRITING, SKILL_VERIFICATION, SKILL_WRITE_SKILL,
 ])
 const VALID_EXECUTION_TIERS = new Set(["light", "standard", "deep"])
 const VALID_DELEGATION_MODES = new Set(["auto", "prefer-subagent", "owner-only"])
@@ -208,6 +210,20 @@ const AMBIGUITY_PHRASES = [
   "werk voorplannen", "uncertain", "unsure", "which approach",
   "cross-cutting", "cross cutting", "scope is unclear",
   "requirements are unclear", "what should we do next", "what next",
+  "grill me", "grill this plan", "stress-test this plan", "challenge my plan", "scherp mijn plan",
+]
+// Checked before REVIEW_PHRASES and COMPLETION_PHRASES: asking for a handoff brief is not a claim that work is ready.
+const HANDOFF_PHRASES = [
+  "write a handoff", "handoff document", "handoff brief", "hand over to a fresh agent",
+  "overdracht schrijven", "continue in a new session", "fresh agent", "context is full", "pick this up later",
+]
+// Checked before REVIEW_PHRASES so "what changed in the diff" explains the change instead of reviewing it.
+const SUMMARY_PHRASES = [
+  "summarize the changes", "summarise the changes", "summarize what you", "recap the changes",
+  "what did you change", "what changed", "what did you build", "explain what you built",
+  "walk me through", "explain this so i can own it", "wait what", "wait, what",
+  "i don't understand", "explain that simpler", "re-pitch", "repitch",
+  "leg uit wat je gedaan hebt", "vat samen wat je", "wat is er veranderd",
 ]
 
 // A brand-new session has no route yet: the workflow stays null until a real
@@ -750,6 +766,8 @@ const OVERVIEW_ROWS = [
   { label: "Debug bug, crash, failing test, error",    skill: SKILL_DEBUGGING },
   { label: "Review code changes before handoff",       skill: SKILL_CODE_REVIEW },
   { label: "Verify claim, prove it works",             skill: SKILL_VERIFICATION },
+  { label: "Summarize changes, walk through code, re-pitch", skill: SKILL_SUMMARY },
+  { label: "Hand off to a fresh agent or session",     skill: SKILL_HANDOFF },
   { label: "Audit, refactor, reduce tech debt",        skill: SKILL_IMPROVE },
   { label: "Reflect on session, file improvement",     skill: SKILL_SESSION_REVIEW },
   { label: "Coordinate multi-agent, parallel tasks",   skill: SKILL_AGENT_WORKFLOWS },
@@ -847,6 +865,8 @@ function cascadeRoute(query, skills, sessionState) {
     tryRoute(AMBIGUITY_PHRASES, SKILL_INTAKE) ||               // 6. Start
     tryRoute(COMPARATIVE_DEEP_RESEARCH_PHRASES, SKILL_DEEP_RESEARCH) || // 7. Research
     tryRoute(RESEARCH_PHRASES, SKILL_RESEARCH) ||              // 8. Research
+    tryRoute(HANDOFF_PHRASES, SKILL_HANDOFF) ||                // 8a. Validate (handoff brief, before completion claims)
+    tryRoute(SUMMARY_PHRASES, SKILL_SUMMARY) ||                // 8b. Validate (owner-facing summary, before code review)
     tryRoute(DESIGN_REVIEW_PHRASES, SKILL_DESIGN_REVIEW) ||    // 9a. Product (before code review)
     tryRoute(REVIEW_PHRASES, SKILL_CODE_REVIEW) ||             // 9. Validate
     (sessionState.needsCodeReview && (() => {
@@ -904,7 +924,7 @@ module.exports = {
   WORKFLOW_PHASES, WORKFLOW_RISK_LEVELS,
   SKILL_AGENT_WORKFLOWS, SKILL_CODE_REVIEW, SKILL_DEBUGGING,
   SKILL_SESSION_REVIEW, SKILL_IMPROVE, SKILL_DEVELOP, SKILL_INTAKE, SKILL_DESIGN,
-  SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SPEC, COMPLETION_PHRASES, SKILL_DESIGN_REVIEW,
+  SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SPEC, SKILL_SUMMARY, SKILL_HANDOFF, COMPLETION_PHRASES, SKILL_DESIGN_REVIEW,
  SKILL_TEXT_WRITING, SKILL_RESEARCH, SKILL_DEEP_RESEARCH, SKILL_OBSERVABILITY, REVIEW_COMPLETION_MARKER, hasReviewCompletionSignal, hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, reviewEvidenceAccepted, blockWorkflowForMissingDiffIdentity, reviewModeForRisk,
   buildSkillOverview, buildCompactSkillOverview, cascadeRoute, buildExecutionProfile, buildRoutingStatus, pendingReviewRequirements, activeSkillEntries, skillDisplayName, loadSkills, reviewNudgeLines,
   createEmptySessionState, getSessionState, setSessionState,

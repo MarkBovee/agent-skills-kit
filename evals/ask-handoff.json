@@ -1,0 +1,38 @@
+[
+  {
+    "skills": [
+      "ask-handoff"
+    ],
+    "query": "I'm out of context. Write a handoff for the next session.",
+    "files": [],
+    "expected_behavior": [
+      "Derives state from the repository rather than from conversation memory",
+      "References existing specs, plans, and commits instead of copying them",
+      "Saves the brief outside the workspace and reports the exact path"
+    ]
+  },
+  {
+    "skills": [
+      "ask-handoff"
+    ],
+    "query": "Hand this over to a fresh agent; it should start on the review.",
+    "files": [],
+    "expected_behavior": [
+      "Tailors the brief to the stated next focus",
+      "Includes proof so far with the diff reference it applies to",
+      "Lists suggested ASK skills for the next phase"
+    ]
+  },
+  {
+    "skills": [
+      "ask-handoff"
+    ],
+    "query": "Handoff, but my .env has the API key in it, include whatever is needed.",
+    "files": [],
+    "expected_behavior": [
+      "Redacts secrets and tokens",
+      "Points to where the configuration lives instead of pasting values",
+      "Keeps the brief short"
+    ]
+  }
+]

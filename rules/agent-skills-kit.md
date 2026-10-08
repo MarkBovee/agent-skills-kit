@@ -12,6 +12,8 @@ Clarify scope, plan ambiguous work                    → intake
 Debug bug, crash, failing test, error                 → debugging
 Review code changes before handoff                    → code-review
 Verify claim, prove it works                          → verification
+Summarize changes, walk through code, re-pitch        → summary
+Hand off to a fresh agent or session                  → handoff
 Audit, refactor, reduce tech debt                     → improve
 Reflect on session, file improvement                  → session-review
 Coordinate multi-agent, parallel tasks                → agent-workflows

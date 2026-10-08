@@ -6,7 +6,7 @@ How agent-skills-kit (ASK) fits together. Claude Code is the primary harness; Op
 
 | Path | Role | Edit by hand? |
 | --- | --- | --- |
-| `skills/<name>/SKILL.md` | The 17 canonical workflow skills (`ask-<name>` ids; `references/` for rare-case detail) | Yes |
+| `skills/<name>/SKILL.md` | The 19 canonical workflow skills (`ask-<name>` ids; `references/` for rare-case detail) | Yes |
 | `commands/<name>.md` | Canonical slash commands | Yes |
 | `core/router-core.js` | Shared routing, lifecycle, state, frontmatter, and skill-path helpers | Yes |
 | `hooks/hooks.json`, `scripts/agent-skills-hook.js`, `hooks/flow-pane.tsx`, `types/` | Claude Code hooks and the `/ask-flow` mod | Yes |

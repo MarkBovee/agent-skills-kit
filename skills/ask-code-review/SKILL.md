@@ -26,7 +26,16 @@ triggers:
 
 Review for correctness, requirements, and risk first. Enforce `coding-standards.md` hard rules, including its scoped .NET/C# section when applicable, as correctness — not style.
 
-Keep scope clear: code-review checks behavior, requirements, regressions, and design risk. The final `verification` pass owns proportional code-smell scanning and evidence-based test-gap reporting; escalate deeper repository-wide smell analysis to `improve`.
+Keep scope clear: code-review checks behavior, requirements, regressions, and design risk on the diff. The final `verification` pass owns proportional code-smell scanning and evidence-based test-gap reporting; escalate deeper repository-wide smell analysis to `improve`.
+
+## Two axes
+
+A separate review (not the lightweight combined pass) judges the diff on two axes and reports them side by side:
+
+- **Standards:** does the diff follow the repository's documented standards, `coding-standards.md`, and the smell baseline in `references/smell-baseline.md`? The repository always overrides the baseline, and a smell is a labelled judgment call ("possible Feature Envy"), never a hard violation. Skip what tooling already enforces.
+- **Spec:** does the diff do what the originating request asked, no more and no less? Report requirements without evidence in the diff, and changes nobody asked for (scope creep).
+
+Pin the review base first (`git diff <base>...HEAD`, three-dot so the comparison runs against the merge-base) and confirm it resolves and is non-empty. Find the spec in this order: issue references in commit messages, a path the user passed, the plan or spec record for the branch. When none exists, ask once; if there is none, state "no spec available", skip the Spec axis, and do not infer requirements from the code. For a large diff, run the axes as independent passes (parallel subagents when the host supports them) so neither pollutes the other's context.
 
 Run final review after validation only when the workflow includes a `REVIEW` gate. `small` workflows finish after targeted validation with no separate review; `normal` workflows use one lightweight combined pass covering correctness, regressions, local conventions, and a bounded counterexample/security sanity check. `spec-required`, `significant`, and `release-sensitive` workflows use a separate review; only significant and release-sensitive workflows also require an independent audit.
 
@@ -95,6 +104,7 @@ When you flag a structural problem, name the move, not just the problem: "replac
 - `verification` before review to establish the technical proof that final review consumes
 - `session-review` when review exposes a skill usage gap or workflow miss worth tracking
 - `write-skill` when improvement needs a new or revised skill
+- `summary` after review passes, so the owner gets what changed, what is proven, and what to read
 ## Avoid
 
 - Nit-only reviews on otherwise risky code
