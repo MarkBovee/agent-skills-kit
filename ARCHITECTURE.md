@@ -33,7 +33,7 @@ CI regenerates both exports and fails on a diff, so commit regenerated output wi
 | `PostToolUse` (Agent, Task) | Clears the reminder when a subagent reports `ASK_WORKFLOW_PASS` or `_FINDINGS` for phase `REVIEW` or `AUDIT`; `BLOCKED`, `FAILED`, and other phases do not count, and a later edit re-arms it. |
 | `PostToolUse` (Skill, Read) | Clears the reminder when `ask-code-review` is loaded through the Skill tool, or when its `SKILL.md` is read from a trusted root. |
 
-The plugin also ships one Claude Code mod: `hooks/hooks.json` lists `./flow-pane.tsx` under `modules`, with its state contract in `types/index.d.ts` (named in `plugin.json`). `/ask-flow` opens a pane that tracks `Read` of `ask-*/SKILL.md` and `Agent` results itself and reads the gates and review flag from the session state below; it never writes that state. `hooks/flow-pane.test.ts` runs with `claude plugin test .`.
+The plugin also ships one Claude Code mod: `hooks/hooks.json` lists `./flow-pane.tsx` under `modules`, with its state contract in `types/index.d.ts` (named in `plugin.json`). `/ask-flow` toggles a band above the prompt between a one-line summary and the full details. The band tracks `Read` of `ask-*/SKILL.md` and `Agent` results itself and reads the gates and review flag from the session state below; it never writes that state. `hooks/flow-pane.test.ts` runs with `claude plugin test .`.
 
 Session state is a JSON file per session under `${CLAUDE_PLUGIN_DATA}/sessions`, falling back to `~/.cache/agent-skills-kit/sessions`, pruned after 14 days. It never lives in a shared temp directory.
 

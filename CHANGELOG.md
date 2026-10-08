@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.6.2] - 2026-10-08
+
+### Changed
+
+- Move `/ask-flow` from a separate pane into a collapsible status band above the prompt.
+
 ## [2.6.1] - 2026-10-08
 
 ### Added

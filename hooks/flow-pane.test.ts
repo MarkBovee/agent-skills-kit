@@ -1,7 +1,7 @@
-// Tests the /ask-flow pane against the engine: skill detection, subagent outcomes, and saved workflow gates.
+// Tests the ASK status band against the engine: skill detection, subagent outcomes, and saved workflow gates.
 import { expect, test } from 'claude-code/testing'
 
-test('pane shows loaded skills, subagent outcomes, and workflow gates', async ($, on) => {
+test('band shows a collapsed summary and expanded skills, subagent outcomes, and workflow gates', async ($, on) => {
   // Answers every tool call as the engine would, so the plugin's hooks run on top.
   on('tool.call', async (_$, e) =>
     e.tool === 'Agent'
@@ -22,10 +22,24 @@ test('pane shows loaded skills, subagent outcomes, and workflow gates', async ($
   await $.tool.call({ tool: 'Read', file_path: '/repo/README.md' })
   await $.tool.call({ tool: 'Agent', subagent_type: 'ask-reviewer', description: 'review', prompt: 'x' })
 
-  const pane = await $.ui.mount({ plugin: 'agent-skills-kit', surface: 'terminal', component: 'Pane', requestId: 'ask-flow', props: {} })
-  expect(await pane.findAll({ type: 'Text', text: 'develop' })).toHaveLength(1)
-  expect(await pane.findAll({ type: 'Text', text: 'README' })).toHaveLength(0)
-  expect(await pane.findAll({ type: 'Text', text: 'ask-reviewer: REVIEW pass' })).toHaveLength(1)
-  expect(await pane.findAll({ type: 'Text', text: 'PLAN → EXECUTE → REVIEW ✓' })).toHaveLength(1)
-  expect(await pane.findAll({ type: 'Text', text: 'code review pending' })).toHaveLength(1)
+  // The band starts collapsed, so only the summary line shows.
+  const band = await $.ui.mount({ plugin: 'agent-skills-kit', surface: 'terminal', component: 'AbovePrompt', props: {} })
+  expect(await band.findAll({ type: 'Text', text: /PLAN/ })).toHaveLength(1)
+  expect(await band.findAll({ type: 'Text', text: /develop/ })).toHaveLength(0)
+
+  // Pressing the toggle expands the band to its details.
+  await band.press({ key: 'ask-flow-toggle' })
+  const expandedBand = await $.ui.mount({ plugin: 'agent-skills-kit', surface: 'terminal', component: 'AbovePrompt', props: {} })
+  expect(await expandedBand.findAll({ type: 'Text', text: /◆ develop/ })).toHaveLength(1)
+  expect(await expandedBand.findAll({ type: 'Text', text: /README/ })).toHaveLength(0)
+  expect(await expandedBand.findAll({ type: 'Text', text: /ask-reviewer: REVIEW pass/ })).toHaveLength(1)
+  expect(await expandedBand.findAll({ type: 'Text', text: /code review pending/ })).toHaveLength(1)
+
+  // Pressing the toggle again collapses the band, and /ask-flow expands it.
+  await expandedBand.press({ key: 'ask-flow-toggle' })
+  const collapsedAgain = await $.ui.mount({ plugin: 'agent-skills-kit', surface: 'terminal', component: 'AbovePrompt', props: {} })
+  expect(await collapsedAgain.findAll({ type: 'Text', text: /◆ develop/ })).toHaveLength(0)
+  await $.command.run({ command: 'ask-flow', args: '' })
+  const viaCommand = await $.ui.mount({ plugin: 'agent-skills-kit', surface: 'terminal', component: 'AbovePrompt', props: {} })
+  expect(await viaCommand.findAll({ type: 'Text', text: /◆ develop/ })).toHaveLength(1)
 })
