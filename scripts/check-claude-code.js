@@ -253,9 +253,9 @@ function checkGitGuard() {
   }
   // Tell whether the guard denies one command in the given mode.
   const denied = (command, mode) => guard(command, mode).decision?.permissionDecision === "deny"
-  const blocked = ["git reset --hard HEAD~1", "git clean -fd", "git branch -D old", "git checkout .", "git restore .", "git push --force origin feature", "git push origin main", "cd app && git push -f"]
+  const blocked = ["git reset --hard HEAD~1", "git clean -fd", "git branch -D old", "git checkout .", "git restore .", "git push --force origin feature", "git push origin main", "cd app && git push -f", "(cd app && git reset --hard)", "{ git reset --hard; }", "command git reset --hard", "sudo git clean -fd", "/usr/bin/git reset --hard", "echo hi &git reset --hard", "git push -o ci.skip origin main"]
   for (const command of blocked) expect(denied(command), `git guard denies \`${command}\``)
-  const allowed = ["git status", "git push origin feature/x", "git reset --soft HEAD~1", "git clean -n", "git branch -d merged", "git restore --staged .", "git checkout -b topic", 'git commit -m "docs: mention git push --force"']
+  const allowed = ["git status", "git push origin feature/x", "git reset --soft HEAD~1", "git clean -n", "git branch -d merged", "git restore --staged .", "git checkout -b topic", 'git commit -m "docs: mention git push --force"', 'git commit -m "say \\"hi\\"; git reset --hard"', "git commit -F - <<'EOF'\nfix\ngit push --force origin main\nEOF", "git push origin feature # main", "git push -o ci.skip origin feature"]
   for (const command of allowed) expect(!denied(command), `git guard allows \`${command}\``)
   expect(denied("git push origin feature/x", "strict"), "ASK_GIT_GUARD=strict denies every push")
   expect(!denied("git reset --hard", "off"), "ASK_GIT_GUARD=off disables the guard")

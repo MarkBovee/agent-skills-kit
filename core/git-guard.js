@@ -1,12 +1,17 @@
 // Pure git-command guard for the Claude Code PreToolUse hook: decides whether a shell command contains a
 // destructive git operation. It is a safety net against agent mistakes, not a security boundary: quoting tricks,
-// `bash -c` wrappers, and scripts that call git are out of scope.
+// `bash -c` wrappers, and scripts that call git are out of scope. It fails open when it cannot parse a command, and
+// the current-branch lookup ignores `git -C <dir>`.
 
 const PROTECTED_BRANCHES = new Set(["main", "master"])
 const MODE_OFF = "off"
 const MODE_STRICT = "strict"
 // Global git options that take a separate value argument, so the subcommand is the token after that value.
 const OPTIONS_WITH_VALUE = new Set(["-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path"])
+// Commands that run another command; the guard looks through them to the git call that follows.
+const COMMAND_WRAPPERS = new Set(["command", "env", "sudo", "nice", "time", "exec", "nohup", "xargs", "builtin"])
+// Push options whose value is a separate argument and must not be read as a remote or refspec.
+const PUSH_OPTIONS_WITH_VALUE = new Set(["-o", "--push-option", "--repo", "--receive-pack", "--exec"])
 const FORCE_PUSH_FLAGS = new Set(["--force", "-f", "--delete", "-d", "--mirror"])
 
 // Resolve the guard mode from the environment value: "off" disables, "strict" blocks every push, anything else is default.
@@ -15,26 +20,99 @@ function resolveGuardMode(value) {
   return mode === MODE_OFF || mode === MODE_STRICT ? mode : "default"
 }
 
-// Replace whitespace and control operators inside quoted strings so quoted text never splits into segments or tokens.
+// Read a heredoc delimiter such as `<<-'EOF'` starting at `index`; returns { delimiter, end } or null when there is none.
+function readHeredocDelimiter(command, index) {
+  const match = /^<<-?\s*(?:'([^']+)'|"([^"]+)"|([A-Za-z_][A-Za-z0-9_]*))/.exec(command.slice(index))
+  if (!match) return null
+  return { delimiter: match[1] ?? match[2] ?? match[3], end: index + match[0].length }
+}
+
+// Return the index just past a heredoc body that starts after the next newline at or after `from`.
+function skipHeredocBody(command, from, delimiter) {
+  let lineStart = command.indexOf("\n", from)
+  while (lineStart !== -1) {
+    const lineEnd = command.indexOf("\n", lineStart + 1)
+    const line = command.slice(lineStart + 1, lineEnd === -1 ? command.length : lineEnd)
+    if (line.trim() === delimiter) return lineEnd === -1 ? command.length : lineEnd
+    lineStart = lineEnd
+  }
+  return command.length
+}
+
+// Scan a command once, honoring backslash escapes, quotes, comments, and heredocs: quoted text is flattened into one
+// inert word, comments and heredoc bodies are dropped, so only real shell syntax is left to split into segments.
 function neutralizeQuotes(command) {
-  return String(command || "").replace(/"([^"]*)"|'([^']*)'/g, (_match, double, single) => `"${(double ?? single).replace(/[\s&|;]/g, "_")}"`)
+  const source = String(command || "")
+  let output = ""
+  let index = 0
+  while (index < source.length) {
+    const char = source[index]
+    const atWordStart = index === 0 || /[\s;&|(){}]/.test(source[index - 1])
+    if (char === "\\") {
+      output += "_"
+      index += 2
+    } else if (char === "'" || char === '"') {
+      const closing = findClosingQuote(source, index)
+      output += `"${source.slice(index + 1, closing).replace(/[^A-Za-z0-9]/g, "_")}"`
+      index = closing + 1
+    } else if (char === "#" && atWordStart) {
+      const newline = source.indexOf("\n", index)
+      index = newline === -1 ? source.length : newline
+    } else if (char === "<" && source[index + 1] === "<" && source[index + 2] !== "<") {
+      const heredoc = readHeredocDelimiter(source, index)
+      if (!heredoc) {
+        output += char
+        index += 1
+        continue
+      }
+      // Keep the rest of the command line, then drop the body that follows the next newline.
+      const lineEnd = source.indexOf("\n", heredoc.end)
+      output += source.slice(index, lineEnd === -1 ? source.length : lineEnd).replace(/<<-?\s*\S+/, "")
+      index = lineEnd === -1 ? source.length : skipHeredocBody(source, heredoc.end, heredoc.delimiter)
+      output += "\n"
+    } else {
+      output += char
+      index += 1
+    }
+  }
+  return output
 }
 
-// Split a shell command line into simple command segments on control operators and newlines.
+// Find the index of the quote that closes the one opened at `start`; an unterminated quote runs to the end.
+function findClosingQuote(source, start) {
+  const quote = source[start]
+  for (let index = start + 1; index < source.length; index++) {
+    if (quote === '"' && source[index] === "\\") index += 1
+    else if (source[index] === quote) return index
+  }
+  return source.length
+}
+
+// Split a shell command line into simple command segments on control operators, subshell and group syntax, and newlines.
 function splitSegments(command) {
-  return neutralizeQuotes(command).split(/&&|\|\||[;|\n]/).map((segment) => segment.trim()).filter(Boolean)
+  return neutralizeQuotes(command).split(/&&|\|\||[;|&\n()`]|(?:^|\s)[{}](?=\s|$)/).map((segment) => segment.trim()).filter(Boolean)
 }
 
-// Tokenize one segment on whitespace, strip surrounding quotes, and drop leading `VAR=value` environment assignments.
+// Tell whether a token is a leading `VAR=value` environment assignment.
+function isEnvAssignment(token) {
+  return /^[A-Za-z_][A-Za-z0-9_]*=/.test(token)
+}
+
+// Tokenize one segment on whitespace, strip surrounding quotes, and drop leading environment assignments,
+// wrapper commands such as `sudo` or `env`, and their options so the git call is first.
 function tokenize(segment) {
   const tokens = segment.split(/\s+/).filter(Boolean).map((token) => token.replace(/^["']|["']$/g, ""))
-  while (tokens.length > 0 && /^[A-Za-z_][A-Za-z0-9_]*=/.test(tokens[0])) tokens.shift()
+  while (tokens.length > 0) {
+    if (isEnvAssignment(tokens[0]) || COMMAND_WRAPPERS.has(tokens[0].split("/").pop())) tokens.shift()
+    else if (tokens[0].startsWith("-") && tokens.length > 1 && !tokens[0].startsWith("-C")) tokens.shift()
+    else break
+  }
   return tokens
 }
 
 // Return the git subcommand and its arguments for a tokenized segment, or null when the segment is not a git call.
 function parseGitCall(tokens) {
-  if (tokens[0] !== "git") return null
+  if (tokens[0]?.split("/").pop() !== "git") return null
   let index = 1
   // Skip global options, consuming the value of the ones that take a separate argument.
   while (index < tokens.length && tokens[index].startsWith("-")) {
@@ -77,9 +155,16 @@ function refspecDestination(refspec) {
   return refspec.replace(/^\+/, "").split(":").pop().replace(/^refs\/heads\//, "")
 }
 
+// Collect the positional arguments of a `git push` (remote, then refspecs), skipping option values such as `-o ci.skip`.
+function pushPositionals(args) {
+  // Keep an argument only when it is positional and not the value of the option before it.
+  const isPushPositional = (arg, index) => isPositional(arg) && !PUSH_OPTIONS_WITH_VALUE.has(args[index - 1])
+  return args.filter(isPushPositional)
+}
+
 // Collect the refspecs of a `git push`: the positional arguments after the remote.
 function pushRefspecs(args) {
-  return args.filter(isPositional).slice(1)
+  return pushPositionals(args).slice(1)
 }
 
 // Judge one `git push`: strict blocks all pushes; default blocks force, delete, mirror, forced refspecs, and pushes to protected branches.
@@ -154,7 +239,7 @@ function evaluateGitCommand(command, { mode = "default", currentBranch = "" } = 
 // Tell whether one segment is a `git push` without an explicit refspec, which goes to the current branch.
 function isPushWithoutRefspec(segment) {
   const call = parseGitCall(tokenize(segment))
-  return call?.subcommand === "push" && call.args.filter(isPositional).length < 2
+  return call?.subcommand === "push" && pushPositionals(call.args).length < 2
 }
 
 // Tell whether any segment is a bare or option-only `git push`, so the caller knows to look up the current branch.
