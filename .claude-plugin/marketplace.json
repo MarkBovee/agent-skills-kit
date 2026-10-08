@@ -11,7 +11,7 @@
     {
       "name": "agent-skills-kit",
       "source": "./",
-      "description": "Nineteen ask-prefixed workflow skills (develop, debugging, code-review, verification, intake, spec, research, and more) plus lifecycle hooks for routing hints, workflow risk, review reminders, and a git guard, and read-only reviewer, auditor, and researcher subagents.",
+      "description": "Nineteen ask-prefixed workflow skills (develop, debugging, code-review, verification, intake, spec, research, and more) plus lifecycle hooks for routing hints, workflow risk, review reminders, and a git guard, a Sonnet worker for workflow skills, and read-only reviewer, auditor, and researcher subagents.",
       "category": "development",
       "keywords": ["skills", "workflow", "routing", "claude-code", "subagents"]
     }

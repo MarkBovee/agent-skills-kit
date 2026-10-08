@@ -136,6 +136,13 @@ your request
 * `develop` is the default when nothing more specific matches.
 * After code edits, a review reminder stays until review evidence arrives.
 * Risk decides the gates: a small fix needs `EXECUTE → VALIDATE`; release-sensitive work adds `AUDIT` and `RELEASE_GATE`.
+* **Models (Claude Code):** you pick the model for the conversation (Haiku works fine as the front agent). Workflow skills such as `develop`, `debugging`, `research`, and `verification` run in a Sonnet worker, `ask-worker`. Intake and spec stay on your model because they ask you questions.
+
+| Tier (canonical) | You may say | Claude model | Used for |
+| --- | --- | --- | --- |
+| `light` | light | Haiku | Mechanical lookups, grep, summaries of command output |
+| `standard` | medium | Sonnet | Workflow skills, implementation, validation, review |
+| `deep` | heavy | Opus (only with a stated reason) | Architecture tradeoffs, hard root-cause analysis, `deep-research` |
 
 A typical session:
 

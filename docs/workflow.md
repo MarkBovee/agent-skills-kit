@@ -129,6 +129,14 @@ Two optional frontmatter fields let a skill declare how expensive its default fl
 | `standard` (default) | `default`             | normal judgment-heavy work                                                | `develop`, `spec`, `intake`, `code-review`, `debugging`, `verification`, `write-skill`, `text-writing`, `observability`, `research`, `design`, `design-review`, `gh-inbox`, `improve` |
 | `deep`               | `xhigh`               | autonomous multi-source or architectural investigation                    | `deep-research`                                                                                        |
 
+On Claude Code the tiers map to models as follows. The canonical names stay `light`, `standard`, and `deep`; "medium" and "heavy" are the words people use for `standard` and `deep`:
+
+| Tier | You may say | Claude model | Notes |
+| --- | --- | --- | --- |
+| `light` | light | Haiku | Bounded mechanical work, run by the coordinator or a cheap subagent |
+| `standard` | medium | Sonnet | Workflow skills run in the Sonnet `ask-worker`; review and audit use `ask-reviewer` and `ask-auditor` |
+| `deep` | heavy | Opus | Only with a stated reason; `deep-research` is tagged `deep` and stays on the session model for its own subagent dispatch |
+
 `delegation_default` (`auto` / `prefer-subagent` / `owner-only`) hints whether the work should default to a subagent when the host supports one. Both fields are read by `buildExecutionProfile` in `core/router-core.js`, which maps `light` → `mini`, `standard` → `default`, and `deep` → `xhigh`, and defaults `delegation_default` to `prefer-subagent` for `light` skills and `owner-only` for `deep` skills.
 
 The result surfaces as a compact routing hint, not a standalone command line. OpenCode and dsh fold it into the status snapshot as `Active: <skill> (<tier>/<delegation>)` (e.g. `research (standard/auto)`), and the VS Code hook prints `Agent Skills Kit routing suggests: research. Execution profile: standard/auto.` Treat it as a hint: pick the smallest/cheapest model or subagent class the host offers for `mini`, and escalate to `default`/`xhigh` only when scope grows or a cheap-first attempt fails. This only nudges routing — it never blocks a tool or forces delegation.

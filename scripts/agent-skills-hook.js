@@ -31,6 +31,9 @@ const SKILLS_ROOT = path.join(PLUGIN_ROOT, "skills")
 const WORKFLOW_RULES_PATH = path.join(PLUGIN_ROOT, "rules", "workflow.md")
 const RULES_MARKER = "<!-- agent-skills-kit:managed -->"
 const MAX_HINT_SKILLS = 4
+// Workflow skills whose execution runs in the Sonnet ask-worker. Excluded: intake and spec (they ask the user
+// questions a subagent cannot answer), and deep-research (tier deep, multi-source, expects its own subagents).
+const WORKER_SKILL_NAMES = new Set(["develop", "debugging", "research", "improve", "verification", "observability", "design"])
 const STATE_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000
 const REVIEW_CLOSE_HINT = "  Close it with an independent reviewer/auditor report ending `ASK_WORKFLOW_PASS phase=REVIEW diff=<ref>` (or `phase=AUDIT`), or by reading the code-review skill; a later edit re-arms it."
 
@@ -176,6 +179,23 @@ function developTriggerFired(prompt, skills) {
   return Boolean(develop) && matchingPhrases(prompt, develop.triggers || []).length > 0
 }
 
+// Render one line that sends matched workflow skills to the Sonnet worker; empty when none of them is a worker skill.
+function workerDelegationLine(skillNames) {
+  const workers = skillNames.filter(isWorkerSkill)
+  if (workers.length === 0) return ""
+  return `Model routing: run ${workers.map(toNativeSkillId).join(", ")} through the ask-worker agent with model "sonnet"; it reads the SKILL.md from the routing table. Keep replies to the user on the session model.`
+}
+
+// Tell whether a bare skill name runs in the Sonnet worker rather than on the session model.
+function isWorkerSkill(skillName) {
+  return WORKER_SKILL_NAMES.has(skillName)
+}
+
+// Prefix a bare skill name with ask- to form its native id.
+function toNativeSkillId(skillName) {
+  return `ask-${skillName}`
+}
+
 // Build the routing and lifecycle hints for one prompt and return them with the next state.
 function buildPromptHint(prompt, skills, state) {
   if (!prompt || prompt.startsWith("/")) return { text: "", state }
@@ -197,6 +217,9 @@ function buildPromptHint(prompt, skills, state) {
     const profileText = profile ? ` Execution profile: ${profile.executionTier}/${profile.delegationMode}.` : ""
     // Prefix each matched skill name with ask- to form its native id.
     lines.push(`Agent Skills Kit routing suggests: ${specificNames.map((name) => `ask-${name}`).join(", ")}.${profileText}`)
+    // A question gets an answer, not a write-capable worker, so the delegation line is skipped for plain questions.
+    const delegation = prompt.endsWith("?") ? "" : workerDelegationLine(specificNames)
+    if (delegation) lines.push(delegation)
   }
   // A plain question with no routed skill does not start a workflow, so its gates would only be noise.
   const isPlainQuestion = specificNames.length === 0 && prompt.endsWith("?")
@@ -240,8 +263,16 @@ function readLoadedSkillFile(payload) {
   return skillName ? `ask-${skillName}` : ""
 }
 
+// Tell whether an Agent tool call dispatched the ask-worker, matching the bare or plugin-namespaced agent name.
+function isWorkerAgentCall(payload) {
+  const agentType = String(payload.tool_input?.subagent_type || "").trim().split(":").pop()
+  return agentType === "ask-worker"
+}
+
 // Tell whether an agent result is an independent REVIEW or AUDIT report on a diff; BLOCKED and FAILED never count.
 function reportsIndependentReview(payload) {
+  // The worker executes work and must never clear the review gate, even if it prints a REVIEW marker by mistake.
+  if (isWorkerAgentCall(payload)) return false
   const response = payload.tool_response ?? payload.tool_result
   // Read the agent's text parts directly so the diff identity is not polluted by JSON escaping.
   const text = Array.isArray(response?.content) ? response.content.map((part) => part?.text || "").join("\n") : response

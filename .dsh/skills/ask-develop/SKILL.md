@@ -31,7 +31,7 @@ Before finishing any code change, inspect every changed function-like construct 
 
 ## Cheap-first escalation
 
-1. Before each delegation, select a task-appropriate model and pass it per invocation when the host supports it; tiers alone do not select a model. Default to Haiku for mechanical work, Sonnet for standard work, and Opus only with a stated reason.
+1. Workflow work runs in the Sonnet `ask-worker` agent, not on the session model. Before each delegation, select a task-appropriate model and pass it per invocation when the host supports it; tiers alone do not select a model. Default to Haiku for mechanical work, Sonnet for standard work, and Opus only with a stated reason.
 2. Start bounded mechanical chores on the smallest viable agent or subagent.
 3. Validate the result before widening context.
 4. Escalate to default agent only if scope grows beyond the original bounded task.
@@ -39,11 +39,11 @@ Before finishing any code change, inspect every changed function-like construct 
 
 ### Execution tiers by task reasoning
 
-| Complexity | Execution tier | Fits |
-|---|---|---|
-| Mechanical, boilerplate, bounded parsing | light | a data mapper, a register table, a factory |
-| Nuanced but contained | standard | one service with local state |
-| Cross-cutting, implicit reasoning, error handling | deep | discovery, coordination, recovery paths |
+| Complexity | Execution tier | Claude model (user term) | Fits |
+|---|---|---|---|
+| Mechanical, boilerplate, bounded parsing | light | Haiku (light) | a data mapper, a register table, a factory |
+| Nuanced but contained | standard | Sonnet (medium) | one service with local state |
+| Cross-cutting, implicit reasoning, error handling | deep | Opus (heavy), only with a stated reason | discovery, coordination, recovery paths |
 
 Choose the lowest tier that fits; escalate only when evidence demands it. A delta fix or follow-up after a broader change is standard work, not a repeat of the original deep pass.
 
