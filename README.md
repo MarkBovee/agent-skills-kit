@@ -8,7 +8,7 @@
 
 <p align="center">
   <strong>ASK (Agent Skills Kit) makes your coding agent work like a careful senior engineer, without the ceremony.</strong><br />
-  Each task goes to the right workflow skill. Review and proof scale with the risk of the change, and a git guard blocks the commands you would regret. What you get back is code you can read, plus a summary that says what ran and what did not.
+  Every task lands on the right workflow skill, and review and proof grow with the risk of the change. A git guard stops the commands you'd regret. You get code you can read, and a summary that says what ran and what didn't.
 </p>
 
 <p align="center">
@@ -47,7 +47,7 @@
 /plugin install agent-skills-kit@agent-skills-kit
 ```
 
-Start a new session. The first prompt gets a routing hint, the workflow risk, and its gates. The short slash commands such as `/summary` also need the bootstrap install below; with the plugin alone, use `/agent-skills-kit:ask-summary`.
+Start a new session. The first prompt gets a routing hint and the workflow risk with its gates. The short slash commands such as `/summary` also need the bootstrap install below; with the plugin alone, use `/agent-skills-kit:ask-summary`.
 
 <details>
 <summary><strong>Codex, GitHub Copilot, OpenCode, dsh</strong>, and the shared skills root</summary>
@@ -64,15 +64,21 @@ curl -fsSL https://raw.githubusercontent.com/MarkBovee/agent-skills-kit/main/scr
 irm https://raw.githubusercontent.com/MarkBovee/agent-skills-kit/main/scripts/bootstrap.ps1 | iex
 ```
 
-The bootstrap script installs the latest stable tag, is safe to rerun, and never replaces your own skills. Would you rather read it first? Download `scripts/bootstrap.sh` (or `bootstrap.ps1`), read it, and run it locally. Paths, environment variables, and update commands are in [docs/hosts.md](./docs/hosts.md).
+The bootstrap script installs the latest stable tag and never replaces your own skills, so rerunning it is safe. Would you rather read it first? Download `scripts/bootstrap.sh` (or `bootstrap.ps1`), read it, and run it locally. [docs/hosts.md](./docs/hosts.md) has the install paths, the environment variables, the update commands, and troubleshooting.
 
 </details>
 
 ## Why
 
-Agents ship code that passes its own tests and that you cannot explain a week later. The same logic gets rewritten inline instead of reusing a helper that already exists. One file grows until nobody wants to open it. Comments vanish, or narrate the obvious and never say *why*. Layers, factories, and wrappers appear for needs nobody has. And "done" means "I ran something".
+Agents ship code that passes its own tests and that you can't explain a week later. The usual symptoms:
 
-You can ship that fast. You cannot own it. ASK fixes it at the source, in the agent's own workflow.
+* The same logic gets rewritten inline instead of reusing a helper that already exists.
+* One file grows until nobody wants to open it.
+* Comments vanish, or narrate the obvious and never say *why*.
+* Layers, factories, and wrappers appear for needs nobody has.
+* "Done" means "I ran something".
+
+You can ship that fast. You can't own it. ASK fixes it at the source, in the agent's own workflow.
 
 ## See it work
 
@@ -93,14 +99,14 @@ After a change, `/summary` hands you this, derived from the diff and not from th
 </p>
 <p align="center"><sub>Illustrative output, not a captured run.</sub></p>
 
-You know what changed, what was run, and where to look first.
+With that in hand you can explain the change without having watched it get written.
 
 ## Built for how you work
 
 | Use | What ASK does for you |
 | --- | --- |
-| **Vibe coding**<br />Ship fast without losing the thread. | `/summary` says what changed, what ran, and what to read first.<br />A small fix goes `EXECUTE → VALIDATE`: no review ceremony, no audit.<br />The git guard blocks `reset --hard`, force pushes, and pushes to `main`. |
-| **10x coding**<br />Hold the agent to a senior bar. | Small functions, reuse before adding, and an intent comment above every function; review treats a missing comment as blocking.<br />Review flags speculative abstraction and pass-through layers.<br />Normal work gets one combined review; significant work adds an independent audit. |
+| **Vibe coding**<br />Ship fast without losing the thread. | `/summary` says what changed and what ran, and points at the line to read first.<br />A small fix goes `EXECUTE → VALIDATE`: no review ceremony, no audit.<br />The git guard blocks `reset --hard`, force pushes, pushes to `main`, and a few other destructive commands. |
+| **10x coding**<br />Hold the agent to a senior bar. | The standards ask for small functions and reuse before adding. Every function gets an intent comment, and review treats a missing one as blocking.<br />Review also flags speculative abstraction and pass-through layers.<br />Normal work gets one combined review; significant work adds an independent audit. |
 | **Agentic workflows**<br />Run agents where the outcome has to be right. | Reviewer, auditor, and researcher subagents that report but never edit send `ASK_WORKFLOW_*` markers, and the review reminder stays until that evidence arrives.<br />`agent-workflows` coordinates parallel agents and `handoff` briefs the next one.<br />Every skill ships behavior evals, at least three scenarios each. |
 
 ## How it works
@@ -118,13 +124,13 @@ flowchart LR
 
 * A suggestion stays a hint until the agent actually reads the skill file. `develop` is the default when nothing more specific matches.
 * After code edits, a review reminder stays until review evidence arrives.
-* **Models (Claude Code):** you pick the model for the conversation (Haiku works fine as the front agent). Workflow skills such as `develop`, `debugging`, `research`, and `verification` run in a Sonnet worker, `ask-worker`. Intake and spec stay on your model because they ask you questions, and so does `deep-research` because it starts its own subagents.
+* **Models (Claude Code):** you pick the model for the conversation (Haiku works fine as the front agent). Workflow skills such as `develop`, `debugging`, `research`, and `verification` run in a Sonnet worker, `ask-worker`. Intake and spec stay on your model because they ask you questions; `deep-research` stays there too, because it starts its own subagents.
 
-| Tier (canonical) | You may say | Claude model | Used for |
-| --- | --- | --- | --- |
-| `light` | light | Haiku | Mechanical lookups, grep, summaries of command output |
-| `standard` | medium | Sonnet | Workflow skills, implementation, validation, review |
-| `deep` | heavy | Opus (only with a stated reason) | Architecture tradeoffs, hard root-cause analysis |
+| Tier | Claude model | Used for |
+| --- | --- | --- |
+| `light` | Haiku | Mechanical lookups, grep, summaries of command output |
+| `standard` | Sonnet | Workflow skills, implementation, validation, review |
+| `deep` | Opus (only with a stated reason) | Architecture tradeoffs, hard root-cause analysis |
 
 A typical session:
 
@@ -172,7 +178,7 @@ Claude Code first: new workflow behavior is designed and validated there. OpenCo
 
 ## Safety and transparency
 
-ASK installs files and runs hooks inside your agent sessions, so here is what it does and does not do.
+ASK installs files and runs hooks inside your agent sessions, so here's what it does and doesn't do.
 
 * **Hints on Claude Code, a gate on OpenCode.** The Claude Code router suggests one skill per task and never rewrites your commands or takes over a session. The OpenCode router also blocks edits and shell calls until the agent has read a skill file, and dsh does the same when you turn on `blockUntilSkillLoaded`.
 * **A git guard, on by default.** In Claude Code it blocks `reset --hard`, `clean -f`, `branch -D`, `checkout .`, `restore .`, force, delete, and mirror pushes, and any push to `main` or `master`. Set `ASK_GIT_GUARD=strict` to block every push or `off` to disable it. It is a safety net against agent mistakes, not a security boundary; details in [docs/hosts.md](./docs/hosts.md#git-guard).
@@ -187,7 +193,7 @@ ASK installs files and runs hooks inside your agent sessions, so here is what it
 
 <br />
 
-No. A small fix goes `EXECUTE → VALIDATE` with targeted validation, no separate review, and no audit. New tests follow a budget instead of a reflex. The heavier gates only appear when the risk calls for them.
+No. A small fix goes `EXECUTE → VALIDATE`: targeted validation, no separate review, no audit. New tests follow a budget instead of a reflex, and the heavier gates only show up when the risk calls for them.
 
 </details>
 
@@ -196,7 +202,7 @@ No. A small fix goes `EXECUTE → VALIDATE` with targeted validation, no separat
 
 <br />
 
-That is what the gates and evidence markers are for. Subagents report `ASK_WORKFLOW_PASS`, `_FINDINGS`, `_BLOCKED`, or `_FAILED` with a phase, and missing output is never a pass. ASK does not run your agents for you; it supplies the rules, the reviewer and auditor roles, and the checks.
+That's what the gates and evidence markers are for. Subagents report `ASK_WORKFLOW_PASS`, `_FINDINGS`, `_BLOCKED`, or `_FAILED` with a phase, and missing output is never a pass. ASK doesn't run your agents for you. It supplies the rules and the checks, and it defines the reviewer and auditor roles.
 
 </details>
 
@@ -214,7 +220,7 @@ Any model works as the front agent, Haiku included. On Claude Code the workflow 
 
 <br />
 
-No. Your own instructions stay where they are. ASK adds its workflow rules and routing hints next to them.
+No. Your own instructions stay where they are, and ASK adds its workflow rules and routing hints next to them.
 
 </details>
 
@@ -223,7 +229,7 @@ No. Your own instructions stay where they are. ASK adds its workflow rules and r
 
 <br />
 
-They are good projects, and nothing stops you from running one next to ASK: [obra/superpowers](https://github.com/obra/superpowers), [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills), and [github/spec-kit](https://github.com/github/spec-kit). ASK's own focus is a router that suggests one skill per prompt, gates sized to the risk of the change, evidence the agent has to produce, and a git guard. Pick the mix that fits how you work.
+They're good projects, and nothing stops you from running one next to ASK: [obra/superpowers](https://github.com/obra/superpowers), [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills), and [github/spec-kit](https://github.com/github/spec-kit). ASK's own focus is a router that suggests one skill per prompt, gates sized to the risk of the change, evidence the agent has to produce, and a git guard. Pick the mix that fits how you work.
 
 </details>
 

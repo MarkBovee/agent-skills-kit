@@ -129,13 +129,13 @@ Two optional frontmatter fields let a skill declare how expensive its default fl
 | `standard` (default) | `default`             | normal judgment-heavy work                                                | `develop`, `spec`, `intake`, `code-review`, `debugging`, `verification`, `write-skill`, `text-writing`, `observability`, `research`, `design`, `design-review`, `gh-inbox`, `improve` |
 | `deep`               | `xhigh`               | autonomous multi-source or architectural investigation                    | `deep-research`                                                                                        |
 
-On Claude Code the tiers map to models as follows. The canonical names stay `light`, `standard`, and `deep`; "medium" and "heavy" are the words people use for `standard` and `deep`:
+On Claude Code the tiers map to models as follows:
 
-| Tier | You may say | Claude model | Notes |
-| --- | --- | --- | --- |
-| `light` | light | Haiku | Bounded mechanical work, run by the coordinator or a cheap subagent |
-| `standard` | medium | Sonnet | Workflow skills run in the Sonnet `ask-worker`; review and audit use `ask-reviewer` and `ask-auditor` |
-| `deep` | heavy | Opus | Only with a stated reason; `deep-research` is tagged `deep` and stays on the session model for its own subagent dispatch |
+| Tier | Claude model | Notes |
+| --- | --- | --- |
+| `light` | Haiku | Bounded mechanical work, run by the coordinator or a cheap subagent |
+| `standard` | Sonnet | Workflow skills run in the Sonnet `ask-worker`; review and audit use `ask-reviewer` and `ask-auditor` |
+| `deep` | Opus | Only with a stated reason; `deep-research` is tagged `deep` and stays on the session model for its own subagent dispatch |
 
 `delegation_default` (`auto` / `prefer-subagent` / `owner-only`) hints whether the work should default to a subagent when the host supports one. Both fields are read by `buildExecutionProfile` in `core/router-core.js`, which maps `light` → `mini`, `standard` → `default`, and `deep` → `xhigh`, and defaults `delegation_default` to `prefer-subagent` for `light` skills and `owner-only` for `deep` skills.
 

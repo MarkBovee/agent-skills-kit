@@ -66,7 +66,7 @@ Other hosts reuse this core:
 
 ## Subagent cost routing
 
-`skills/ask-agent-workflows/references/model-routing.md` is the policy. On Claude Code the tiers map `light` → Haiku, `standard` (medium) → Sonnet, `deep` (heavy) → Opus only with a stated reason. Workflow skills in `WORKER_SKILL_NAMES` (`scripts/agent-skills-hook.js`) get a routing line that sends them to `ask-worker` on Sonnet, so a Haiku session still runs them on Sonnet; intake and spec stay on the session model because they ask the user questions. Prompts ending in `?` get no worker line, and `deep-research` stays on the session model. The coordinator dispatches the review and audit gates itself; the worker reports `BLOCKED` rather than starting subagents. The agent files default to Sonnet; an alias can be remapped by organization policy, so confirm the model that actually ran.
+`skills/ask-agent-workflows/references/model-routing.md` is the policy. On Claude Code the tiers map `light` → Haiku, `standard` → Sonnet, `deep` → Opus only with a stated reason. Workflow skills in `WORKER_SKILL_NAMES` (`scripts/agent-skills-hook.js`) get a routing line that sends them to `ask-worker` on Sonnet, so a Haiku session still runs them on Sonnet; intake and spec stay on the session model because they ask the user questions. Prompts ending in `?` get no worker line, and `deep-research` stays on the session model. The coordinator dispatches the review and audit gates itself; the worker reports `BLOCKED` rather than starting subagents. The agent files default to Sonnet; an alias can be remapped by organization policy, so confirm the model that actually ran.
 
 ## Installation
 
