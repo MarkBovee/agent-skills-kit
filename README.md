@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <strong>ASK makes your coding agent work like a careful senior engineer, without the ceremony.</strong><br />
+  <strong>ASK (Agent Skills Kit) makes your coding agent work like a careful senior engineer, without the ceremony.</strong><br />
   Each task goes to the right workflow skill. Review and proof scale with the risk of the change, and a git guard blocks the commands you would regret. What you get back is code you can read, plus a summary that says what ran and what did not.
 </p>
 
@@ -47,7 +47,7 @@
 /plugin install agent-skills-kit@agent-skills-kit
 ```
 
-Start a new session. The first prompt gets a routing hint, the workflow risk, and its gates.
+Start a new session. The first prompt gets a routing hint, the workflow risk, and its gates. The short slash commands such as `/summary` also need the bootstrap install below; with the plugin alone, use `/agent-skills-kit:ask-summary`.
 
 <details>
 <summary><strong>Codex, GitHub Copilot, OpenCode, dsh</strong>, and the shared skills root</summary>
@@ -100,7 +100,7 @@ You know what changed, what was run, and where to look first.
 | Vibe coding | 10x coding | Agentic workflows |
 | --- | --- | --- |
 | Ship fast without losing the thread. | Hold the agent to a senior bar. | Run agents where the outcome has to be right. |
-| `/summary` says what changed, what ran, and what to read first.<br /><br />A small fix goes `EXECUTE → VALIDATE`: no review ceremony, no audit.<br /><br />The git guard blocks `reset --hard`, force pushes, and pushes to `main`. | Small functions, reuse before adding, and an intent comment above every function; review treats a missing comment as blocking.<br /><br />Review flags speculative abstraction and pass-through layers.<br /><br />Normal work gets one combined review; significant work adds an independent audit. | Read-only reviewer, auditor, and researcher subagents report `ASK_WORKFLOW_*` markers, and the review reminder stays until that evidence arrives.<br /><br />`agent-workflows` coordinates parallel agents and `handoff` briefs the next one.<br /><br />Every skill ships behavior evals, at least three scenarios each. |
+| `/summary` says what changed, what ran, and what to read first.<br /><br />A small fix goes `EXECUTE → VALIDATE`: no review ceremony, no audit.<br /><br />The git guard blocks `reset --hard`, force pushes, and pushes to `main`. | Small functions, reuse before adding, and an intent comment above every function; review treats a missing comment as blocking.<br /><br />Review flags speculative abstraction and pass-through layers.<br /><br />Normal work gets one combined review; significant work adds an independent audit. | Reviewer, auditor, and researcher subagents that report but never edit send `ASK_WORKFLOW_*` markers, and the review reminder stays until that evidence arrives.<br /><br />`agent-workflows` coordinates parallel agents and `handoff` briefs the next one.<br /><br />Every skill ships behavior evals, at least three scenarios each. |
 
 ## How it works
 
@@ -118,13 +118,13 @@ flowchart LR
 
 * A suggestion stays a hint until the agent actually reads the skill file. `develop` is the default when nothing more specific matches.
 * After code edits, a review reminder stays until review evidence arrives.
-* **Models (Claude Code):** you pick the model for the conversation (Haiku works fine as the front agent). Workflow skills such as `develop`, `debugging`, `research`, and `verification` run in a Sonnet worker, `ask-worker`. Intake and spec stay on your model because they ask you questions.
+* **Models (Claude Code):** you pick the model for the conversation (Haiku works fine as the front agent). Workflow skills such as `develop`, `debugging`, `research`, and `verification` run in a Sonnet worker, `ask-worker`. Intake and spec stay on your model because they ask you questions, and so does `deep-research` because it starts its own subagents.
 
 | Tier (canonical) | You may say | Claude model | Used for |
 | --- | --- | --- | --- |
 | `light` | light | Haiku | Mechanical lookups, grep, summaries of command output |
 | `standard` | medium | Sonnet | Workflow skills, implementation, validation, review |
-| `deep` | heavy | Opus (only with a stated reason) | Architecture tradeoffs, hard root-cause analysis, `deep-research` |
+| `deep` | heavy | Opus (only with a stated reason) | Architecture tradeoffs, hard root-cause analysis |
 
 A typical session:
 
@@ -156,15 +156,15 @@ The decision tree, risk lifecycle, and cost-aware execution profile are in [docs
 
 Start with `develop`, `code-review`, and `summary`. Building agent pipelines? Add `agent-workflows` and `handoff`.
 
-Every skill has a slash command: `/develop`, `/debugging`, `/gh-inbox`, and so on. In Claude Code the skill id is `ask-<name>` (for example `/ask-develop`), and `/agent-skills-kit:ask-develop` when two plugins collide.
+Every skill has a slash command: `/develop`, `/debugging`, `/gh-inbox`, and so on. The short form needs the shared skills from the bootstrap install. The skill id works everywhere in Claude Code: `/ask-develop`, or `/agent-skills-kit:ask-develop` when ASK is installed as a plugin.
 
 ## Works with
 
-Claude Code first: new workflow behavior is designed and validated there. The other hosts run the same skills through the shared routing core in `core/router-core.js`.
+Claude Code first: new workflow behavior is designed and validated there. OpenCode and dsh reuse the routing logic in `core/router-core.js`, and every host reads skills exported from the same source.
 
 | Host | How ASK plugs in |
 | --- | --- |
-| Claude Code | Plugin and marketplace: hooks, read-only subagents, native skills, rules |
+| Claude Code | Plugin and marketplace: hooks, subagents, native skills, rules |
 | OpenCode | Router plugin with a TUI sidebar, managed skills, slash commands |
 | Codex | Native discovery of `~/.agents/skills/`; no config changes |
 | GitHub Copilot / VS Code | Agent plugin, generated skills, instructions, prompt files |
@@ -174,9 +174,9 @@ Claude Code first: new workflow behavior is designed and validated there. The ot
 
 ASK installs files and runs hooks inside your agent sessions, so here is what it does and does not do.
 
-* **Hints, not control.** The router suggests one skill per task. It never rewrites your commands or takes over a session.
+* **Hints on Claude Code, a gate on OpenCode.** The Claude Code router suggests one skill per task and never rewrites your commands or takes over a session. The OpenCode router also blocks edits and shell calls until the agent has read a skill file, and dsh does the same when you turn on `blockUntilSkillLoaded`.
 * **A git guard, on by default.** In Claude Code it blocks `reset --hard`, `clean -f`, `branch -D`, `checkout .`, `restore .`, force, delete, and mirror pushes, and any push to `main` or `master`. Set `ASK_GIT_GUARD=strict` to block every push or `off` to disable it. It is a safety net against agent mistakes, not a security boundary; details in [docs/hosts.md](./docs/hosts.md#git-guard).
-* **No network calls from the hooks.** The Claude Code hooks are one dependency-free Node script, `scripts/agent-skills-hook.js`, that reads local files and keeps session state on disk.
+* **No network calls from the hooks.** The Claude Code hooks run `scripts/agent-skills-hook.js` and the modules in `core/`, with no dependencies. They read local files, ask local git for the current branch, and keep session state on disk.
 * **Installers stay in their lane.** They never replace your own skills, and the Claude wiring comes out again with `scripts/install.sh --uninstall-claude` (`-UninstallClaude` on Windows).
 * **Found a vulnerability?** Report it privately; see [SECURITY.md](./SECURITY.md).
 
@@ -232,7 +232,7 @@ They are good projects, and nothing stops you from running one next to ASK: [obr
 
 <br />
 
-Bootstrap installs update when you rerun `bootstrap.sh` or `bootstrap.ps1`. Plugin installs update through `/plugin`. To remove the Claude wiring, run `scripts/install.sh --uninstall-claude`. All commands are in [docs/hosts.md](./docs/hosts.md#updating).
+Bootstrap installs update when you rerun `bootstrap.sh` or `bootstrap.ps1`, and a local clone updates with `scripts/update.sh` (`update.ps1` on Windows). To remove the Claude wiring, run `scripts/install.sh --uninstall-claude` (`scripts/install.ps1 -UninstallClaude` on Windows). The commands are in [docs/hosts.md](./docs/hosts.md#updating) and [docs/hosts.md](./docs/hosts.md#installer-modes).
 
 </details>
 

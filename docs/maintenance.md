@@ -87,8 +87,8 @@ GitHub Actions runs the same validation on every push and pull request. A push t
 
 * Claude Code is the primary harness; OpenCode and dsh reuse the shared routing core.
 * Codex support is native skill discovery only; no supported Codex widget/router hook is currently available to ASK.
-* Visual assets live in `assets/social-preview.png`.
-* For GitHub repo cards, use `assets/social-preview.png` as the social preview image.
+* Visual assets live in `assets/`: `hero-light.svg` and `hero-dark.svg` (README banner), `terminal-summary.svg` (README example), and `social-preview.svg`, which renders to `social-preview.png` with `rsvg-convert -w 1280 -h 640`.
+* For GitHub repo cards, upload `assets/social-preview.png` as the social preview image.
 * Restart OpenCode after install or update.
 * Bootstrap scripts store a managed checkout in `REPO_DIR` when set. Default path is `XDG_DATA_HOME/agent-skills-kit` when available, otherwise `LOCALAPPDATA\agent-skills-kit` on PowerShell, then `~/.local/share/agent-skills-kit`.
 * Stable updates use the newest SemVer tag available in the managed checkout.
