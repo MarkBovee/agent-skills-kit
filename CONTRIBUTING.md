@@ -27,7 +27,7 @@ Node.js 22 is required only for the validation scripts — the shipped assets
    ```yaml
    ---
    name: ask-<name>
-   description: "Nice name: Third-person sentence saying what the skill does and when to use it."
+   description: "Nice name: What the skill does in the third person. Use when <situation>."
    triggers:
      - keyword or phrase
    ---
@@ -35,9 +35,10 @@ Node.js 22 is required only for the validation scripts — the shipped assets
 
    - `name` equals the directory name.
    - `description` is third person, starts with the nice name (for example
-     `Develop: Drives normal implementation work ... Use when ...`), and stays
-     at or under 160 characters. Claude Code selects skills from the
-     description alone, so put the key use cases and terms there.
+     `Develop: Drives normal implementation work ... Use when ...`), says when
+     to use the skill ("Use when/for/before/after/to ..."), and stays at or
+     under 160 characters. Claude Code selects skills from the description
+     alone, so put the key use cases and terms there.
    - `triggers` feed only the ASK router.
 3. Keep the skill self-contained: normally 30–90 lines, never over 500. Move
    procedures needed only in rare cases to a one-level `references/` file (a
@@ -47,7 +48,10 @@ Node.js 22 is required only for the validation scripts — the shipped assets
    own directory.
 5. Add the slash command `commands/<name>.md` and at least three behavior
    scenarios (`query` plus `expected_behavior`) in `evals/ask-<name>.json`.
-6. Regenerate the platform exports and commit the result:
+6. Register the skill in `core/router-core.js`: add its name to
+   `ASK_SKILL_NAMES` and its routing row to `OVERVIEW_ROWS`. Without that the
+   router does not recognize it.
+7. Regenerate the platform exports and commit the result:
 
    ```bash
    node ./scripts/export-platform-skills.js
@@ -78,12 +82,13 @@ full list of local checks is in
 least:
 
 ```bash
-node ./scripts/validate-plugin.js                               # plugin/hooks contract + skill frontmatter
+node ./scripts/validate-plugin.js                               # plugin/hooks contract, plugin.json version, skill frontmatter
+node ./scripts/check-skill-best-practices.js                    # description, size, evals, and reference rules
 node ./scripts/check-trigger-overlap.js                         # no conflicting skill triggers
 node ./scripts/check-code-comments.js                           # intent comment above every function
-node ./scripts/export-platform-skills.js                        # regenerate exports (must produce no diff)
+node ./scripts/export-platform-skills.js                        # regenerate exports (no diff once the output is committed)
 node ./scripts/export-claude-coding-standards.js --check        # rules/claude matches its source
-node ./scripts/check-release-readiness.js --require-version-entry  # VERSION/CHANGELOG/plugin.json state
+node ./scripts/check-release-readiness.js --require-version-entry  # VERSION/CHANGELOG state
 ./scripts/check-installed-artifacts.sh                          # installer strings match the repo
 ```
 
@@ -99,8 +104,9 @@ pushing to `main`.
 
 ## Release flow
 
-- User-visible changes to shipped assets (`skills/`, `core/`, `plugins/`, and
-  the installer and update scripts) require a patch bump in `VERSION`, a
+- User-visible changes to what ships (`skills/`, `core/`, `plugins/`,
+  `hooks/`, `agents/`, `commands/`, `rules/`, `scripts/agent-skills-hook.js`,
+  and the installer and update scripts) require a patch bump in `VERSION`, a
   matching entry in `CHANGELOG.md`, **and** the same version in
   `.claude-plugin/plugin.json`, all in the same change.
 - Doc-only or internal changes can stay unreleased.
@@ -108,15 +114,11 @@ pushing to `main`.
   changes `VERSION` or `CHANGELOG.md`, `.github/workflows/release.yml` creates
   the annotated `vX.Y.Z` tag and publishes the GitHub Release from the
   changelog entry. Installers resolve the latest stable tag, not `main`.
-- Maintainers can validate release state locally, and use the helpers instead
-  of tagging by hand:
-
-  ```bash
-  bash ./scripts/tag-release.sh --dry-run   # validate release state
-  ```
-
-  PowerShell equivalent: `.\scripts\tag-release.ps1 -DryRun`. Shared helpers
-  live in `scripts/release-helpers.sh` / `scripts/release-helpers.ps1`.
+- Never tag by hand. If a maintainer has to tag manually, use
+  `scripts/tag-release.sh` (`scripts/tag-release.ps1` on Windows), which refuses
+  to run from a dirty tree, from anything but `main` at `origin/main`, or for a
+  tag that already exists. Shared helpers live in `scripts/release-helpers.sh`
+  and `scripts/release-helpers.ps1`.
 
 ## Code of conduct
 

@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640" role="img" aria-labelledby="title desc">
-  <!-- Purpose: README hero banner for Agent Skills Kit (dark theme). Edit tokens in both hero files together. -->
+  <!-- Purpose: 1280x640 social preview source (dark theme); render to social-preview.png with rsvg-convert. Keep its tokens in step with the hero files. -->
   <title id="title">Agent Skills Kit: Vibe fast. Own the result.</title>
   <desc id="desc">Agent Skills Kit. Vibe fast. Own the result. Workflow skills for coding agents, picked per task by a router.</desc>
   <rect width="1280" height="640" rx="0" fill="#0D1117" stroke="#30363D" stroke-width="1"/>
