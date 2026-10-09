@@ -12,7 +12,7 @@ How ASK picks a skill and how much process a change gets. The short version live
 
 ## Host-neutral discovery
 
-Every supported host follows one contract:
+Every host follows one contract:
 
 ```text
 user request

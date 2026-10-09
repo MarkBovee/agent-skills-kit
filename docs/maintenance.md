@@ -87,7 +87,6 @@ GitHub Actions runs the same validation on every push and pull request. A push t
 
 * Claude Code is the primary harness; OpenCode and dsh reuse the shared routing core.
 * Codex support is native skill discovery only; no supported Codex widget/router hook is currently available to ASK.
-* dsh support is experimental.
 * Visual assets live in `assets/social-preview.png`.
 * For GitHub repo cards, use `assets/social-preview.png` as the social preview image.
 * Restart OpenCode after install or update.

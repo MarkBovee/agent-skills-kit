@@ -1,102 +1,42 @@
+<!-- hero:start -->
 <p align="center">
-  <img src="assets/social-preview.png" alt="ASK — Agent Skills Kit banner" width="100%" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg" />
+    <img src="assets/hero-light.svg" alt="Agent Skills Kit. Vibe fast. Own the result. Workflow skills for coding agents, picked per task by a router." width="100%" />
+  </picture>
 </p>
 
 <p align="center">
-  <strong>Do you own your vibe-coded app?</strong><br />
-  ASK — Agent Skills Kit makes your coding agent write code you can defend: professional, KISS, and fast. Built Claude Code first; also runs on OpenCode, Codex, GitHub Copilot, and DeepSeek Harness (dsh).
+  <strong>ASK makes your coding agent work like a careful senior engineer, without the ceremony.</strong><br />
+  Each task goes to the right workflow skill. Review and proof scale with the risk of the change, and a git guard blocks the commands you would regret. What you get back is code you can read, plus a summary that says what ran and what did not.
 </p>
 
 <p align="center">
-  <img alt="OpenCode supported" src="https://img.shields.io/badge/OpenCode-supported-00E6FF?style=for-the-badge&labelColor=10131A" />
-  <img alt="Codex supported" src="https://img.shields.io/badge/Codex-supported-74AA9C?style=for-the-badge&labelColor=10131A" />
-  <img alt="GitHub Copilot supported" src="https://img.shields.io/badge/GitHub_Copilot-supported-FF4FD8?style=for-the-badge&labelColor=10131A" />
-  <img alt="Claude Code supported" src="https://img.shields.io/badge/Claude_Code-supported-FFD166?style=for-the-badge&labelColor=10131A" />
-  <img alt="dsh experimental" src="https://img.shields.io/badge/dsh-experimental-4C9AFF?style=for-the-badge&labelColor=10131A" />
+  <a href="https://github.com/MarkBovee/agent-skills-kit/actions/workflows/ci.yml"><img alt="CI status" src="https://img.shields.io/github/actions/workflow/status/MarkBovee/agent-skills-kit/ci.yml?style=flat-square&label=CI" /></a>
+  <a href="https://github.com/MarkBovee/agent-skills-kit/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/MarkBovee/agent-skills-kit?style=flat-square" /></a>
+  <a href="./LICENSE"><img alt="MIT license" src="https://img.shields.io/github/license/MarkBovee/agent-skills-kit?style=flat-square" /></a>
 </p>
 
 <p align="center">
-  <img alt="CI status" src="https://img.shields.io/github/actions/workflow/status/MarkBovee/agent-skills-kit/ci.yml?style=for-the-badge&label=CI&labelColor=10131A" />
-  <img alt="License" src="https://img.shields.io/github/license/MarkBovee/agent-skills-kit?style=for-the-badge&labelColor=10131A&color=2EA44F" />
-  <img alt="Latest release" src="https://img.shields.io/github/v/release/MarkBovee/agent-skills-kit?style=for-the-badge&labelColor=10131A&color=7C5CFF" />
-</p>
-
-<p align="center">
-  <code>ASK</code>
   <code>19 skills</code>
   <code>1 router</code>
-  <code>5 agent hosts</code>
-  <code>review + verification</code>
+  <code>5 hosts</code>
+  <code>review + proof gates</code>
 </p>
 
 <p align="center">
-  <a href="#why">Why</a> •
-  <a href="#see-it-work">Examples</a> •
   <a href="#quick-start">Quick start</a> •
+  <a href="#see-it-work">See it work</a> •
+  <a href="#built-for-how-you-work">Who it is for</a> •
   <a href="#how-it-works">How it works</a> •
   <a href="#skills">Skills</a> •
-  <a href="#supported-hosts">Hosts</a> •
-  <a href="#documentation">Docs</a> •
+  <a href="#works-with">Hosts</a> •
+  <a href="#faq">FAQ</a> •
   <a href="./CHANGELOG.md">Changelog</a>
 </p>
+<!-- hero:end -->
 
 ---
-
-## Why
-
-Agents ship code that passes its own tests and that you cannot explain a week later. The usual symptoms:
-
-* The same logic is rewritten inline instead of reusing a helper that already exists.
-* One file grows until nobody wants to open it.
-* Comments either vanish or narrate the obvious, and never say *why*.
-* Layers, factories, and wrappers appear for needs nobody has.
-* "Done" means "I ran something".
-
-You can ship that fast. You cannot own it. ASK makes the agent work the way a careful senior engineer does, without the ceremony.
-
-## What you get
-
-| You get | How |
-| --- | --- |
-| **Code you can read** | Small functions, named helpers, pure builders, an intent comment above every function, and *why* comments at real decisions. The rules live in `rules/coding-standards.md`, and review treats a missing comment as a blocking finding. |
-| **Code that stays small (KISS)** | Reuse before adding, three duplications become one helper, and no repositories, wrappers, or factories without a demonstrated need. Review flags speculative abstraction and pass-through layers. |
-| **Speed by default** | `develop` is the default. A small fix goes `EXECUTE → VALIDATE`: targeted validation, no separate review, no audit. New tests follow a budget instead of a reflex. |
-| **Proof, not claims** | `verification` ties the claim to evidence from this session. `/summary` splits **Proven** from **Not proven** and points at the spots to read yourself. |
-| **A safety net** | A git guard blocks `reset --hard`, force pushes, and pushes to `main` before they run. |
-| **Ownership** | `/summary` explains the change, `/handoff` briefs the next agent, and an optional `GLOSSARY.md` and short ADRs keep terms and decisions findable. |
-
-## See it work
-
-Illustrative examples of what the standards ask for. The rules are language-agnostic; the full code (C#) is in [docs/examples.md](./docs/examples.md).
-
-| Concern | Typical agent output | With ASK |
-| --- | --- | --- |
-| **Helpers** | A 15-line route handler that parses, normalizes, and saves inline | The handler orchestrates; a named `OrderLineParser.Parse` does the parsing, and existing helpers are reused first |
-| **Files** | `Orders.cs` with five types and 600 lines | One public type per file, named for the type |
-| **Comments** | None, or `// add 1 to retries` | An intent comment above every function, and a *why* where it matters: `// The carrier API allows 5 requests per second, so retry with backoff` |
-| **KISS** | An interface, a factory, a decorator, and an options class for one cached lookup | One method with a one-hour cache; review flags the single-implementation factory as possible speculative generality |
-| **Proof** | "Done, tests pass." | A summary that splits what was run from what was not |
-
-What `/summary` hands you afterwards, derived from the diff and not from the conversation:
-
-```text
-What:          CSV import now skips malformed lines and reports the stored count.
-Changes:       OrderLineParser.cs (new), OrderEndpoints.cs (uses the parser).
-Decisions:     skip bad lines instead of rejecting the file; rejecting loses good rows.
-Proven:        dotnet test --filter OrderImport: 6 passed; dotnet format --verify-no-changes: clean.
-Not proven:    imports over 10 MB.
-Read yourself: OrderLineParser.cs:23 (int.Parse throws on a bad quantity).
-Watch:         no new dependencies.
-```
-
-You know what changed, what was run, and where to look first.
-
-## How it is built
-
-* **One source, many hosts.** Skills live once under `skills/` and export to Claude Code, OpenCode, Codex, GitHub Copilot, and dsh.
-* **Claude Code first.** A native plugin with routing hooks, review reminders, cost-aware subagents, path-scoped rules, and the git guard.
-* **Hints, not control.** The router suggests one skill per task. It never rewrites commands, runs tools, or takes over a session.
-* **Proof that matches the claim.** Bigger changes get review, verification, and independent audit in proportion to their risk.
 
 ## Quick start
 
@@ -109,7 +49,10 @@ You know what changed, what was run, and where to look first.
 
 Start a new session. The first prompt gets a routing hint, the workflow risk, and its gates.
 
-**Every other host** (OpenCode, Codex, Copilot, dsh) and the shared skills root:
+<details>
+<summary><strong>Codex, GitHub Copilot, OpenCode, dsh</strong>, and the shared skills root</summary>
+
+<br />
 
 ```bash
 # Linux / macOS
@@ -121,21 +64,60 @@ curl -fsSL https://raw.githubusercontent.com/MarkBovee/agent-skills-kit/main/scr
 irm https://raw.githubusercontent.com/MarkBovee/agent-skills-kit/main/scripts/bootstrap.ps1 | iex
 ```
 
-The bootstrap script installs the latest stable tag, is safe to rerun, and never replaces your own skills. Paths, environment variables, and update commands are in [docs/hosts.md](./docs/hosts.md).
+The bootstrap script installs the latest stable tag, is safe to rerun, and never replaces your own skills. Would you rather read it first? Download `scripts/bootstrap.sh` (or `bootstrap.ps1`), read it, and run it locally. Paths, environment variables, and update commands are in [docs/hosts.md](./docs/hosts.md).
+
+</details>
+
+## Why
+
+Agents ship code that passes its own tests and that you cannot explain a week later. The same logic gets rewritten inline instead of reusing a helper that already exists. One file grows until nobody wants to open it. Comments vanish, or narrate the obvious and never say *why*. Layers, factories, and wrappers appear for needs nobody has. And "done" means "I ran something".
+
+You can ship that fast. You cannot own it. ASK fixes it at the source, in the agent's own workflow.
+
+## See it work
+
+Illustrative examples of what the standards ask for. The rules are language-agnostic; the full code (C#) is in [docs/examples.md](./docs/examples.md).
+
+| Concern | Typical agent output | With ASK |
+| --- | --- | --- |
+| **Helpers** | A 15-line route handler that parses, normalizes, and saves inline | The handler orchestrates; a named `OrderLineParser.Parse` does the parsing, and existing helpers get reused first |
+| **Files** | `Orders.cs` with five types and 600 lines | One public type per file, named for the type |
+| **Comments** | None, or `// add 1 to retries` | An intent comment above every function, and a *why* where it matters: `// The carrier API allows 5 requests per second, so retry with backoff` |
+| **KISS** | An interface, a factory, a decorator, and an options class for one cached lookup | One method with a one-hour cache; review flags the single-implementation factory as possible speculative generality |
+| **Proof** | "Done, tests pass." | A summary that splits what was run from what was not |
+
+After a change, `/summary` hands you this, derived from the diff and not from the conversation:
+
+<p align="center">
+  <img src="assets/terminal-summary.svg" alt="Example /summary output: what changed, which decisions were made, what was proven, what was not proven, and which line to read yourself." width="100%" />
+</p>
+<p align="center"><sub>Illustrative output, not a captured run.</sub></p>
+
+You know what changed, what was run, and where to look first.
+
+## Built for how you work
+
+| Vibe coding | 10x coding | Agentic workflows |
+| --- | --- | --- |
+| Ship fast without losing the thread. | Hold the agent to a senior bar. | Run agents where the outcome has to be right. |
+| `/summary` says what changed, what ran, and what to read first.<br /><br />A small fix goes `EXECUTE → VALIDATE`: no review ceremony, no audit.<br /><br />The git guard blocks `reset --hard`, force pushes, and pushes to `main`. | Small functions, reuse before adding, and an intent comment above every function; review treats a missing comment as blocking.<br /><br />Review flags speculative abstraction and pass-through layers.<br /><br />Normal work gets one combined review; significant work adds an independent audit. | Read-only reviewer, auditor, and researcher subagents report `ASK_WORKFLOW_*` markers, and the review reminder stays until that evidence arrives.<br /><br />`agent-workflows` coordinates parallel agents and `handoff` briefs the next one.<br /><br />Every skill ships behavior evals, at least three scenarios each. |
 
 ## How it works
 
-```text
-your request
-  → hook or router suggests the most specific skill
-  → the agent reads that skill's SKILL.md
-  → the agent does the work, following the skill
+```mermaid
+flowchart LR
+    P([Your prompt]) --> R["Router suggests<br/>one skill"]
+    R --> S["Agent reads<br/>its SKILL.md"]
+    S --> W["Work in small,<br/>validated steps"]
+    W --> K{"Risk of<br/>the change"}
+    K -->|small fix| A["Targeted validation"]
+    K -->|normal| B["Validation + one review"]
+    K -->|significant| C["Plan-check, review,<br/>independent audit"]
+    K -->|release-sensitive| D["All of that + release gate"]
 ```
 
-* A suggestion stays a hint until the agent actually reads the skill file.
-* `develop` is the default when nothing more specific matches.
+* A suggestion stays a hint until the agent actually reads the skill file. `develop` is the default when nothing more specific matches.
 * After code edits, a review reminder stays until review evidence arrives.
-* Risk decides the gates: a small fix needs `EXECUTE → VALIDATE`; release-sensitive work adds `AUDIT` and `RELEASE_GATE`.
 * **Models (Claude Code):** you pick the model for the conversation (Haiku works fine as the front agent). Workflow skills such as `develop`, `debugging`, `research`, and `verification` run in a Sonnet worker, `ask-worker`. Intake and spec stay on your model because they ask you questions.
 
 | Tier (canonical) | You may say | Claude model | Used for |
@@ -155,7 +137,7 @@ You:  "Review it before I push."
 ASK:  suggests code-review → findings ranked by severity, with file and line.
 ```
 
-Details: the decision tree, risk lifecycle, and cost-aware execution profile are in [docs/workflow.md](./docs/workflow.md).
+The decision tree, risk lifecycle, and cost-aware execution profile are in [docs/workflow.md](./docs/workflow.md).
 
 ## Skills
 
@@ -172,19 +154,87 @@ Details: the decision tree, risk lifecycle, and cost-aware execution profile are
 | Write | `text-writing` | Write text that sounds human. |
 | Operate | `gh-inbox`, `observability` | Triage a repository's GitHub issues; add logging, metrics, tracing, and alerting. |
 
+Start with `develop`, `code-review`, and `summary`. Building agent pipelines? Add `agent-workflows` and `handoff`.
+
 Every skill has a slash command: `/develop`, `/debugging`, `/gh-inbox`, and so on. In Claude Code the skill id is `ask-<name>` (for example `/ask-develop`), and `/agent-skills-kit:ask-develop` when two plugins collide.
 
-## Supported hosts
+## Works with
 
-| Host | Status | How ASK plugs in |
-| --- | --- | --- |
-| Claude Code | Primary | Plugin and marketplace: hooks, read-only subagents, native skills, rules |
-| OpenCode | Supported | Router plugin with a TUI sidebar, managed skills, slash commands |
-| Codex | Supported | Native discovery of `~/.agents/skills/`; no config changes |
-| GitHub Copilot / VS Code | Supported | Agent plugin, generated skills, instructions, prompt files |
-| DeepSeek Harness (dsh) | Experimental | Generated skills, routing guidance, optional router preset |
+Claude Code first: new workflow behavior is designed and validated there. The other hosts run the same skills through the shared routing core in `core/router-core.js`.
 
-Claude Code is where new workflow behavior is designed and validated first. The routing logic in `core/router-core.js` is shared by the OpenCode and dsh routers.
+| Host | How ASK plugs in |
+| --- | --- |
+| Claude Code | Plugin and marketplace: hooks, read-only subagents, native skills, rules |
+| OpenCode | Router plugin with a TUI sidebar, managed skills, slash commands |
+| Codex | Native discovery of `~/.agents/skills/`; no config changes |
+| GitHub Copilot / VS Code | Agent plugin, generated skills, instructions, prompt files |
+| DeepSeek Harness (dsh) | Generated skills, routing guidance, optional router preset |
+
+## Safety and transparency
+
+ASK installs files and runs hooks inside your agent sessions, so here is what it does and does not do.
+
+* **Hints, not control.** The router suggests one skill per task. It never rewrites your commands or takes over a session.
+* **A git guard, on by default.** In Claude Code it blocks `reset --hard`, `clean -f`, `branch -D`, `checkout .`, `restore .`, force, delete, and mirror pushes, and any push to `main` or `master`. Set `ASK_GIT_GUARD=strict` to block every push or `off` to disable it. It is a safety net against agent mistakes, not a security boundary; details in [docs/hosts.md](./docs/hosts.md#git-guard).
+* **No network calls from the hooks.** The Claude Code hooks are one dependency-free Node script, `scripts/agent-skills-hook.js`, that reads local files and keeps session state on disk.
+* **Installers stay in their lane.** They never replace your own skills, and the Claude wiring comes out again with `scripts/install.sh --uninstall-claude` (`-UninstallClaude` on Windows).
+* **Found a vulnerability?** Report it privately; see [SECURITY.md](./SECURITY.md).
+
+## FAQ
+
+<details>
+<summary><strong>Will it slow my agent down?</strong></summary>
+
+<br />
+
+No. A small fix goes `EXECUTE → VALIDATE` with targeted validation, no separate review, and no audit. New tests follow a budget instead of a reflex. The heavier gates only appear when the risk calls for them.
+
+</details>
+
+<details>
+<summary><strong>Can I use it for unattended or multi-agent runs?</strong></summary>
+
+<br />
+
+That is what the gates and evidence markers are for. Subagents report `ASK_WORKFLOW_PASS`, `_FINDINGS`, `_BLOCKED`, or `_FAILED` with a phase, and missing output is never a pass. ASK does not run your agents for you; it supplies the rules, the reviewer and auditor roles, and the checks.
+
+</details>
+
+<details>
+<summary><strong>Which model do I need?</strong></summary>
+
+<br />
+
+Any model works as the front agent, Haiku included. On Claude Code the workflow skills run in a Sonnet worker, and Opus is used only with a stated reason. The tier table above has the details.
+
+</details>
+
+<details>
+<summary><strong>Does it replace my CLAUDE.md or AGENTS.md?</strong></summary>
+
+<br />
+
+No. Your own instructions stay where they are. ASK adds its workflow rules and routing hints next to them.
+
+</details>
+
+<details>
+<summary><strong>How is it different from superpowers, agent-skills, or spec-kit?</strong></summary>
+
+<br />
+
+They are good projects, and nothing stops you from running one next to ASK: [obra/superpowers](https://github.com/obra/superpowers), [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills), and [github/spec-kit](https://github.com/github/spec-kit). ASK's own focus is a router that suggests one skill per prompt, gates sized to the risk of the change, evidence the agent has to produce, and a git guard. Pick the mix that fits how you work.
+
+</details>
+
+<details>
+<summary><strong>How do I update or uninstall?</strong></summary>
+
+<br />
+
+Bootstrap installs update when you rerun `bootstrap.sh` or `bootstrap.ps1`. Plugin installs update through `/plugin`. To remove the Claude wiring, run `scripts/install.sh --uninstall-claude`. All commands are in [docs/hosts.md](./docs/hosts.md#updating).
+
+</details>
 
 ## Documentation
 
@@ -200,7 +250,7 @@ Claude Code is where new workflow behavior is designed and validated first. The 
 
 ## Contributing
 
-Edit `skills/*/SKILL.md`, then run `node ./scripts/export-platform-skills.js`; generated exports are never hand-edited. Run the checks listed in [AGENTS.md](./AGENTS.md#required-checks) before opening a PR.
+Edit `skills/*/SKILL.md`, then run `node ./scripts/export-platform-skills.js`; generated exports are never hand-edited. Run the checks listed in [AGENTS.md](./AGENTS.md#required-checks) before opening a PR. More in [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## License
 

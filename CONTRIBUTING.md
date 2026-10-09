@@ -1,9 +1,9 @@
 # Contributing to agent-skills-kit
 
 Thanks for contributing! This project ships workflow skills and routing support
-for coding agents across OpenCode, GitHub Copilot, Claude Code, and dsh. It has
-no build step, no runtime, and no package manager — everything is plain files
-and small Node scripts.
+for coding agents across Claude Code, Codex, GitHub Copilot, OpenCode, and dsh.
+It has no build step, no runtime, and no package manager — everything is plain
+files and small Node scripts.
 
 ## Getting started
 
