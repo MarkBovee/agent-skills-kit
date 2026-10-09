@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.6.4] - 2026-10-09
+
+### Changed
+
+- Rewrite the plugin and marketplace descriptions around "Vibe fast, own the result", and add the keywords `vibe-coding`, `agentic-workflows`, and `ai-agents`.
+
 ## [2.6.3] - 2026-10-09
 
 ### Removed
