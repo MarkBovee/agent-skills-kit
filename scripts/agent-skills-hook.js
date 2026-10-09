@@ -9,10 +9,12 @@ const { evaluateGitCommand, needsCurrentBranch, resolveGuardMode } = require("..
 const {
   SKILL_CODE_REVIEW,
   SKILL_DEVELOP,
+  SKILL_TEXT_WRITING,
   TEST_POLICY,
   buildWorkflowState,
   cascadeRoute,
   createEmptySessionState,
+  isProseFilePath,
   matchingPhrases,
   parseWorkflowEvidence,
   loadSkills,
@@ -286,6 +288,27 @@ function clearReviewGate(sessionId) {
   saveState(sessionId, { ...loadState(sessionId), needsCodeReview: false, reviewHintShown: false })
 }
 
+// Resolve the file an edit-style tool call wrote, across the input shapes of Edit, Write, MultiEdit, and NotebookEdit.
+function readEditedPath(payload) {
+  const input = payload.tool_input || {}
+  const editedPath = input.file_path ?? input.notebook_path ?? input.path
+  return typeof editedPath === "string" ? editedPath : ""
+}
+
+// Build the one-time nudge that sends the agent to the human-first writing skill after it writes a prose file.
+// The routing hook only sees the user's prompt, so this is the only signal for prose the prompt did not name.
+function buildProseNudge(payload, state) {
+  if (state.textWritingHintShown) return ""
+  const editedPath = readEditedPath(payload)
+  if (!isProseFilePath(editedPath, payload.cwd)) return ""
+  return `You edited ${path.basename(editedPath)}, which is human-facing text. ${skillReadAction(SKILL_TEXT_WRITING)} and apply its self-check (no habitual triples, varied sentence length, concrete detail) before you finish the prose.`
+}
+
+// Record that the writing skill is loaded so the prose nudge stays quiet for the rest of the session.
+function markTextWritingLoaded(sessionId) {
+  saveState(sessionId, { ...loadState(sessionId), textWritingHintShown: true })
+}
+
 // Remind a resumed session that summarized skill use is history, not loaded guidance.
 function buildResumeContext() {
   return [
@@ -337,12 +360,17 @@ async function main() {
   }
 
   if (event === "post-edit") {
-    saveState(sessionId, { ...loadState(sessionId), needsCodeReview: true })
+    const state = loadState(sessionId)
+    const nudge = buildProseNudge(payload, state)
+    saveState(sessionId, { ...state, needsCodeReview: true, textWritingHintShown: Boolean(state.textWritingHintShown) || Boolean(nudge) })
+    if (nudge) process.stdout.write(buildHookOutput("PostToolUse", nudge))
     return
   }
 
   if (event === "post-skill") {
-    if (readLoadedSkill(payload) === `ask-${SKILL_CODE_REVIEW}`) clearReviewGate(sessionId)
+    const loadedSkill = readLoadedSkill(payload)
+    if (loadedSkill === `ask-${SKILL_CODE_REVIEW}`) clearReviewGate(sessionId)
+    if (loadedSkill === `ask-${SKILL_TEXT_WRITING}`) markTextWritingLoaded(sessionId)
     return
   }
 
@@ -353,14 +381,16 @@ async function main() {
   }
 
   if (event === "post-skill-read") {
-    if (readLoadedSkillFile(payload) === `ask-${SKILL_CODE_REVIEW}`) clearReviewGate(sessionId)
+    const loadedSkill = readLoadedSkillFile(payload)
+    if (loadedSkill === `ask-${SKILL_CODE_REVIEW}`) clearReviewGate(sessionId)
+    if (loadedSkill === `ask-${SKILL_TEXT_WRITING}`) markTextWritingLoaded(sessionId)
     return
   }
 
   if (event === "session-start") {
     pruneStates()
-    // Compaction drops earlier hook context, so the risk line must be announced again on the next prompt.
-    if (payload.source === "compact") saveState(sessionId, { ...loadState(sessionId), announcedRisk: undefined })
+    // Compaction drops earlier hook context, so the risk line and the prose nudge must be shown again.
+    if (payload.source === "compact") saveState(sessionId, { ...loadState(sessionId), announcedRisk: undefined, textWritingHintShown: undefined })
     const resumed = payload.source === "compact" || payload.source === "resume"
     process.stdout.write(buildHookOutput("SessionStart", [buildSessionContext(), resumed ? buildResumeContext() : ""].filter(Boolean).join("\n")))
     return

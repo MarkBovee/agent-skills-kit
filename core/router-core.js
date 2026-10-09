@@ -186,12 +186,41 @@ const SPEC_PHRASES = [
 
 // Signal phrases for human-first writing. Chosen to avoid colliding with
 // develop triggers (write/rewrite) and write-skill phrases (create skill).
+// README and docs phrases name a writing act ("write the docs"), never a bare noun, because "docs" and "readme"
+// also appear in reading and lookup prompts that should keep their own route.
 const TEXT_WRITING_PHRASES = [
   "anti-slop", "make this sound human", "sound human", "not read like ai",
   "read like ai", "not ai", "write a tweet", "draft email", "draft an email",
   "write an email", "cover letter", "linkedin post", "blog post", "newsletter",
   "copywriting", "schrijf als mens", "niet ai", "menselijk laten klinken",
+  "text-writing", "text writing", "proofread",
+  "write the readme", "write a readme", "rewrite the readme", "update the readme", "improve the readme",
+  "readme schrijven", "readme herschrijven", "readme verbeteren", "schrijf de readme",
+  "write the docs", "write docs", "rewrite the docs", "update the docs", "improve the docs",
+  "write documentation", "rewrite the documentation", "documentatie schrijven", "schrijf de documentatie",
+  "schrijf de tekst", "schrijf de teksten", "herschrijf de tekst", "teksten herschrijven",
 ]
+
+// Directories whose markdown is agent guidance, generated output, or local planning rather than human-facing prose.
+const NON_PROSE_DIRECTORIES = new Set(["skills", "rules", "commands", "prompts", "agents", "plans", "node_modules", ".git"])
+// Files that instruct agents, are exported copies, or are mechanical release logs (cost-aware routing hands changelog
+// edits to a cheap subagent), so the human-first writing rules do not apply to them.
+const NON_PROSE_FILE_NAMES = new Set(["agents.md", "claude.md", "gemini.md", "skill.md", "copilot-instructions.md", "changelog.md"])
+const PROSE_FILE_EXTENSIONS = /\.(?:md|mdx|rst|adoc)$/i
+
+// Tell whether a written file is human-facing prose (README, docs page, security policy) rather than code, agent instructions, or a release log.
+// Directory exclusions only apply below `cwd`, so a project that happens to live under a folder named "agents" still counts.
+function isProseFilePath(filePath, cwd) {
+  if (typeof filePath !== "string" || !filePath.trim()) return false
+  const fileName = path.basename(filePath).toLowerCase()
+  if (!PROSE_FILE_EXTENSIONS.test(fileName) || NON_PROSE_FILE_NAMES.has(fileName)) return false
+  const relativePath = cwd && path.isAbsolute(filePath) ? path.relative(cwd, filePath) : filePath
+  const directories = path.dirname(relativePath).split(/[\\/]/)
+  // A file outside the working directory has no project layout to judge, so only its name counts.
+  if (directories[0] === ".." || path.isAbsolute(relativePath)) return true
+  // Prose lives outside every directory that holds agent guidance, generated output, or local plans.
+  return !directories.some((directory) => NON_PROSE_DIRECTORIES.has(directory.toLowerCase()))
+}
 
 const AMBIGUITY_PHRASES = [
   "brainstorm", "brainstormen", "fuzzy idea", "design tradeoff",
@@ -928,7 +957,7 @@ module.exports = {
  SKILL_TEXT_WRITING, SKILL_RESEARCH, SKILL_DEEP_RESEARCH, SKILL_OBSERVABILITY, REVIEW_COMPLETION_MARKER, hasReviewCompletionSignal, hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, reviewEvidenceAccepted, blockWorkflowForMissingDiffIdentity, reviewModeForRisk,
   buildSkillOverview, buildCompactSkillOverview, cascadeRoute, buildExecutionProfile, buildRoutingStatus, pendingReviewRequirements, activeSkillEntries, skillDisplayName, loadSkills, reviewNudgeLines,
   createEmptySessionState, getSessionState, setSessionState,
-    findSkill, isAskSkill, isAskSkillName, ASK_SKILL_NAMES, askSkillsRoot, askSkillFileRef, skillReadAction, askSkillNameFromPath, hasPhraseSignal, matchingPhrases, routingHintLines,
+    findSkill, isAskSkill, isAskSkillName, ASK_SKILL_NAMES, askSkillsRoot, askSkillFileRef, skillReadAction, askSkillNameFromPath, hasPhraseSignal, matchingPhrases, routingHintLines, isProseFilePath,
     classifyWorkflowRisk, hasWorkflowRiskSignal, workflowRiskRank, requiredWorkflowPhases, buildWorkflowState, invalidateWorkflowForDiff, workflowRequiresReview, workflowHintLines, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
   TEST_POLICY, toBareSkillName, stripFrontmatter, toSingleLine, normalizeStringList,
   parseBooleanField, parseFrontmatter, unique,

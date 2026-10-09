@@ -157,6 +157,17 @@ function checkHookBehavior() {
   const clearedNamespaced = parseHookOutput(run("prompt", { session_id: "state", prompt: "continue" }).stdout)
   expect(!clearedNamespaced?.hookSpecificOutput?.additionalContext?.includes("Code edited"), "loading the plugin-namespaced agent-skills-kit:ask-code-review clears the reminder")
 
+  // Writing prose nudges once per session toward ask-text-writing; code, agent guidance, and a loaded skill stay quiet.
+  const proseEdit = (sessionId, filePath) => run("post-edit", { session_id: sessionId, tool_name: "Write", cwd: "/work/app", tool_input: { file_path: filePath } }).stdout
+  const readmeNudge = parseHookOutput(proseEdit("prose", "/work/app/README.md"))
+  expect(readmeNudge?.hookSpecificOutput?.hookEventName === "PostToolUse" && readmeNudge.hookSpecificOutput.additionalContext.includes("ask-text-writing"), "writing a README nudges toward ask-text-writing")
+  expect(!proseEdit("prose", "/work/app/docs/guide.md").trim(), "the prose nudge shows once per session")
+  expect(!proseEdit("prose-code", "/work/app/src/app.js").trim(), "editing code does not nudge toward ask-text-writing")
+  expect(!proseEdit("prose-skill", "/work/app/skills/ask-x/SKILL.md").trim(), "editing agent guidance under skills/ does not nudge toward ask-text-writing")
+  expect(!proseEdit("prose-log", "/work/app/CHANGELOG.md").trim(), "editing the mechanical CHANGELOG.md does not nudge toward ask-text-writing")
+  run("post-skill-read", { session_id: "prose-read", tool_input: { file_path: path.join(SKILLS_DIR, "ask-text-writing", "SKILL.md") } })
+  expect(!proseEdit("prose-read", "/work/app/README.md").trim(), "reading ask-text-writing silences the prose nudge")
+
   // Run a hook with a chosen shared skill root so path resolution never depends on the developer's real home directory.
   const runWithSharedRoot = (event, payload, sharedRoot) => spawnSync(process.execPath, [HOOK_SCRIPT, event], { input: JSON.stringify(payload), encoding: "utf8", env: { ...stateEnv, ASK_SKILLS_DIR: sharedRoot }, timeout: 10000 })
   const bundledDebugging = path.join(SKILLS_DIR, "ask-debugging", "SKILL.md")

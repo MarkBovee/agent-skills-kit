@@ -112,6 +112,14 @@ const ROUTING_CASES = [
   ["write a tweet", "text-writing"],
   ["draft email", "text-writing"],
   ["anti-slop", "text-writing"],
+  // Product — text-writing: README and docs writing acts route here, in English and Dutch.
+  ["write the README for the public launch", "text-writing"],
+  ["rewrite the docs for this library", "text-writing"],
+  ["schrijf de teksten voor de readme", "text-writing"],
+  ["gebruiken we de text-writing skill hiervoor", "text-writing"],
+  // Product — text-writing: reading or looking something up in the docs keeps its own route.
+  ["read the README for the install steps", "develop"],
+  ["look in the docs for the retry option", "develop"],
   // Operate — observability
   ["add metrics to the payment service", "observability"],
   ["set up monitoring alerts", "observability"],
