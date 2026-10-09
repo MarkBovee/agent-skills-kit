@@ -1,8 +1,8 @@
 {
   "name": "agent-skills-kit",
   "displayName": "Agent Skills Kit",
-  "version": "2.6.3",
-  "description": "Workflow skills, routing hooks, a Sonnet worker, and read-only review subagents for Claude Code. Also portable to GitHub Copilot, Codex, OpenCode, and dsh.",
+  "version": "2.6.4",
+  "description": "Vibe fast, own the result. A router picks the right workflow skill for each task, review and proof scale with the risk of the change, and a git guard blocks the commands you would regret. Built for Claude Code; also runs on Codex, GitHub Copilot, OpenCode, and dsh.",
   "author": {
     "name": "Mark Bovee",
     "url": "https://github.com/MarkBovee"
@@ -18,7 +18,10 @@
     "verification",
     "claude-code",
     "subagents",
-    "hooks"
+    "hooks",
+    "vibe-coding",
+    "agentic-workflows",
+    "ai-agents"
   ],
   "commands": "./commands/"
 }
