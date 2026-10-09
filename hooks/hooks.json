@@ -87,8 +87,5 @@
         ]
       }
     ]
-  },
-  "modules": [
-    "./flow-pane.tsx"
-  ]
+  }
 }

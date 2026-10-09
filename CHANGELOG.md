@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.6.3] - 2026-10-09
+
+### Removed
+
+- Remove the `/ask-flow` status band (`hooks/flow-pane.tsx`, its test, the `modules` entry, and `types/index.d.ts`). The band rendered poorly above the prompt; the session state it read is unchanged and still written by the hooks.
+
 ## [2.6.2] - 2026-10-08
 
 ### Changed
