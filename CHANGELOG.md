@@ -19,7 +19,8 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ### Changed
 
-- Route README and docs writing prompts to `text-writing`: new English and Dutch phrases such as "write the readme", "rewrite the docs", and "schrijf de teksten", plus explicit mentions of the skill. Reading or looking up docs keeps its own route.
+- Route README and docs writing prompts to `text-writing`: new English and Dutch phrases such as "write the readme", "rewrite the docs", and "schrijf de teksten", plus explicit mentions of the skill. The README and docs phrases only route when they open the prompt, so "add retry logic and write the docs" stays with `develop`; reading or looking up docs keeps its own route.
+- Prompts that used to open the retired `spec` skill ("specify requirements", "design brief", "formalize requirements") now route to `intake`.
 - The Claude Code `PostToolUse` hook now nudges once per session toward `ask-text-writing` when the agent writes a human-facing prose file such as a README or docs page; reading the skill silences the nudge.
 
 ## [2.6.4] - 2026-10-09

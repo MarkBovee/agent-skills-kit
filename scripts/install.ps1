@@ -568,7 +568,7 @@ function Clear-OldSkillRoot {
     # Mirror `rmdir` in install.sh: remove the root only when it is empty. Remove-Item without -Recurse would instead
     # prompt on a non-empty root, and its default answer deletes every child, including skills the user owns.
     try {
-        [System.IO.Directory]::Delete($TargetPath)
+        [System.IO.Directory]::Delete($item.FullName)
     }
     catch {
     }
@@ -675,7 +675,12 @@ try {
         Set-DirectoryLink -LinkPath $linkPath -TargetPath $targetPath
     }
     # Drop OpenCode links to skills retired from the pack: the shared sync above removed their targets, so they dangle.
-    foreach ($staleLink in Get-ChildItem -LiteralPath $opencodeSkillsTarget -Force -Filter "ask-*" | Where-Object { $_.LinkType -and -not (Test-Path -LiteralPath $_.FullName -PathType Container) }) {
+    # Only symlinks and junctions that point into the shared skills root are ours; a user-owned ask-* link elsewhere stays.
+    foreach ($staleLink in Get-ChildItem -LiteralPath $opencodeSkillsTarget -Force -Filter "ask-*" | Where-Object {
+            $_.LinkType -in @("SymbolicLink", "Junction") `
+                -and -not (Test-Path -LiteralPath $_.FullName -PathType Container) `
+                -and ([string]($_.Target | Select-Object -First 1)).StartsWith($sharedSkillsTarget, [System.StringComparison]::OrdinalIgnoreCase)
+        }) {
         Remove-Item -LiteralPath $staleLink.FullName -Force
     }
 

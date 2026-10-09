@@ -186,34 +186,33 @@ const TEXT_WRITING_PHRASES = [
   "schrijf de tekst", "schrijf de teksten", "herschrijf de tekst", "teksten herschrijven",
 ]
 // README and docs writing acts. They name an act, never a bare noun, because "docs" and "readme" also appear in reading and
-// lookup prompts, and they yield to code work so "implement the retry feature and write the docs" stays with develop and
-// its worker. The PostToolUse prose nudge covers what a prompt phrase cannot see.
+// lookup prompts, and they only route when they open the prompt (see `phraseOpensPrompt`), so a trailing clause such as
+// "add retry logic and write the docs" stays with develop and its worker. The PostToolUse prose nudge covers the rest.
 const DOCS_WRITING_PHRASES = [
   "write the readme", "write a readme", "rewrite the readme",
   "readme schrijven", "readme herschrijven", "readme verbeteren", "schrijf de readme",
   "write the docs", "rewrite the docs", "write documentation", "rewrite the documentation",
   "documentatie schrijven", "schrijf de documentatie",
 ]
-// Develop triggers that also open a README rewrite, so they say nothing about code work.
-const WRITING_ACT_TRIGGERS = new Set(["rewrite"])
 
-// Tell whether the prompt carries a develop trigger that signals code work, ignoring triggers that are writing acts themselves.
-function signalsCodeWork(query, skills) {
-  const develop = findSkill(skills, SKILL_DEVELOP)
-  // Keep the develop triggers that name code work rather than a rewrite of prose.
-  const codeTriggers = (develop?.triggers || []).filter((trigger) => !WRITING_ACT_TRIGGERS.has(String(trigger).toLowerCase()))
-  return matchingPhrases(query, codeTriggers).length > 0
+// Tell whether one of the phrases opens the prompt: at most `maxLeadWords` words ("can you", "please") may precede it, so it
+// names the main request rather than a trailing clause. Needs no skill list, so every host routes it the same way.
+function phraseOpensPrompt(query, phrases, maxLeadWords = 3) {
+  const normalized = String(query || "").trim().toLowerCase()
+  // Build one anchored pattern per phrase and test whether any of them matches the start of the prompt.
+  return phrases.some((phrase) => new RegExp(`^(?:\\S+\\s+){0,${maxLeadWords}}${phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:$|[^a-z0-9])`).test(normalized))
 }
 
-// First path segment under the project root that holds agent guidance, generated output, or local planning.
+// First path segment under the project root (or under a dot-directory like .github) that holds agent guidance, generated output, or local planning.
 const NON_PROSE_ROOT_DIRECTORIES = new Set(["skills", "rules", "commands", "prompts", "agents", "plans"])
 // Host and tool directories that never hold project prose, wherever they sit: this also keeps the agent's own notes
 // (plan files, auto-memory) under the user's home from spending the one-time prose nudge.
 const NON_PROSE_ANYWHERE_DIRECTORIES = new Set([".claude", ".agents", ".codex", ".copilot", ".opencode", ".dsh", "node_modules", ".git"])
 // Exported copies, agent memory, and mechanical release logs (cost-aware routing hands changelog edits to a cheap subagent).
 const NON_PROSE_FILE_NAMES = new Set(["skill.md", "copilot-instructions.md", "changelog.md", "memory.md"])
-// Agent instruction files: AGENTS.md, CLAUDE.md, GEMINI.md and their variants (CLAUDE.local.md), plus *.instructions.md.
-const AGENT_INSTRUCTION_FILE_PATTERN = /^(?:agents|claude|gemini)(?:\.[^.]+)*\.md$|\.instructions\.md$/
+// Agent instruction files: AGENTS.md, CLAUDE.md, GEMINI.md and their local variants (CLAUDE.local.md), plus *.instructions.md,
+// *.prompt.md, and *.agent.md.
+const AGENT_INSTRUCTION_FILE_PATTERN = /^(?:agents|claude|gemini)(?:\.(?:local|override|user|private))?\.md$|\.(?:instructions|prompt|agent)\.md$/
 const PROSE_FILE_EXTENSIONS = /\.(?:md|mdx|markdown|rst|adoc)$/i
 
 // Tell whether a written file is human-facing prose (README, docs page, security policy) rather than code, agent instructions, or a release log.
@@ -230,10 +229,14 @@ function isProseFilePath(filePath, cwd) {
   if (directories.some((directory) => NON_PROSE_ANYWHERE_DIRECTORIES.has(directory.toLowerCase()))) return false
   const outsideProject = path.isAbsolute(projectRelative) || directories[0] === ".."
   // The project layout only judges files below the working directory; elsewhere the name and tool directories decide.
-  return outsideProject || !NON_PROSE_ROOT_DIRECTORIES.has((directories[0] || "").toLowerCase())
+  // A dot-directory such as .github or .cursor hides its layout one level down (.github/prompts, .cursor/rules).
+  const layoutRoot = (directories[0] || "").startsWith(".") ? directories[1] : directories[0]
+  return outsideProject || !NON_PROSE_ROOT_DIRECTORIES.has((layoutRoot || "").toLowerCase())
 }
 
 const AMBIGUITY_PHRASES = [
+  "specify requirements", "requirements spec", "requirements specification", "design brief",
+  "formalize requirements", "traceable requirements", "spec before build",
   "brainstorm", "brainstormen", "fuzzy idea", "design tradeoff",
   "unsure what to build", "product direction", "idee uitwerken",
   "ambiguous", "unclear scope", "behavior-changing work",
@@ -492,7 +495,9 @@ function workflowRequiresReview(workflow) {
 // prior decision must stay neutral rather than adopt a generic default route.
 function buildWorkflowState(query, previous = null) {
   const normalizedQuery = String(query || "").trim()
-  const previousWorkflow = previous?.workflow || null
+  const storedWorkflow = previous?.workflow || null
+  // A workflow persisted by an older release may name a retired risk or phase; start fresh instead of carrying it over.
+  const previousWorkflow = storedWorkflow && WORKFLOW_RISK_LEVELS.has(storedWorkflow.risk) && (!storedWorkflow.phase || WORKFLOW_PHASES.includes(storedWorkflow.phase)) ? storedWorkflow : null
   if (!normalizedQuery && !previousWorkflow) return null
   const classifiedRisk = classifyWorkflowRisk(normalizedQuery)
   const risk = previousWorkflow?.risk && (!hasWorkflowRiskSignal(normalizedQuery)
@@ -601,7 +606,9 @@ function parseWorkflowEvidence(value) {
   }
   const match = text.match(/ASK_WORKFLOW_(PASS|FINDINGS|BLOCKED|FAILED)\b[^\n]*?\bphase=([A-Z_]+)/)
   if (!match) return null
-  const phase = match[2] && WORKFLOW_PHASES.includes(match[2]) ? match[2] : null
+  // A phase token this release does not know (for example the retired SPEC) is never evidence for the current gate.
+  if (!WORKFLOW_PHASES.includes(match[2])) return null
+  const phase = match[2]
   const diffIdentity = text.match(/\bdiff=([^\s]+)/)?.[1] || ""
   return { status: match[1], phase, diffIdentity }
 }
@@ -912,7 +919,7 @@ function cascadeRoute(query, skills, sessionState) {
     tryRoute(WRITE_SKILL_PHRASES, SKILL_WRITE_SKILL) ||        // 13. Coordinate
     tryRoute(DESIGN_PHRASES, SKILL_DESIGN) ||                  // 14. Product
     tryRoute(TEXT_WRITING_PHRASES, SKILL_TEXT_WRITING) ||      // 15. Product
-    (signalsCodeWork(q, skills) ? null : tryRoute(DOCS_WRITING_PHRASES, SKILL_TEXT_WRITING)) || // 15a. Product (docs writing yields to code work)
+    (phraseOpensPrompt(q, DOCS_WRITING_PHRASES) ? tryRoute(DOCS_WRITING_PHRASES, SKILL_TEXT_WRITING) : null) || // 15a. Product (README/docs writing that opens the prompt)
     tryRoute(OBSERVABILITY_PHRASES, SKILL_OBSERVABILITY) ||    // 16. Operate
     (() => {                                                   // 17. Execute (default)
       const fallback = findSkill(skills, SKILL_DEVELOP)

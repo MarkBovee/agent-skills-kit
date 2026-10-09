@@ -113,6 +113,12 @@ const ROUTING_CASES = [
   ["gebruiken we de text-writing skill hiervoor", "text-writing"],
   // Product — text-writing: a docs clause on top of code work stays with develop and its worker.
   ["implement the retry feature and write the docs", "develop"],
+  ["add retry logic to the client and write the docs", "develop"],
+  ["rewrite the parser and write the docs", "develop"],
+  ["can you rewrite the docs for this library", "text-writing"],
+  // Start — intake: prompts that used to open the retired spec skill now open intake.
+  ["specify requirements for the import feature", "intake"],
+  ["design brief", "intake"],
   // Product — text-writing: reading or looking something up in the docs keeps its own route.
   ["read the README for the install steps", "develop"],
   ["look in the docs for the retry option", "develop"],

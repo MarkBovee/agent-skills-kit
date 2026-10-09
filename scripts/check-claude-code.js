@@ -165,6 +165,8 @@ function checkHookBehavior() {
   expect(!proseEdit("prose-code", "/work/app/src/app.js").trim(), "editing code does not nudge toward ask-text-writing")
   expect(!proseEdit("prose-skill", "/work/app/skills/ask-x/SKILL.md").trim(), "editing agent guidance under skills/ does not nudge toward ask-text-writing")
   expect(!proseEdit("prose-log", "/work/app/CHANGELOG.md").trim(), "editing the mechanical CHANGELOG.md does not nudge toward ask-text-writing")
+  expect(!proseEdit("prose-prompt", "/work/app/.github/prompts/x.prompt.md").trim() && !proseEdit("prose-local", "/work/app/CLAUDE.local.md").trim(), "generated prompt files and local instruction files do not nudge toward ask-text-writing")
+  expect(proseEdit("prose-bare", "/work/app/README").includes("ask-text-writing"), "a bare README without an extension still nudges toward ask-text-writing")
   run("post-skill-read", { session_id: "prose-read", tool_input: { file_path: path.join(SKILLS_DIR, "ask-text-writing", "SKILL.md") } })
   expect(!proseEdit("prose-read", "/work/app/README.md").trim(), "reading ask-text-writing silences the prose nudge")
   // The agent's own notes under the host config directory never spend the one-time nudge meant for real prose.

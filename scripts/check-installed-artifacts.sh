@@ -445,6 +445,10 @@ main() {
     printf 'legacy\n' > "$OPENCODE_DIR/commands/ui-ux.md"
     printf 'ui-ux.prompt.md\n' > "$COPILOT_DIR/prompts/.ask-managed-prompts.txt"
     printf 'legacy\n' > "$COPILOT_DIR/prompts/ui-ux.prompt.md"
+    # A retired skill leaves a dangling OpenCode link once its shared copy is removed; a user-owned dangling ask-* link must stay.
+    mkdir -p "$OPENCODE_DIR/skills"
+    ln -s "$AGENTS_DIR/skills/ask-ui-ux" "$OPENCODE_DIR/skills/ask-ui-ux"
+    ln -s /nonexistent/ask-user-owned "$OPENCODE_DIR/skills/ask-user-owned"
     mkdir -p "$OPENCODE_DIR/plugins/core"
     printf 'stale router core\n' > "$OPENCODE_DIR/plugins/core/router-core.js"
     printf 'user-owned plugin core\n' > "$OPENCODE_DIR/plugins/core/user-owned.js"
@@ -476,6 +480,10 @@ main() {
       "$([ -f "$OPENCODE_DIR/core/user-owned.js" ] && printf true || printf false)"
     check "refresh removes legacy shared ui-ux skill" \
       "$([ ! -d "$AGENTS_DIR/skills/ask-ui-ux" ] && printf true || printf false)"
+    check "refresh removes the dangling OpenCode link to a retired skill" \
+      "$([ ! -L "$OPENCODE_DIR/skills/ask-ui-ux" ] && printf true || printf false)"
+    check "refresh keeps a user-owned dangling ask-* OpenCode link" \
+      "$([ -L "$OPENCODE_DIR/skills/ask-user-owned" ] && printf true || printf false)"
     check "refresh installs renamed shared design skill" \
       "$([ -d "$AGENTS_DIR/skills/ask-design" ] && printf true || printf false)"
     check "refresh removes legacy dsh ui-ux skill" \

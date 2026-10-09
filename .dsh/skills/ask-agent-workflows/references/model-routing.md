@@ -12,7 +12,7 @@ The tier names stay `light`, `standard`, and `deep` in every file. The "user ter
 
 ## Workflow floor
 
-Workflow skills run in the Sonnet worker (`ask-worker`), not on the session model. The exception is `deep-research` (tier `deep`), which stays on the session model because it dispatches its own subagents; the worker cannot start agents. Questions (prompts ending in `?`) get no worker line. The session model, which the user chooses, stays on the conversation: it routes, asks the user questions, and reports results. Haiku handles only bounded mechanical sub-steps the coordinator runs itself, such as search, grep, or summarizing command output. Intake and spec stay on the session model because they ask the user questions, and a subagent cannot answer them interactively.
+Workflow skills run in the Sonnet worker (`ask-worker`), not on the session model. The exception is `deep-research` (tier `deep`), which stays on the session model because it dispatches its own subagents; the worker cannot start agents. Questions (prompts ending in `?`) get no worker line. The session model, which the user chooses, stays on the conversation: it routes, asks the user questions, and reports results. Haiku handles only bounded mechanical sub-steps the coordinator runs itself, such as search, grep, or summarizing command output. Intake stays on the session model because it asks the user questions, and a subagent cannot answer them interactively.
 
 Use the lowest capable model, a narrow handoff, and a concise output contract. Do not spawn redundant workers or retry unchanged work on a more expensive model. Escalate only for a concrete gap, failed validation, or increased scope. `deep` describes task complexity; it is not an automatic Opus assignment.
 

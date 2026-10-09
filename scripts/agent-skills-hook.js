@@ -85,7 +85,9 @@ function statePath(sessionId) {
 // Load the persisted session state, returning an empty object when none exists or it is unreadable.
 function loadState(sessionId) {
   try {
-    return JSON.parse(fs.readFileSync(statePath(sessionId), "utf8"))
+    const state = JSON.parse(fs.readFileSync(statePath(sessionId), "utf8"))
+    // A state file holding null, an array, or a scalar carries nothing usable; treat it as empty.
+    return state && typeof state === "object" && !Array.isArray(state) ? state : {}
   } catch {
     return {}
   }
