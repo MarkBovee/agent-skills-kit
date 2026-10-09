@@ -449,6 +449,7 @@ main() {
     mkdir -p "$OPENCODE_DIR/skills"
     ln -s "$AGENTS_DIR/skills/ask-ui-ux" "$OPENCODE_DIR/skills/ask-ui-ux"
     ln -s /nonexistent/ask-user-owned "$OPENCODE_DIR/skills/ask-user-owned"
+    ln -s "$AGENTS_DIR/skills-backup/ask-user-sibling" "$OPENCODE_DIR/skills/ask-user-sibling"
     mkdir -p "$OPENCODE_DIR/plugins/core"
     printf 'stale router core\n' > "$OPENCODE_DIR/plugins/core/router-core.js"
     printf 'user-owned plugin core\n' > "$OPENCODE_DIR/plugins/core/user-owned.js"
@@ -483,7 +484,7 @@ main() {
     check "refresh removes the dangling OpenCode link to a retired skill" \
       "$([ ! -L "$OPENCODE_DIR/skills/ask-ui-ux" ] && printf true || printf false)"
     check "refresh keeps a user-owned dangling ask-* OpenCode link" \
-      "$([ -L "$OPENCODE_DIR/skills/ask-user-owned" ] && printf true || printf false)"
+      "$([ -L "$OPENCODE_DIR/skills/ask-user-owned" ] && [ -L "$OPENCODE_DIR/skills/ask-user-sibling" ] && printf true || printf false)"
     check "refresh installs renamed shared design skill" \
       "$([ -d "$AGENTS_DIR/skills/ask-design" ] && printf true || printf false)"
     check "refresh removes legacy dsh ui-ux skill" \

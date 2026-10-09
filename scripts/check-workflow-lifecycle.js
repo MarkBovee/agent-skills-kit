@@ -70,10 +70,13 @@ function checkRiskProfiles() {
     === JSON.stringify(["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "AUDIT"]))
   // Verify the removed SPEC phase never reappears in any risk level's gate list.
   check("no workflow risk adds a SPEC phase", ["small", "normal", "significant", "release-sensitive"].every((risk) => !requiredWorkflowPhases(risk).includes("SPEC")))
-  // A workflow persisted by 2.6.4 may still carry the retired risk and phase; it must start fresh, not stay wedged on them.
-  const staleWorkflow = { workflow: { risk: "spec-required", phase: "SPEC", requiredPhases: ["INTAKE", "SPEC", "PLAN"] } }
-  check("a persisted spec-required workflow is replaced by a normal one", buildWorkflowState("continue with the parser", staleWorkflow)?.risk === "normal")
-  check("a retired SPEC evidence marker is not evidence for the current gate", parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=SPEC diff=d1") === null)
+  // A workflow persisted by 2.6.4 may still carry the retired risk or phase; neither may wedge or weaken the new flow.
+  const retiredRisk = buildWorkflowState("continue with the parser", { workflow: { risk: "spec-required", phase: "PLAN", requiredPhases: ["INTAKE", "SPEC", "PLAN"] } })
+  check("a persisted spec-required workflow is replaced by a normal one", retiredRisk?.risk === "normal" && retiredRisk.phase === "PLAN")
+  const retiredPhase = buildWorkflowState("continue with the parser", { workflow: { risk: "significant", phase: "SPEC", requiredPhases: ["INTAKE", "SPEC", "PLAN"] } })
+  check("a known risk with the retired SPEC phase keeps its risk and restarts at its first gate", retiredPhase?.risk === "significant" && retiredPhase.phase === "INTAKE")
+  check("a retired SPEC pass marker is not evidence for the current gate", parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=SPEC diff=d1") === null)
+  check("an unknown-phase failure marker still lands on the current gate", parseWorkflowEvidence("ASK_WORKFLOW_FINDINGS phase=AUDITOR diff=d1")?.status === "FINDINGS")
 }
 
 // Extract one uniquely named H2 section for contract and export checks.

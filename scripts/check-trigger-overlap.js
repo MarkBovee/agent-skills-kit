@@ -106,16 +106,14 @@ const ROUTING_CASES = [
   ["write a tweet", "text-writing"],
   ["draft email", "text-writing"],
   ["anti-slop", "text-writing"],
-  // Product — text-writing: README and docs writing acts route here, in English and Dutch.
-  ["write the README for the public launch", "text-writing"],
-  ["rewrite the docs for this library", "text-writing"],
+  // Product — text-writing: explicit mentions and Dutch prose phrases route here.
   ["schrijf de teksten voor de readme", "text-writing"],
   ["gebruiken we de text-writing skill hiervoor", "text-writing"],
-  // Product — text-writing: a docs clause on top of code work stays with develop and its worker.
+  // Product — text-writing: README and docs prompts are not routed by phrase; code plus a docs clause stays with develop and its worker.
   ["implement the retry feature and write the docs", "develop"],
   ["add retry logic to the client and write the docs", "develop"],
-  ["rewrite the parser and write the docs", "develop"],
-  ["can you rewrite the docs for this library", "text-writing"],
+  ["implement it and write the docs", "develop"],
+  ["rewrite the docs for this library", "develop"],
   // Start — intake: prompts that used to open the retired spec skill now open intake.
   ["specify requirements for the import feature", "intake"],
   ["design brief", "intake"],

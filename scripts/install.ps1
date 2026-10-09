@@ -536,6 +536,17 @@ function Set-DshWebPatchRow {
     Write-Host "Managed ask-kit-panel roster row in $dshWebPatchFile"
 }
 
+# Tell whether a path lies strictly below a root directory. Whole path segments are compared, so a sibling that only shares a
+# prefix (skills-backup next to skills) does not count; the comparison is case-insensitive only where the file system is.
+function Test-PathIsUnder {
+    param([string]$Path, [string]$Root)
+
+    $separator = [System.IO.Path]::DirectorySeparatorChar
+    $comparison = if ($separator -eq '\') { [System.StringComparison]::OrdinalIgnoreCase } else { [System.StringComparison]::Ordinal }
+    $normalizedRoot = $Root.Replace('/', $separator).TrimEnd($separator) + $separator
+    return $Path.Replace('/', $separator).StartsWith($normalizedRoot, $comparison)
+}
+
 # Remove managed skills from one former install root without touching unrelated user content.
 function Clear-OldSkillRoot {
     param([string]$TargetPath, [string[]]$CurrentSkillNames)
@@ -676,10 +687,11 @@ try {
     }
     # Drop OpenCode links to skills retired from the pack: the shared sync above removed their targets, so they dangle.
     # Only symlinks and junctions that point into the shared skills root are ours; a user-owned ask-* link elsewhere stays.
+    $resolvedSharedRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($sharedSkillsTarget)
     foreach ($staleLink in Get-ChildItem -LiteralPath $opencodeSkillsTarget -Force -Filter "ask-*" | Where-Object {
             $_.LinkType -in @("SymbolicLink", "Junction") `
                 -and -not (Test-Path -LiteralPath $_.FullName -PathType Container) `
-                -and ([string]($_.Target | Select-Object -First 1)).StartsWith($sharedSkillsTarget, [System.StringComparison]::OrdinalIgnoreCase)
+                -and (Test-PathIsUnder -Path ([string]($_.Target | Select-Object -First 1)) -Root $resolvedSharedRoot)
         }) {
         Remove-Item -LiteralPath $staleLink.FullName -Force
     }

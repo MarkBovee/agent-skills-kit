@@ -14,12 +14,13 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ### Fixed
 
+- A hook state file saved by 2.6.4 with the retired `spec-required` risk starts a fresh workflow, a known risk with the retired `SPEC` phase restarts at its first gate, a `PASS` marker for an unknown phase no longer completes the current gate, and an unreadable or non-object hook state file is treated as empty instead of silencing the routing hint.
 - Installers now remove the OpenCode link to a skill retired from the pack; before, `~/.config/opencode/skills` kept a dangling `ask-<name>` link.
 - `install.ps1` removes an emptied skills root only when it is really empty, like `rmdir` in `install.sh`. `Remove-Item` without `-Recurse` prompted on a non-empty root, and its default answer deleted every child, including skills the user owns.
 
 ### Changed
 
-- Route README and docs writing prompts to `text-writing`: new English and Dutch phrases such as "write the readme", "rewrite the docs", and "schrijf de teksten", plus explicit mentions of the skill. The README and docs phrases only route when they open the prompt, so "add retry logic and write the docs" stays with `develop`; reading or looking up docs keeps its own route.
+- Route prose prompts to `text-writing` on explicit mentions of the skill and on the Dutch phrases "schrijf de tekst(en)", "herschrijf de tekst", and "teksten herschrijven". README and docs prompts are deliberately not routed by phrase (a prompt like "add retry logic and write the docs" is mostly code work); the prose nudge below covers them when the agent writes the file.
 - Prompts that used to open the retired `spec` skill ("specify requirements", "design brief", "formalize requirements") now route to `intake`.
 - The Claude Code `PostToolUse` hook now nudges once per session toward `ask-text-writing` when the agent writes a human-facing prose file such as a README or docs page; reading the skill silences the nudge.
 

@@ -185,24 +185,6 @@ const TEXT_WRITING_PHRASES = [
   "text-writing", "text writing",
   "schrijf de tekst", "schrijf de teksten", "herschrijf de tekst", "teksten herschrijven",
 ]
-// README and docs writing acts. They name an act, never a bare noun, because "docs" and "readme" also appear in reading and
-// lookup prompts, and they only route when they open the prompt (see `phraseOpensPrompt`), so a trailing clause such as
-// "add retry logic and write the docs" stays with develop and its worker. The PostToolUse prose nudge covers the rest.
-const DOCS_WRITING_PHRASES = [
-  "write the readme", "write a readme", "rewrite the readme",
-  "readme schrijven", "readme herschrijven", "readme verbeteren", "schrijf de readme",
-  "write the docs", "rewrite the docs", "write documentation", "rewrite the documentation",
-  "documentatie schrijven", "schrijf de documentatie",
-]
-
-// Tell whether one of the phrases opens the prompt: at most `maxLeadWords` words ("can you", "please") may precede it, so it
-// names the main request rather than a trailing clause. Needs no skill list, so every host routes it the same way.
-function phraseOpensPrompt(query, phrases, maxLeadWords = 3) {
-  const normalized = String(query || "").trim().toLowerCase()
-  // Build one anchored pattern per phrase and test whether any of them matches the start of the prompt.
-  return phrases.some((phrase) => new RegExp(`^(?:\\S+\\s+){0,${maxLeadWords}}${phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:$|[^a-z0-9])`).test(normalized))
-}
-
 // First path segment under the project root (or under a dot-directory like .github) that holds agent guidance, generated output, or local planning.
 const NON_PROSE_ROOT_DIRECTORIES = new Set(["skills", "rules", "commands", "prompts", "agents", "plans"])
 // Host and tool directories that never hold project prose, wherever they sit: this also keeps the agent's own notes
@@ -236,7 +218,9 @@ function isProseFilePath(filePath, cwd) {
 
 const AMBIGUITY_PHRASES = [
   "specify requirements", "requirements spec", "requirements specification", "design brief",
-  "formalize requirements", "traceable requirements", "spec before build",
+  "requirements capture", "requirements engineering", "decision register", "requirements traceability",
+  "traceable requirements", "validation gate", "readiness gate", "handover package", "spec before build",
+  "truth spine", "requirements-driven", "formalize requirements",
   "brainstorm", "brainstormen", "fuzzy idea", "design tradeoff",
   "unsure what to build", "product direction", "idee uitwerken",
   "ambiguous", "unclear scope", "behavior-changing work",
@@ -496,8 +480,9 @@ function workflowRequiresReview(workflow) {
 function buildWorkflowState(query, previous = null) {
   const normalizedQuery = String(query || "").trim()
   const storedWorkflow = previous?.workflow || null
-  // A workflow persisted by an older release may name a retired risk or phase; start fresh instead of carrying it over.
-  const previousWorkflow = storedWorkflow && WORKFLOW_RISK_LEVELS.has(storedWorkflow.risk) && (!storedWorkflow.phase || WORKFLOW_PHASES.includes(storedWorkflow.phase)) ? storedWorkflow : null
+  // A workflow persisted by an older release may name a retired risk: drop it. A known risk with a retired phase keeps the risk
+  // (so a release-sensitive flow is never weakened) and restarts at its first gate.
+  const previousWorkflow = storedWorkflow && WORKFLOW_RISK_LEVELS.has(storedWorkflow.risk) ? storedWorkflow : null
   if (!normalizedQuery && !previousWorkflow) return null
   const classifiedRisk = classifyWorkflowRisk(normalizedQuery)
   const risk = previousWorkflow?.risk && (!hasWorkflowRiskSignal(normalizedQuery)
@@ -510,7 +495,7 @@ function buildWorkflowState(query, previous = null) {
   return {
     risk,
     reviewMode: reviewModeForRisk(risk),
-    phase: sameRisk ? (previousWorkflow.phase || requiredPhases[0]) : requiredPhases[0],
+    phase: sameRisk && WORKFLOW_PHASES.includes(previousWorkflow.phase) ? previousWorkflow.phase : requiredPhases[0],
     requiredPhases,
     completedGates: sameRisk && Array.isArray(previousWorkflow.completedGates) ? previousWorkflow.completedGates : [],
     subagents: sameRisk && Array.isArray(previousWorkflow.subagents) ? previousWorkflow.subagents : [],
@@ -606,9 +591,11 @@ function parseWorkflowEvidence(value) {
   }
   const match = text.match(/ASK_WORKFLOW_(PASS|FINDINGS|BLOCKED|FAILED)\b[^\n]*?\bphase=([A-Z_]+)/)
   if (!match) return null
-  // A phase token this release does not know (for example the retired SPEC) is never evidence for the current gate.
-  if (!WORKFLOW_PHASES.includes(match[2])) return null
-  const phase = match[2]
+  const knownPhase = WORKFLOW_PHASES.includes(match[2])
+  // A PASS for a phase this release does not know (for example the retired SPEC) never completes the current gate. A failure,
+  // finding, or block with an unknown phase still lands on the current gate so it can only slow a flow down.
+  if (!knownPhase && match[1] === "PASS") return null
+  const phase = knownPhase ? match[2] : null
   const diffIdentity = text.match(/\bdiff=([^\s]+)/)?.[1] || ""
   return { status: match[1], phase, diffIdentity }
 }
@@ -919,7 +906,6 @@ function cascadeRoute(query, skills, sessionState) {
     tryRoute(WRITE_SKILL_PHRASES, SKILL_WRITE_SKILL) ||        // 13. Coordinate
     tryRoute(DESIGN_PHRASES, SKILL_DESIGN) ||                  // 14. Product
     tryRoute(TEXT_WRITING_PHRASES, SKILL_TEXT_WRITING) ||      // 15. Product
-    (phraseOpensPrompt(q, DOCS_WRITING_PHRASES) ? tryRoute(DOCS_WRITING_PHRASES, SKILL_TEXT_WRITING) : null) || // 15a. Product (README/docs writing that opens the prompt)
     tryRoute(OBSERVABILITY_PHRASES, SKILL_OBSERVABILITY) ||    // 16. Operate
     (() => {                                                   // 17. Execute (default)
       const fallback = findSkill(skills, SKILL_DEVELOP)
