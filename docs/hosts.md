@@ -1,6 +1,6 @@
 # Host details
 
-Install and wiring details for every supported host. The short version lives in the [README](../README.md#quick-start).
+Install and wiring details for every host. The short version lives in the [README](../README.md#quick-start).
 
 ## Contents
 
@@ -102,7 +102,7 @@ The plugin hook routes requests to the appropriate skill file; it does not invok
 
 ## Claude Code
 
-ASK ships as a native Claude Code plugin. Skills carry the id `ask-<name>` (for example `/ask-develop`, or `/agent-skills-kit:ask-develop` when installed as a plugin); descriptions are third person, start with the nice name (`Develop: ...`), and carry what the skill does and when to use it, because Claude Code selects skills from `description` alone. Hook internals and path resolution are documented in [ARCHITECTURE.md](./ARCHITECTURE.md#claude-code-runtime).
+ASK ships as a native Claude Code plugin. Skills carry the id `ask-<name>` (for example `/ask-develop`, or `/agent-skills-kit:ask-develop` when installed as a plugin); descriptions are third person, start with the nice name (`Develop: ...`), and carry what the skill does and when to use it, because Claude Code selects skills from `description` alone. Hook internals and path resolution are documented in [ARCHITECTURE.md](../ARCHITECTURE.md#claude-code-runtime).
 
 Install as a plugin (recommended):
 
@@ -141,7 +141,7 @@ Every workflow has two slash names. The short command is unprefixed: `/gh-inbox`
 
 ### Cost-aware subagents
 
-On Claude Code the tiers map to models: `light` → Haiku, `standard` (medium) → Sonnet, `deep` (heavy) → Opus, only for justified high-judgment tasks. You choose the model for your own conversation; the workflow skills run in the Sonnet `ask-worker` so a Haiku session still gets Sonnet-level work. The coordinator picks a model per other delegated task. The invocation choice beats agent frontmatter, and an alias can still be remapped by your organization, so confirm the model that actually ran in `/tasks`. Avoid `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1`; it forces one model onto every subagent. The full table is in `skills/ask-agent-workflows/references/model-routing.md`.
+On Claude Code the tiers map to models: `light` → Haiku, `standard` → Sonnet, `deep` → Opus, only for justified high-judgment tasks. You choose the model for your own conversation; the workflow skills run in the Sonnet `ask-worker` so a Haiku session still gets Sonnet-level work. The coordinator picks a model per other delegated task. The invocation choice beats agent frontmatter, and an alias can still be remapped by your organization, so confirm the model that actually ran in `/tasks`. Avoid `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1`; it forces one model onto every subagent. The full table is in `skills/ask-agent-workflows/references/model-routing.md`.
 
 ### Installer modes
 
@@ -164,13 +164,13 @@ Rules are generated into `~/.claude/rules/agent-skills-kit.md` from `rules/workf
 
 ## Codex
 
-Codex loads skills from the Agent Skills standard. It scans repository `.agents/skills` directories and the user shared `~/.agents/skills/` root. ASK installs canonical skill directories there, and `~/.codex/config.toml` disables native invocation for shared leaf skills while leaving dispatchers enabled.
+Codex loads skills from the Agent Skills standard. It scans repository `.agents/skills` directories and the user shared `~/.agents/skills/` root. ASK installs canonical skill directories there and never edits `~/.codex/config.toml`.
 
 Use the global Codex `AGENTS.md` router guidance to read a selected shared `SKILL.md` directly. Native invocation remains enabled only for dispatcher skills. ASK's OpenCode router is not installed into Codex: the current Codex skill host exposes no supported equivalent hook for prompt injection, tool gating, or session-state widgets.
 
 ## DeepSeek Harness (dsh)
 
-dsh (DeepSeek Harness) is an **Experimental** Cordis-based "everything is a plugin" agent harness. The optional `ask-kit` agent preset routes to shared workflow files and reads the selected `SKILL.md` directly; it does not depend on native discovery for workflow bodies.
+dsh (DeepSeek Harness) is a Cordis-based "everything is a plugin" agent harness. The optional `ask-kit` agent preset routes to shared workflow files and reads the selected `SKILL.md` directly; it does not depend on native discovery for workflow bodies.
 
 Installed paths (when dsh is present — a reachable `dsh` binary or an existing dsh home):
 

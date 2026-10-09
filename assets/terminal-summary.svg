@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 378" width="880" height="378" role="img" aria-labelledby="title desc">
+  <!-- Purpose: illustrative /summary output shown on the README. Values are example text, not a captured run. -->
+  <title id="title">Example /summary output</title>
+  <desc id="desc">A terminal showing what a change did, what was proven, what was not proven, and which line to read yourself.</desc>
+  <rect width="880" height="378" rx="12" fill="#0D1117" stroke="#30363D" stroke-width="1"/>
+  <path d="M0 12 A12 12 0 0 1 12 0 H868 A12 12 0 0 1 880 12 V44 H0 Z" fill="#161B22"/>
+  <line x1="0" y1="44" x2="880" y2="44" stroke="#30363D" stroke-width="1"/>
+  <text x="20" y="28" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" fill="#8B949E">orders-api   /summary</text>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="16">
+    <text x="32" y="84" fill="#3FD9A0">&gt;</text><text x="52" y="84" fill="#E6EDF3">/summary</text>
+    <text x="32" y="130" fill="#8B949E">What:</text><text x="196" y="130" fill="#E6EDF3">CSV import skips malformed lines and reports the stored count.</text>
+    <text x="32" y="160" fill="#8B949E">Changes:</text><text x="196" y="160" fill="#E6EDF3">OrderLineParser.cs (new); OrderEndpoints.cs uses the parser.</text>
+    <text x="32" y="190" fill="#8B949E">Decisions:</text><text x="196" y="190" fill="#E6EDF3">skip bad lines, not the file; rejecting loses good rows.</text>
+    <text x="32" y="220" fill="#3FD9A0">Proven:</text><text x="196" y="220" fill="#E6EDF3">dotnet test --filter OrderImport: 6 passed</text>
+    <text x="196" y="250" fill="#E6EDF3">dotnet format --verify-no-changes: clean</text>
+    <text x="32" y="280" fill="#E3B341">Not proven:</text><text x="196" y="280" fill="#E6EDF3">imports over 10 MB</text>
+    <text x="32" y="310" fill="#E3B341">Read yourself:</text><text x="196" y="310" fill="#E6EDF3">OrderLineParser.cs:23 (int.Parse throws on a bad quantity)</text>
+    <text x="32" y="340" fill="#8B949E">Watch:</text><text x="196" y="340" fill="#E6EDF3">no new dependencies</text>
+  </g>
+</svg>
