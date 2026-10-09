@@ -6,7 +6,7 @@ How agent-skills-kit (ASK) fits together. Claude Code is the primary harness; Op
 
 | Path | Role | Edit by hand? |
 | --- | --- | --- |
-| `skills/<name>/SKILL.md` | The 19 canonical workflow skills (`ask-<name>` ids; `references/` for rare-case detail) | Yes |
+| `skills/<name>/SKILL.md` | The 18 canonical workflow skills (`ask-<name>` ids; `references/` for rare-case detail) | Yes |
 | `commands/<name>.md` | Canonical slash commands | Yes |
 | `core/router-core.js` | Shared routing, lifecycle, state, frontmatter, and skill-path helpers | Yes |
 | `hooks/hooks.json`, `scripts/agent-skills-hook.js` | Claude Code hooks | Yes |
@@ -50,7 +50,7 @@ The Claude hook prefers the shared install and falls back to the copy bundled in
 
 ## Routing and lifecycle
 
-`router-core.js` scores a prompt against phrase lists per skill (`cascadeRoute`), classifies workflow risk (`small`, `normal`, `spec-required`, `significant`, `release-sensitive`), and derives required phases (`PLAN → EXECUTE → VALIDATE → REVIEW`, plus `ITERATE → AUDIT` and `RELEASE_GATE` at higher risk). Subagent results count only with `ASK_WORKFLOW_PASS`, `_FINDINGS`, `_BLOCKED`, or `_FAILED` plus a phase, bound to a diff identity. Routing hints are advisory: a match stays hollow until the skill file is read. Decision-tree rows come from `routingHintLines()`; never duplicate them by hand.
+`router-core.js` scores a prompt against phrase lists per skill (`cascadeRoute`), classifies workflow risk (`small`, `normal`, `significant`, `release-sensitive`), and derives required phases (`PLAN → EXECUTE → VALIDATE → REVIEW`, plus `ITERATE → AUDIT` and `RELEASE_GATE` at higher risk). Subagent results count only with `ASK_WORKFLOW_PASS`, `_FINDINGS`, `_BLOCKED`, or `_FAILED` plus a phase, bound to a diff identity. Routing hints are advisory: a match stays hollow until the skill file is read. Decision-tree rows come from `routingHintLines()`; never duplicate them by hand.
 
 Other hosts reuse this core:
 
@@ -66,7 +66,7 @@ Other hosts reuse this core:
 
 ## Subagent cost routing
 
-`skills/ask-agent-workflows/references/model-routing.md` is the policy. On Claude Code the tiers map `light` → Haiku, `standard` → Sonnet, `deep` → Opus only with a stated reason. Workflow skills in `WORKER_SKILL_NAMES` (`scripts/agent-skills-hook.js`) get a routing line that sends them to `ask-worker` on Sonnet, so a Haiku session still runs them on Sonnet; intake and spec stay on the session model because they ask the user questions. Prompts ending in `?` get no worker line, and `deep-research` stays on the session model. The coordinator dispatches the review and audit gates itself; the worker reports `BLOCKED` rather than starting subagents. The agent files default to Sonnet; an alias can be remapped by organization policy, so confirm the model that actually ran.
+`skills/ask-agent-workflows/references/model-routing.md` is the policy. On Claude Code the tiers map `light` → Haiku, `standard` → Sonnet, `deep` → Opus only with a stated reason. Workflow skills in `WORKER_SKILL_NAMES` (`scripts/agent-skills-hook.js`) get a routing line that sends them to `ask-worker` on Sonnet, so a Haiku session still runs them on Sonnet; intake stays on the session model because it asks the user questions. Prompts ending in `?` get no worker line, and `deep-research` stays on the session model. The coordinator dispatches the review and audit gates itself; the worker reports `BLOCKED` rather than starting subagents. The agent files default to Sonnet; an alias can be remapped by organization policy, so confirm the model that actually ran.
 
 ## Installation
 

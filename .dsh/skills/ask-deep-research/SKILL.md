@@ -42,7 +42,6 @@ Return `ASK_WORKFLOW_PASS phase=RESEARCH` only with cited findings, confidence, 
 - `intake` to classify scope before or after evidence changes the decision
 - `agent-workflows` for independent research tracks and evidence contract
 - `debugging` for root-cause testing after research establishes likely causes
-- `spec` for evidence-backed requirements and constraints
 - `develop` for the separate implementation pass after research handoff
 
 ## Avoid

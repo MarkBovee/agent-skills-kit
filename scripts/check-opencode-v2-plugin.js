@@ -236,7 +236,6 @@ for (const output of [
 const riskPrompts = [
   "small local fix",
   "add a status panel",
-  "write requirements specification",
   "review a security change",
   "release-sensitive brief",
 ]
@@ -251,7 +250,6 @@ for (const prompt of riskPrompts) {
 
 const prePlan = planGateItems(workflowHistory("add a status panel", [
   { phase: "INTAKE" },
-  { phase: "SPEC" },
 ]))
 assertGateSnapshot(prePlan, [
   "PLAN_CHECK=NOT STARTED", "VALIDATE=NOT STARTED", "REVIEW=NOT STARTED",
@@ -1563,7 +1561,7 @@ if (externalSkills.length !== 0) {
 }
 
 const mergedSkills = mergeActiveSkills(
-  { activeSkills: [{ skill: "spec", label: "Spec", current: true }], pending: [] },
+  { activeSkills: [{ skill: "intake", label: "Intake", current: true }], pending: [] },
   [{
     type: "assistant",
     content: [{ type: "tool", name: "skill", state: { status: "completed", input: { id: "ask-code-review" } } }],
@@ -1571,7 +1569,7 @@ const mergedSkills = mergeActiveSkills(
 )
 if (JSON.stringify(mergedSkills) !== JSON.stringify([
   { skill: "code-review", label: "Code Review", current: true },
-  { skill: "spec", label: "Spec", current: false },
+  { skill: "intake", label: "Intake", current: false },
 ])) {
   throw new Error("V2 TUI did not keep exactly one current skill after a live tool call")
 }
@@ -1632,13 +1630,6 @@ const smallSecurityPrompt = {
 if (pendingItems({ pending: [] }, [smallSecurityPrompt, patchMessage]).length !== 1) {
   throw new Error("V2 TUI dropped review debt for a small security fix")
 }
-const specSecurityPrompt = {
-  type: "user",
-  content: [{ type: "text", text: "design brief for a security vulnerability fix" }],
-}
-if (pendingItems({ pending: [] }, [specSecurityPrompt, patchMessage]).length !== 1) {
-  throw new Error("V2 TUI dropped review debt for significant spec-required work")
-}
 const smallSsrfPrompt = {
   type: "user",
   content: [{ type: "text", text: "small local fix for SSRF in image proxy" }],
@@ -1670,13 +1661,6 @@ const smallFollowUpPrompt = {
 }
 if (pendingItems({ pending: [] }, [normalWorkflowPrompt, smallFollowUpPrompt, patchMessage]).length !== 1) {
   throw new Error("V2 TUI allowed a small phrase to downgrade a normal workflow")
-}
-const specWorkflowPrompt = {
-  type: "user",
-  content: [{ type: "text", text: "write requirements specification" }],
-}
-if (pendingItems({ pending: [] }, [specWorkflowPrompt, patchMessage]).length !== 1) {
-  throw new Error("V2 TUI dropped review debt for a spec-required workflow")
 }
 
 const validationMessage = {
@@ -1725,20 +1709,6 @@ if (pendingItems({ pending: [{ label: "Code review needed" }] }, [patchMessage, 
 }
 if (pendingItems({ pending: [{ label: "Code review needed" }] }, [patchMessage, finalValidationMessage, reviewMessage]).length !== 1) {
   throw new Error("V2 TUI accepted review evidence before validation")
-}
-const specContextMessage = {
-  type: "assistant",
-  content: [{ type: "tool", name: "skill", state: { status: "completed", input: { name: "spec" } } }],
-}
-if (pendingItems({ pending: [] }, [specContextMessage, patchMessage, validationMessage, executionMessage, finalValidationMessage, reviewMessage]).length !== 1) {
-  throw new Error("V2 TUI dropped the active SPEC predecessor after a code edit")
-}
-const contractPrompt = {
-  type: "user",
-  content: [{ type: "text", text: "Implement a new external contract" }],
-}
-if (pendingItems({ pending: [] }, [contractPrompt, patchMessage, validationMessage, executionMessage, finalValidationMessage, reviewMessage]).length !== 1) {
-  throw new Error("V2 TUI ignored a prompt-derived SPEC predecessor")
 }
 const findingsMessage = {
   type: "assistant",

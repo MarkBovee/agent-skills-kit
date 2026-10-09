@@ -40,12 +40,6 @@ const ROUTING_CASES = [
   ["investigate this complex question", "deep-research"],
   ["research this complex compatibility issue", "deep-research"],
   ["research this compatibility issue using multiple sources, local code, upstream docs, and history", "deep-research"],
-  // Start — spec
-  ["specify requirements", "spec"],
-  ["design brief", "spec"],
-  ["requirements traceability", "spec"],
-  ["handover package", "spec"],
-  ["spec before build", "spec"],
   // Start — intake
   ["brainstorm", "intake"],
   ["plan dit werk", "intake"],

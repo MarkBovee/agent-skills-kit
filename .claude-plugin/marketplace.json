@@ -11,7 +11,7 @@
     {
       "name": "agent-skills-kit",
       "source": "./",
-      "description": "Nineteen workflow skills for coding agents (develop, debugging, code-review, verification, intake, spec, research, and more). Hooks route each prompt to one skill, announce the workflow risk, and keep a review reminder open until review evidence arrives, while a git guard blocks destructive git commands. A Sonnet worker runs the workflow skills; read-only reviewer, auditor, and researcher subagents report back.",
+      "description": "Eighteen workflow skills for coding agents (develop, debugging, code-review, verification, intake, research, and more). Hooks route each prompt to one skill, announce the workflow risk, and keep a review reminder open until review evidence arrives, while a git guard blocks destructive git commands. A Sonnet worker runs the workflow skills; read-only reviewer, auditor, and researcher subagents report back.",
       "category": "development",
       "keywords": ["skills", "workflow", "routing", "claude-code", "subagents", "vibe-coding", "agentic-workflows", "ai-agents"]
     }

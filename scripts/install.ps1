@@ -565,8 +565,10 @@ function Clear-OldSkillRoot {
         Remove-Item -LiteralPath $manifestPath -Force
     }
 
+    # Mirror `rmdir` in install.sh: remove the root only when it is empty. Remove-Item without -Recurse would instead
+    # prompt on a non-empty root, and its default answer deletes every child, including skills the user owns.
     try {
-        Remove-Item -LiteralPath $TargetPath -Force
+        [System.IO.Directory]::Delete($TargetPath)
     }
     catch {
     }
@@ -671,6 +673,10 @@ try {
         $linkPath = Join-Path $opencodeSkillsTarget $skillDir.Name
         $targetPath = $skillDir.FullName
         Set-DirectoryLink -LinkPath $linkPath -TargetPath $targetPath
+    }
+    # Drop OpenCode links to skills retired from the pack: the shared sync above removed their targets, so they dangle.
+    foreach ($staleLink in Get-ChildItem -LiteralPath $opencodeSkillsTarget -Force -Filter "ask-*" | Where-Object { $_.LinkType -and -not (Test-Path -LiteralPath $_.FullName -PathType Container) }) {
+        Remove-Item -LiteralPath $staleLink.FullName -Force
     }
 
     New-Item -ItemType Directory -Force -Path $copilotInstructionsTarget | Out-Null

@@ -669,6 +669,12 @@ for skill_dir in "$SHARED_SKILLS_TARGET"/*/; do
   rm -rf "$link_path"
   ln -s "$target_path" "$link_path"
 done
+# Drop OpenCode links to skills retired from the pack: the shared sync above removed their targets, so they dangle.
+for link_path in "$OPENCODE_SKILLS_TARGET"/ask-*; do
+  if [ -L "$link_path" ] && [ ! -e "$link_path" ]; then
+    rm -f "$link_path"
+  fi
+done
 
 mkdir -p "$COPILOT_INSTRUCTIONS_TARGET"
 cp "$COPILOT_INSTRUCTIONS_SOURCE" "$COPILOT_INSTRUCTIONS_FILE"

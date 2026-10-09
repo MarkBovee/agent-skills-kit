@@ -8,6 +8,15 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## [2.6.5] - 2026-10-09
 
+### Removed
+
+- Remove the `spec` skill, its `/spec` command, and its evals. The skill was almost never used, and `intake` already covers scope, constraints, and what counts as done. With it go the `spec-required` risk level and the `SPEC` lifecycle phase, so prompts that used to classify as `spec-required` now follow the `normal` flow (or whatever other risk phrase they match). Installers drop the retired skill on the next update; the pack now ships 18 skills.
+
+### Fixed
+
+- Installers now remove the OpenCode link to a skill retired from the pack; before, `~/.config/opencode/skills` kept a dangling `ask-<name>` link.
+- `install.ps1` removes an emptied skills root only when it is really empty, like `rmdir` in `install.sh`. `Remove-Item` without `-Recurse` prompted on a non-empty root, and its default answer deleted every child, including skills the user owns.
+
 ### Changed
 
 - Route README and docs writing prompts to `text-writing`: new English and Dutch phrases such as "write the readme", "rewrite the docs", and "schrijf de teksten", plus explicit mentions of the skill. Reading or looking up docs keeps its own route.

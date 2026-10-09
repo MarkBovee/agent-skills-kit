@@ -102,14 +102,6 @@ async function main() {
     "auto-match nudge proposes deep-research",
     (deepResearchAppend?.append || "").includes("Match: deep-research"),
   )
-  const specPlugin = await (await import(PLUGIN_PATH)).AgentSkillsRouter()
-  await specPlugin.event({ event: { type: "session.created", properties: { info: { id: "spec" } } } })
-  const specAppend = await specPlugin["tui.prompt.append"]({ sessionID: "spec", prompt: "write requirements specification for this feature" })
-  check(
-    "spec prompt exposes spec gate",
-    (specAppend?.append || "").includes("risk=spec-required")
-      && (specAppend?.append || "").includes("TODO:SPEC"),
-  )
   const releaseAppend = await plugin["tui.prompt.append"]({ prompt: "prepare release candidate" })
   check(
     "release prompt exposes release-sensitive lifecycle",
@@ -289,7 +281,7 @@ async function main() {
     && !("workflow" in panelMetadata.askKit))
   await panelPlugin["chat.message"](
     { sessionID: "panel-session" },
-    { message: { role: "user" }, parts: [{ type: "text", text: "write requirements specification for this feature" }] },
+    { message: { role: "user" }, parts: [{ type: "text", text: "brainstorm this feature" }] },
   )
   const chatMetadata = { askKit: panelPlugin.status({ sessionID: "panel-session" }) }
   check("chat.message keeps unmatched skills out of the sidebar", chatMetadata?.askKit?.activeSkills?.length === 0)

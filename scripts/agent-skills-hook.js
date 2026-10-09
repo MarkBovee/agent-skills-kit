@@ -33,7 +33,7 @@ const SKILLS_ROOT = path.join(PLUGIN_ROOT, "skills")
 const WORKFLOW_RULES_PATH = path.join(PLUGIN_ROOT, "rules", "workflow.md")
 const RULES_MARKER = "<!-- agent-skills-kit:managed -->"
 const MAX_HINT_SKILLS = 4
-// Workflow skills whose execution runs in the Sonnet ask-worker. Excluded: intake and spec (they ask the user
+// Workflow skills whose execution runs in the Sonnet ask-worker. Excluded: intake (it asks the user
 // questions a subagent cannot answer), and deep-research (tier deep, multi-source, expects its own subagents).
 const WORKER_SKILL_NAMES = new Set(["develop", "debugging", "research", "improve", "verification", "observability", "design"])
 const STATE_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000

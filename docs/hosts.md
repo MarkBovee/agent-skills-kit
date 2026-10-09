@@ -115,7 +115,7 @@ Install as a plugin (recommended):
 
 | Piece | Behavior |
 | --- | --- |
-| 19 `ask-` skills | Hidden from automatic model invocation (`disable-model-invocation`). The router picks one and the agent reads its `SKILL.md`; you can also run any of them as a slash command. |
+| 18 `ask-` skills | Hidden from automatic model invocation (`disable-model-invocation`). The router picks one and the agent reads its `SKILL.md`; you can also run any of them as a slash command. |
 | `SessionStart` hook | Routing table with the exact `SKILL.md` path per workflow plus the workflow mandate. Announced again after compaction. |
 | `SubagentStart` hook | Hands the same routing table to subagents, which do not inherit session context. |
 | `UserPromptSubmit` hook | One routing suggestion, the workflow risk and its gates, the test budget, and the review reminder. Plain questions and slash commands get nothing. |

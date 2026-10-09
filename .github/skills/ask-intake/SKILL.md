@@ -104,7 +104,7 @@ clear — the initial plan already covers the full scope.
 
 ## Avoid
 
-- Mandatory spec-writing for trivial work
+- Mandatory requirements documents for trivial work
 - Endless questioning after direction is already clear
 - Creating parallel planning trees when the repo already has one
 - Turning assumptions into facts without saying so

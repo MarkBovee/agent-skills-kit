@@ -11,7 +11,6 @@ const CODE_EDIT_TOOL_IDS = new Set(["edit", "write", "patch", "apply_patch"])
 
 const SKILL_DEVELOP = "develop"
 const SKILL_INTAKE = "intake"
-const SKILL_SPEC = "spec"
 const SKILL_CODE_REVIEW = "code-review"
 const SKILL_VERIFICATION = "verification"
 const SKILL_DEBUGGING = "debugging"
@@ -34,13 +33,12 @@ const ASK_SKILL_NAMES = new Set([
   SKILL_AGENT_WORKFLOWS, SKILL_CODE_REVIEW, SKILL_DEBUGGING, SKILL_DEEP_RESEARCH,
   SKILL_DESIGN, SKILL_DESIGN_REVIEW, SKILL_DEVELOP, SKILL_GH_INBOX, SKILL_IMPROVE,
   SKILL_INTAKE, SKILL_OBSERVABILITY, SKILL_RESEARCH, SKILL_SESSION_REVIEW,
-  SKILL_SPEC, SKILL_SUMMARY, SKILL_HANDOFF, SKILL_TEXT_WRITING, SKILL_VERIFICATION, SKILL_WRITE_SKILL,
+  SKILL_SUMMARY, SKILL_HANDOFF, SKILL_TEXT_WRITING, SKILL_VERIFICATION, SKILL_WRITE_SKILL,
 ])
 const VALID_EXECUTION_TIERS = new Set(["light", "standard", "deep"])
 const VALID_DELEGATION_MODES = new Set(["auto", "prefer-subagent", "owner-only"])
-const WORKFLOW_PHASES = ["INTAKE", "RESEARCH", "SPEC", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "ITERATE", "AUDIT", "RELEASE_GATE", "DONE", "BLOCKED"]
-const WORKFLOW_RISK_LEVELS = new Set(["small", "normal", "spec-required", "significant", "release-sensitive"])
-const SPEC_REQUIRED_PHRASES = ["specify requirements", "requirements spec", "requirements specification", "design brief", "decision register", "requirements traceability", "spec before build", "behavior-changing", "behavior changing", "new external contract", "new external contracts", "acceptance criteria unclear", "unclear acceptance criteria"]
+const WORKFLOW_PHASES = ["INTAKE", "RESEARCH", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "ITERATE", "AUDIT", "RELEASE_GATE", "DONE", "BLOCKED"]
+const WORKFLOW_RISK_LEVELS = new Set(["small", "normal", "significant", "release-sensitive"])
 const RELEASE_RISK_PHRASES = ["release candidate", "production readiness", "ready to ship", "ready to merge", "release-sensitive"]
 const SIGNIFICANT_RISK_PHRASES = [
   "architecture", "architectural", "migration", "ownership", "routing change", "multi-module",
@@ -175,13 +173,6 @@ const COMPLETION_PHRASES = [
   "bewijzen dat het werkt",
   "test de fix", "check of het werkt", "validate", "valideren",
   "cleanup", "clean up",
-]
-const SPEC_PHRASES = [
-  "specify requirements", "requirements spec", "requirements specification",
-  "requirements capture", "requirements engineering", "design brief",
-  "decision register", "requirements traceability", "traceable requirements",
-  "validation gate", "readiness gate", "handover package", "spec before build",
-  "truth spine", "requirements-driven", "formalize requirements",
 ]
 
 // Signal phrases for human-first writing. Chosen to avoid colliding with
@@ -459,7 +450,6 @@ function classifyWorkflowRisk(query) {
   if (hasPhraseSignal(normalized, LARGE_BRIEF_PHRASES)) return "significant"
   if (hasPhraseSignal(normalized, DEEP_RESEARCH_PHRASES)) return "significant"
   if (hasPhraseSignal(normalized, SIGNIFICANT_RISK_PHRASES)) return "significant"
-  if (hasPhraseSignal(normalized, SPEC_REQUIRED_PHRASES)) return "spec-required"
   if (hasPhraseSignal(normalized, SMALL_RISK_PHRASES)) return "small"
   return "normal"
 }
@@ -468,12 +458,12 @@ function classifyWorkflowRisk(query) {
 // follow-up prompts retain the current task's risk and accumulated evidence.
 function hasWorkflowRiskSignal(query) {
   const normalized = String(query || "").trim().toLowerCase()
-  return hasPhraseSignal(normalized, [...RELEASE_RISK_PHRASES, ...LARGE_BRIEF_PHRASES, ...DEEP_RESEARCH_PHRASES, ...SPEC_REQUIRED_PHRASES, ...SIGNIFICANT_RISK_PHRASES, ...SMALL_RISK_PHRASES])
+  return hasPhraseSignal(normalized, [...RELEASE_RISK_PHRASES, ...LARGE_BRIEF_PHRASES, ...DEEP_RESEARCH_PHRASES, ...SIGNIFICANT_RISK_PHRASES, ...SMALL_RISK_PHRASES])
 }
 
 // Rank risk levels so a follow-up cannot silently weaken an active release flow.
 function workflowRiskRank(risk) {
-  return ["small", "normal", "spec-required", "significant", "release-sensitive"].indexOf(risk)
+  return ["small", "normal", "significant", "release-sensitive"].indexOf(risk)
 }
 
 // Skip standalone review for explicitly small work and combine review for normal work.
@@ -483,20 +473,13 @@ function reviewModeForRisk(risk) {
 }
 
 // Select lifecycle gates for a risk level; small work stops after validation.
-function requiredWorkflowPhases(risk, query = "") {
-  const phases = (() => {
-    switch (risk) {
-      case "small": return ["EXECUTE", "VALIDATE"]
-      case "spec-required": return ["INTAKE", "SPEC", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW"]
-      case "significant": return ["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "AUDIT"]
-      case "release-sensitive": return ["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "AUDIT", "RELEASE_GATE"]
-      default: return ["PLAN", "EXECUTE", "VALIDATE", "REVIEW"]
-    }
-  })()
-  if (risk !== "small" && hasPhraseSignal(String(query || ""), SPEC_REQUIRED_PHRASES) && !phases.includes("SPEC")) {
-    phases.splice(1, 0, "SPEC")
+function requiredWorkflowPhases(risk) {
+  switch (risk) {
+    case "small": return ["EXECUTE", "VALIDATE"]
+    case "significant": return ["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "AUDIT"]
+    case "release-sensitive": return ["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "AUDIT", "RELEASE_GATE"]
+    default: return ["PLAN", "EXECUTE", "VALIDATE", "REVIEW"]
   }
-  return phases
 }
 
 // Require review when the workflow is unknown or explicitly includes the gate.
@@ -518,8 +501,7 @@ function buildWorkflowState(query, previous = null) {
     : classifiedRisk
   const startsNewReleaseTask = classifiedRisk === "release-sensitive" && hasWorkflowRiskSignal(normalizedQuery)
   const sameRisk = previousWorkflow?.risk === risk && !startsNewReleaseTask
-  const previousRequiresSpec = sameRisk && previousWorkflow?.requiredPhases?.includes("SPEC")
-  const requiredPhases = requiredWorkflowPhases(risk, previousRequiresSpec ? "new external contract" : normalizedQuery)
+  const requiredPhases = requiredWorkflowPhases(risk)
   return {
     risk,
     reviewMode: reviewModeForRisk(risk),
@@ -554,7 +536,6 @@ function invalidateWorkflowForDiff(workflow, diffIdentity) {
 const TEST_POLICY = {
   "small": "no new tests unless existing ones cannot prove the change",
   "normal": "new behavior at the public boundary; one regression test per bug only when cheap",
-  "spec-required": "one test per acceptance criterion",
   "significant": "as normal plus one test per P0/P1 finding",
   "release-sensitive": "full proof set",
 }
@@ -633,7 +614,6 @@ function workflowForSkill(workflow, skillName) {
   const phaseBySkill = {
     [SKILL_RESEARCH]: "RESEARCH",
     [SKILL_DEEP_RESEARCH]: "RESEARCH",
-    [SKILL_SPEC]: "SPEC",
     [SKILL_INTAKE]: "INTAKE",
     [SKILL_DEVELOP]: "EXECUTE",
     [SKILL_VERIFICATION]: "VALIDATE",
@@ -810,7 +790,6 @@ function buildExecutionProfile(matchedSkill, query) {
 const OVERVIEW_ROWS = [
   { label: "Deep research complex, contested, high-stakes questions", skill: SKILL_DEEP_RESEARCH },
   { label: "Research facts, sources, or current state",          skill: SKILL_RESEARCH },
-  { label: "Specify requirements, build design brief",   skill: SKILL_SPEC },
   { label: "Clarify scope, plan ambiguous work",       skill: SKILL_INTAKE },
   { label: "Debug bug, crash, failing test, error",    skill: SKILL_DEBUGGING },
   { label: "Review code changes before handoff",       skill: SKILL_CODE_REVIEW },
@@ -910,7 +889,6 @@ function cascadeRoute(query, skills, sessionState) {
     tryRoute(IMPROVE_PHRASES, SKILL_IMPROVE) ||                // 2. Improve
     tryRoute(LARGE_BRIEF_PHRASES, SKILL_INTAKE) ||             // 3. Start (large brief)
     tryRoute(EXPLICIT_DEEP_RESEARCH_PHRASES, SKILL_DEEP_RESEARCH) || // 4. Research
-    tryRoute(SPEC_PHRASES, SKILL_SPEC) ||                      // 5. Start (explicit spec)
     tryRoute(AMBIGUITY_PHRASES, SKILL_INTAKE) ||               // 6. Start
     tryRoute(COMPARATIVE_DEEP_RESEARCH_PHRASES, SKILL_DEEP_RESEARCH) || // 7. Research
     tryRoute(RESEARCH_PHRASES, SKILL_RESEARCH) ||              // 8. Research
@@ -974,7 +952,7 @@ module.exports = {
   WORKFLOW_PHASES, WORKFLOW_RISK_LEVELS,
   SKILL_AGENT_WORKFLOWS, SKILL_CODE_REVIEW, SKILL_DEBUGGING,
   SKILL_SESSION_REVIEW, SKILL_IMPROVE, SKILL_DEVELOP, SKILL_INTAKE, SKILL_DESIGN,
-  SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SPEC, SKILL_SUMMARY, SKILL_HANDOFF, COMPLETION_PHRASES, SKILL_DESIGN_REVIEW,
+  SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SUMMARY, SKILL_HANDOFF, COMPLETION_PHRASES, SKILL_DESIGN_REVIEW,
  SKILL_TEXT_WRITING, SKILL_RESEARCH, SKILL_DEEP_RESEARCH, SKILL_OBSERVABILITY, REVIEW_COMPLETION_MARKER, hasReviewCompletionSignal, hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, reviewEvidenceAccepted, blockWorkflowForMissingDiffIdentity, reviewModeForRisk,
   buildSkillOverview, buildCompactSkillOverview, cascadeRoute, buildExecutionProfile, buildRoutingStatus, pendingReviewRequirements, activeSkillEntries, skillDisplayName, loadSkills, reviewNudgeLines,
   createEmptySessionState, getSessionState, setSessionState,
