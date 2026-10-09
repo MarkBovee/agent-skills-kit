@@ -97,18 +97,18 @@ You know what changed, what was run, and where to look first.
 
 ## Built for how you work
 
-| Vibe coding | 10x coding | Agentic workflows |
-| --- | --- | --- |
-| Ship fast without losing the thread. | Hold the agent to a senior bar. | Run agents where the outcome has to be right. |
-| `/summary` says what changed, what ran, and what to read first.<br /><br />A small fix goes `EXECUTE → VALIDATE`: no review ceremony, no audit.<br /><br />The git guard blocks `reset --hard`, force pushes, and pushes to `main`. | Small functions, reuse before adding, and an intent comment above every function; review treats a missing comment as blocking.<br /><br />Review flags speculative abstraction and pass-through layers.<br /><br />Normal work gets one combined review; significant work adds an independent audit. | Reviewer, auditor, and researcher subagents that report but never edit send `ASK_WORKFLOW_*` markers, and the review reminder stays until that evidence arrives.<br /><br />`agent-workflows` coordinates parallel agents and `handoff` briefs the next one.<br /><br />Every skill ships behavior evals, at least three scenarios each. |
+| Use | What ASK does for you |
+| --- | --- |
+| **Vibe coding**<br />Ship fast without losing the thread. | `/summary` says what changed, what ran, and what to read first.<br />A small fix goes `EXECUTE → VALIDATE`: no review ceremony, no audit.<br />The git guard blocks `reset --hard`, force pushes, and pushes to `main`. |
+| **10x coding**<br />Hold the agent to a senior bar. | Small functions, reuse before adding, and an intent comment above every function; review treats a missing comment as blocking.<br />Review flags speculative abstraction and pass-through layers.<br />Normal work gets one combined review; significant work adds an independent audit. |
+| **Agentic workflows**<br />Run agents where the outcome has to be right. | Reviewer, auditor, and researcher subagents that report but never edit send `ASK_WORKFLOW_*` markers, and the review reminder stays until that evidence arrives.<br />`agent-workflows` coordinates parallel agents and `handoff` briefs the next one.<br />Every skill ships behavior evals, at least three scenarios each. |
 
 ## How it works
 
 ```mermaid
 flowchart LR
-    P([Your prompt]) --> R["Router suggests<br/>one skill"]
-    R --> S["Agent reads<br/>its SKILL.md"]
-    S --> W["Work in small,<br/>validated steps"]
+    P([Your prompt]) --> R["Router suggests one skill;<br/>the agent reads its SKILL.md"]
+    R --> W["Work in small,<br/>validated steps"]
     W --> K{"Risk of<br/>the change"}
     K -->|small fix| A["Targeted validation"]
     K -->|normal| B["Validation + one review"]
