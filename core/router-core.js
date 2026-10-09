@@ -186,40 +186,60 @@ const SPEC_PHRASES = [
 
 // Signal phrases for human-first writing. Chosen to avoid colliding with
 // develop triggers (write/rewrite) and write-skill phrases (create skill).
-// README and docs phrases name a writing act ("write the docs"), never a bare noun, because "docs" and "readme"
-// also appear in reading and lookup prompts that should keep their own route.
 const TEXT_WRITING_PHRASES = [
   "anti-slop", "make this sound human", "sound human", "not read like ai",
   "read like ai", "not ai", "write a tweet", "draft email", "draft an email",
   "write an email", "cover letter", "linkedin post", "blog post", "newsletter",
   "copywriting", "schrijf als mens", "niet ai", "menselijk laten klinken",
-  "text-writing", "text writing", "proofread",
-  "write the readme", "write a readme", "rewrite the readme", "update the readme", "improve the readme",
-  "readme schrijven", "readme herschrijven", "readme verbeteren", "schrijf de readme",
-  "write the docs", "write docs", "rewrite the docs", "update the docs", "improve the docs",
-  "write documentation", "rewrite the documentation", "documentatie schrijven", "schrijf de documentatie",
+  "text-writing", "text writing",
   "schrijf de tekst", "schrijf de teksten", "herschrijf de tekst", "teksten herschrijven",
 ]
+// README and docs writing acts. They name an act, never a bare noun, because "docs" and "readme" also appear in reading and
+// lookup prompts, and they yield to code work so "implement the retry feature and write the docs" stays with develop and
+// its worker. The PostToolUse prose nudge covers what a prompt phrase cannot see.
+const DOCS_WRITING_PHRASES = [
+  "write the readme", "write a readme", "rewrite the readme",
+  "readme schrijven", "readme herschrijven", "readme verbeteren", "schrijf de readme",
+  "write the docs", "rewrite the docs", "write documentation", "rewrite the documentation",
+  "documentatie schrijven", "schrijf de documentatie",
+]
+// Develop triggers that also open a README rewrite, so they say nothing about code work.
+const WRITING_ACT_TRIGGERS = new Set(["rewrite"])
 
-// Directories whose markdown is agent guidance, generated output, or local planning rather than human-facing prose.
-const NON_PROSE_DIRECTORIES = new Set(["skills", "rules", "commands", "prompts", "agents", "plans", "node_modules", ".git"])
-// Files that instruct agents, are exported copies, or are mechanical release logs (cost-aware routing hands changelog
-// edits to a cheap subagent), so the human-first writing rules do not apply to them.
-const NON_PROSE_FILE_NAMES = new Set(["agents.md", "claude.md", "gemini.md", "skill.md", "copilot-instructions.md", "changelog.md"])
-const PROSE_FILE_EXTENSIONS = /\.(?:md|mdx|rst|adoc)$/i
+// Tell whether the prompt carries a develop trigger that signals code work, ignoring triggers that are writing acts themselves.
+function signalsCodeWork(query, skills) {
+  const develop = findSkill(skills, SKILL_DEVELOP)
+  // Keep the develop triggers that name code work rather than a rewrite of prose.
+  const codeTriggers = (develop?.triggers || []).filter((trigger) => !WRITING_ACT_TRIGGERS.has(String(trigger).toLowerCase()))
+  return matchingPhrases(query, codeTriggers).length > 0
+}
+
+// First path segment under the project root that holds agent guidance, generated output, or local planning.
+const NON_PROSE_ROOT_DIRECTORIES = new Set(["skills", "rules", "commands", "prompts", "agents", "plans"])
+// Host and tool directories that never hold project prose, wherever they sit: this also keeps the agent's own notes
+// (plan files, auto-memory) under the user's home from spending the one-time prose nudge.
+const NON_PROSE_ANYWHERE_DIRECTORIES = new Set([".claude", ".agents", ".codex", ".copilot", ".opencode", ".dsh", "node_modules", ".git"])
+// Exported copies, agent memory, and mechanical release logs (cost-aware routing hands changelog edits to a cheap subagent).
+const NON_PROSE_FILE_NAMES = new Set(["skill.md", "copilot-instructions.md", "changelog.md", "memory.md"])
+// Agent instruction files: AGENTS.md, CLAUDE.md, GEMINI.md and their variants (CLAUDE.local.md), plus *.instructions.md.
+const AGENT_INSTRUCTION_FILE_PATTERN = /^(?:agents|claude|gemini)(?:\.[^.]+)*\.md$|\.instructions\.md$/
+const PROSE_FILE_EXTENSIONS = /\.(?:md|mdx|markdown|rst|adoc)$/i
 
 // Tell whether a written file is human-facing prose (README, docs page, security policy) rather than code, agent instructions, or a release log.
-// Directory exclusions only apply below `cwd`, so a project that happens to live under a folder named "agents" still counts.
+// Layout rules (skills/, rules/, ...) only apply below `cwd`, so a project that lives under a folder named "agents" still counts.
 function isProseFilePath(filePath, cwd) {
   if (typeof filePath !== "string" || !filePath.trim()) return false
   const fileName = path.basename(filePath).toLowerCase()
-  if (!PROSE_FILE_EXTENSIONS.test(fileName) || NON_PROSE_FILE_NAMES.has(fileName)) return false
-  const relativePath = cwd && path.isAbsolute(filePath) ? path.relative(cwd, filePath) : filePath
-  const directories = path.dirname(relativePath).split(/[\\/]/)
-  // A file outside the working directory has no project layout to judge, so only its name counts.
-  if (directories[0] === ".." || path.isAbsolute(relativePath)) return true
-  // Prose lives outside every directory that holds agent guidance, generated output, or local plans.
-  return !directories.some((directory) => NON_PROSE_DIRECTORIES.has(directory.toLowerCase()))
+  const hasProseName = fileName === "readme" || PROSE_FILE_EXTENSIONS.test(fileName)
+  if (!hasProseName || NON_PROSE_FILE_NAMES.has(fileName) || AGENT_INSTRUCTION_FILE_PATTERN.test(fileName)) return false
+  const projectRelative = typeof cwd === "string" && cwd && path.isAbsolute(filePath) ? path.relative(cwd, filePath) : filePath
+  // Drop empty and "." segments so a file at the project root has no directories.
+  const directories = path.dirname(projectRelative).split(/[\\/]/).filter((segment) => segment && segment !== ".")
+  // Host tool directories never hold project prose, inside the project or in the user's home.
+  if (directories.some((directory) => NON_PROSE_ANYWHERE_DIRECTORIES.has(directory.toLowerCase()))) return false
+  const outsideProject = path.isAbsolute(projectRelative) || directories[0] === ".."
+  // The project layout only judges files below the working directory; elsewhere the name and tool directories decide.
+  return outsideProject || !NON_PROSE_ROOT_DIRECTORIES.has((directories[0] || "").toLowerCase())
 }
 
 const AMBIGUITY_PHRASES = [
@@ -914,6 +934,7 @@ function cascadeRoute(query, skills, sessionState) {
     tryRoute(WRITE_SKILL_PHRASES, SKILL_WRITE_SKILL) ||        // 13. Coordinate
     tryRoute(DESIGN_PHRASES, SKILL_DESIGN) ||                  // 14. Product
     tryRoute(TEXT_WRITING_PHRASES, SKILL_TEXT_WRITING) ||      // 15. Product
+    (signalsCodeWork(q, skills) ? null : tryRoute(DOCS_WRITING_PHRASES, SKILL_TEXT_WRITING)) || // 15a. Product (docs writing yields to code work)
     tryRoute(OBSERVABILITY_PHRASES, SKILL_OBSERVABILITY) ||    // 16. Operate
     (() => {                                                   // 17. Execute (default)
       const fallback = findSkill(skills, SKILL_DEVELOP)

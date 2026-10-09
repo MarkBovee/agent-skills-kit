@@ -360,10 +360,13 @@ async function main() {
   }
 
   if (event === "post-edit") {
-    const state = loadState(sessionId)
+    // Arm the review gate first so a prose-classification problem can never leave an edit unreviewed.
+    const state = { ...loadState(sessionId), needsCodeReview: true }
+    saveState(sessionId, state)
     const nudge = buildProseNudge(payload, state)
-    saveState(sessionId, { ...state, needsCodeReview: true, textWritingHintShown: Boolean(state.textWritingHintShown) || Boolean(nudge) })
-    if (nudge) process.stdout.write(buildHookOutput("PostToolUse", nudge))
+    if (!nudge) return
+    saveState(sessionId, { ...state, textWritingHintShown: true })
+    process.stdout.write(buildHookOutput("PostToolUse", nudge))
     return
   }
 

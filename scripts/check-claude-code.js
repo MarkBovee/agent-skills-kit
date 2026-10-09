@@ -167,6 +167,14 @@ function checkHookBehavior() {
   expect(!proseEdit("prose-log", "/work/app/CHANGELOG.md").trim(), "editing the mechanical CHANGELOG.md does not nudge toward ask-text-writing")
   run("post-skill-read", { session_id: "prose-read", tool_input: { file_path: path.join(SKILLS_DIR, "ask-text-writing", "SKILL.md") } })
   expect(!proseEdit("prose-read", "/work/app/README.md").trim(), "reading ask-text-writing silences the prose nudge")
+  // The agent's own notes under the host config directory never spend the one-time nudge meant for real prose.
+  expect(!proseEdit("prose-home", "/home/u/.claude/plans/idea.md").trim() && proseEdit("prose-home", "/work/app/README.md").includes("ask-text-writing"), "plan and memory files outside the project do not spend the prose nudge")
+  expect(proseEdit("prose-docs", "/work/app/docs/commands/install.md").includes("ask-text-writing"), "a docs page about commands still nudges toward ask-text-writing")
+  run("session-start", { session_id: "prose", source: "compact" })
+  expect(proseEdit("prose", "/work/app/README.md").includes("ask-text-writing"), "compaction re-arms the prose nudge")
+  run("post-edit", { session_id: "prose-cwd", tool_name: "Edit", cwd: 5, tool_input: { file_path: "/work/app/README.md" } })
+  const armedDespiteCwd = parseHookOutput(run("prompt", { session_id: "prose-cwd", prompt: "continue" }).stdout)
+  expect(armedDespiteCwd?.hookSpecificOutput?.additionalContext?.includes("ask-code-review"), "a malformed cwd still arms the code-review reminder")
 
   // Run a hook with a chosen shared skill root so path resolution never depends on the developer's real home directory.
   const runWithSharedRoot = (event, payload, sharedRoot) => spawnSync(process.execPath, [HOOK_SCRIPT, event], { input: JSON.stringify(payload), encoding: "utf8", env: { ...stateEnv, ASK_SKILLS_DIR: sharedRoot }, timeout: 10000 })

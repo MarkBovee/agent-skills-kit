@@ -117,6 +117,8 @@ const ROUTING_CASES = [
   ["rewrite the docs for this library", "text-writing"],
   ["schrijf de teksten voor de readme", "text-writing"],
   ["gebruiken we de text-writing skill hiervoor", "text-writing"],
+  // Product — text-writing: a docs clause on top of code work stays with develop and its worker.
+  ["implement the retry feature and write the docs", "develop"],
   // Product — text-writing: reading or looking something up in the docs keeps its own route.
   ["read the README for the install steps", "develop"],
   ["look in the docs for the retry option", "develop"],
