@@ -164,7 +164,7 @@ Rules are generated into `~/.claude/rules/agent-skills-kit.md` from `rules/workf
 
 ## Codex
 
-Codex loads skills from the Agent Skills standard. It scans repository `.agents/skills` directories and the user shared `~/.agents/skills/` root. ASK installs canonical skill directories there, and `~/.codex/config.toml` disables native invocation for shared leaf skills while leaving dispatchers enabled.
+Codex loads skills from the Agent Skills standard. It scans repository `.agents/skills` directories and the user shared `~/.agents/skills/` root. ASK installs canonical skill directories there and never edits `~/.codex/config.toml`.
 
 Use the global Codex `AGENTS.md` router guidance to read a selected shared `SKILL.md` directly. Native invocation remains enabled only for dispatcher skills. ASK's OpenCode router is not installed into Codex: the current Codex skill host exposes no supported equivalent hook for prompt injection, tool gating, or session-state widgets.
 

@@ -10,18 +10,16 @@
 
 ## Validation
 
-- [ ] `node ./scripts/validate-plugin.js` passes
-- [ ] `node ./scripts/check-trigger-overlap.js` passes
-- [ ] `node ./scripts/check-release-readiness.js` passes
-- [ ] `node ./scripts/export-platform-skills.js` regenerates exports with no diff
+- [ ] The checks in [AGENTS.md](https://github.com/MarkBovee/agent-skills-kit/blob/main/AGENTS.md#required-checks) pass locally (at least `validate-plugin`, `check-trigger-overlap`, `check-code-comments`, and `check-release-readiness --require-version-entry`)
+- [ ] `node ./scripts/export-platform-skills.js` regenerates exports with no diff once the output is committed
 - [ ] CI (`validate` check) is green
 
 ## Release impact
 
-<!-- User-visible changes to shipped assets (skills/, core/, plugins/, scripts/) need a patch bump in VERSION + a matching CHANGELOG.md entry in the same change. Doc-only changes can stay unreleased. -->
+<!-- User-visible changes to what ships (skills/, core/, plugins/, hooks/, agents/, commands/, rules/, the hook script, installers) need a patch bump in VERSION, a matching CHANGELOG.md entry, and the same version in .claude-plugin/plugin.json, all in the same change. Doc-only changes can stay unreleased. -->
 
 - [ ] No release impact (doc-only / internal)
-- [ ] VERSION bumped and CHANGELOG.md entry added
+- [ ] VERSION, CHANGELOG.md, and `.claude-plugin/plugin.json` version bumped together
 
 ## Notes
 
