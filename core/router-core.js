@@ -216,7 +216,8 @@ function isProseFilePath(filePath, cwd) {
   return outsideProject || !NON_PROSE_ROOT_DIRECTORIES.has((layoutRoot || "").toLowerCase())
 }
 
-const TEST_FILE_PATTERN = /(?:^|[\\/])(?:tests?|__tests__)[\\/]|\.(?:test|spec)\.[a-z]+$/i
+const TEST_DIRECTORY_PATTERN = /(?:^|[\\/])(?:tests?|__tests__)[\\/]/i
+const TEST_FILE_NAME_PATTERN = /\.(?:test|spec)\.[a-z]+$/i
 
 // Reduce an edited path to its project-relative form; "" when it sits outside the project or cannot be resolved.
 // Directory names above the project (a checkout under ~/tests) must never influence the mechanical-edit decision.
@@ -233,7 +234,7 @@ function isMechanicalEditPath(filePath, cwd) {
   const relative = projectRelativeEditPath(filePath, cwd)
   if (!relative) return false
   if (relative === "VERSION" || path.basename(relative).toLowerCase() === "changelog.md") return true
-  return TEST_FILE_PATTERN.test(relative) || isProseFilePath(filePath, cwd)
+  return TEST_DIRECTORY_PATTERN.test(relative) || TEST_FILE_NAME_PATTERN.test(relative) || isProseFilePath(filePath, cwd)
 }
 
 const AMBIGUITY_PHRASES = [
