@@ -125,9 +125,9 @@ Install as a plugin (recommended):
 
 ### Git guard
 
-The `PreToolUse` hook on Bash denies destructive git commands and tells the agent to ask you instead. By default it blocks `reset --hard`, `clean -f` (not `-n`), `branch -D`, `checkout .`, `restore .` (not `--staged`), force, delete, and mirror pushes, forced or deleting refspecs, and any push to `main` or `master` (including a bare `git push` while one of them is checked out). Other pushes go through.
+The `PreToolUse` hook on Bash denies destructive git commands and tells the agent to ask you instead. By default it blocks `reset --hard` and `reset --merge`, `clean -f` (not `-n`), `branch -D`, `stash clear`, `worktree remove --force`, `switch --discard-changes`, `checkout` and `restore` of the whole tree (`.`, `./`, `:/`, `*`; `restore --staged` is fine), force, delete, mirror, and prune pushes, forced or deleting refspecs, and any push to `main` or `master` (including a bare `git push` while one of them is checked out). Other pushes go through. It looks through wrappers such as `sudo -u root`, `nice -n 5`, and `env -u VAR`, and through `$(...)` and backticks inside double quotes.
 
-Set `ASK_GIT_GUARD` in the environment (for example in the `env` block of `settings.json`): `strict` blocks every push, `off` disables the guard. It is a safety net against agent mistakes, not a security boundary: it does not look inside `bash -c` strings or scripts. It is part of the plugin, so a skills-mode install (`ASK_CLAUDE_MODE=skills`) does not have it.
+Set `ASK_GIT_GUARD` in the environment (for example in the `env` block of `settings.json`): `strict` blocks every push, `off` disables the guard. It is a safety net against agent mistakes, not a security boundary: it does not look inside `bash -c` or `eval` strings, heredoc bodies, or scripts. It is part of the plugin, so a skills-mode install (`ASK_CLAUDE_MODE=skills`) does not have it.
 
 Skill files resolve in this order: the shared install (`~/.agents/skills`, or `ASK_SKILLS_DIR`) when it exists, otherwise the copy bundled in the plugin. A plugin-only install therefore works without running the installer.
 
