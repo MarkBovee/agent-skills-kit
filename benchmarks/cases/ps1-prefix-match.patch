@@ -1,0 +1,303 @@
+diff --git a/scripts/install.ps1 b/scripts/install.ps1
+index 43ec1ef..e2d40f7 100644
+--- a/scripts/install.ps1
++++ b/scripts/install.ps1
+@@ -110,121 +110,101 @@ function Remove-LegacyInstallArtifacts {
+         (Join-Path $ClaudeDir "hooks\nebu-ctx-redirect.sh.nebu-ctx.bak"),
+         (Join-Path $ClaudeDir "hooks\nebu-ctx-rewrite-native"),
+         (Join-Path $ClaudeDir "hooks\nebu-ctx-rewrite-native.nebu-ctx.bak"),
+         (Join-Path $ClaudeDir "hooks\nebu-ctx-rewrite.sh"),
+         (Join-Path $ClaudeDir "hooks\nebu-ctx-rewrite.sh.nebu-ctx.bak"),
+         (Join-Path $ClaudeDir "rules\nebu-ctx.md"),
+         (Join-Path $ClaudeDir "rules\nebu-skills.md")
+     )
+ 
+     foreach ($legacyPath in $legacyPaths) {
+         if (Test-Path -LiteralPath $legacyPath) {
+             Remove-Item -LiteralPath $legacyPath -Recurse -Force
+         }
+     }
+ }
+ 
+ # Render installer identity before file operations begin.
+ Show-AskBanner
+ 
+ # Write the Claude rule file from the shared workflow mandate (single source: rules/workflow.md).
+ function Write-ClaudeRulesFile {
+     $workflow = Get-Content -LiteralPath (Join-Path $opencodeRulesSource "workflow.md") -Raw
+     $lines = @(
+         $claudeRulesMarker,
+         $workflow.TrimEnd(),
+         "",
+         '- ASK skills are native Agent Skills with the id `ask-<name>` (for example `ask-develop`); the guidance above names them without the prefix.',
+         '- Follow the Test budget in `ask-verification`; `strict tests` restores TDD and a regression test per fix.'
+     )
+     ($lines -join "`n") + "`n" | Set-Content -LiteralPath $claudeRulesFile -NoNewline
+ }
+ 
+ # Decide how Claude Code is wired: plugin (via the claude CLI), skills (per-skill links), or off.
+ function Resolve-ClaudeMode {
+     if ($ClaudeMode -in @("plugin", "skills", "off")) { return $ClaudeMode }
+     if (Get-Command claude -ErrorAction SilentlyContinue) { return "plugin" }
+     if (Test-Path -LiteralPath $ClaudeDir) { return "skills" }
+     return "off"
+ }
+ 
+-# Tell whether a path lies strictly below a root directory. Whole path segments are compared, so a sibling that only shares a
+-# prefix (skills-backup next to skills) does not count. Ordinal everywhere except Windows, so a case-different path is never
+-# claimed as ours (fail-safe: the link is kept).
+-function Test-PathIsUnder {
+-    param([string]$Path, [string]$Root)
+-
+-    $separator = [System.IO.Path]::DirectorySeparatorChar
+-    $comparison = if ($separator -eq '\') { [System.StringComparison]::OrdinalIgnoreCase } else { [System.StringComparison]::Ordinal }
+-    $normalizedRoot = $Root.Replace('/', $separator).TrimEnd($separator) + $separator
+-    return $Path.Replace('/', $separator).StartsWith($normalizedRoot, $comparison)
+-}
+-
+-# Resolve the shared skills root to an absolute path without requiring it to exist, so relative -AgentsDir values compare correctly.
+-function Get-ResolvedSharedSkillsRoot {
+-    return $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($sharedSkillsTarget)
+-}
+-
+ # Remove only ASK-owned links from the Claude skill root; real directories and foreign links stay untouched.
+ function Remove-AskClaudeSkillLinks {
+     if (-not (Test-Path -LiteralPath $claudeSkillsTarget)) { return }
+     $root = Get-Item -LiteralPath $claudeSkillsTarget -Force
+     if ($root.LinkType) {
+         # Legacy installs replaced the whole directory with a link to the shared root; drop just that link.
+         if ($root.Target -contains $sharedSkillsTarget) { $root.Delete() }
+         return
+     }
+-    $resolvedSharedRoot = Get-ResolvedSharedSkillsRoot
+     foreach ($entry in Get-ChildItem -LiteralPath $claudeSkillsTarget -Force -Filter "ask-*") {
+-        if ($entry.LinkType -and (Test-PathIsUnder -Path ([string]($entry.Target | Select-Object -First 1)) -Root $resolvedSharedRoot)) { $entry.Delete() }
++        if ($entry.LinkType -and ($entry.Target | Where-Object { $_ -like "$sharedSkillsTarget*" })) { $entry.Delete() }
+     }
+ }
+ 
+ # Link each managed skill into the Claude skill root without replacing anything the user owns.
+ function Link-ClaudeSkills {
+     param([string[]]$SkillNames)
+     New-Item -ItemType Directory -Force -Path $claudeSkillsTarget | Out-Null
+-    # Link to the absolute root: a relative target resolves against the link's own directory and would dangle.
+-    $resolvedSharedRoot = Get-ResolvedSharedSkillsRoot
+     foreach ($skillName in $SkillNames) {
+         $linkPath = Join-Path $claudeSkillsTarget $skillName
+-        $targetPath = Join-Path $resolvedSharedRoot $skillName
++        $targetPath = Join-Path $sharedSkillsTarget $skillName
+         if (Test-Path -LiteralPath $linkPath) {
+             $existing = Get-Item -LiteralPath $linkPath -Force
+             if (-not $existing.LinkType) {
+                 Write-Warning "Skipped Claude skill link for ${skillName}: a user-owned directory already exists."
+                 continue
+             }
+             $existing.Delete()
+         }
+         try { New-Item -ItemType SymbolicLink -Path $linkPath -Target $targetPath | Out-Null }
+         catch { New-Item -ItemType Junction -Path $linkPath -Target $targetPath | Out-Null }
+     }
+ }
+ 
+ # Copy the unprefixed slash commands (/gh-inbox) into ~/.claude/commands for skills mode, tracked by manifest so
+ # retired commands disappear and user-owned commands stay. Plugin mode gets them from the plugin instead.
+ function Install-ClaudeCommands {
+     if (-not (Test-Path -LiteralPath $claudeCommandsSource)) { return }
+     New-Item -ItemType Directory -Force -Path $claudeCommandsTarget | Out-Null
+     $currentNames = @(Get-ChildItem -LiteralPath $claudeCommandsSource -File | ForEach-Object { $_.Name })
+     $manifestPath = Join-Path $claudeCommandsTarget $managedCommandsManifest
+     $previousNames = @(Get-Content -LiteralPath $manifestPath -ErrorAction SilentlyContinue)
+     Remove-MissingManagedFiles -TargetPath $claudeCommandsTarget -PreviousManifestPath $manifestPath -CurrentFileNames $currentNames
+     $installedNames = @()
+     foreach ($commandFile in Get-ChildItem -LiteralPath $claudeCommandsSource -File) {
+         # A same-named file we never installed is the user's: keep it, and leave it out of the manifest so it is never removed.
+         if ((Test-Path -LiteralPath (Join-Path $claudeCommandsTarget $commandFile.Name)) -and ($previousNames -notcontains $commandFile.Name)) {
+             Write-Warning "Skipped Claude command $($commandFile.Name): a user-owned file already exists."
+             continue
+         }
+         Copy-Item -LiteralPath $commandFile.FullName -Destination $claudeCommandsTarget -Force
+         $installedNames += $commandFile.Name
+     }
+     $installedNames | Set-Content -LiteralPath $manifestPath
+ }
+ 
+ # Remove only the commands this installer copied (plugin mode and uninstall); user-owned files stay.
+ function Remove-ClaudeCommands {
+     if (-not (Test-Path -LiteralPath $claudeCommandsTarget)) { return }
+     $manifestPath = Join-Path $claudeCommandsTarget $managedCommandsManifest
+     Remove-MissingManagedFiles -TargetPath $claudeCommandsTarget -PreviousManifestPath $manifestPath -CurrentFileNames @()
+@@ -519,80 +499,91 @@ function Link-DshPanelBundle {
+     Write-Host "Linked dsh panel bundle $dshPanelPackage -> $dshPanelTarget"
+ }
+ 
+ # Idempotently manage the ask-kit-panel roster entry in the web profile patch
+ # layer under marker comments. Existing user content is never rewritten: a row
+ # that already carries our id is left alone; a file whose sole entry is the
+ # empty `[]` placeholder is rewritten in place keeping header comments; any
+ # other content gets the managed section appended after a blank separator.
+ function Set-DshWebPatchRow {
+     if (-not (Test-Path -LiteralPath $dshWebPatchFile)) {
+         Write-Warning "Skipped panel roster row: web profile patch file not found at $dshWebPatchFile."
+         return
+     }
+ 
+     $patchText = [string](Get-Content -LiteralPath $dshWebPatchFile -Raw)
+     if (-not $patchText.Contains("- id: $dshPatchRowId")) {
+         $managedLines = @(
+             $dshPatchMarker,
+             "- insert:",
+             "    - id: $dshPatchRowId",
+             "      name: '$dshPanelPackage'"
+         )
+         $lines = @(Get-Content -LiteralPath $dshWebPatchFile)
+         $nonCommentLines = @($lines | Where-Object { $_ -notmatch '^\s*#' -and $_.Trim().Length -gt 0 })
+         $placeholderOnly = ($nonCommentLines.Count -eq 1 -and $nonCommentLines[0].Trim() -eq "[]")
+         if ($placeholderOnly) {
+             # Swap the placeholder for the managed section, header comments kept.
+             # Written BOM-free so strict YAML readers on Windows PowerShell stay happy.
+             $kept = @($lines | Where-Object { $_ -match '^\s*#' }) + $managedLines
+             [System.IO.File]::WriteAllText($dshWebPatchFile, (($kept -join "`n") + "`n"), (New-Object System.Text.UTF8Encoding($false)))
+         }
+         else {
+             Add-Content -LiteralPath $dshWebPatchFile -Encoding UTF8 -Value ""
+             Add-Content -LiteralPath $dshWebPatchFile -Encoding UTF8 -Value $managedLines
+         }
+     }
+ 
+     Write-Host "Managed ask-kit-panel roster row in $dshWebPatchFile"
+ }
+ 
++# Tell whether a path lies strictly below a root directory. Whole path segments are compared, so a sibling that only shares a
++# prefix (skills-backup next to skills) does not count; the comparison is case-insensitive only where the file system is.
++function Test-PathIsUnder {
++    param([string]$Path, [string]$Root)
++
++    $separator = [System.IO.Path]::DirectorySeparatorChar
++    $comparison = if ($separator -eq '\') { [System.StringComparison]::OrdinalIgnoreCase } else { [System.StringComparison]::Ordinal }
++    $normalizedRoot = $Root.Replace('/', $separator).TrimEnd($separator) + $separator
++    return $Path.Replace('/', $separator).StartsWith($normalizedRoot, $comparison)
++}
++
+ # Remove managed skills from one former install root without touching unrelated user content.
+ function Clear-OldSkillRoot {
+     param([string]$TargetPath, [string[]]$CurrentSkillNames)
+ 
+     if (-not (Test-Path -LiteralPath $TargetPath)) {
+         return
+     }
+ 
+     $item = Get-Item -LiteralPath $TargetPath -Force
+     if ($item.LinkType) {
+         return
+     }
+ 
+     Remove-LegacySkillInstalls -BasePath $TargetPath
+     Remove-StaleSkillInstalls -BasePath $TargetPath
+     Remove-MissingManagedSkills -TargetPath $TargetPath -PreviousManifestPath (Join-Path $TargetPath $managedSkillsManifest) -CurrentSkillNames $CurrentSkillNames
+ 
+     foreach ($skillName in $CurrentSkillNames) {
+         $target = Join-Path $TargetPath $skillName
+         if (Test-Path -LiteralPath $target) {
+             Remove-Item -LiteralPath $target -Recurse -Force
+         }
+     }
+ 
+     $manifestPath = Join-Path $TargetPath $managedSkillsManifest
+     if (Test-Path -LiteralPath $manifestPath) {
+         Remove-Item -LiteralPath $manifestPath -Force
+     }
+ 
+     # Mirror `rmdir` in install.sh: remove the root only when it is empty. Remove-Item without -Recurse would instead
+     # prompt on a non-empty root, and its default answer deletes every child, including skills the user owns.
+     try {
+         [System.IO.Directory]::Delete($item.FullName)
+     }
+     catch {
+     }
+ }
+ 
+ # Sync the canonical managed skills into the shared ~/.agents skill root.
+ function Sync-SharedSkills {
+@@ -659,81 +650,81 @@ if (-not (Test-Path -LiteralPath $copilotInstructionsSource)) {
+ 
+ if (-not (Test-Path -LiteralPath $opencodeCoreSource)) {
+     throw "OpenCode core source directory not found: $opencodeCoreSource"
+ }
+ 
+ if (-not (Test-Path -LiteralPath $opencodePluginsSource)) {
+     throw "OpenCode plugins source directory not found: $opencodePluginsSource"
+ }
+ 
+ $opencodeRulesFile = Join-Path $opencodeRulesSource "coding-standards.md"
+ if (-not (Test-Path -LiteralPath $opencodeRulesFile)) {
+     throw "OpenCode rules source file not found: $opencodeRulesFile"
+ }
+ 
+ $generatedAssetsLockHeld = $false
+ 
+ try {
+     Acquire-GeneratedAssetsLock -RepoRoot $repoRoot
+     $generatedAssetsLockHeld = $true
+ 
+     & $node.Source (Join-Path $PSScriptRoot "export-platform-skills.js")
+ 
+     $currentSkillNames = Get-ManagedSkillNames -SourcePath $sharedSkillsSource
+     Remove-LegacyInstallArtifacts
+     $installedSkills = Sync-SharedSkills -CurrentSkillNames $currentSkillNames
+ 
+     Clear-OldSkillRoot -TargetPath $copilotSkillsTarget -CurrentSkillNames $currentSkillNames
+     Clear-OldSkillRoot -TargetPath $opencodeSkillsTarget -CurrentSkillNames $currentSkillNames
+     Remove-AskClaudeSkillLinks
+     Clear-OldSkillRoot -TargetPath $claudeSkillsTarget -CurrentSkillNames $currentSkillNames
+ 
+     # Symlink managed ask skills into OpenCode skills dir for native discovery.
+     New-Item -ItemType Directory -Force -Path $opencodeSkillsTarget | Out-Null
+     foreach ($skillDir in Get-ChildItem -LiteralPath $sharedSkillsTarget -Directory) {
+         $linkPath = Join-Path $opencodeSkillsTarget $skillDir.Name
+         $targetPath = $skillDir.FullName
+         Set-DirectoryLink -LinkPath $linkPath -TargetPath $targetPath
+     }
+     # Drop OpenCode links to skills retired from the pack: the shared sync above removed their targets, so they dangle.
+     # Only symlinks and junctions that point into the shared skills root are ours; a user-owned ask-* link elsewhere stays.
+-    $resolvedSharedRoot = Get-ResolvedSharedSkillsRoot
++    $resolvedSharedRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($sharedSkillsTarget)
+     foreach ($staleLink in Get-ChildItem -LiteralPath $opencodeSkillsTarget -Force -Filter "ask-*" | Where-Object {
+             $_.LinkType -in @("SymbolicLink", "Junction") `
+                 -and -not (Test-Path -LiteralPath $_.FullName -PathType Container) `
+                 -and (Test-PathIsUnder -Path ([string]($_.Target | Select-Object -First 1)) -Root $resolvedSharedRoot)
+         }) {
+         Remove-Item -LiteralPath $staleLink.FullName -Force
+     }
+ 
+     New-Item -ItemType Directory -Force -Path $copilotInstructionsTarget | Out-Null
+     Copy-Item -LiteralPath $copilotInstructionsSource -Destination $copilotInstructionsFile -Force
+ 
+     # Install OpenCode commands (global) and Copilot/VS Code prompt files (user profile).
+     # Both targets are managed-by-manifest so commands retired from the pack disappear
+     # on reinstall instead of surviving forever as ghost slash-commands.
+     if (Test-Path -LiteralPath $opencodeCommandsSource) {
+         New-Item -ItemType Directory -Force -Path $opencodeCommandsTarget | Out-Null
+         $currentCommandNames = @(Get-ChildItem -LiteralPath $opencodeCommandsSource -Force | ForEach-Object { $_.Name })
+         Remove-MissingManagedFiles -TargetPath $opencodeCommandsTarget -PreviousManifestPath (Join-Path $opencodeCommandsTarget $managedCommandsManifest) -CurrentFileNames $currentCommandNames
+         foreach ($commandFile in Get-ChildItem -LiteralPath $opencodeCommandsSource -Force) {
+             Copy-Item -LiteralPath $commandFile.FullName -Destination $opencodeCommandsTarget -Recurse -Force
+         }
+         $currentCommandNames | Set-Content -LiteralPath (Join-Path $opencodeCommandsTarget $managedCommandsManifest)
+     }
+     if (Test-Path -LiteralPath $copilotPromptsSource) {
+         New-Item -ItemType Directory -Force -Path $copilotPromptsTarget | Out-Null
+         $currentPromptNames = @(Get-ChildItem -LiteralPath $copilotPromptsSource -Force | ForEach-Object { $_.Name })
+         Remove-MissingManagedFiles -TargetPath $copilotPromptsTarget -PreviousManifestPath (Join-Path $copilotPromptsTarget $managedPromptsManifest) -CurrentFileNames $currentPromptNames
+         foreach ($promptFile in Get-ChildItem -LiteralPath $copilotPromptsSource -Force) {
+             Copy-Item -LiteralPath $promptFile.FullName -Destination $copilotPromptsTarget -Recurse -Force
+         }
+         $currentPromptNames | Set-Content -LiteralPath (Join-Path $copilotPromptsTarget $managedPromptsManifest)
+     }
+ 
+     New-Item -ItemType Directory -Force -Path $opencodePluginsTarget | Out-Null
+     $opencodePluginCoreTarget = Join-Path $opencodePluginsTarget "core"
+     New-Item -ItemType Directory -Force -Path $opencodeCoreTarget | Out-Null
+     # Migrate only the managed core file, preserving unrelated user plugin files.
+     Remove-Item -LiteralPath (Join-Path $opencodeCoreTarget "router-core.js") -Force -ErrorAction SilentlyContinue
+     Remove-Item -LiteralPath (Join-Path $opencodePluginCoreTarget "router-core.js") -Force -ErrorAction SilentlyContinue
+     if ((Test-Path -LiteralPath $opencodePluginCoreTarget) -and -not (Get-ChildItem -LiteralPath $opencodePluginCoreTarget -Force)) {

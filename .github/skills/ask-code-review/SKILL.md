@@ -31,6 +31,10 @@ Use this compact path only when the workflow reports `review=combined`:
 
 The combined pass still ends with the normal review evidence contract. It does not replace required validation or any `AUDIT` gate. Do not start it until the current diff has passed validation, including applicable integration/server checks.
 
+## Delegated review budget
+
+A delegated review runs once on the final diff, at medium effort. The brief states the scope paths, a tool-call ceiling, and the validation evidence already gathered; do not re-run the full required check list, only targeted checks for the claims under test. Report P0/P1 findings only and log P2 as one-line follow-ups that never start another round. A closure or delta review answers CLOSED or OPEN per previous finding.
+
 ## Completion handoff
 
 When review is fully complete, include `review-generation`, `review-scope: REVIEW`, `review-reference`, `review-completed-at`, and `review-result: PASS` metadata, followed by terminal `ASK_REVIEW_COMPLETE`. Generation must match current session state; stale evidence must not clear newer review debt. Do not emit the marker for blocked, partial, or still-actionable reviews.
