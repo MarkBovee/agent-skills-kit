@@ -135,9 +135,9 @@ async function main() {
       // Guarded lookups: a vanished command must FAIL cleanly, not crash main.
       const debugging = commands.find((c) => c.name === "debugging")
       // Find the first item that matches the local condition.
-      const spec = commands.find((c) => c.name === "spec")
-      check("behavior-test commands exist", Boolean(debugging && spec))
-      if (debugging && spec) {
+      const intake = commands.find((c) => c.name === "intake")
+      check("behavior-test commands exist", Boolean(debugging && intake))
+      if (debugging && intake) {
         const steered = []
         const result = debugging.handler({
           // Handle the agent callback.
@@ -155,7 +155,7 @@ async function main() {
           && Array.isArray(msg.content) && msg.content[0]?.type === "text"
           && typeof msg.source?.kind === "string")
         check("handler reports success", result && result.kind === "success" && result.text.includes("debugging"))
-        const bare = spec.handler({
+        const bare = intake.handler({
           // Handle the agent callback.
           agent: { steer: (msg2) => steered.push(msg2) },
           rawInput: "   ",

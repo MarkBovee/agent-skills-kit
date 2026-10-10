@@ -47,7 +47,7 @@ Make production behavior visible and diagnosable. Telemetry without a question i
 - `verification` to prove the instrumented path emits the expected signals
 - `debugging` when a production signal narrows the search to a boundary
 - `develop` while adding instrumentation as part of a feature slice
-- `intake`/`spec` when "is it observable" belongs in requirements
+- `intake` when "is it observable" belongs in requirements
 
 ## Avoid
 

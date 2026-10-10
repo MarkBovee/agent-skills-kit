@@ -20,7 +20,6 @@ const CASES = [
   { id: "review-commit", expected: "code-review", prompt: "I am about to push my last commit. Give it a proper review first." },
   { id: "develop-function", expected: "develop", prompt: "Add a lastPage(items, pageSize) function to src/pager.js and export it." },
   { id: "intake-fuzzy", expected: "intake", prompt: "I want to build something around pagination for this project but I am not sure what yet. Help me work out what to build." },
-  { id: "spec-api", expected: "spec", prompt: "Write a requirements spec with acceptance criteria for a pagination API before we build it." },
   { id: "research-fact", expected: "research", prompt: "Find out whether node --test supports --test-name-pattern on Node 18 and cite the source." },
   { id: "deep-research", expected: "deep-research", prompt: "Do an exhaustive, cited investigation comparing cursor versus offset pagination across major libraries, including contradictions between sources." },
   { id: "improve-audit", expected: "improve", prompt: "Audit this codebase for tech debt and correctness issues and turn the findings into a plan." },

@@ -147,6 +147,23 @@ function Resolve-ClaudeMode {
     return "off"
 }
 
+# Tell whether a path lies strictly below a root directory. Whole path segments are compared, so a sibling that only shares a
+# prefix (skills-backup next to skills) does not count. Ordinal everywhere except Windows, so a case-different path is never
+# claimed as ours (fail-safe: the link is kept).
+function Test-PathIsUnder {
+    param([string]$Path, [string]$Root)
+
+    $separator = [System.IO.Path]::DirectorySeparatorChar
+    $comparison = if ($separator -eq '\') { [System.StringComparison]::OrdinalIgnoreCase } else { [System.StringComparison]::Ordinal }
+    $normalizedRoot = $Root.Replace('/', $separator).TrimEnd($separator) + $separator
+    return $Path.Replace('/', $separator).StartsWith($normalizedRoot, $comparison)
+}
+
+# Resolve the shared skills root to an absolute path without requiring it to exist, so relative -AgentsDir values compare correctly.
+function Get-ResolvedSharedSkillsRoot {
+    return $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($sharedSkillsTarget)
+}
+
 # Remove only ASK-owned links from the Claude skill root; real directories and foreign links stay untouched.
 function Remove-AskClaudeSkillLinks {
     if (-not (Test-Path -LiteralPath $claudeSkillsTarget)) { return }
@@ -156,8 +173,9 @@ function Remove-AskClaudeSkillLinks {
         if ($root.Target -contains $sharedSkillsTarget) { $root.Delete() }
         return
     }
+    $resolvedSharedRoot = Get-ResolvedSharedSkillsRoot
     foreach ($entry in Get-ChildItem -LiteralPath $claudeSkillsTarget -Force -Filter "ask-*") {
-        if ($entry.LinkType -and ($entry.Target | Where-Object { $_ -like "$sharedSkillsTarget*" })) { $entry.Delete() }
+        if ($entry.LinkType -and (Test-PathIsUnder -Path ([string]($entry.Target | Select-Object -First 1)) -Root $resolvedSharedRoot)) { $entry.Delete() }
     }
 }
 
@@ -165,9 +183,11 @@ function Remove-AskClaudeSkillLinks {
 function Link-ClaudeSkills {
     param([string[]]$SkillNames)
     New-Item -ItemType Directory -Force -Path $claudeSkillsTarget | Out-Null
+    # Link to the absolute root: a relative target resolves against the link's own directory and would dangle.
+    $resolvedSharedRoot = Get-ResolvedSharedSkillsRoot
     foreach ($skillName in $SkillNames) {
         $linkPath = Join-Path $claudeSkillsTarget $skillName
-        $targetPath = Join-Path $sharedSkillsTarget $skillName
+        $targetPath = Join-Path $resolvedSharedRoot $skillName
         if (Test-Path -LiteralPath $linkPath) {
             $existing = Get-Item -LiteralPath $linkPath -Force
             if (-not $existing.LinkType) {
@@ -565,8 +585,10 @@ function Clear-OldSkillRoot {
         Remove-Item -LiteralPath $manifestPath -Force
     }
 
+    # Mirror `rmdir` in install.sh: remove the root only when it is empty. Remove-Item without -Recurse would instead
+    # prompt on a non-empty root, and its default answer deletes every child, including skills the user owns.
     try {
-        Remove-Item -LiteralPath $TargetPath -Force
+        [System.IO.Directory]::Delete($item.FullName)
     }
     catch {
     }
@@ -671,6 +693,16 @@ try {
         $linkPath = Join-Path $opencodeSkillsTarget $skillDir.Name
         $targetPath = $skillDir.FullName
         Set-DirectoryLink -LinkPath $linkPath -TargetPath $targetPath
+    }
+    # Drop OpenCode links to skills retired from the pack: the shared sync above removed their targets, so they dangle.
+    # Only symlinks and junctions that point into the shared skills root are ours; a user-owned ask-* link elsewhere stays.
+    $resolvedSharedRoot = Get-ResolvedSharedSkillsRoot
+    foreach ($staleLink in Get-ChildItem -LiteralPath $opencodeSkillsTarget -Force -Filter "ask-*" | Where-Object {
+            $_.LinkType -in @("SymbolicLink", "Junction") `
+                -and -not (Test-Path -LiteralPath $_.FullName -PathType Container) `
+                -and (Test-PathIsUnder -Path ([string]($_.Target | Select-Object -First 1)) -Root $resolvedSharedRoot)
+        }) {
+        Remove-Item -LiteralPath $staleLink.FullName -Force
     }
 
     New-Item -ItemType Directory -Force -Path $copilotInstructionsTarget | Out-Null

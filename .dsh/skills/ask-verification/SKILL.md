@@ -53,7 +53,6 @@ New tests are a cost. Match them to the workflow risk. The user or repository ca
 | --- | --- |
 | small | None unless existing tests cannot prove the change; run the relevant existing tests. |
 | normal | New behavior at the public boundary. A bug fix gets one regression test only when the symptom is cheap to reproduce there. TDD only on request. |
-| spec-required | One test per acceptance criterion, not per requirement or invariant. |
 | significant | As normal, plus one test per P0/P1 audit finding; report other findings without adding tests. |
 | release-sensitive | Unchanged: the full proof set. |
 

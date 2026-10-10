@@ -9,10 +9,12 @@ const { evaluateGitCommand, needsCurrentBranch, resolveGuardMode } = require("..
 const {
   SKILL_CODE_REVIEW,
   SKILL_DEVELOP,
+  SKILL_TEXT_WRITING,
   TEST_POLICY,
   buildWorkflowState,
   cascadeRoute,
   createEmptySessionState,
+  isProseFilePath,
   matchingPhrases,
   parseWorkflowEvidence,
   loadSkills,
@@ -31,7 +33,7 @@ const SKILLS_ROOT = path.join(PLUGIN_ROOT, "skills")
 const WORKFLOW_RULES_PATH = path.join(PLUGIN_ROOT, "rules", "workflow.md")
 const RULES_MARKER = "<!-- agent-skills-kit:managed -->"
 const MAX_HINT_SKILLS = 4
-// Workflow skills whose execution runs in the Sonnet ask-worker. Excluded: intake and spec (they ask the user
+// Workflow skills whose execution runs in the Sonnet ask-worker. Excluded: intake (it asks the user
 // questions a subagent cannot answer), and deep-research (tier deep, multi-source, expects its own subagents).
 const WORKER_SKILL_NAMES = new Set(["develop", "debugging", "research", "improve", "verification", "observability", "design"])
 const STATE_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000
@@ -83,7 +85,9 @@ function statePath(sessionId) {
 // Load the persisted session state, returning an empty object when none exists or it is unreadable.
 function loadState(sessionId) {
   try {
-    return JSON.parse(fs.readFileSync(statePath(sessionId), "utf8"))
+    const state = JSON.parse(fs.readFileSync(statePath(sessionId), "utf8"))
+    // A state file holding null, an array, or a scalar carries nothing usable; treat it as empty.
+    return state && typeof state === "object" && !Array.isArray(state) ? state : {}
   } catch {
     return {}
   }
@@ -286,6 +290,27 @@ function clearReviewGate(sessionId) {
   saveState(sessionId, { ...loadState(sessionId), needsCodeReview: false, reviewHintShown: false })
 }
 
+// Resolve the file an edit-style tool call wrote, across the input shapes of Edit, Write, MultiEdit, and NotebookEdit.
+function readEditedPath(payload) {
+  const input = payload.tool_input || {}
+  const editedPath = input.file_path ?? input.notebook_path ?? input.path
+  return typeof editedPath === "string" ? editedPath : ""
+}
+
+// Build the one-time nudge that sends the agent to the human-first writing skill after it writes a prose file.
+// The routing hook only sees the user's prompt, so this is the only signal for prose the prompt did not name.
+function buildProseNudge(payload, state) {
+  if (state.textWritingHintShown) return ""
+  const editedPath = readEditedPath(payload)
+  if (!isProseFilePath(editedPath, payload.cwd)) return ""
+  return `You edited ${path.basename(editedPath)}, which is human-facing text. ${skillReadAction(SKILL_TEXT_WRITING)} and apply its self-check (no habitual triples, varied sentence length, concrete detail) before you finish the prose.`
+}
+
+// Record that the writing skill is loaded so the prose nudge stays quiet for the rest of the session.
+function markTextWritingLoaded(sessionId) {
+  saveState(sessionId, { ...loadState(sessionId), textWritingHintShown: true })
+}
+
 // Remind a resumed session that summarized skill use is history, not loaded guidance.
 function buildResumeContext() {
   return [
@@ -337,12 +362,20 @@ async function main() {
   }
 
   if (event === "post-edit") {
-    saveState(sessionId, { ...loadState(sessionId), needsCodeReview: true })
+    // Arm the review gate first so a prose-classification problem can never leave an edit unreviewed.
+    const state = { ...loadState(sessionId), needsCodeReview: true }
+    saveState(sessionId, state)
+    const nudge = buildProseNudge(payload, state)
+    if (!nudge) return
+    saveState(sessionId, { ...state, textWritingHintShown: true })
+    process.stdout.write(buildHookOutput("PostToolUse", nudge))
     return
   }
 
   if (event === "post-skill") {
-    if (readLoadedSkill(payload) === `ask-${SKILL_CODE_REVIEW}`) clearReviewGate(sessionId)
+    const loadedSkill = readLoadedSkill(payload)
+    if (loadedSkill === `ask-${SKILL_CODE_REVIEW}`) clearReviewGate(sessionId)
+    if (loadedSkill === `ask-${SKILL_TEXT_WRITING}`) markTextWritingLoaded(sessionId)
     return
   }
 
@@ -353,14 +386,16 @@ async function main() {
   }
 
   if (event === "post-skill-read") {
-    if (readLoadedSkillFile(payload) === `ask-${SKILL_CODE_REVIEW}`) clearReviewGate(sessionId)
+    const loadedSkill = readLoadedSkillFile(payload)
+    if (loadedSkill === `ask-${SKILL_CODE_REVIEW}`) clearReviewGate(sessionId)
+    if (loadedSkill === `ask-${SKILL_TEXT_WRITING}`) markTextWritingLoaded(sessionId)
     return
   }
 
   if (event === "session-start") {
     pruneStates()
-    // Compaction drops earlier hook context, so the risk line must be announced again on the next prompt.
-    if (payload.source === "compact") saveState(sessionId, { ...loadState(sessionId), announcedRisk: undefined })
+    // Compaction drops earlier hook context, so the risk line and the prose nudge must be shown again.
+    if (payload.source === "compact") saveState(sessionId, { ...loadState(sessionId), announcedRisk: undefined, textWritingHintShown: undefined })
     const resumed = payload.source === "compact" || payload.source === "resume"
     process.stdout.write(buildHookOutput("SessionStart", [buildSessionContext(), resumed ? buildResumeContext() : ""].filter(Boolean).join("\n")))
     return

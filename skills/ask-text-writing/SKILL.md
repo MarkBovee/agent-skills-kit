@@ -1,7 +1,7 @@
 ---
 name: ask-text-writing
 disable-model-invocation: true
-description: "Text Writing: Writes emails, posts, articles, bios, and READMEs that sound human and avoid AI writing patterns. Use when drafting or rewriting prose."
+description: "Text Writing: Writes emails, posts, articles, bios, READMEs, and docs that sound human and avoid AI writing patterns. Use when drafting or rewriting prose."
 triggers:
   - anti-slop
   - make this sound human
@@ -19,6 +19,12 @@ triggers:
   - schrijf als mens
   - niet AI
   - menselijk laten klinken
+  - text-writing
+  - text writing
+  - schrijf de tekst
+  - schrijf de teksten
+  - herschrijf de tekst
+  - teksten herschrijven
 ---
 # Human-First Writing
 

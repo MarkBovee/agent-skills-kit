@@ -53,7 +53,6 @@ Open questions / next evidence needed
 - `deep-research` when bounded investigation expands into a multi-track program
 - `intake` to scope a decision after facts are known
 - `debugging` to trace and fix a defect revealed by evidence
-- `spec` to formalize evidence-backed requirements
 - `develop` to implement an evidence-backed recommendation
 
 ## Avoid

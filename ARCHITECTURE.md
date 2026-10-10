@@ -6,7 +6,7 @@ How agent-skills-kit (ASK) fits together. Claude Code is the primary harness; Op
 
 | Path | Role | Edit by hand? |
 | --- | --- | --- |
-| `skills/<name>/SKILL.md` | The 19 canonical workflow skills (`ask-<name>` ids; `references/` for rare-case detail) | Yes |
+| `skills/<name>/SKILL.md` | The 18 canonical workflow skills (`ask-<name>` ids; `references/` for rare-case detail) | Yes |
 | `commands/<name>.md` | Canonical slash commands | Yes |
 | `core/router-core.js` | Shared routing, lifecycle, state, frontmatter, and skill-path helpers | Yes |
 | `hooks/hooks.json`, `scripts/agent-skills-hook.js` | Claude Code hooks | Yes |
@@ -29,9 +29,9 @@ CI regenerates both exports and fails on a diff, so commit regenerated output wi
 | `SessionStart` | Emits the routing table (one `Read <SKILL.md>` action per workflow) and the cost-aware default. Includes the workflow mandate only when `~/.claude/rules/agent-skills-kit.md` is not installed. Resets the announced-risk flag after compaction, and on `compact` or `resume` adds a reminder that summarized skill use is historical and the matching skills must be read again. |
 | `SubagentStart` | Emits the same routing table, because subagents do not inherit session context. |
 | `UserPromptSubmit` | Routes the prompt with `cascadeRoute`, then adds at most one routing suggestion (`ask-debugging` only when the prompt describes a failure, see `describesFailure`), the workflow risk line with its gates and test budget (once per risk change), and the review reminder. Plain questions and slash commands get no output. The first review reminder after an edit also says how to close the gate (once per arming, tracked as `reviewHintShown`). |
-| `PostToolUse` (Edit, Write, MultiEdit, NotebookEdit) | Arms the code-review reminder (`needsCodeReview`). |
+| `PostToolUse` (Edit, Write, MultiEdit, NotebookEdit) | Arms the code-review reminder (`needsCodeReview`). When the edited file is human-facing prose (`isProseFilePath`: Markdown, MDX, reStructuredText, or AsciiDoc, or a bare `README`, outside `skills/`, `rules/`, `commands/`, `prompts/`, `agents/`, and `plans/` at the project root (or one level down in a dot-directory such as `.github/`) and outside host directories such as `.claude/` and `.agents/`, and not an agent-instruction file such as `AGENTS.md` or `CLAUDE.local.md`, nor the mechanical `CHANGELOG.md`), it also nudges once per session toward `ask-text-writing` (`textWritingHintShown`). |
 | `PostToolUse` (Agent, Task) | Clears the reminder when a subagent reports `ASK_WORKFLOW_PASS` or `_FINDINGS` for phase `REVIEW` or `AUDIT`; `BLOCKED`, `FAILED`, and other phases do not count, and a later edit re-arms it. |
-| `PostToolUse` (Skill, Read) | Clears the reminder when `ask-code-review` is loaded through the Skill tool, or when its `SKILL.md` is read from a trusted root. |
+| `PostToolUse` (Skill, Read) | Clears the reminder when `ask-code-review` is loaded through the Skill tool, or when its `SKILL.md` is read from a trusted root. Loading `ask-text-writing` the same way silences the prose nudge. |
 
 Session state is a JSON file per session under `${CLAUDE_PLUGIN_DATA}/sessions`, falling back to `~/.cache/agent-skills-kit/sessions`, pruned after 14 days. It never lives in a shared temp directory.
 
@@ -50,7 +50,7 @@ The Claude hook prefers the shared install and falls back to the copy bundled in
 
 ## Routing and lifecycle
 
-`router-core.js` scores a prompt against phrase lists per skill (`cascadeRoute`), classifies workflow risk (`small`, `normal`, `spec-required`, `significant`, `release-sensitive`), and derives required phases (`PLAN → EXECUTE → VALIDATE → REVIEW`, plus `ITERATE → AUDIT` and `RELEASE_GATE` at higher risk). Subagent results count only with `ASK_WORKFLOW_PASS`, `_FINDINGS`, `_BLOCKED`, or `_FAILED` plus a phase, bound to a diff identity. Routing hints are advisory: a match stays hollow until the skill file is read. Decision-tree rows come from `routingHintLines()`; never duplicate them by hand.
+`router-core.js` scores a prompt against phrase lists per skill (`cascadeRoute`), classifies workflow risk (`small`, `normal`, `significant`, `release-sensitive`), and derives required phases (`PLAN → EXECUTE → VALIDATE → REVIEW`, plus `ITERATE → AUDIT` and `RELEASE_GATE` at higher risk). Subagent results count only with `ASK_WORKFLOW_PASS`, `_FINDINGS`, `_BLOCKED`, or `_FAILED` plus a phase, bound to a diff identity. Routing hints are advisory: a match stays hollow until the skill file is read. Decision-tree rows come from `routingHintLines()`; never duplicate them by hand.
 
 Other hosts reuse this core:
 
@@ -66,7 +66,7 @@ Other hosts reuse this core:
 
 ## Subagent cost routing
 
-`skills/ask-agent-workflows/references/model-routing.md` is the policy. On Claude Code the tiers map `light` → Haiku, `standard` → Sonnet, `deep` → Opus only with a stated reason. Workflow skills in `WORKER_SKILL_NAMES` (`scripts/agent-skills-hook.js`) get a routing line that sends them to `ask-worker` on Sonnet, so a Haiku session still runs them on Sonnet; intake and spec stay on the session model because they ask the user questions. Prompts ending in `?` get no worker line, and `deep-research` stays on the session model. The coordinator dispatches the review and audit gates itself; the worker reports `BLOCKED` rather than starting subagents. The agent files default to Sonnet; an alias can be remapped by organization policy, so confirm the model that actually ran.
+`skills/ask-agent-workflows/references/model-routing.md` is the policy. On Claude Code the tiers map `light` → Haiku, `standard` → Sonnet, `deep` → Opus only with a stated reason. Workflow skills in `WORKER_SKILL_NAMES` (`scripts/agent-skills-hook.js`) get a routing line that sends them to `ask-worker` on Sonnet, so a Haiku session still runs them on Sonnet; intake stays on the session model because it asks the user questions. Prompts ending in `?` get no worker line, and `deep-research` stays on the session model. The coordinator dispatches the review and audit gates itself; the worker reports `BLOCKED` rather than starting subagents. The agent files default to Sonnet; an alias can be remapped by organization policy, so confirm the model that actually ran.
 
 ## Installation
 

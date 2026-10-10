@@ -51,8 +51,6 @@ function checkRiskProfiles() {
   check("password validation remains high risk", classifyWorkflowRisk("typo in password validation") === "significant")
   check("data-loss fixes remain high risk", classifyWorkflowRisk("quick fix for data loss") === "significant")
   check("normal prompt is normal risk", classifyWorkflowRisk("add a focused parser feature") === "normal")
-  check("requirements prompt requires spec", classifyWorkflowRisk("write requirements specification") === "spec-required")
-  check("security in a spec prompt stays significant", classifyWorkflowRisk("design brief for a security vulnerability fix") === "significant")
   check("architecture prompt is significant risk", classifyWorkflowRisk("change architecture ownership") === "significant")
   check("deep research prompt is significant risk", classifyWorkflowRisk("perform exhaustive research") === "significant")
   check("large multi-issue prompt is significant risk", classifyWorkflowRisk("multiple issues with maximum compatibility") === "significant")
@@ -66,18 +64,19 @@ function checkRiskProfiles() {
   check("normal flow still requires review", workflowRequiresReview(normalWorkflow))
   check("unknown workflow keeps review as a safe default", workflowRequiresReview(null))
   // Verify higher-risk workflows retain separate review and audit handling.
-  check("higher-risk flows keep separate review", ["spec-required", "significant", "release-sensitive"].every((risk) => reviewModeForRisk(risk) === "separate"))
+  check("higher-risk flows keep separate review", ["significant", "release-sensitive"].every((risk) => reviewModeForRisk(risk) === "separate"))
   check("release flow has audit and release gate", requiredWorkflowPhases("release-sensitive").includes("AUDIT") && requiredWorkflowPhases("release-sensitive").includes("RELEASE_GATE"))
-  check("spec flow places spec before plan", JSON.stringify(requiredWorkflowPhases("spec-required").slice(0, 3)) === JSON.stringify(["INTAKE", "SPEC", "PLAN"]))
-  check("significant spec work keeps both spec and audit gates", requiredWorkflowPhases(
-    classifyWorkflowRisk("design brief for a security vulnerability fix"),
-    "design brief for a security vulnerability fix",
-  ).includes("SPEC") && requiredWorkflowPhases(
-    classifyWorkflowRisk("design brief for a security vulnerability fix"),
-    "design brief for a security vulnerability fix",
-  ).includes("AUDIT"))
-  check("release flow can include conditional spec", requiredWorkflowPhases("release-sensitive", "new external contract").includes("SPEC")
-    && requiredWorkflowPhases("release-sensitive", "new external contract").includes("RELEASE_GATE"))
+  check("significant flow has intake, plan-check, and audit but no release gate", JSON.stringify(requiredWorkflowPhases("significant"))
+    === JSON.stringify(["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "AUDIT"]))
+  // Verify the removed SPEC phase never reappears in any risk level's gate list.
+  check("no workflow risk adds a SPEC phase", ["small", "normal", "significant", "release-sensitive"].every((risk) => !requiredWorkflowPhases(risk).includes("SPEC")))
+  // A workflow persisted by 2.6.4 may still carry the retired risk or phase; neither may wedge or weaken the new flow.
+  const retiredRisk = buildWorkflowState("continue with the parser", { workflow: { risk: "spec-required", phase: "PLAN", requiredPhases: ["INTAKE", "SPEC", "PLAN"] } })
+  check("a persisted spec-required workflow is replaced by a normal one", retiredRisk?.risk === "normal" && retiredRisk.phase === "PLAN")
+  const retiredPhase = buildWorkflowState("continue with the parser", { workflow: { risk: "significant", phase: "SPEC", requiredPhases: ["INTAKE", "SPEC", "PLAN"] } })
+  check("a known risk with the retired SPEC phase keeps its risk and restarts at its first gate", retiredPhase?.risk === "significant" && retiredPhase.phase === "INTAKE")
+  check("a retired SPEC pass marker is not evidence for the current gate", parseWorkflowEvidence("ASK_WORKFLOW_PASS phase=SPEC diff=d1") === null)
+  check("an unknown-phase failure marker still lands on the current gate", parseWorkflowEvidence("ASK_WORKFLOW_FINDINGS phase=AUDITOR diff=d1")?.status === "FINDINGS")
 }
 
 // Extract one uniquely named H2 section for contract and export checks.
@@ -325,9 +324,6 @@ function checkEvidenceContract() {
   const escalatedResearch = buildWorkflowState("perform exhaustive research", { workflow: normalWorkflow })
   check("deep research follow-up escalates workflow risk", escalatedResearch.risk === "significant"
     && escalatedResearch.requiredPhases.includes("PLAN_CHECK") && escalatedResearch.requiredPhases.includes("AUDIT"))
-  const contractRelease = buildWorkflowState("prepare release candidate with new external contract")
-  const continuedContractRelease = buildWorkflowState("run validation", { workflow: contractRelease })
-  check("conditional spec gate survives follow-up prompts", continuedContractRelease.requiredPhases.includes("SPEC"))
 
   const invalidated = invalidateWorkflowForDiff(released, "diff-after-release")
   check("code edits invalidate completed workflow gates", invalidated.completedGates.length === 0
@@ -360,7 +356,7 @@ function checkStatusHints() {
 // recreate router logic.
 function checkRoutingStatus() {
   // Map each item through the local transformation.
-  const skills = ["develop", "debugging", "code-review", "verification", "spec", "intake"].map((name) => ({ name }))
+  const skills = ["develop", "debugging", "code-review", "verification", "intake"].map((name) => ({ name }))
   const state = createEmptySessionState()
   const ambiguousRoute = cascadeRoute("debug this bug and review the diff", skills, state)
   const ambiguousWorkflow = buildWorkflowState("debug this bug and review the diff", state)
@@ -372,9 +368,9 @@ function checkRoutingStatus() {
   const persisted = buildRoutingStatus(null, { ...state, currentSkill: "debugging", routing: explicit })
   // Test whether any item satisfies the local predicate.
   check("status keeps active skill across later state updates", persisted.activeSkills.some((entry) => entry.skill === "debugging" && entry.current))
-  const fallbackNoise = buildRoutingStatus(null, { ...state, currentSkill: "spec", matchedSkills: [{ name: "develop" }] })
+  const fallbackNoise = buildRoutingStatus(null, { ...state, currentSkill: "intake", matchedSkills: [{ name: "develop" }] })
   // Test whether any item satisfies the local predicate.
-  check("develop fallback never displaces a loaded skill", fallbackNoise.activeSkills.some((entry) => entry.skill === "spec" && entry.current)
+  check("develop fallback never displaces a loaded skill", fallbackNoise.activeSkills.some((entry) => entry.skill === "intake" && entry.current)
     // Test whether any item satisfies the local predicate.
     && !fallbackNoise.activeSkills.some((entry) => entry.skill === "develop"))
   check("no route exposes no fabricated skill", noMatch.activeSkills.length === 0 && !("workflow" in noMatch))
@@ -398,7 +394,6 @@ function checkRoutingStatus() {
   const workflowCases = [
     ["fix typo in docs", "small"],
     ["add a focused parser feature", "normal"],
-    ["write requirements specification", "spec-required"],
     ["change architecture ownership", "significant"],
     ["prepare release candidate", "release-sensitive"],
   ]

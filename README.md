@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <code>19 skills</code>
+  <code>18 skills</code>
   <code>1 router</code>
   <code>5 hosts</code>
   <code>review + proof gates</code>
@@ -124,7 +124,7 @@ flowchart LR
 
 * A suggestion stays a hint until the agent actually reads the skill file. `develop` is the default when nothing more specific matches.
 * After code edits, a review reminder stays until review evidence arrives.
-* **Models (Claude Code):** you pick the model for the conversation (Haiku works fine as the front agent). Workflow skills such as `develop`, `debugging`, `research`, and `verification` run in a Sonnet worker, `ask-worker`. Intake and spec stay on your model because they ask you questions; `deep-research` stays there too, because it starts its own subagents.
+* **Models (Claude Code):** you pick the model for the conversation (Haiku works fine as the front agent). Workflow skills such as `develop`, `debugging`, `research`, and `verification` run in a Sonnet worker, `ask-worker`. Intake stays on your model because it asks you questions; `deep-research` stays there too, because it starts its own subagents.
 
 | Tier | Claude model | Used for |
 | --- | --- | --- |
@@ -150,9 +150,9 @@ The decision tree, risk lifecycle, and cost-aware execution profile are in [docs
 | Stage | Skills | What they do |
 | --- | --- | --- |
 | Research | `research`, `deep-research` | Answer a bounded question with sources, or run a multi-source investigation with contradictions and a cited handoff. |
-| Start | `intake`, `spec` | Clarify fuzzy work with grill rounds and plan it; write a traceable requirements spec. |
+| Start | `intake` | Clarify fuzzy work with grill rounds, then plan it with scope, constraints, and a definition of done. |
 | Execute | `develop`, `debugging` | Make normal changes in small validated steps; find root causes. |
-| Validate | `code-review`, `verification` | Review a diff against standards and spec; prove a claim before saying it works. |
+| Validate | `code-review`, `verification` | Review a diff against standards and requirements; prove a claim before saying it works. |
 | Hand over | `summary`, `handoff` | Explain what changed and what is proven so you own the result; brief the next agent. |
 | Improve | `improve`, `session-review` | Audit and refactor; reflect on a session and file follow-ups. |
 | Coordinate | `agent-workflows`, `write-skill` | Coordinate subagents and release chores; write and revise skills. |

@@ -28,7 +28,6 @@ function read(relativePath) {
 const verification = read("skills/ask-verification/SKILL.md")
 const develop = read("skills/ask-develop/SKILL.md")
 const debugging = read("skills/ask-debugging/SKILL.md")
-const spec = read("skills/ask-spec/SKILL.md")
 const agentWorkflows = read("skills/ask-agent-workflows/SKILL.md")
 
 expect(verification.includes("## Test budget"), "verification documents a Test budget section")
@@ -40,7 +39,6 @@ expect(!develop.includes("RED → GREEN → REFACTOR"), "develop no longer manda
 expect(develop.includes("test budget"), "develop defers to the test budget")
 expect(!verification.includes("A regression test guards the original symptom"), "quality floor no longer demands a regression test for every change")
 expect(debugging.includes("only when the symptom is cheap to reproduce"), "debugging limits regression tests to cheap reproductions")
-expect(spec.includes("one test per acceptance criterion"), "spec plans one test per acceptance criterion")
 expect(agentWorkflows.includes("within the test budget"), "audit finding loop stays within the test budget")
 
 if (failures.length > 0) {

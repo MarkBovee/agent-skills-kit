@@ -23,7 +23,7 @@ user request
   → follow the skill with host-native tools
 ```
 
-Canonical skills are the directories under `skills/`. Commands, generated platform copies, router files, and instruction files expose skills but are not additional skills. Use the host-preferred skill root: source `skills/` in a checkout, shared `~/.agents/skills/` for Codex and common installs, OpenCode's managed `~/.config/opencode/skills/` links, GitHub Copilot's `.github/skills/` export, Claude's native discovery, and dsh's project or user `.dsh/skills/` export before the shared root. Use `develop` only when no more-specific workflow applies. Common handoffs are `design` → `design-review`, `verification` → risk-appropriate `code-review` (normal and higher-risk workflows) and `audit` (significant and release-sensitive workflows), bounded `research` → a decision, and `deep-research` → `intake`, `debugging`, `spec`, or `develop`. Leaf skills are not selected implicitly: routers read the chosen `SKILL.md` directly, while plugin-owned skills remain under plugin dispatch.
+Canonical skills are the directories under `skills/`. Commands, generated platform copies, router files, and instruction files expose skills but are not additional skills. Use the host-preferred skill root: source `skills/` in a checkout, shared `~/.agents/skills/` for Codex and common installs, OpenCode's managed `~/.config/opencode/skills/` links, GitHub Copilot's `.github/skills/` export, Claude's native discovery, and dsh's project or user `.dsh/skills/` export before the shared root. Use `develop` only when no more-specific workflow applies. Common handoffs are `design` → `design-review`, `verification` → risk-appropriate `code-review` (normal and higher-risk workflows) and `audit` (significant and release-sensitive workflows), bounded `research` → a decision, and `deep-research` → `intake`, `debugging`, or `develop`. Leaf skills are not selected implicitly: routers read the chosen `SKILL.md` directly, while plugin-owned skills remain under plugin dispatch.
 
 ## Default rhythm
 
@@ -50,7 +50,6 @@ flowchart TD
     A[Agent evaluates task] --> B{Task matches?}
     B -->|Deep research complex, contested, high-stakes questions| DR[deep-research]
     B -->|Research facts, sources, or current state| RS[research]
-    B -->|Specify requirements, build design brief| S[spec]
     B -->|Clarify scope, plan ambiguous work| I[intake]
     B -->|Debug bug, crash, failing test, error| D[debugging]
     B -->|Review code changes before handoff| CR[code-review]
@@ -68,7 +67,6 @@ flowchart TD
 
     style DR fill:#153e52,stroke:#00bcd4,color:#fff
     style RS fill:#153e52,stroke:#00bcd4,color:#fff
-    style S fill:#2d1b69,stroke:#7C5CFF,color:#fff
     style I fill:#2d1b69,stroke:#7C5CFF,color:#fff
     style D fill:#1a1a2e,stroke:#e94560,color:#fff
     style DE fill:#1a1a2e,stroke:#e94560,color:#fff
@@ -88,7 +86,7 @@ flowchart TD
 | Stage          | Skills                           | Color            |
 | -------------- | -------------------------------- | ---------------- |
 | **Research**   | `research`, `deep-research`      | `#00bcd4` cyan   |
-| **Start**      | `spec`, `intake`                 | `#7C5CFF` purple |
+| **Start**      | `intake`                         | `#7C5CFF` purple |
 | **Execute**    | `debugging`, `develop`           | `#e94560` red    |
 | **Validate**   | `code-review`, `verification`, `summary`, `handoff` | `#2ecc71` green  |
 | **Improve**    | `improve`, `session-review`      | `#f39c12` orange |
@@ -107,13 +105,10 @@ For non-trivial work, ASK exposes proportional lifecycle gates rather than treat
 | --- | --- |
 | Small | `EXECUTE → VALIDATE` (no separate review or audit) |
 | Normal | `PLAN → EXECUTE → VALIDATE → REVIEW` (one combined review) |
-| Spec-required | `INTAKE → SPEC → PLAN → PLAN_CHECK → EXECUTE → VALIDATE → REVIEW` |
 | Significant | `INTAKE → PLAN → PLAN_CHECK → EXECUTE → VALIDATE → REVIEW → ITERATE → AUDIT` |
 | Release-sensitive | Significant flow plus `RELEASE_GATE` |
 
 Validation proves defined technical checks. Review challenges requirements, regressions, and design risk. Independent audit searches for counterexamples, bypasses, ambiguity, unsafe fallbacks, nondeterminism, and compatibility breaks. Release-gate consumes evidence and never edits source. Small explicit local fixes finish after targeted validation; audits are reserved for significant and release-sensitive work. Subagents report explicit `ASK_WORKFLOW_PASS`, `ASK_WORKFLOW_FINDINGS`, `ASK_WORKFLOW_BLOCKED`, or `ASK_WORKFLOW_FAILED` markers with a phase; missing output, timeout, and tool failure are never passes. Keep these markers in tool results, not final user-facing responses.
-
-`SPEC` is conditional, not a mandatory ceremony: use it for explicit requirements/design-brief work, unclear acceptance criteria, behavior-changing work, and new external contracts. Ordinary bugs and small edits go directly through their proportional flow.
 
 `RESEARCH` is optional lifecycle evidence, not a mandatory development gate. `research` keeps a question bounded; `deep-research` coordinates 3-10 independent evidence tracks, iterative source expansion, contradiction testing, confidence, citations, continuation state, and a downstream handoff. `intake` classifies uncertainty and must route large or high-stakes investigation to deep research instead of absorbing it.
 
@@ -126,7 +121,7 @@ Two optional frontmatter fields let a skill declare how expensive its default fl
 | `execution_tier`     | Suggested `agentTier` | When to use                                                               | Example                                                                                                |
 | -------------------- | --------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `light`              | `mini`                | bounded, mechanical, single-pass work                                     | `agent-workflows`, `session-review`                                                                     |
-| `standard` (default) | `default`             | normal judgment-heavy work                                                | `develop`, `spec`, `intake`, `code-review`, `debugging`, `verification`, `write-skill`, `text-writing`, `observability`, `research`, `design`, `design-review`, `gh-inbox`, `improve` |
+| `standard` (default) | `default`             | normal judgment-heavy work                                                | `develop`, `intake`, `code-review`, `debugging`, `verification`, `write-skill`, `text-writing`, `observability`, `research`, `design`, `design-review`, `gh-inbox`, `improve` |
 | `deep`               | `xhigh`               | autonomous multi-source or architectural investigation                    | `deep-research`                                                                                        |
 
 On Claude Code the tiers map to models as follows:

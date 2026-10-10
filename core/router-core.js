@@ -11,7 +11,6 @@ const CODE_EDIT_TOOL_IDS = new Set(["edit", "write", "patch", "apply_patch"])
 
 const SKILL_DEVELOP = "develop"
 const SKILL_INTAKE = "intake"
-const SKILL_SPEC = "spec"
 const SKILL_CODE_REVIEW = "code-review"
 const SKILL_VERIFICATION = "verification"
 const SKILL_DEBUGGING = "debugging"
@@ -34,13 +33,12 @@ const ASK_SKILL_NAMES = new Set([
   SKILL_AGENT_WORKFLOWS, SKILL_CODE_REVIEW, SKILL_DEBUGGING, SKILL_DEEP_RESEARCH,
   SKILL_DESIGN, SKILL_DESIGN_REVIEW, SKILL_DEVELOP, SKILL_GH_INBOX, SKILL_IMPROVE,
   SKILL_INTAKE, SKILL_OBSERVABILITY, SKILL_RESEARCH, SKILL_SESSION_REVIEW,
-  SKILL_SPEC, SKILL_SUMMARY, SKILL_HANDOFF, SKILL_TEXT_WRITING, SKILL_VERIFICATION, SKILL_WRITE_SKILL,
+  SKILL_SUMMARY, SKILL_HANDOFF, SKILL_TEXT_WRITING, SKILL_VERIFICATION, SKILL_WRITE_SKILL,
 ])
 const VALID_EXECUTION_TIERS = new Set(["light", "standard", "deep"])
 const VALID_DELEGATION_MODES = new Set(["auto", "prefer-subagent", "owner-only"])
-const WORKFLOW_PHASES = ["INTAKE", "RESEARCH", "SPEC", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "ITERATE", "AUDIT", "RELEASE_GATE", "DONE", "BLOCKED"]
-const WORKFLOW_RISK_LEVELS = new Set(["small", "normal", "spec-required", "significant", "release-sensitive"])
-const SPEC_REQUIRED_PHRASES = ["specify requirements", "requirements spec", "requirements specification", "design brief", "decision register", "requirements traceability", "spec before build", "behavior-changing", "behavior changing", "new external contract", "new external contracts", "acceptance criteria unclear", "unclear acceptance criteria"]
+const WORKFLOW_PHASES = ["INTAKE", "RESEARCH", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "ITERATE", "AUDIT", "RELEASE_GATE", "DONE", "BLOCKED"]
+const WORKFLOW_RISK_LEVELS = new Set(["small", "normal", "significant", "release-sensitive"])
 const RELEASE_RISK_PHRASES = ["release candidate", "production readiness", "ready to ship", "ready to merge", "release-sensitive"]
 const SIGNIFICANT_RISK_PHRASES = [
   "architecture", "architectural", "migration", "ownership", "routing change", "multi-module",
@@ -176,13 +174,6 @@ const COMPLETION_PHRASES = [
   "test de fix", "check of het werkt", "validate", "valideren",
   "cleanup", "clean up",
 ]
-const SPEC_PHRASES = [
-  "specify requirements", "requirements spec", "requirements specification",
-  "requirements capture", "requirements engineering", "design brief",
-  "decision register", "requirements traceability", "traceable requirements",
-  "validation gate", "readiness gate", "handover package", "spec before build",
-  "truth spine", "requirements-driven", "formalize requirements",
-]
 
 // Signal phrases for human-first writing. Chosen to avoid colliding with
 // develop triggers (write/rewrite) and write-skill phrases (create skill).
@@ -191,9 +182,45 @@ const TEXT_WRITING_PHRASES = [
   "read like ai", "not ai", "write a tweet", "draft email", "draft an email",
   "write an email", "cover letter", "linkedin post", "blog post", "newsletter",
   "copywriting", "schrijf als mens", "niet ai", "menselijk laten klinken",
+  "text-writing", "text writing",
+  "schrijf de tekst", "schrijf de teksten", "herschrijf de tekst", "teksten herschrijven",
 ]
+// First path segment under the project root (or under a dot-directory like .github) that holds agent guidance, generated output, or local planning.
+const NON_PROSE_ROOT_DIRECTORIES = new Set(["skills", "rules", "commands", "prompts", "agents", "plans"])
+// Host and tool directories that never hold project prose, wherever they sit: this also keeps the agent's own notes
+// (plan files, auto-memory) under the user's home from spending the one-time prose nudge.
+const NON_PROSE_ANYWHERE_DIRECTORIES = new Set([".claude", ".agents", ".codex", ".copilot", ".opencode", ".dsh", "node_modules", ".git"])
+// Exported copies, agent memory, and mechanical release logs (cost-aware routing hands changelog edits to a cheap subagent).
+const NON_PROSE_FILE_NAMES = new Set(["skill.md", "copilot-instructions.md", "changelog.md", "memory.md"])
+// Agent instruction files: AGENTS.md, CLAUDE.md, GEMINI.md and their local variants (CLAUDE.local.md), plus *.instructions.md,
+// *.prompt.md, and *.agent.md.
+const AGENT_INSTRUCTION_FILE_PATTERN = /^(?:agents|claude|gemini)(?:\.(?:local|override|user|private))?\.md$|\.(?:instructions|prompt|agent)\.md$/
+const PROSE_FILE_EXTENSIONS = /\.(?:md|mdx|markdown|rst|adoc)$/i
+
+// Tell whether a written file is human-facing prose (README, docs page, security policy) rather than code, agent instructions, or a release log.
+// Layout rules (skills/, rules/, ...) only apply below `cwd`, so a project that lives under a folder named "agents" still counts.
+function isProseFilePath(filePath, cwd) {
+  if (typeof filePath !== "string" || !filePath.trim()) return false
+  const fileName = path.basename(filePath).toLowerCase()
+  const hasProseName = fileName === "readme" || PROSE_FILE_EXTENSIONS.test(fileName)
+  if (!hasProseName || NON_PROSE_FILE_NAMES.has(fileName) || AGENT_INSTRUCTION_FILE_PATTERN.test(fileName)) return false
+  const projectRelative = typeof cwd === "string" && cwd && path.isAbsolute(filePath) ? path.relative(cwd, filePath) : filePath
+  // Drop empty and "." segments so a file at the project root has no directories.
+  const directories = path.dirname(projectRelative).split(/[\\/]/).filter((segment) => segment && segment !== ".")
+  // Host tool directories never hold project prose, inside the project or in the user's home.
+  if (directories.some((directory) => NON_PROSE_ANYWHERE_DIRECTORIES.has(directory.toLowerCase()))) return false
+  const outsideProject = path.isAbsolute(projectRelative) || directories[0] === ".."
+  // The project layout only judges files below the working directory; elsewhere the name and tool directories decide.
+  // A dot-directory such as .github or .cursor hides its layout one level down (.github/prompts, .cursor/rules).
+  const layoutRoot = (directories[0] || "").startsWith(".") ? directories[1] : directories[0]
+  return outsideProject || !NON_PROSE_ROOT_DIRECTORIES.has((layoutRoot || "").toLowerCase())
+}
 
 const AMBIGUITY_PHRASES = [
+  "specify requirements", "requirements spec", "requirements specification", "design brief",
+  "requirements capture", "requirements engineering", "decision register", "requirements traceability",
+  "traceable requirements", "validation gate", "readiness gate", "handover package", "spec before build",
+  "truth spine", "requirements-driven", "formalize requirements",
   "brainstorm", "brainstormen", "fuzzy idea", "design tradeoff",
   "unsure what to build", "product direction", "idee uitwerken",
   "ambiguous", "unclear scope", "behavior-changing work",
@@ -410,7 +437,6 @@ function classifyWorkflowRisk(query) {
   if (hasPhraseSignal(normalized, LARGE_BRIEF_PHRASES)) return "significant"
   if (hasPhraseSignal(normalized, DEEP_RESEARCH_PHRASES)) return "significant"
   if (hasPhraseSignal(normalized, SIGNIFICANT_RISK_PHRASES)) return "significant"
-  if (hasPhraseSignal(normalized, SPEC_REQUIRED_PHRASES)) return "spec-required"
   if (hasPhraseSignal(normalized, SMALL_RISK_PHRASES)) return "small"
   return "normal"
 }
@@ -419,12 +445,12 @@ function classifyWorkflowRisk(query) {
 // follow-up prompts retain the current task's risk and accumulated evidence.
 function hasWorkflowRiskSignal(query) {
   const normalized = String(query || "").trim().toLowerCase()
-  return hasPhraseSignal(normalized, [...RELEASE_RISK_PHRASES, ...LARGE_BRIEF_PHRASES, ...DEEP_RESEARCH_PHRASES, ...SPEC_REQUIRED_PHRASES, ...SIGNIFICANT_RISK_PHRASES, ...SMALL_RISK_PHRASES])
+  return hasPhraseSignal(normalized, [...RELEASE_RISK_PHRASES, ...LARGE_BRIEF_PHRASES, ...DEEP_RESEARCH_PHRASES, ...SIGNIFICANT_RISK_PHRASES, ...SMALL_RISK_PHRASES])
 }
 
 // Rank risk levels so a follow-up cannot silently weaken an active release flow.
 function workflowRiskRank(risk) {
-  return ["small", "normal", "spec-required", "significant", "release-sensitive"].indexOf(risk)
+  return ["small", "normal", "significant", "release-sensitive"].indexOf(risk)
 }
 
 // Skip standalone review for explicitly small work and combine review for normal work.
@@ -434,20 +460,13 @@ function reviewModeForRisk(risk) {
 }
 
 // Select lifecycle gates for a risk level; small work stops after validation.
-function requiredWorkflowPhases(risk, query = "") {
-  const phases = (() => {
-    switch (risk) {
-      case "small": return ["EXECUTE", "VALIDATE"]
-      case "spec-required": return ["INTAKE", "SPEC", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW"]
-      case "significant": return ["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "AUDIT"]
-      case "release-sensitive": return ["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "AUDIT", "RELEASE_GATE"]
-      default: return ["PLAN", "EXECUTE", "VALIDATE", "REVIEW"]
-    }
-  })()
-  if (risk !== "small" && hasPhraseSignal(String(query || ""), SPEC_REQUIRED_PHRASES) && !phases.includes("SPEC")) {
-    phases.splice(1, 0, "SPEC")
+function requiredWorkflowPhases(risk) {
+  switch (risk) {
+    case "small": return ["EXECUTE", "VALIDATE"]
+    case "significant": return ["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "AUDIT"]
+    case "release-sensitive": return ["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "AUDIT", "RELEASE_GATE"]
+    default: return ["PLAN", "EXECUTE", "VALIDATE", "REVIEW"]
   }
-  return phases
 }
 
 // Require review when the workflow is unknown or explicitly includes the gate.
@@ -460,7 +479,10 @@ function workflowRequiresReview(workflow) {
 // prior decision must stay neutral rather than adopt a generic default route.
 function buildWorkflowState(query, previous = null) {
   const normalizedQuery = String(query || "").trim()
-  const previousWorkflow = previous?.workflow || null
+  const storedWorkflow = previous?.workflow || null
+  // A workflow persisted by an older release may name a retired risk: drop it. A known risk with a retired phase keeps the risk
+  // (so a release-sensitive flow is never weakened) and restarts at its first gate.
+  const previousWorkflow = storedWorkflow && WORKFLOW_RISK_LEVELS.has(storedWorkflow.risk) ? storedWorkflow : null
   if (!normalizedQuery && !previousWorkflow) return null
   const classifiedRisk = classifyWorkflowRisk(normalizedQuery)
   const risk = previousWorkflow?.risk && (!hasWorkflowRiskSignal(normalizedQuery)
@@ -469,12 +491,11 @@ function buildWorkflowState(query, previous = null) {
     : classifiedRisk
   const startsNewReleaseTask = classifiedRisk === "release-sensitive" && hasWorkflowRiskSignal(normalizedQuery)
   const sameRisk = previousWorkflow?.risk === risk && !startsNewReleaseTask
-  const previousRequiresSpec = sameRisk && previousWorkflow?.requiredPhases?.includes("SPEC")
-  const requiredPhases = requiredWorkflowPhases(risk, previousRequiresSpec ? "new external contract" : normalizedQuery)
+  const requiredPhases = requiredWorkflowPhases(risk)
   return {
     risk,
     reviewMode: reviewModeForRisk(risk),
-    phase: sameRisk ? (previousWorkflow.phase || requiredPhases[0]) : requiredPhases[0],
+    phase: sameRisk && WORKFLOW_PHASES.includes(previousWorkflow.phase) ? previousWorkflow.phase : requiredPhases[0],
     requiredPhases,
     completedGates: sameRisk && Array.isArray(previousWorkflow.completedGates) ? previousWorkflow.completedGates : [],
     subagents: sameRisk && Array.isArray(previousWorkflow.subagents) ? previousWorkflow.subagents : [],
@@ -505,7 +526,6 @@ function invalidateWorkflowForDiff(workflow, diffIdentity) {
 const TEST_POLICY = {
   "small": "no new tests unless existing ones cannot prove the change",
   "normal": "new behavior at the public boundary; one regression test per bug only when cheap",
-  "spec-required": "one test per acceptance criterion",
   "significant": "as normal plus one test per P0/P1 finding",
   "release-sensitive": "full proof set",
 }
@@ -571,7 +591,11 @@ function parseWorkflowEvidence(value) {
   }
   const match = text.match(/ASK_WORKFLOW_(PASS|FINDINGS|BLOCKED|FAILED)\b[^\n]*?\bphase=([A-Z_]+)/)
   if (!match) return null
-  const phase = match[2] && WORKFLOW_PHASES.includes(match[2]) ? match[2] : null
+  const knownPhase = WORKFLOW_PHASES.includes(match[2])
+  // A PASS for a phase this release does not know (for example the retired SPEC) never completes the current gate. A failure,
+  // finding, or block with an unknown phase still lands on the current gate so it can only slow a flow down.
+  if (!knownPhase && match[1] === "PASS") return null
+  const phase = knownPhase ? match[2] : null
   const diffIdentity = text.match(/\bdiff=([^\s]+)/)?.[1] || ""
   return { status: match[1], phase, diffIdentity }
 }
@@ -584,7 +608,6 @@ function workflowForSkill(workflow, skillName) {
   const phaseBySkill = {
     [SKILL_RESEARCH]: "RESEARCH",
     [SKILL_DEEP_RESEARCH]: "RESEARCH",
-    [SKILL_SPEC]: "SPEC",
     [SKILL_INTAKE]: "INTAKE",
     [SKILL_DEVELOP]: "EXECUTE",
     [SKILL_VERIFICATION]: "VALIDATE",
@@ -761,7 +784,6 @@ function buildExecutionProfile(matchedSkill, query) {
 const OVERVIEW_ROWS = [
   { label: "Deep research complex, contested, high-stakes questions", skill: SKILL_DEEP_RESEARCH },
   { label: "Research facts, sources, or current state",          skill: SKILL_RESEARCH },
-  { label: "Specify requirements, build design brief",   skill: SKILL_SPEC },
   { label: "Clarify scope, plan ambiguous work",       skill: SKILL_INTAKE },
   { label: "Debug bug, crash, failing test, error",    skill: SKILL_DEBUGGING },
   { label: "Review code changes before handoff",       skill: SKILL_CODE_REVIEW },
@@ -861,7 +883,6 @@ function cascadeRoute(query, skills, sessionState) {
     tryRoute(IMPROVE_PHRASES, SKILL_IMPROVE) ||                // 2. Improve
     tryRoute(LARGE_BRIEF_PHRASES, SKILL_INTAKE) ||             // 3. Start (large brief)
     tryRoute(EXPLICIT_DEEP_RESEARCH_PHRASES, SKILL_DEEP_RESEARCH) || // 4. Research
-    tryRoute(SPEC_PHRASES, SKILL_SPEC) ||                      // 5. Start (explicit spec)
     tryRoute(AMBIGUITY_PHRASES, SKILL_INTAKE) ||               // 6. Start
     tryRoute(COMPARATIVE_DEEP_RESEARCH_PHRASES, SKILL_DEEP_RESEARCH) || // 7. Research
     tryRoute(RESEARCH_PHRASES, SKILL_RESEARCH) ||              // 8. Research
@@ -924,11 +945,11 @@ module.exports = {
   WORKFLOW_PHASES, WORKFLOW_RISK_LEVELS,
   SKILL_AGENT_WORKFLOWS, SKILL_CODE_REVIEW, SKILL_DEBUGGING,
   SKILL_SESSION_REVIEW, SKILL_IMPROVE, SKILL_DEVELOP, SKILL_INTAKE, SKILL_DESIGN,
-  SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SPEC, SKILL_SUMMARY, SKILL_HANDOFF, COMPLETION_PHRASES, SKILL_DESIGN_REVIEW,
+  SKILL_VERIFICATION, SKILL_WRITE_SKILL, SKILL_SUMMARY, SKILL_HANDOFF, COMPLETION_PHRASES, SKILL_DESIGN_REVIEW,
  SKILL_TEXT_WRITING, SKILL_RESEARCH, SKILL_DEEP_RESEARCH, SKILL_OBSERVABILITY, REVIEW_COMPLETION_MARKER, hasReviewCompletionSignal, hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, reviewEvidenceAccepted, blockWorkflowForMissingDiffIdentity, reviewModeForRisk,
   buildSkillOverview, buildCompactSkillOverview, cascadeRoute, buildExecutionProfile, buildRoutingStatus, pendingReviewRequirements, activeSkillEntries, skillDisplayName, loadSkills, reviewNudgeLines,
   createEmptySessionState, getSessionState, setSessionState,
-    findSkill, isAskSkill, isAskSkillName, ASK_SKILL_NAMES, askSkillsRoot, askSkillFileRef, skillReadAction, askSkillNameFromPath, hasPhraseSignal, matchingPhrases, routingHintLines,
+    findSkill, isAskSkill, isAskSkillName, ASK_SKILL_NAMES, askSkillsRoot, askSkillFileRef, skillReadAction, askSkillNameFromPath, hasPhraseSignal, matchingPhrases, routingHintLines, isProseFilePath,
     classifyWorkflowRisk, hasWorkflowRiskSignal, workflowRiskRank, requiredWorkflowPhases, buildWorkflowState, invalidateWorkflowForDiff, workflowRequiresReview, workflowHintLines, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
   TEST_POLICY, toBareSkillName, stripFrontmatter, toSingleLine, normalizeStringList,
   parseBooleanField, parseFrontmatter, unique,

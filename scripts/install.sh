@@ -669,6 +669,15 @@ for skill_dir in "$SHARED_SKILLS_TARGET"/*/; do
   rm -rf "$link_path"
   ln -s "$target_path" "$link_path"
 done
+# Drop OpenCode links to skills retired from the pack: the shared sync above removed their targets, so they dangle.
+# Only links that point into the shared skills root are ours; a user-owned ask-* link elsewhere stays.
+for link_path in "$OPENCODE_SKILLS_TARGET"/ask-*; do
+  if [ -L "$link_path" ] && [ ! -e "$link_path" ]; then
+    case "$(readlink "$link_path")" in
+      "$SHARED_SKILLS_TARGET"/*) rm -f "$link_path" ;;
+    esac
+  fi
+done
 
 mkdir -p "$COPILOT_INSTRUCTIONS_TARGET"
 cp "$COPILOT_INSTRUCTIONS_SOURCE" "$COPILOT_INSTRUCTIONS_FILE"

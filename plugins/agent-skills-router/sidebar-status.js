@@ -9,7 +9,7 @@ import { homedir } from "node:os"
 export const ASK_SKILL_NAMES = new Set([
   "agent-workflows", "code-review", "debugging", "deep-research", "design",
   "design-review", "develop", "gh-inbox", "handoff", "improve", "intake", "observability",
-  "research", "session-review", "spec", "summary", "text-writing", "verification", "write-skill",
+  "research", "session-review", "summary", "text-writing", "verification", "write-skill",
 ])
 
 const CODE_EDIT_TOOL_NAMES = new Set(["edit", "write", "patch", "apply_patch"])
@@ -36,14 +36,8 @@ const DISPLAY_GATE_PHASES = ["PLAN_CHECK", "VALIDATE", "REVIEW", "AUDIT", "RELEA
 const WORKFLOW_PHASE_ORDER = ["PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "AUDIT", "RELEASE_GATE"]
 const WORKFLOW_EVIDENCE_PATTERN = /^ASK_WORKFLOW_(PASS|FINDINGS|BLOCKED|FAILED)\s+phase=([A-Z_]+)(?:\s+diff=([^\s]+))?[ \t]*$/
 const VALID_WORKFLOW_PHASES = new Set([
-  "RESEARCH", "INTAKE", "SPEC", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "ITERATE", "AUDIT", "RELEASE_GATE",
+  "RESEARCH", "INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "ITERATE", "AUDIT", "RELEASE_GATE",
 ])
-const SPEC_WORKFLOW_PHRASES = [
-  "specify requirements", "requirements spec", "requirements specification", "design brief",
-  "decision register", "requirements traceability", "spec before build", "behavior-changing",
-  "behavior changing", "new external contract", "new external contracts", "acceptance criteria unclear",
-  "unclear acceptance criteria",
-]
 const SMALL_WORKFLOW_PHRASES = [
   "typo", "documentation-only", "docs only", "rename variable", "version bump", "changelog tweak",
   "small local fix", "small local bug fix", "small bug fix", "small fix", "quick fix", "tiny fix",
@@ -148,7 +142,6 @@ function classifyObservedWorkflowRisk(promptText) {
     { risk: "significant", phrases: LARGE_WORKFLOW_PHRASES },
     { risk: "significant", phrases: DEEP_RESEARCH_WORKFLOW_PHRASES },
     { risk: "significant", phrases: SIGNIFICANT_WORKFLOW_PHRASES },
-    { risk: "spec-required", phrases: SPEC_WORKFLOW_PHRASES },
     { risk: "small", phrases: SMALL_WORKFLOW_PHRASES },
   ]
   for (const signal of riskSignals) {
@@ -1074,7 +1067,6 @@ function observedPendingItems(messages) {
   let reviewedDiffIdentity = ""
   let reviewHasFindings = false
   let completedWorkflowPhases = new Set()
-  let specWorkflowRequired = false
   let workflowRisk = null
 
   for (const message of messages) {
@@ -1086,10 +1078,8 @@ function observedPendingItems(messages) {
       .map((part) => part.text.toLowerCase())
       .join(" ")
     if (messageText) {
-      // Preserve a prompt-derived SPEC requirement across later edits.
-      if (hasWorkflowPhraseSignal(messageText, SPEC_WORKFLOW_PHRASES)) specWorkflowRequired = true
       const observedRisk = classifyObservedWorkflowRisk(messageText)
-      const workflowRiskRank = ["small", "normal", "spec-required", "significant", "release-sensitive"]
+      const workflowRiskRank = ["small", "normal", "significant", "release-sensitive"]
       if (workflowRisk === null) workflowRisk = observedRisk || "normal"
       else if (observedRisk && workflowRiskRank.indexOf(observedRisk) > workflowRiskRank.indexOf(workflowRisk)) {
         workflowRisk = observedRisk
@@ -1122,9 +1112,6 @@ function observedPendingItems(messages) {
         } else if (skill === "design-review") {
           hasRelevantHistory = true
           needsDesignReview = false
-        } else if (skill === "spec") {
-          specWorkflowRequired = true
-          validatedDiffIdentity = ""
         }
         continue
       }
@@ -1132,26 +1119,23 @@ function observedPendingItems(messages) {
       const output = toolOutputText(part)
       const generation = Number(output.match(/review-generation:\s*(\d+)/)?.[1] || 0)
       const diffIdentity = output.match(/\bdiff=([^\s]+)/)?.[1] || ""
-      const phase = output.match(/\bphase=(SPEC|INTAKE|PLAN|PLAN_CHECK|EXECUTE|VALIDATE|REVIEW|ITERATE|AUDIT)\b/)?.[1] || ""
+      const phase = output.match(/\bphase=(INTAKE|PLAN|PLAN_CHECK|EXECUTE|VALIDATE|REVIEW|ITERATE|AUDIT)\b/)?.[1] || ""
       const reviewReference = output.match(/review-reference:\s*([^\s]+)/)?.[1] || ""
       const completedAt = output.match(/review-completed-at:\s*([^\s]+)/)?.[1] || ""
       if (phase === "VALIDATE" && /ASK_WORKFLOW_PASS\b/.test(output)
         && currentDiffIdentity && diffIdentity === currentDiffIdentity) {
         completedWorkflowPhases.add(phase)
         const advancedPlanning = completedWorkflowPhases.has("INTAKE") || completedWorkflowPhases.has("PLAN_CHECK")
-        const requiresSpec = specWorkflowRequired || completedWorkflowPhases.has("SPEC")
         const hasRequiredValidation = completedWorkflowPhases.has("PLAN")
           && completedWorkflowPhases.has("EXECUTE") && completedWorkflowPhases.has("VALIDATE")
           && (!advancedPlanning || (completedWorkflowPhases.has("INTAKE") && completedWorkflowPhases.has("PLAN_CHECK")))
-          && (!requiresSpec || completedWorkflowPhases.has("SPEC"))
         if (hasRequiredValidation) validatedDiffIdentity = currentDiffIdentity
         continue
       }
-      if (["SPEC", "INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE"].includes(phase)
+      if (["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE"].includes(phase)
         && /ASK_WORKFLOW_PASS\b/.test(output) && currentDiffIdentity && diffIdentity === currentDiffIdentity) {
         completedWorkflowPhases.add(phase)
-        if (phase === "SPEC") specWorkflowRequired = true
-        if (["SPEC", "INTAKE", "PLAN_CHECK"].includes(phase)) validatedDiffIdentity = ""
+        if (["INTAKE", "PLAN_CHECK"].includes(phase)) validatedDiffIdentity = ""
         continue
       }
       if ((/ASK_WORKFLOW_FINDINGS\b/.test(output) || /ASK_WORKFLOW_(BLOCKED|FAILED)\b/.test(output))

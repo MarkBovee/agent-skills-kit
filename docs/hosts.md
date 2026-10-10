@@ -115,12 +115,12 @@ Install as a plugin (recommended):
 
 | Piece | Behavior |
 | --- | --- |
-| 19 `ask-` skills | Hidden from automatic model invocation (`disable-model-invocation`). The router picks one and the agent reads its `SKILL.md`; you can also run any of them as a slash command. |
+| 18 `ask-` skills | Hidden from automatic model invocation (`disable-model-invocation`). The router picks one and the agent reads its `SKILL.md`; you can also run any of them as a slash command. |
 | `SessionStart` hook | Routing table with the exact `SKILL.md` path per workflow plus the workflow mandate. Announced again after compaction. |
 | `SubagentStart` hook | Hands the same routing table to subagents, which do not inherit session context. |
 | `UserPromptSubmit` hook | One routing suggestion, the workflow risk and its gates, the test budget, and the review reminder. Plain questions and slash commands get nothing. |
 | `PreToolUse` hook | The git guard: denies destructive `git` commands in Bash before they run (see below). |
-| `PostToolUse` hooks | Edits arm the review reminder; reading the `ask-code-review` file (or loading it through the Skill tool) clears it. Session state lives in `${CLAUDE_PLUGIN_DATA}`. |
+| `PostToolUse` hooks | Edits arm the review reminder, and writing a prose file such as a README or docs page adds a one-time nudge to read `ask-text-writing`; reading the `ask-code-review` file (or loading it through the Skill tool) clears the reminder. Session state lives in `${CLAUDE_PLUGIN_DATA}`. |
 | Subagents | `ask-worker` (Sonnet, can edit) runs a routed workflow skill end to end. Read-only `ask-reviewer`, `ask-auditor`, and `ask-researcher` return `ASK_WORKFLOW_*` evidence markers. All four default to Sonnet. |
 
 ### Git guard

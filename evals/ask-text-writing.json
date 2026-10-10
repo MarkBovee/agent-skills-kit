@@ -34,5 +34,17 @@
       "Removes AI-pattern phrasing",
       "Keeps it short"
     ]
+  },
+  {
+    "skills": [
+      "ask-text-writing"
+    ],
+    "query": "Rewrite the README for the public launch so it doesn't read like an AI wrote it.",
+    "files": [],
+    "expected_behavior": [
+      "Reads the text-writing skill before finishing the prose",
+      "Runs the self-check: no habitual triples, varied sentence length, concrete detail",
+      "Keeps every claim verifiable against the repository"
+    ]
   }
 ]

@@ -157,6 +157,35 @@ function checkHookBehavior() {
   const clearedNamespaced = parseHookOutput(run("prompt", { session_id: "state", prompt: "continue" }).stdout)
   expect(!clearedNamespaced?.hookSpecificOutput?.additionalContext?.includes("Code edited"), "loading the plugin-namespaced agent-skills-kit:ask-code-review clears the reminder")
 
+  // Writing prose nudges once per session toward ask-text-writing; code, agent guidance, and a loaded skill stay quiet.
+  const proseEdit = (sessionId, filePath) => run("post-edit", { session_id: sessionId, tool_name: "Write", cwd: "/work/app", tool_input: { file_path: filePath } }).stdout
+  const readmeNudge = parseHookOutput(proseEdit("prose", "/work/app/README.md"))
+  expect(readmeNudge?.hookSpecificOutput?.hookEventName === "PostToolUse" && readmeNudge.hookSpecificOutput.additionalContext.includes("ask-text-writing"), "writing a README nudges toward ask-text-writing")
+  expect(!proseEdit("prose", "/work/app/docs/guide.md").trim(), "the prose nudge shows once per session")
+  expect(!proseEdit("prose-code", "/work/app/src/app.js").trim(), "editing code does not nudge toward ask-text-writing")
+  expect(!proseEdit("prose-skill", "/work/app/skills/ask-x/SKILL.md").trim(), "editing agent guidance under skills/ does not nudge toward ask-text-writing")
+  expect(!proseEdit("prose-log", "/work/app/CHANGELOG.md").trim(), "editing the mechanical CHANGELOG.md does not nudge toward ask-text-writing")
+  expect(!proseEdit("prose-layout", "/work/app/.cursor/rules/x.md").trim(), "a layout directory below a dot-directory does not nudge toward ask-text-writing")
+  expect(!proseEdit("prose-agent", "/work/app/docs/x.agent.md").trim() && !proseEdit("prose-local", "/work/app/CLAUDE.local.md").trim(), "agent instruction file variants do not nudge toward ask-text-writing")
+  expect(proseEdit("prose-template", "/work/app/.github/ISSUE_TEMPLATE/bug.md").includes("ask-text-writing"), "an issue template still nudges toward ask-text-writing")
+  expect(!proseEdit("prose-instructions", "/work/app/.github/instructions/x.instructions.md").trim() && !proseEdit("prose-prompt", "/work/app/docs/x.prompt.md").trim(), "instruction and prompt files do not nudge toward ask-text-writing")
+  // A hook state file holding null must read as empty so the routing hint survives it.
+  fs.mkdirSync(path.join(stateDir, "sessions"), { recursive: true })
+  fs.writeFileSync(path.join(stateDir, "sessions", "null-state.json"), "null")
+  const nullStatePrompt = parseHookOutput(run("prompt", { session_id: "null-state", prompt: "fix the failing test in the parser" }).stdout)
+  expect(nullStatePrompt?.hookSpecificOutput?.additionalContext?.includes("ask-debugging"), "a null hook state file still yields a routing hint")
+  expect(proseEdit("prose-bare", "/work/app/README").includes("ask-text-writing"), "a bare README without an extension still nudges toward ask-text-writing")
+  run("post-skill-read", { session_id: "prose-read", tool_input: { file_path: path.join(SKILLS_DIR, "ask-text-writing", "SKILL.md") } })
+  expect(!proseEdit("prose-read", "/work/app/README.md").trim(), "reading ask-text-writing silences the prose nudge")
+  // The agent's own notes under the host config directory never spend the one-time nudge meant for real prose.
+  expect(!proseEdit("prose-home", "/home/u/.claude/plans/idea.md").trim() && proseEdit("prose-home", "/work/app/README.md").includes("ask-text-writing"), "plan and memory files outside the project do not spend the prose nudge")
+  expect(proseEdit("prose-docs", "/work/app/docs/commands/install.md").includes("ask-text-writing"), "a docs page about commands still nudges toward ask-text-writing")
+  run("session-start", { session_id: "prose", source: "compact" })
+  expect(proseEdit("prose", "/work/app/README.md").includes("ask-text-writing"), "compaction re-arms the prose nudge")
+  run("post-edit", { session_id: "prose-cwd", tool_name: "Edit", cwd: 5, tool_input: { file_path: "/work/app/README.md" } })
+  const armedDespiteCwd = parseHookOutput(run("prompt", { session_id: "prose-cwd", prompt: "continue" }).stdout)
+  expect(armedDespiteCwd?.hookSpecificOutput?.additionalContext?.includes("ask-code-review"), "a malformed cwd still arms the code-review reminder")
+
   // Run a hook with a chosen shared skill root so path resolution never depends on the developer's real home directory.
   const runWithSharedRoot = (event, payload, sharedRoot) => spawnSync(process.execPath, [HOOK_SCRIPT, event], { input: JSON.stringify(payload), encoding: "utf8", env: { ...stateEnv, ASK_SKILLS_DIR: sharedRoot }, timeout: 10000 })
   const bundledDebugging = path.join(SKILLS_DIR, "ask-debugging", "SKILL.md")

@@ -228,22 +228,22 @@ async function openCodeLifecycle() {
     reset.activeSkills.length === 0 && reset.pending.length === 0)
 
   // Step 1: a loaded skill is current and starts the sidebar with no debt.
-  await plugin["tool.execute.after"]({ tool: "skill", sessionID }, { args: { name: "spec" } })
+  await plugin["tool.execute.after"]({ tool: "skill", sessionID }, { args: { name: "intake" } })
   await flush()
-  const specified = plugin.status({ sessionID })
-  check("step 1 shows Spec as the only current skill", JSON.stringify(specified) === JSON.stringify({
-    activeSkills: [{ skill: "spec", label: "Spec", current: true }],
+  const intakeLoaded = plugin.status({ sessionID })
+  check("step 1 shows Intake as the only current skill", JSON.stringify(intakeLoaded) === JSON.stringify({
+    activeSkills: [{ skill: "intake", label: "Intake", current: true }],
     pending: [],
   }))
 
-  // Step 2: a real write creates code-review debt without changing Spec.
+  // Step 2: a real write creates code-review debt without changing Intake.
   await plugin["chat.message"]({ sessionID }, { parts: [{ type: "text", text: "fix this parser bug" }] })
   await plugin["tool.execute.before"]({ tool: "write", sessionID, diffIdentity: "HEAD" })
   await plugin["tool.execute.after"]({ tool: "write", sessionID }, {})
   await flush()
   const codeReviewNeeded = plugin.status({ sessionID })
-  check("step 2 keeps Spec current and requests code review", JSON.stringify(codeReviewNeeded) === JSON.stringify({
-    activeSkills: [{ skill: "spec", label: "Spec", current: true }],
+  check("step 2 keeps Intake current and requests code review", JSON.stringify(codeReviewNeeded) === JSON.stringify({
+    activeSkills: [{ skill: "intake", label: "Intake", current: true }],
     pending: [{ flag: "needsCodeReview", skill: "code-review", label: "Code review needed", action: "Read `~/.agents/skills/ask-code-review/SKILL.md`" }],
   }))
 
@@ -254,7 +254,7 @@ async function openCodeLifecycle() {
   check("step 3 keeps code review pending until evidence", JSON.stringify(reviewed) === JSON.stringify({
     activeSkills: [
       { skill: "code-review", label: "Code Review", current: true },
-      { skill: "spec", label: "Spec", current: false },
+      { skill: "intake", label: "Intake", current: false },
     ],
     pending: [{ flag: "needsCodeReview", skill: "code-review", label: "Code review needed", action: "Read `~/.agents/skills/ask-code-review/SKILL.md`" }],
   }))
@@ -279,7 +279,7 @@ async function openCodeLifecycle() {
     activeSkills: [
       { skill: "design", label: "Design", current: true },
       { skill: "code-review", label: "Code Review", current: false },
-      { skill: "spec", label: "Spec", current: false },
+      { skill: "intake", label: "Intake", current: false },
     ],
     pending: [{ flag: "needsDesignReview", skill: "design-review", label: "Design review needed", action: "Read `~/.agents/skills/ask-design-review/SKILL.md`" }],
   }))
@@ -293,12 +293,12 @@ async function openCodeLifecycle() {
       { skill: "design-review", label: "Design Review", current: true },
       { skill: "design", label: "Design", current: false },
       { skill: "code-review", label: "Code Review", current: false },
-      { skill: "spec", label: "Spec", current: false },
+      { skill: "intake", label: "Intake", current: false },
     ],
     pending: [],
   }))
   check("every router snapshot is whole and self-contained",
-    [neutral, reset, specified, codeReviewNeeded, reviewed, designReviewNeeded, designReviewed]
+    [neutral, reset, intakeLoaded, codeReviewNeeded, reviewed, designReviewNeeded, designReviewed]
       // Verify every item satisfies the local condition.
       .every((snapshot) => Array.isArray(snapshot.activeSkills) && Array.isArray(snapshot.pending) && !("workflow" in snapshot)))
 }

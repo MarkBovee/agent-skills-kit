@@ -19,7 +19,7 @@ A separate review (not the lightweight combined pass) judges the diff on two axe
 
 Pin the review base first (`git diff <base>...HEAD`, three-dot so the comparison runs against the merge-base) and confirm it resolves and is non-empty. Find the spec in this order: issue references in commit messages, a path the user passed, the plan or spec record for the branch. When none exists, ask once; if there is none, state "no spec available", skip the Spec axis, and do not infer requirements from the code. For a large diff, run the axes as independent passes (parallel subagents when the host supports them) so neither pollutes the other's context.
 
-Run final review after validation only when the workflow includes a `REVIEW` gate. `small` workflows finish after targeted validation with no separate review; `normal` workflows use one lightweight combined pass covering correctness, regressions, local conventions, and a bounded counterexample/security sanity check. `spec-required`, `significant`, and `release-sensitive` workflows use a separate review; only significant and release-sensitive workflows also require an independent audit.
+Run final review after validation only when the workflow includes a `REVIEW` gate. `small` workflows finish after targeted validation with no separate review; `normal` workflows use one lightweight combined pass covering correctness, regressions, local conventions, and a bounded counterexample/security sanity check. `significant` and `release-sensitive` workflows use a separate review and also require an independent audit.
 
 ## Lightweight combined review
 

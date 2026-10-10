@@ -255,6 +255,19 @@ run_claude_installer() {
     bash "${INSTALLER_ROOT:-$REPO_ROOT}/scripts/install.sh" "$@" >"$log" 2>&1
 }
 
+# Run the PowerShell installer in Claude skills mode against a throwaway home, mirroring run_claude_installer.
+run_claude_powershell_installer() {
+  local root="$1" log="$2"
+  HOME="$root/home" pwsh -NoLogo -NoProfile -File "$REPO_ROOT/scripts/install.ps1" \
+    -AgentsDir "$root/agents" \
+    -CodexHome "$root/codex" \
+    -CopilotDir "$root/copilot" \
+    -OpencodeDir "$root/opencode" \
+    -ClaudeDir "$root/claude" \
+    -ClaudeMode skills \
+    -DshHome "$root/dsh" >"$log" 2>&1
+}
+
 # Create a fake claude CLI that logs its arguments and fails the install subcommand when asked.
 make_claude_shim() {
   local dir="$1" fail_install="$2"
@@ -384,6 +397,33 @@ check_claude_scenarios() {
   check "claude uninstall removes generated coding standards" "$([ ! -e "$b/claude/rules/coding-standards.md" ] && [ ! -e "$b/claude/rules/coding-standards-csharp.md" ] && printf true || printf false)"
   check "claude uninstall keeps the user-owned skill" "$([ -f "$b/claude/skills/my-own/SKILL.md" ] && printf true || printf false)"
 
+  # Scenario H: only links into the shared skills root are ASK-owned. A refresh removes a retired link and keeps a user link
+  # in a sibling directory that merely shares the root's prefix, in both installers.
+  local installer h
+  for installer in sh ps1; do
+    h="$base/h-$installer"; mkdir -p "$h/agents/skills-backup/live" "$h/elsewhere/live" "$h/claude"
+    if [ "$installer" = sh ]; then
+      ASK_CLAUDE_MODE_OVERRIDE=skills run_claude_installer "$h" "$h/log" "" || check "claude $installer first install succeeds" false
+    elif command -v pwsh >/dev/null 2>&1; then
+      run_claude_powershell_installer "$h" "$h/log" || check "claude $installer first install succeeds" false "$(tail -5 "$h/log" | tr '\n' ' ')"
+    else
+      check "PowerShell installer is available for Claude link parity" false "pwsh is required"
+      continue
+    fi
+    ln -s "$h/agents/skills-backup/live" "$h/claude/skills/ask-user-sibling"
+    ln -s "$h/elsewhere/live" "$h/claude/skills/ask-user-elsewhere"
+    ln -s "$h/agents/skills/ask-retired" "$h/claude/skills/ask-retired"
+    if [ "$installer" = sh ]; then
+      ASK_CLAUDE_MODE_OVERRIDE=skills run_claude_installer "$h" "$h/log2" "" || check "claude $installer refresh succeeds" false
+    else
+      run_claude_powershell_installer "$h" "$h/log2" || check "claude $installer refresh succeeds" false "$(tail -5 "$h/log2" | tr '\n' ' ')"
+    fi
+    check "claude $installer refresh removes the retired skill link" "$([ ! -L "$h/claude/skills/ask-retired" ] && printf true || printf false)"
+    check "claude $installer refresh keeps a user link in a prefix-sharing sibling directory" "$([ -L "$h/claude/skills/ask-user-sibling" ] && printf true || printf false)"
+    check "claude $installer refresh keeps a user link elsewhere" "$([ -L "$h/claude/skills/ask-user-elsewhere" ] && printf true || printf false)"
+    check "claude $installer refresh keeps ASK skills linked" "$([ -L "$h/claude/skills/ask-develop" ] && printf true || printf false)"
+  done
+
   rm -rf "$base"
 }
 
@@ -445,6 +485,11 @@ main() {
     printf 'legacy\n' > "$OPENCODE_DIR/commands/ui-ux.md"
     printf 'ui-ux.prompt.md\n' > "$COPILOT_DIR/prompts/.ask-managed-prompts.txt"
     printf 'legacy\n' > "$COPILOT_DIR/prompts/ui-ux.prompt.md"
+    # A retired skill leaves a dangling OpenCode link once its shared copy is removed; a user-owned dangling ask-* link must stay.
+    mkdir -p "$OPENCODE_DIR/skills"
+    ln -s "$AGENTS_DIR/skills/ask-ui-ux" "$OPENCODE_DIR/skills/ask-ui-ux"
+    ln -s /nonexistent/ask-user-owned "$OPENCODE_DIR/skills/ask-user-owned"
+    ln -s "$AGENTS_DIR/skills-backup/ask-user-sibling" "$OPENCODE_DIR/skills/ask-user-sibling"
     mkdir -p "$OPENCODE_DIR/plugins/core"
     printf 'stale router core\n' > "$OPENCODE_DIR/plugins/core/router-core.js"
     printf 'user-owned plugin core\n' > "$OPENCODE_DIR/plugins/core/user-owned.js"
@@ -476,6 +521,10 @@ main() {
       "$([ -f "$OPENCODE_DIR/core/user-owned.js" ] && printf true || printf false)"
     check "refresh removes legacy shared ui-ux skill" \
       "$([ ! -d "$AGENTS_DIR/skills/ask-ui-ux" ] && printf true || printf false)"
+    check "refresh removes the dangling OpenCode link to a retired skill" \
+      "$([ ! -L "$OPENCODE_DIR/skills/ask-ui-ux" ] && printf true || printf false)"
+    check "refresh keeps a user-owned dangling ask-* OpenCode link" \
+      "$([ -L "$OPENCODE_DIR/skills/ask-user-owned" ] && [ -L "$OPENCODE_DIR/skills/ask-user-sibling" ] && printf true || printf false)"
     check "refresh installs renamed shared design skill" \
       "$([ -d "$AGENTS_DIR/skills/ask-design" ] && printf true || printf false)"
     check "refresh removes legacy dsh ui-ux skill" \

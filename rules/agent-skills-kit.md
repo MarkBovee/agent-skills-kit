@@ -7,7 +7,6 @@
 ```text
 Deep research complex, contested, high-stakes questions → deep-research
 Research facts, sources, or current state              → research
-Specify requirements, build design brief              → spec
 Clarify scope, plan ambiguous work                    → intake
 Debug bug, crash, failing test, error                 → debugging
 Review code changes before handoff                    → code-review
@@ -37,11 +36,10 @@ Risk determines workflow depth.
 
 1. Small: `EXECUTE → VALIDATE` (no separate review or audit).
 2. Normal: `PLAN → EXECUTE → VALIDATE → REVIEW` (one combined review).
-3. Spec-required: `INTAKE → SPEC → PLAN → PLAN_CHECK → EXECUTE → VALIDATE → REVIEW`.
-4. Significant: add `ITERATE → AUDIT`.
-5. Release-sensitive: add `RELEASE_GATE`.
+3. Significant: add `ITERATE → AUDIT`.
+4. Release-sensitive: add `RELEASE_GATE`.
 
-`SPEC` covers explicit requirements/design briefs, unclear acceptance criteria, behavior changes, and new external contracts. It is not needed for ordinary bugs or known small work. Explicit small local fixes use the `small` risk profile; security-sensitive terms take precedence. Only significant and release-sensitive workflows require an independent audit.
+Explicit small local fixes use the `small` risk profile; security-sensitive terms take precedence. Only significant and release-sensitive workflows require an independent audit.
 
 `RESEARCH` is optional. `research` handles bounded facts. `deep-research` handles multi-source investigation, contradiction analysis, confidence, and handoff.
 
