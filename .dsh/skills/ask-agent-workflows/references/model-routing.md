@@ -16,6 +16,10 @@ Workflow skills run in the Sonnet worker (`ask-worker`), not on the session mode
 
 Use the lowest capable model, a narrow handoff, and a concise output contract. Do not spawn redundant workers or retry unchanged work on a more expensive model. Escalate only for a concrete gap, failed validation, or increased scope. `deep` describes task complexity; it is not an automatic Opus assignment.
 
+## Effort
+
+Model tier is not the only cost lever: reasoning effort changes tokens a lot. The ASK agent files set `effort` in frontmatter (`medium` for `ask-reviewer` and `ask-auditor`, `low` for `ask-worker` and `ask-researcher`); Claude Code documents the field (`low`, `medium`, `high`, `xhigh`, `max`) and a per-invocation `effort` parameter on the Agent tool (Claude Code 2.1.292 or later, non-fork subagents), which overrides the frontmatter. Never default above `medium`; raise it per call with a stated reason. The `CLAUDE_CODE_EFFORT_LEVEL` environment variable overrides both, so confirm the effort that actually ran. On hosts without an effort setting, keep the budget in the prompt (scope, tool-call ceiling, P0/P1 only).
+
 ## Claude Code
 
 The ASK custom agent files in `agents/` use `model: sonnet` as their fallback, so omitting a model at dispatch does not intentionally inherit Opus. When Claude Code supports model selection on the Agent invocation, the coordinator should still pass the selected model for that task; the invocation choice takes precedence over agent frontmatter.

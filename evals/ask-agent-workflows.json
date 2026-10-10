@@ -34,5 +34,39 @@
       "Caps the expected report size",
       "Does not edit the delegated paths while the helper works"
     ]
+  },
+  {
+    "skills": [
+      "ask-agent-workflows"
+    ],
+    "query": "The reviewer found one P1 in my release-sensitive diff; I fixed it. What gates run now?",
+    "files": [],
+    "expected_behavior": [
+      "Runs focused validation and one delta gate: the delta review that matches the review finding, not a delta audit, and only because the fix changed behavior",
+      "No broad re-review",
+      "P2 notes are logged as follow-ups"
+    ]
+  },
+  {
+    "skills": [
+      "ask-agent-workflows"
+    ],
+    "query": "Dispatch the final review and audit for this release-sensitive PR.",
+    "files": [],
+    "expected_behavior": [
+      "Each dispatch states scope paths, a tool-call ceiling, the validation evidence already gathered (commands, results, diff reference), medium effort, and P0/P1-only reporting",
+      "the agents do not re-run the full check suite"
+    ]
+  },
+  {
+    "skills": [
+      "ask-agent-workflows"
+    ],
+    "query": "Re-check my fixes for the three findings from the last audit.",
+    "files": [],
+    "expected_behavior": [
+      "Passes the previous findings list and asks for CLOSED or OPEN per item instead of auditing the whole diff again",
+      "prefers resuming the finished auditor over a cold start"
+    ]
   }
 ]

@@ -46,5 +46,16 @@
       "Reports Standards and Spec findings side by side",
       "Flags changes that nobody asked for as scope creep"
     ]
+  },
+  {
+    "skills": [
+      "ask-code-review"
+    ],
+    "query": "Delegate the review of this significant diff to a subagent.",
+    "files": [],
+    "expected_behavior": [
+      "One review on the final diff at medium effort with scope, tool-call ceiling, and passed validation evidence in the brief",
+      "reports P0/P1 only and logs P2 as follow-ups that start no new round"
+    ]
   }
 ]

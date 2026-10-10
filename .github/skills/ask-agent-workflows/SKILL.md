@@ -26,6 +26,17 @@ Select workflow depth by risk:
 3. **Significant** — intake → plan → plan-check → execute → validate → final review → independent final audit.
 4. **Release-sensitive** — significant flow plus release-gate. Release-gate consumes evidence and never modifies source.
 
+Gate cost follows risk, and a gate runs once, on the final diff:
+
+| Risk | Review | Audit |
+| --- | --- | --- |
+| small | Validation only | None |
+| normal | One combined review: `light` or low-effort `standard` | None |
+| significant | One `standard` review at medium effort | One `standard` audit at medium effort, limited to the risky paths |
+| release-sensitive | One `standard` review at medium effort | One `standard` audit at medium effort, limited to the risky paths, plus the release-gate |
+
+A release-sensitive diff under about 150 changed lines in 5 files may use one agent that runs the review and audit checklists together instead of two cold starts; it reports `REVIEW` and `AUDIT` separately. Do not move audits to the `light` tier without benchmark evidence of equal recall (see `references/gate-benchmark.md`).
+
 Keep phases distinct: validation asks whether defined checks pass; review checks requirements, regressions, and design risk; audit independently searches for counterexamples, bypasses, ambiguity, unsafe fallbacks, nondeterminism, and compatibility breaks.
 
 ## Subagent evidence contract
@@ -59,17 +70,19 @@ P0/P1 findings follow: reproduce → one regression proof within the test budget
 
 ## Release-sensitive work
 
-Freeze the audited diff: commit (or snapshot) before starting REVIEW or AUDIT, and make no edits to the audited paths until the verdict arrives; an auditor on a moving tree can only report a stale or mixed verdict, and fixes go in a follow-up commit. Keep one immutable diff reference with a gate table (`VALIDATE`, `REVIEW`, `AUDIT`, `RELEASE_GATE`); any source change makes evidence for the prior diff stale. Fix findings in one bounded batch, then run only a delta review and delta audit of the changed paths before the final gates. A metadata-only release (`VERSION`, `CHANGELOG.md`, plugin metadata) on an already-gated executable commit needs validation only. Before starting release-sensitive work, read [references/release-gates.md](references/release-gates.md) for the convergence and stop rule, the bounded narrow-fix path with its timebox, and the metadata-only fast path.
+Freeze the audited diff: commit (or snapshot) before starting REVIEW or AUDIT, and make no edits to the audited paths until the verdict arrives; an auditor on a moving tree can only report a stale or mixed verdict, and fixes go in a follow-up commit. Keep one immutable diff reference with a gate table (`VALIDATE`, `REVIEW`, `AUDIT`, `RELEASE_GATE`); any source change makes evidence for the prior diff stale. Do not review or audit while iterating: fixes after a finding get focused validation only. Fix findings in one bounded batch; a delta gate runs only when the delta changes behavior in a release-sensitive path, and then only the gate that matches the finding (a review finding gets a delta review, an audit finding a delta audit), never both. A metadata-only release (`VERSION`, `CHANGELOG.md`, plugin metadata) on an already-gated executable commit needs validation only. Before starting release-sensitive work, read [references/release-gates.md](references/release-gates.md) for the convergence and stop rule, the bounded narrow-fix path with its timebox, and the metadata-only fast path.
 
 ## Subagent brief
 
 Input and report size repeat per agent, so cap both.
 
 1. Brief each agent with the task, the 5 to 10 rules that apply, and the exact files or diff; never "read the whole instruction file".
-2. Set a hard report cap (for example 40 lines) and the sections: finding, evidence, confidence, not determined.
-3. Send mechanical search and table work to the cheaper tier; keep the strong tier for review and audit.
-4. When a follow-up depends on a finished agent's context, `SendMessage` it instead of starting a new agent.
-5. Have agents save reusable scratch scripts to a named scratchpad path and report the path.
+2. Set a hard report cap (for example 40 lines) and the sections: finding, evidence, confidence, not determined. Every review or audit dispatch also states the scope paths, a tool-call ceiling (for example 30), the validation evidence already gathered (commands, results, diff reference) so the agent does not re-run the full suite, and "report P0/P1 only; log P2 as one-line follow-ups". A P2 never triggers another round.
+3. For a closure or delta gate, pass the previous findings and ask for CLOSED or OPEN per item instead of a fresh review of the whole diff.
+4. Send mechanical search and table work to the cheaper tier; keep the strong tier for review and audit.
+5. When a follow-up depends on a finished agent's context, `SendMessage` it instead of starting a new agent; a delta gate resumes the finished reviewer or auditor so it keeps its context.
+6. If a gate hits an API rate limit, report it and wait; do not relaunch immediately.
+7. Have agents save reusable scratch scripts to a named scratchpad path and report the path.
 
 ## Handoff context
 

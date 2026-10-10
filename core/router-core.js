@@ -216,6 +216,27 @@ function isProseFilePath(filePath, cwd) {
   return outsideProject || !NON_PROSE_ROOT_DIRECTORIES.has((layoutRoot || "").toLowerCase())
 }
 
+const TEST_DIRECTORY_PATTERN = /(?:^|[\\/])(?:tests?|__tests__)[\\/]/i
+const TEST_FILE_NAME_PATTERN = /\.(?:test|spec)\.[a-z]+$/i
+
+// Reduce an edited path to its project-relative form; "" when it sits outside the project or cannot be resolved.
+// Directory names above the project (a checkout under ~/tests) must never influence the mechanical-edit decision.
+function projectRelativeEditPath(filePath, cwd) {
+  const normalized = path.normalize(filePath)
+  const relative = path.isAbsolute(normalized) ? (typeof cwd === "string" && cwd && path.isAbsolute(cwd) ? path.relative(cwd, normalized) : "") : normalized
+  return relative.split(/[\\/]/).includes("..") ? "" : relative
+}
+
+// Tell whether an edit is mechanical (docs, release log, root VERSION file, tests) and so never needs its own review round.
+// An unknown, outside-project, or ambiguous path is never mechanical, so it still arms the review reminder.
+function isMechanicalEditPath(filePath, cwd) {
+  if (typeof filePath !== "string" || !filePath.trim()) return false
+  const relative = projectRelativeEditPath(filePath, cwd)
+  if (!relative) return false
+  if (relative === "VERSION" || path.basename(relative).toLowerCase() === "changelog.md") return true
+  return TEST_DIRECTORY_PATTERN.test(relative) || TEST_FILE_NAME_PATTERN.test(relative) || isProseFilePath(filePath, cwd)
+}
+
 const AMBIGUITY_PHRASES = [
   "specify requirements", "requirements spec", "requirements specification", "design brief",
   "requirements capture", "requirements engineering", "decision register", "requirements traceability",
@@ -949,7 +970,7 @@ module.exports = {
  SKILL_TEXT_WRITING, SKILL_RESEARCH, SKILL_DEEP_RESEARCH, SKILL_OBSERVABILITY, REVIEW_COMPLETION_MARKER, hasReviewCompletionSignal, hasTerminalReviewCompletion, parseReviewCompletion, reviewCompletionMatches, reviewEvidenceAccepted, blockWorkflowForMissingDiffIdentity, reviewModeForRisk,
   buildSkillOverview, buildCompactSkillOverview, cascadeRoute, buildExecutionProfile, buildRoutingStatus, pendingReviewRequirements, activeSkillEntries, skillDisplayName, loadSkills, reviewNudgeLines,
   createEmptySessionState, getSessionState, setSessionState,
-    findSkill, isAskSkill, isAskSkillName, ASK_SKILL_NAMES, askSkillsRoot, askSkillFileRef, skillReadAction, askSkillNameFromPath, hasPhraseSignal, matchingPhrases, routingHintLines, isProseFilePath,
+    findSkill, isAskSkill, isAskSkillName, ASK_SKILL_NAMES, askSkillsRoot, askSkillFileRef, skillReadAction, askSkillNameFromPath, hasPhraseSignal, matchingPhrases, routingHintLines, isProseFilePath, isMechanicalEditPath,
     classifyWorkflowRisk, hasWorkflowRiskSignal, workflowRiskRank, requiredWorkflowPhases, buildWorkflowState, invalidateWorkflowForDiff, workflowRequiresReview, workflowHintLines, parseWorkflowEvidence, workflowForSkill, recordWorkflowEvidence,
   TEST_POLICY, toBareSkillName, stripFrontmatter, toSingleLine, normalizeStringList,
   parseBooleanField, parseFrontmatter, unique,

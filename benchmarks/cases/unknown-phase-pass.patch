@@ -1,0 +1,88 @@
+diff --git a/core/router-core.js b/core/router-core.js
+index 38654c0..df871d6 100644
+--- a/core/router-core.js
++++ b/core/router-core.js
+@@ -555,83 +555,80 @@ function skillDisplayName(skillName) {
+ function pendingReviewRequirements(sessionState) {
+   const pending = []
+   if (sessionState?.needsCodeReview) pending.push({ flag: "needsCodeReview", skill: SKILL_CODE_REVIEW, label: "Code review needed", action: skillReadAction(SKILL_CODE_REVIEW) })
+   if (sessionState?.needsDesignReview) pending.push({ flag: "needsDesignReview", skill: SKILL_DESIGN_REVIEW, label: "Design review needed", action: skillReadAction(SKILL_DESIGN_REVIEW) })
+   return pending
+ }
+ 
+ // Build ordered active-skill facts for compact panels from actual skill loads.
+ // Route matches remain prompt-only guidance and never leak into the sidebar.
+ function activeSkillEntries(sessionState, activeSkill) {
+   // Most recently loaded skills are closest context, so show them first after
+   // the current skill instead of burying the immediately previous workflow.
+   const loaded = [...(sessionState?.loadedSkills || [])].reverse().filter((skill) => typeof skill === "string" && skill.length > 0)
+   const names = unique([activeSkill, ...loaded])
+   return names.map((skill) => ({ skill, label: skillDisplayName(skill), current: skill === activeSkill }))
+ }
+ 
+ // Build the canonical status snapshot shared by prompt, event, and panel
+ // surfaces. Only a skill the agent actually loaded (or an explicit caller
+ // hand-off) appears here; route matches stay out of the sidebar entirely.
+ function buildRoutingStatus(route, sessionState, explicitSkill = "") {
+   const activeSkill = explicitSkill
+     || sessionState?.currentSkill
+     || null
+   return {
+     activeSkills: activeSkillEntries(sessionState, activeSkill),
+     pending: pendingReviewRequirements(sessionState),
+   }
+ }
+ 
+ // Parse explicit subagent evidence without treating missing or malformed output
+ // as success; callers must handle BLOCKED and FAILED as non-passing results.
+ function parseWorkflowEvidence(value) {
+   let text = typeof value === "string" ? value : (typeof value?.output === "string" ? value.output : "")
+   if (!text) {
+     try { text = JSON.stringify(value) || "" } catch { return null }
+   }
+   const match = text.match(/ASK_WORKFLOW_(PASS|FINDINGS|BLOCKED|FAILED)\b[^\n]*?\bphase=([A-Z_]+)/)
+   if (!match) return null
+   const knownPhase = WORKFLOW_PHASES.includes(match[2])
+-  // A PASS for a phase this release does not know (for example the retired SPEC) never completes the current gate. A failure,
+-  // finding, or block with an unknown phase still lands on the current gate so it can only slow a flow down.
+-  if (!knownPhase && match[1] === "PASS") return null
+   const phase = knownPhase ? match[2] : null
+   const diffIdentity = text.match(/\bdiff=([^\s]+)/)?.[1] || ""
+   return { status: match[1], phase, diffIdentity }
+ }
+ 
+ // Move lifecycle status to a skill-owned phase while preserving collected
+ // evidence and making unresolved findings explicit. A session with no route
+ // yet stays null rather than fabricating a partial workflow object.
+ function workflowForSkill(workflow, skillName) {
+   if (!workflow) return workflow
+   const phaseBySkill = {
+     [SKILL_RESEARCH]: "RESEARCH",
+     [SKILL_DEEP_RESEARCH]: "RESEARCH",
+     [SKILL_INTAKE]: "INTAKE",
+     [SKILL_DEVELOP]: "EXECUTE",
+     [SKILL_VERIFICATION]: "VALIDATE",
+     [SKILL_CODE_REVIEW]: "REVIEW",
+     [SKILL_IMPROVE]: "AUDIT",
+   }
+   const phase = phaseBySkill[skillName]
+   return phase && WORKFLOW_PHASES.includes(phase) ? { ...workflow, phase } : workflow
+ }
+ 
+ // Apply one structured subagent result to lifecycle state and advance only on
+ // explicit evidence; absent output never completes a gate. Without an
+ // established workflow there is nothing to advance, so the state stays null.
+ function recordWorkflowEvidence(workflow, evidence, role = "subagent") {
+   if (!workflow || !evidence || !WORKFLOW_PHASES.includes(evidence.phase || workflow.phase)) return workflow
+   if (workflow.risk === "release-sensitive" && !evidence.diffIdentity) return workflow
+   if (workflow.diffIdentity && evidence.diffIdentity !== workflow.diffIdentity) return workflow
+   if (!workflow.diffIdentity && evidence.diffIdentity) workflow = { ...workflow, diffIdentity: evidence.diffIdentity }
+   const phase = evidence.phase || workflow.phase
+   const requiredPhases = workflow.requiredPhases || []
+   const phaseIndex = requiredPhases.indexOf(phase)
+   const completedGates = new Set(workflow.completedGates || [])
+   const unresolvedFindings = [...(workflow.unresolvedFindings || [])]
+   // RESEARCH records optional evidence. Every mandatory gate needs its earlier
+   // gates first, so a copied marker cannot promote a release prematurely.
+   const resolvesFindings = phase === "ITERATE" && unresolvedFindings.length > 0
+   const predecessorsComplete = phase === "RESEARCH" || resolvesFindings || (phaseIndex >= 0

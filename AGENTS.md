@@ -45,9 +45,9 @@ The canonical mandate is `rules/workflow.md`. Installers copy it into each host'
 
 Do not repeat intake, plan-check, review, or audit for a diff those gates already passed. Gate evidence is bound to the diff it examined; cite it instead of redoing it.
 
-- Record each completed gate once in the PR body or plan: gate, result, who ran it (independent or not), and the diff reference (commit SHA or diff identity).
+- Record each completed gate once in the PR body or plan: gate, result, who ran it (independent or not), the diff reference (commit SHA or diff identity), and the subagent tokens it cost.
 - Evidence stays valid for an identical diff. Updating the base branch, merging, or tagging does not invalidate it when the diff content against the base is unchanged; compare before assuming otherwise.
-- Classify any follow-up change before choosing gates. Mechanical deltas (version bump, changelog, regenerated exports, comment or doc wording) need validation only. Behavioral deltas need focused validation plus one delta review and one delta audit limited to the changed paths, at `standard` tier; escalate to `deep` only for an open cross-cutting invariant or counter-evidence.
+- Classify any follow-up change before choosing gates. Mechanical deltas (version bump, changelog, regenerated exports, comment or doc wording) need validation only. Behavioral deltas need focused validation plus one delta gate limited to the changed paths, at `standard` tier: a delta review for a review finding, a delta audit for an audit finding, not both. Escalate to `deep` only for an open cross-cutting invariant or counter-evidence. Gate once on the final diff; never review or audit while iterating, and P2 notes are logged as follow-ups, never new rounds.
 - Reused evidence must itself have been independent; self-review never becomes release evidence by being cited later. Never reuse evidence that is stale or mismatched against the current diff.
 - State in the handoff which evidence was reused and which was produced fresh.
 

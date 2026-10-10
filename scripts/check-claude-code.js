@@ -88,6 +88,7 @@ function checkSkills() {
 
 // Agents that only read and report; the worker is the one agent allowed to edit, and it must stay on Sonnet too.
 const WRITING_AGENT_FILES = new Set(["ask-worker.md"])
+const GATE_AGENT_FILES = new Set(["ask-reviewer.md", "ask-auditor.md"])
 
 // Check the agent definitions use ask- names, read-only tools except the worker, and a Sonnet model.
 function checkAgents() {
@@ -102,6 +103,9 @@ function checkAgents() {
       expect(!/^tools:.*\b(Edit|Write|MultiEdit)\b/m.test(raw), `${fileName} agent is read-only`)
     }
     expect(/^model:\s*sonnet\s*$/m.test(raw), `${fileName} agent requests Sonnet rather than inheriting the session model`)
+    // Gate agents default to medium effort and the rest to low; none may default above medium (issue #152).
+    const expectedEffort = GATE_AGENT_FILES.has(fileName) ? "medium" : "low"
+    expect(new RegExp(`^effort:\\s*${expectedEffort}\\s*$`, "m").test(raw), `${fileName} agent sets effort: ${expectedEffort} instead of inheriting a high default`)
   }
 }
 
@@ -157,6 +161,20 @@ function checkHookBehavior() {
   const clearedNamespaced = parseHookOutput(run("prompt", { session_id: "state", prompt: "continue" }).stdout)
   expect(!clearedNamespaced?.hookSpecificOutput?.additionalContext?.includes("Code edited"), "loading the plugin-namespaced agent-skills-kit:ask-code-review clears the reminder")
 
+  // Mechanical edits (docs, CHANGELOG, VERSION, tests) do not arm the review reminder; code still does and keeps it armed.
+  const armed = (sessionId, filePath, cwd = "/work/app") => {
+    run("prompt", { session_id: sessionId, prompt: "implement the next step" })
+    run("post-edit", { session_id: sessionId, tool_name: "Edit", cwd, tool_input: { file_path: filePath } })
+    return Boolean(parseHookOutput(run("prompt", { session_id: sessionId, prompt: "continue" }).stdout)?.hookSpecificOutput?.additionalContext?.includes("ask-code-review"))
+  }
+  expect(!armed("mech-doc", "/work/app/docs/guide.md") && !armed("mech-log", "/work/app/CHANGELOG.md") && !armed("mech-ver", "/work/app/VERSION") && !armed("mech-test", "/work/app/tests/a.test.js"), "mechanical edits do not arm the review reminder")
+  expect(armed("mech-code", "/work/app/src/app.js") && armed("mech-skill", "/work/app/skills/ask-x/SKILL.md"), "code and skill edits still arm the review reminder")
+  // A checkout under a directory named tests, or a ".." path, must not make code edits mechanical (audit finding on the first draft).
+  expect(armed("mech-anc", "/home/u/tests/app/src/app.js", "/home/u/tests/app") && armed("mech-dots", "/work/app/tests/../core/a.js") && armed("mech-ver2", "/work/app/src/version"), "tests ancestors, .. traversal and a nested version file still arm the review reminder")
+  run("post-edit", { session_id: "mech-keep", tool_name: "Edit", cwd: "/work/app", tool_input: { file_path: "/work/app/src/app.js" } })
+  run("post-edit", { session_id: "mech-keep", tool_name: "Edit", cwd: "/work/app", tool_input: { file_path: "/work/app/CHANGELOG.md" } })
+  expect(parseHookOutput(run("prompt", { session_id: "mech-keep", prompt: "continue" }).stdout)?.hookSpecificOutput?.additionalContext?.includes("ask-code-review"), "a mechanical edit keeps an armed review reminder armed")
+
   // Writing prose nudges once per session toward ask-text-writing; code, agent guidance, and a loaded skill stay quiet.
   const proseEdit = (sessionId, filePath) => run("post-edit", { session_id: sessionId, tool_name: "Write", cwd: "/work/app", tool_input: { file_path: filePath } }).stdout
   const readmeNudge = parseHookOutput(proseEdit("prose", "/work/app/README.md"))
@@ -182,7 +200,7 @@ function checkHookBehavior() {
   expect(proseEdit("prose-docs", "/work/app/docs/commands/install.md").includes("ask-text-writing"), "a docs page about commands still nudges toward ask-text-writing")
   run("session-start", { session_id: "prose", source: "compact" })
   expect(proseEdit("prose", "/work/app/README.md").includes("ask-text-writing"), "compaction re-arms the prose nudge")
-  run("post-edit", { session_id: "prose-cwd", tool_name: "Edit", cwd: 5, tool_input: { file_path: "/work/app/README.md" } })
+  run("post-edit", { session_id: "prose-cwd", tool_name: "Edit", cwd: 5, tool_input: { file_path: "/work/app/src/app.js" } })
   const armedDespiteCwd = parseHookOutput(run("prompt", { session_id: "prose-cwd", prompt: "continue" }).stdout)
   expect(armedDespiteCwd?.hookSpecificOutput?.additionalContext?.includes("ask-code-review"), "a malformed cwd still arms the code-review reminder")
 

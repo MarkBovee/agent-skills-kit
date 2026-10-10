@@ -6,6 +6,21 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.6.6] - 2026-10-10
+
+### Added
+
+- Add a seeded-bug gate benchmark under `benchmarks/`, with three cases taken from past review findings, to measure whether the review and audit gates catch known defects.
+
+### Changed
+
+- Review and audit subagents default to effort `medium`, and the worker and researcher default to `low`, set through agent frontmatter. The per-call effort parameter is documented.
+- Gates run once on the final diff. A delta gate runs only for behavior changes, and then only the matching gate.
+- Every review and audit dispatch states its scope, a tool-call ceiling, the validation evidence already passed, and reports only P0 and P1 findings. Closure gates answer CLOSED or OPEN for each prior finding.
+- Gate tiers follow the risk of the change, and small release-sensitive diffs get one combined pass.
+- The review reminder no longer re-arms on mechanical edits such as docs, CHANGELOG, VERSION, and tests.
+- The PR template gets a gate ledger with a Tokens column.
+
 ## [2.6.5] - 2026-10-10
 
 ### Removed

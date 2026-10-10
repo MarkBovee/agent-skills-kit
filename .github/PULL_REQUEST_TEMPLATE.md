@@ -14,6 +14,15 @@
 - [ ] `node ./scripts/export-platform-skills.js` regenerates exports with no diff once the output is committed
 - [ ] CI (`validate` check) is green
 
+## Gate ledger
+
+<!-- Release-sensitive changes: one row per gate, run once on the final diff. -->
+
+| Gate | Result | Independent | Diff ref | Tokens |
+| --- | --- | --- | --- | --- |
+| Review | | | | |
+| Audit | | | | |
+
 ## Release impact
 
 <!-- User-visible changes to what ships (skills/, core/, plugins/, hooks/, agents/, commands/, rules/, the hook script, installers) need a patch bump in VERSION, a matching CHANGELOG.md entry, and the same version in .claude-plugin/plugin.json, all in the same change. Doc-only changes can stay unreleased. -->

@@ -1,0 +1,23 @@
+{
+  "description": "Seeded-bug gate benchmark (issue #152). Each case is a self-contained patch that re-introduces a P1 defect found by a real review or audit round on PRs #148 and #149.",
+  "cases": [
+    {
+      "id": "ps1-prefix-match",
+      "patch": "cases/ps1-prefix-match.patch",
+      "source": "d14b520 (install.ps1 ownership check, reverted)",
+      "p1": "Remove-AskClaudeSkillLinks matches link targets with a bare prefix wildcard, so a user link into a sibling such as skills-backup is deleted (install.sh keeps it)."
+    },
+    {
+      "id": "unknown-phase-pass",
+      "patch": "cases/unknown-phase-pass.patch",
+      "source": "b564469 parseWorkflowEvidence (guard removed)",
+      "p1": "A PASS marker with a phase this release does not know is accepted as evidence (phase null) and can complete the current gate."
+    },
+    {
+      "id": "stale-persisted-phase",
+      "patch": "cases/stale-persisted-phase.patch",
+      "source": "b564469 buildWorkflowState (guard removed)",
+      "p1": "A persisted workflow whose phase is retired or unknown is carried over as the current phase, so the flow can start at a phase that is not in requiredPhases and skip its first gates."
+    }
+  ]
+}

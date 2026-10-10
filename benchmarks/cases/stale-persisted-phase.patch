@@ -1,0 +1,87 @@
+diff --git a/core/router-core.js b/core/router-core.js
+index 38654c0..b7ec3dd 100644
+--- a/core/router-core.js
++++ b/core/router-core.js
+@@ -458,81 +458,81 @@ function reviewModeForRisk(risk) {
+   if (risk === "small") return "none"
+   return risk === "normal" ? "combined" : "separate"
+ }
+ 
+ // Select lifecycle gates for a risk level; small work stops after validation.
+ function requiredWorkflowPhases(risk) {
+   switch (risk) {
+     case "small": return ["EXECUTE", "VALIDATE"]
+     case "significant": return ["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "AUDIT"]
+     case "release-sensitive": return ["INTAKE", "PLAN", "PLAN_CHECK", "EXECUTE", "VALIDATE", "REVIEW", "AUDIT", "RELEASE_GATE"]
+     default: return ["PLAN", "EXECUTE", "VALIDATE", "REVIEW"]
+   }
+ }
+ 
+ // Require review when the workflow is unknown or explicitly includes the gate.
+ function workflowRequiresReview(workflow) {
+   return !Array.isArray(workflow?.requiredPhases) || workflow.requiredPhases.includes("REVIEW")
+ }
+ 
+ // Build observable lifecycle state for router surfaces and subagent handoffs.
+ // Returns null when no routing decision exists yet: an empty input with no
+ // prior decision must stay neutral rather than adopt a generic default route.
+ function buildWorkflowState(query, previous = null) {
+   const normalizedQuery = String(query || "").trim()
+   const storedWorkflow = previous?.workflow || null
+   // A workflow persisted by an older release may name a retired risk: drop it. A known risk with a retired phase keeps the risk
+   // (so a release-sensitive flow is never weakened) and restarts at its first gate.
+   const previousWorkflow = storedWorkflow && WORKFLOW_RISK_LEVELS.has(storedWorkflow.risk) ? storedWorkflow : null
+   if (!normalizedQuery && !previousWorkflow) return null
+   const classifiedRisk = classifyWorkflowRisk(normalizedQuery)
+   const risk = previousWorkflow?.risk && (!hasWorkflowRiskSignal(normalizedQuery)
+     || workflowRiskRank(classifiedRisk) < workflowRiskRank(previousWorkflow.risk))
+     ? previousWorkflow.risk
+     : classifiedRisk
+   const startsNewReleaseTask = classifiedRisk === "release-sensitive" && hasWorkflowRiskSignal(normalizedQuery)
+   const sameRisk = previousWorkflow?.risk === risk && !startsNewReleaseTask
+   const requiredPhases = requiredWorkflowPhases(risk)
+   return {
+     risk,
+     reviewMode: reviewModeForRisk(risk),
+-    phase: sameRisk && WORKFLOW_PHASES.includes(previousWorkflow.phase) ? previousWorkflow.phase : requiredPhases[0],
++    phase: sameRisk ? (previousWorkflow.phase || requiredPhases[0]) : requiredPhases[0],
+     requiredPhases,
+     completedGates: sameRisk && Array.isArray(previousWorkflow.completedGates) ? previousWorkflow.completedGates : [],
+     subagents: sameRisk && Array.isArray(previousWorkflow.subagents) ? previousWorkflow.subagents : [],
+     unresolvedFindings: sameRisk && Array.isArray(previousWorkflow.unresolvedFindings) ? previousWorkflow.unresolvedFindings : [],
+     diffIdentity: sameRisk ? (previousWorkflow.diffIdentity || "") : "",
+     releaseStatus: sameRisk && previousWorkflow.releaseStatus
+       ? previousWorkflow.releaseStatus
+       : (risk === "release-sensitive" ? "PENDING" : "NOT_REQUIRED"),
+   }
+ }
+ 
+ // Invalidate workflow evidence when a new code diff can no longer be covered by
+ // the completed gates or release decision from the previous diff.
+ function invalidateWorkflowForDiff(workflow, diffIdentity) {
+   if (!workflow || !diffIdentity || workflow.diffIdentity === diffIdentity) return workflow
+   return {
+     ...workflow,
+     phase: workflow.requiredPhases?.[0] || workflow.phase,
+     completedGates: [],
+     subagents: [],
+     unresolvedFindings: [],
+     diffIdentity,
+     releaseStatus: workflow.risk === "release-sensitive" ? "PENDING" : "NOT_REQUIRED",
+   }
+ }
+ 
+ // Short test-budget statement per workflow risk, mirrored from the verification skill.
+ const TEST_POLICY = {
+   "small": "no new tests unless existing ones cannot prove the change",
+   "normal": "new behavior at the public boundary; one regression test per bug only when cheap",
+   "significant": "as normal plus one test per P0/P1 finding",
+   "release-sensitive": "full proof set",
+ }
+ 
+ // Render concise lifecycle status for prompt and panel surfaces.
+ function workflowHintLines(workflow) {
+   if (!workflow) return []
+   const completed = new Set(workflow.completedGates || [])
+   const gates = (workflow.requiredPhases || []).map((phase) => `${completed.has(phase) ? "PASS" : "TODO"}:${phase}`)
+   const findings = (workflow.unresolvedFindings || []).length
