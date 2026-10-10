@@ -168,6 +168,7 @@ function checkHookBehavior() {
   expect(!proseEdit("prose-layout", "/work/app/.cursor/rules/x.md").trim(), "a layout directory below a dot-directory does not nudge toward ask-text-writing")
   expect(!proseEdit("prose-agent", "/work/app/docs/x.agent.md").trim() && !proseEdit("prose-local", "/work/app/CLAUDE.local.md").trim(), "agent instruction file variants do not nudge toward ask-text-writing")
   expect(proseEdit("prose-template", "/work/app/.github/ISSUE_TEMPLATE/bug.md").includes("ask-text-writing"), "an issue template still nudges toward ask-text-writing")
+  expect(!proseEdit("prose-instructions", "/work/app/.github/instructions/x.instructions.md").trim() && !proseEdit("prose-prompt", "/work/app/docs/x.prompt.md").trim(), "instruction and prompt files do not nudge toward ask-text-writing")
   // A hook state file holding null must read as empty so the routing hint survives it.
   fs.mkdirSync(path.join(stateDir, "sessions"), { recursive: true })
   fs.writeFileSync(path.join(stateDir, "sessions", "null-state.json"), "null")

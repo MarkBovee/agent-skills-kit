@@ -6,7 +6,7 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
-## [2.6.5] - 2026-10-09
+## [2.6.5] - 2026-10-10
 
 ### Removed
 
@@ -14,8 +14,10 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ### Fixed
 
-- A hook state file saved by 2.6.4 with the retired `spec-required` risk starts a fresh workflow, a known risk with the retired `SPEC` phase restarts at its first gate, a `PASS` marker for an unknown phase no longer completes the current gate, and an unreadable or non-object hook state file is treated as empty instead of silencing the routing hint.
+- A Claude Code hook state file saved by 2.6.4 with the retired `spec-required` risk starts a fresh workflow, a known risk with the retired `SPEC` phase restarts at its first gate, and an unreadable or non-object hook state file is treated as empty instead of silencing the routing hint.
+- In the OpenCode and dsh routers, a `PASS` marker for an unknown phase no longer completes the current gate.
 - Installers now remove the OpenCode link to a skill retired from the pack; before, `~/.config/opencode/skills` kept a dangling `ask-<name>` link.
+- `install.ps1` removes only Claude skill links that point into the shared skills root, comparing whole path segments like `install.sh`; before, a user link into a sibling such as `skills-backup` was deleted. It also links Claude skills to the resolved root, so a relative `-AgentsDir` no longer leaves broken links.
 - `install.ps1` removes an emptied skills root only when it is really empty, like `rmdir` in `install.sh`. `Remove-Item` without `-Recurse` prompted on a non-empty root, and its default answer deleted every child, including skills the user owns.
 
 ### Changed
