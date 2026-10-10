@@ -45,9 +45,10 @@ Gate cost follows risk, and a gate runs once, on the final diff:
 
 | Risk | Review | Audit |
 | --- | --- | --- |
-| small, normal | Validation, plus at most one `light` or low-effort `standard` review | None |
-| significant | One `standard` review at medium effort | None unless the review finds cross-cutting risk |
-| release-sensitive | One `standard` review at medium effort | One `standard` audit at medium effort, limited to the risky paths |
+| small | Validation only | None |
+| normal | One combined review: `light` or low-effort `standard` | None |
+| significant | One `standard` review at medium effort | One `standard` audit at medium effort, limited to the risky paths |
+| release-sensitive | One `standard` review at medium effort | One `standard` audit at medium effort, limited to the risky paths, plus the release-gate |
 
 A release-sensitive diff under about 150 changed lines in 5 files may use one agent that runs the review and audit checklists together instead of two cold starts; it reports `REVIEW` and `AUDIT` separately. Do not move audits to the `light` tier without benchmark evidence of equal recall (see `references/gate-benchmark.md`).
 

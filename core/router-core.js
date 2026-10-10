@@ -216,15 +216,24 @@ function isProseFilePath(filePath, cwd) {
   return outsideProject || !NON_PROSE_ROOT_DIRECTORIES.has((layoutRoot || "").toLowerCase())
 }
 
-const MECHANICAL_FILE_NAMES = new Set(["changelog.md", "version"])
 const TEST_FILE_PATTERN = /(?:^|[\\/])(?:tests?|__tests__)[\\/]|\.(?:test|spec)\.[a-z]+$/i
 
-// Tell whether an edit is mechanical (docs, release log, version file, tests) and so never needs its own review round.
-// An unknown path is never mechanical, so a payload without a file path still arms the review reminder.
+// Reduce an edited path to its project-relative form; "" when it sits outside the project or cannot be resolved.
+// Directory names above the project (a checkout under ~/tests) must never influence the mechanical-edit decision.
+function projectRelativeEditPath(filePath, cwd) {
+  const normalized = path.normalize(filePath)
+  const relative = path.isAbsolute(normalized) ? (typeof cwd === "string" && cwd && path.isAbsolute(cwd) ? path.relative(cwd, normalized) : "") : normalized
+  return relative.split(/[\\/]/).includes("..") ? "" : relative
+}
+
+// Tell whether an edit is mechanical (docs, release log, root VERSION file, tests) and so never needs its own review round.
+// An unknown, outside-project, or ambiguous path is never mechanical, so it still arms the review reminder.
 function isMechanicalEditPath(filePath, cwd) {
   if (typeof filePath !== "string" || !filePath.trim()) return false
-  if (MECHANICAL_FILE_NAMES.has(path.basename(filePath).toLowerCase())) return true
-  return TEST_FILE_PATTERN.test(filePath) || isProseFilePath(filePath, cwd)
+  const relative = projectRelativeEditPath(filePath, cwd)
+  if (!relative) return false
+  if (relative === "VERSION" || path.basename(relative).toLowerCase() === "changelog.md") return true
+  return TEST_FILE_PATTERN.test(relative) || isProseFilePath(filePath, cwd)
 }
 
 const AMBIGUITY_PHRASES = [

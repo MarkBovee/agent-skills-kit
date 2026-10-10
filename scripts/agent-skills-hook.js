@@ -365,7 +365,8 @@ async function main() {
   if (event === "post-edit") {
     // Arm the review gate first so a prose-classification problem can never leave an edit unreviewed.
     // Mechanical edits (docs, CHANGELOG, VERSION, tests) leave it as it was: they never earn a review round of their own.
-    const state = { ...loadState(sessionId), needsCodeReview: Boolean(loadState(sessionId).needsCodeReview) || !isMechanicalEditPath(readEditedPath(payload), payload.cwd) }
+    const previousState = loadState(sessionId)
+    const state = { ...previousState, needsCodeReview: Boolean(previousState.needsCodeReview) || !isMechanicalEditPath(readEditedPath(payload), payload.cwd) }
     saveState(sessionId, state)
     const nudge = buildProseNudge(payload, state)
     if (!nudge) return

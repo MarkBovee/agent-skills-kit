@@ -162,13 +162,15 @@ function checkHookBehavior() {
   expect(!clearedNamespaced?.hookSpecificOutput?.additionalContext?.includes("Code edited"), "loading the plugin-namespaced agent-skills-kit:ask-code-review clears the reminder")
 
   // Mechanical edits (docs, CHANGELOG, VERSION, tests) do not arm the review reminder; code still does and keeps it armed.
-  const armed = (sessionId, filePath) => {
+  const armed = (sessionId, filePath, cwd = "/work/app") => {
     run("prompt", { session_id: sessionId, prompt: "implement the next step" })
-    run("post-edit", { session_id: sessionId, tool_name: "Edit", cwd: "/work/app", tool_input: { file_path: filePath } })
+    run("post-edit", { session_id: sessionId, tool_name: "Edit", cwd, tool_input: { file_path: filePath } })
     return Boolean(parseHookOutput(run("prompt", { session_id: sessionId, prompt: "continue" }).stdout)?.hookSpecificOutput?.additionalContext?.includes("ask-code-review"))
   }
   expect(!armed("mech-doc", "/work/app/docs/guide.md") && !armed("mech-log", "/work/app/CHANGELOG.md") && !armed("mech-ver", "/work/app/VERSION") && !armed("mech-test", "/work/app/tests/a.test.js"), "mechanical edits do not arm the review reminder")
   expect(armed("mech-code", "/work/app/src/app.js") && armed("mech-skill", "/work/app/skills/ask-x/SKILL.md"), "code and skill edits still arm the review reminder")
+  // A checkout under a directory named tests, or a ".." path, must not make code edits mechanical (audit finding on the first draft).
+  expect(armed("mech-anc", "/home/u/tests/app/src/app.js", "/home/u/tests/app") && armed("mech-dots", "/work/app/tests/../core/a.js") && armed("mech-ver2", "/work/app/src/version"), "tests ancestors, .. traversal and a nested version file still arm the review reminder")
   run("post-edit", { session_id: "mech-keep", tool_name: "Edit", cwd: "/work/app", tool_input: { file_path: "/work/app/src/app.js" } })
   run("post-edit", { session_id: "mech-keep", tool_name: "Edit", cwd: "/work/app", tool_input: { file_path: "/work/app/CHANGELOG.md" } })
   expect(parseHookOutput(run("prompt", { session_id: "mech-keep", prompt: "continue" }).stdout)?.hookSpecificOutput?.additionalContext?.includes("ask-code-review"), "a mechanical edit keeps an armed review reminder armed")
