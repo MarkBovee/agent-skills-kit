@@ -34,5 +34,22 @@
       "Drafts a factual reply without posting it unapproved",
       "Ends any post with the attribution footer"
     ]
+  },
+  {
+    "query": "Run the inbox again. Discussion 31 has 40 top-level comments, and my stored count for it is 68.",
+    "expected_behavior": [
+      "Does not compare the stored count against a count from the 20-comment window",
+      "Uses the newest comment or reply createdAt against last_activity_at to decide whether the discussion is new",
+      "Checks last_activity_by to see whether the owner already had the last word before drafting a reply",
+      "Stores last_activity_at and last_activity_by for every scanned item"
+    ]
+  },
+  {
+    "query": "Issue 40 shows a newer updatedAt than my stored state, but I do not see a new comment.",
+    "expected_behavior": [
+      "Compares comment createdAt values with last_activity_at instead of trusting updatedAt alone",
+      "Reports the item as touched (edit or reaction) when no comment or reply is newer, without drafting a reply",
+      "Falls back to updatedAt and count once for a stored entry that has no activity marker, then writes the marker"
+    ]
   }
 ]
