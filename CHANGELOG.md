@@ -6,6 +6,8 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.8.0] - 2026-10-11
+
 ### Added
 
 - **`intake` stateless grill.** With no repository, or a subject that is not software, the grill writes no files and ends with a short recap of the decisions. In a repository it keeps the plan, glossary, and decision records current as each decision settles.
