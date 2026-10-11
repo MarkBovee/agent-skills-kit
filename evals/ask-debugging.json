@@ -34,5 +34,17 @@
       "Isolates the offending change",
       "Does not skip or disable checks to get green"
     ]
+  },
+  {
+    "skills": [
+      "ask-debugging"
+    ],
+    "query": "Checkout fails for some users in production and I cannot reproduce it locally. Find the cause and fix it.",
+    "files": [],
+    "expected_behavior": [
+      "Builds or asks for a feedback loop that goes red on this bug before forming theories",
+      "States what it tried when no loop can be built and asks for a captured artifact, environment access, or permission to instrument",
+      "Ranks several falsifiable hypotheses and shows them before testing any"
+    ]
   }
 ]

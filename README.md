@@ -72,13 +72,14 @@ The bootstrap script installs the latest stable tag and never replaces your own 
 
 Agents ship code that passes its own tests and that you can't explain a week later. The usual symptoms:
 
+* You asked for one thing in one vague sentence, and the agent confidently built something else.
 * The same logic gets rewritten inline instead of reusing a helper that already exists.
 * One file grows until nobody wants to open it.
 * Comments vanish, or narrate the obvious and never say *why*.
 * Layers, factories, and wrappers appear for needs nobody has.
 * "Done" means "I ran something".
 
-You can ship that fast. You can't own it. ASK fixes it at the source, in the agent's own workflow.
+You can ship that fast. You can't own it. ASK fixes it at the source, in the agent's own workflow. The first symptom is the cheapest to catch, before any code exists: `intake` grills an unclear request in rounds until nothing is left silently assumed.
 
 ## See it work
 
@@ -86,6 +87,7 @@ Illustrative examples of what the standards ask for. The rules are language-agno
 
 | Concern | Typical agent output | With ASK |
 | --- | --- | --- |
+| **Alignment** | Starts building after one vague sentence and guesses the rest | `intake` asks every open decision in one numbered round, each with a recommended answer; "yes" accepts it ([grill rounds](./docs/examples.md#grill-rounds)) |
 | **Helpers** | A 15-line route handler that parses, normalizes, and saves inline | The handler orchestrates; a named `OrderLineParser.Parse` does the parsing, and existing helpers get reused first |
 | **Files** | `Orders.cs` with five types and 600 lines | One public type per file, named for the type |
 | **Comments** | None, or `// add 1 to retries` | An intent comment above every function, and a *why* where it matters: `// The carrier API allows 5 requests per second, so retry with backoff` |
@@ -150,7 +152,7 @@ The decision tree, risk lifecycle, and cost-aware execution profile are in [docs
 | Stage | Skills | What they do |
 | --- | --- | --- |
 | Research | `research`, `deep-research` | Answer a bounded question with sources, or run a multi-source investigation with contradictions and a cited handoff. |
-| Start | `intake` | Clarify fuzzy work with grill rounds, then plan it with scope, constraints, and a definition of done. |
+| Start | `intake` | Grill fuzzy work in rounds, keep a shared plan and glossary as decisions settle, then plan it with scope, constraints, and a definition of done. |
 | Execute | `develop`, `debugging` | Make normal changes in small validated steps; find root causes. |
 | Validate | `code-review`, `verification` | Review a diff against standards and requirements; prove a claim before saying it works. |
 | Hand over | `summary`, `handoff` | Explain what changed and what is proven so you own the result; brief the next agent. |

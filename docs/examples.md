@@ -10,6 +10,7 @@ Illustrative before and after examples of what ASK's standards and skills ask fo
 - KISS
 - Proof
 - Grill rounds
+- Shared plan document
 
 ## Helpers
 
@@ -153,3 +154,30 @@ When a plan has several open decisions, `intake` asks the whole open frontier in
 ```
 
 Reply "yes" to accept both, or answer one differently. The next round only contains questions that the answers unlocked, and the session ends when nothing is left silently assumed.
+
+There is no round cap. A session that keeps growing usually means the scope is too big, so `intake` splits it and grills each part; you can wrap up whenever you like, and the branches you left open are written down as assumptions. If every answer is a bare "yes", it picks the decision that would hurt most to get wrong and asks once more with the downside in view.
+
+With no repository, or a subject that is not software, the grill is stateless: it writes nothing and ends with a short recap of what you decided.
+
+## Shared plan document
+
+Work that outlasts one reply gets one plan document, updated while the grill runs instead of afterwards. It indexes decisions and never restates them:
+
+```markdown
+# Rates cache
+
+## Destination
+Currency rates are served from a cache; checkout never calls the provider directly.
+
+## Decisions so far
+- [Cache scope](../docs/adr/0007-per-process-cache.md): per process, since there is one instance.
+- [Staleness window](../GLOSSARY.md): one hour, because the provider updates daily.
+
+## Not yet specified
+- What checkout shows when the cache is cold and the provider is down.
+
+## Out of scope
+- A shared cache across instances. Revisit when a second instance exists.
+```
+
+A question you cannot phrase precisely yet waits under Not yet specified. Once an answer sharpens it, it becomes a question in the next round and leaves that list. Terms that settle go to `GLOSSARY.md` and expensive decisions to a decision record, in the same moment.

@@ -34,5 +34,29 @@
       "Points to where the configuration lives instead of pasting values",
       "Keeps the brief short"
     ]
+  },
+  {
+    "skills": [
+      "ask-handoff"
+    ],
+    "query": "The grilling is done and I want to start building the same feature in this repo right away. Should I write a handoff first?",
+    "files": [],
+    "expected_behavior": [
+      "Recommends continuing in the same session, because the build needs the reasoning verbatim",
+      "Says a handoff is for work that travels to another harness, directory, colleague, or side task",
+      "Does not write a handoff brief"
+    ]
+  },
+  {
+    "skills": [
+      "ask-handoff"
+    ],
+    "query": "I need to stop for today and pick this up tomorrow in a new session. Hand it over.",
+    "files": [],
+    "expected_behavior": [
+      "Writes the brief without first arguing that nothing is travelling",
+      "Derives the state from the repository and names the single next step",
+      "Reports the saved path and a one-line prompt to start the next session"
+    ]
   }
 ]

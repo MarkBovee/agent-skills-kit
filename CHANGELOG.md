@@ -6,6 +6,23 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+### Added
+
+- **`intake` stateless grill.** With no repository, or a subject that is not software, the grill writes no files and ends with a short recap of the decisions. In a repository it keeps the plan, glossary, and decision records current as each decision settles.
+- **`intake` shared plan document.** Work that outlasts one reply gets one plan with Destination, Decisions so far (one line and a link per decision), Not yet specified, and Out of scope, updated while the grill runs.
+- **`intake` grill additions.** Concrete scenarios stress-test a boundary; a question that cannot be settled by talk gets a cheap throwaway to react to; a round of bare yeses triggers one more confirmation of the costliest decision.
+- **`intake/references/plan-template.md` and `slicing.md`.** A plan template for behavior changes (problem, solution, user stories, implementation and testing decisions, out of scope) and slicing rules (vertical slices, blockers, expand-migrate-contract for wide refactors). Execution planning now has the user confirm the test seams before development.
+- **`handoff` decision tree.** At a phase boundary: continue, clear, hand off, send a subagent, or compact, with `references/phase-boundaries.md` explaining each branch. A brief is written when the user asks, when a fresh session will take over, or when the work travels to another harness, directory, or colleague.
+- **`debugging` feedback loop.** Debugging starts from a command that is red on this exact bug, then minimises, ranks three to five falsifiable hypotheses, tags debug output for cleanup, and states the confirmed hypothesis in the commit message. `references/feedback-loop.md` lists ways to build the loop.
+- **`summary` merge danger.** The Watch section ends with a one-way or two-way door and the blast radius, and proof shows before and after where something observable changed.
+
+### Changed
+
+- **No cap on grill rounds.** The cap of three is gone: a growing session means the scope is too large, so `intake` splits it and grills each part. Unanswered low-risk branches become stated assumptions when the user wraps up.
+- **Scope clarification uses the grill.** `intake` no longer says "one question at a time" in one place and "the whole frontier" in another.
+- **Skill length follows the steps.** The "normally 30 to 90 lines" guidance in `AGENTS.md`, `CONTRIBUTING.md`, and `write-skill` is replaced by: inline what every run needs, disclose only branches that some runs reach, hard cap 500 lines. `AGENTS.md` is rewritten around the binding rules and points to `ARCHITECTURE.md` for layout and gotchas.
+- **README.** The Why section names the vague-request failure first, See it work gains an Alignment row, and the Start row describes the grill and the shared plan.
+
 ## [2.7.0] - 2026-10-10
 
 ### Changed

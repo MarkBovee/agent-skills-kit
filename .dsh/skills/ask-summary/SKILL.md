@@ -22,9 +22,9 @@ Derive it from the diff (`git status`, `git diff` against the base), not from me
 2. **Changes**: one line per intent, naming the files. Group by purpose, do not narrate the diff.
 3. **Decisions**: each choice with the alternative that was rejected and why, one line each. Promote one to an ADR only when it meets the bar in `intake`'s domain-language reference; otherwise it stays one line here.
 4. **How it works**: at most five lines, only for non-trivial flow.
-5. **Proven / Not proven**: what was run in this session and its result (tests, build, manual check), then what was not run. Never mark something proven without evidence from this session.
+5. **Proven / Not proven**: what was run in this session and its result (tests, build, manual check), then what was not run. When the change fixes or alters something observable, show before and after: the failing run next to the passing one, or the old output next to the new. Never mark something proven without evidence from this session.
 6. **Read yourself**: one to three `file:line` spots with the highest risk or complexity.
-7. **Watch**: new dependencies, config or schema changes, deleted code, anything added beyond the request, known debt, open decisions for the owner.
+7. **Watch**: new dependencies, config or schema changes, deleted code, anything added beyond the request, known debt, open decisions for the owner. End with the merge danger on one line: whether the change is a one-way or two-way door (cheap to roll back, or destructive and hard to undo) and its blast radius in a few words (who or what breaks if it is wrong). Omit that line when the change has no runtime effect.
 
 Size: a small fix fits in six lines (What, Changes, Proven). A normal change stays under 20 lines. Omit empty sections.
 

@@ -46,5 +46,17 @@
       "Gives two sentences of context and one concrete example",
       "Ends with the decision or next step needed"
     ]
+  },
+  {
+    "skills": [
+      "ask-summary"
+    ],
+    "query": "Summarize the migration you just wrote that drops the legacy_orders table after copying its rows.",
+    "files": [],
+    "expected_behavior": [
+      "Calls the change a one-way door and names the blast radius",
+      "Separates what was run from what was not run",
+      "Points at the highest-risk file and line to read"
+    ]
   }
 ]
