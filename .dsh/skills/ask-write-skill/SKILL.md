@@ -13,7 +13,7 @@ Two modes: (1) create or revise skills that improve agent judgment, (2) capture 
 ### Design rules
 
 1. The description says **when to use**, not how the skill works.
-2. Keep common skills short enough that loading them is worth it.
+2. Length follows the steps: inline what every run needs, so it cannot be skipped, and cut what changes no behavior. Disclose into `references/` only a branch that just some runs reach.
 3. Prefer one clear pattern over a long manifesto.
 4. Add support files only when the main file would become reference-heavy.
 5. Make autonomous progress the default when the goal is clear.

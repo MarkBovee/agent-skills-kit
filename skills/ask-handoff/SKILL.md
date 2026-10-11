@@ -20,6 +20,18 @@ triggers:
 
 Goal: a fresh agent with no conversation history can continue the work correctly from one short document.
 
+## When to hand off, and when not
+
+Write the brief when the user asks for one, when they will pause and resume in a fresh session, or when the context window is nearly full. When the question is whether to hand off at all, decide at a phase boundary (the grilling is done, the build is done) and take the first yes; `references/phase-boundaries.md` explains each branch. Mid-phase only continue, send a subagent, or fork a side task: clearing or compacting there loses the thread.
+
+1. **Continue** in this session when the next phase needs this one as a primary source, or the window still has room for it. A grill flowing into the build is the standard case: the build wants the reasoning verbatim, not a summary.
+2. **Clear** the context when nothing in this session matters to what comes next. It cannot be undone for the reasoning behind what was built.
+3. **Hand off** when the work travels: to another harness, another directory or repository, a colleague, a fresh session you will start later, or as a side task forked off mid-phase. A handoff buys portability; with nothing travelling, skip it.
+4. **Send a subagent** when the next task is tightly scoped and can run without the user. Give it context pointers and leave this session untouched.
+5. **Compact** otherwise: relevant context, same harness, same directory, the user stays in the loop. Tell it what the next phase needs so the summary keeps that.
+
+If the answer to "should we hand off?" is anything but a handoff, say so and stop instead of writing a brief nobody needs.
+
 ## Steps
 
 1. Derive the state from the repository (`git status`, `git diff` against the base, branch, plan or spec record, open issues), not from memory of the conversation.

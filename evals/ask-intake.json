@@ -42,9 +42,70 @@
     "query": "Grill me on this migration plan before we start.",
     "files": [],
     "expected_behavior": [
-      "Asks the whole open frontier in one numbered round",
+      "Asks the open frontier four questions at a time (the host's question tool, or numbered text when there is none)",
       "Gives a recommended answer per question worded so yes accepts it",
       "Looks up facts in the repository instead of asking the user"
+    ]
+  },
+  {
+    "skills": [
+      "ask-intake"
+    ],
+    "query": "Grill me on whether I should start a paid newsletter. There is no repo, this is just a business decision.",
+    "files": [],
+    "expected_behavior": [
+      "Asks the open frontier four questions at a time with a recommended answer per question",
+      "Writes no files and creates no glossary or decision record",
+      "Closes with a short recap of the decisions in the conversation"
+    ]
+  },
+  {
+    "skills": [
+      "ask-intake"
+    ],
+    "query": "I cannot decide how the onboarding screen should feel: one long form or three short pages? Keep asking me until we know.",
+    "files": [],
+    "expected_behavior": [
+      "Recognizes the question cannot be settled by talking and stops asking about it",
+      "Proposes or builds a cheap throwaway to react to, marked as throwaway",
+      "Continues from the user's one-line reaction instead of another round of questions"
+    ]
+  },
+  {
+    "skills": [
+      "ask-intake"
+    ],
+    "query": "We are reworking authentication across three services over the next few weeks. Plan it with me, we will need several sessions.",
+    "files": [],
+    "expected_behavior": [
+      "Keeps a shared plan document with Destination, Decisions so far, Not yet specified, and Out of scope",
+      "Records each settled decision as one line with a link instead of restating it",
+      "Puts questions it cannot yet phrase precisely under Not yet specified instead of asking them now"
+    ]
+  },
+  {
+    "skills": [
+      "ask-intake"
+    ],
+    "query": "Plan renaming the customer_id column to account_id; it is used in about 400 places across 30 packages.",
+    "files": [],
+    "expected_behavior": [
+      "Sequences the work as expand, migrate in batches by blast radius, then contract",
+      "Makes the contract step blocked by every migrate batch",
+      "Keeps the build green between batches instead of one big-bang edit"
+    ]
+  },
+  {
+    "skills": [
+      "ask-intake"
+    ],
+    "query": "Grill me on how to split this monolith into services, in this repo. There are about seven open decisions.",
+    "files": [],
+    "expected_behavior": [
+      "Uses the host's structured question tool instead of free-text questions when it is available",
+      "Asks at most four questions in the first round, most important first, and holds the rest of the frontier back",
+      "Writes the settled decisions to the plan document before asking the next four, and repeats until nothing is left open",
+      "Puts the recommended option first, labels it (Recommended), and does not add its own Other option"
     ]
   }
 ]

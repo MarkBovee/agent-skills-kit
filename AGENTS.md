@@ -1,61 +1,70 @@
 # agent-skills-kit Agent Instructions
 
-## Project
+Workflow skill pack. Claude Code is the primary harness; OpenCode, Codex, GitHub Copilot, and dsh are supported through the same sources. The repo ships workflow skills, router plugins, generated exports, and installers. There is no build step and no package manager.
 
-Workflow skill pack with Claude Code as the primary harness; it also supports OpenCode, Codex, GitHub Copilot, and dsh. Ships workflow skills, router plugins, generated exports, and installers. No build step or package manager.
+Read `ARCHITECTURE.md` first. It maps every path, says which files are generated, and lists the contributor gotchas. This file holds only the binding rules.
 
-## Layout
+## Never hand-edit
 
-How the pieces fit, which files are generated, and contributor gotchas: `ARCHITECTURE.md` (read it first).
+- `.github/skills`, `.github/prompts`, `.github/copilot-instructions.md`, `.dsh/`, `.opencode/commands`: run `node ./scripts/export-platform-skills.js`.
+- `rules/claude/`: run `node ./scripts/export-claude-coding-standards.js`; the source is `rules/coding-standards.md`.
 
-- `skills/<name>/SKILL.md`: source skill.
-- `commands/<name>.md`: source slash command.
-- `core/router-core.js`: shared routing, lifecycle, state, and frontmatter helpers.
-- `plugins/`: OpenCode and dsh routers plus TUI/widget code.
-- `scripts/`: install, update, export, and validation scripts.
-- `rules/`: shared coding and workflow guidance. `rules/claude/` is generated from `rules/coding-standards.md` by `scripts/export-claude-coding-standards.js`; never hand-edit it.
-- `.github/`, `.dsh/`, `.opencode/`: generated exports; never hand-edit.
-- `.claude-plugin/`, `hooks/`, `agents/`: Claude Code plugin manifest, marketplace, hooks, and read-only subagents (hand-maintained).
+Commit regenerated output together with the source change. CI fails on a diff.
 
 ## Coding standards
 
-Read `rules/coding-standards.md` before code edits. Every function-like construct needs a short intent comment. Preserve local style. Prefer small focused functions, DRY/SOLID, explicit data shapes, meaningful names, guard clauses, and pure helpers. Run source-comment checks when available.
+- Read `rules/coding-standards.md` before editing code.
+- Put a short intent comment above every function-like construct, and run the repository's source-comment check.
+- Keep the local style of the file you are in.
+- Prefer small focused functions, DRY and SOLID, reuse over new helpers, explicit data shapes, meaningful names, guard clauses, and pure helpers.
 
 ## Skills
 
-Every `skills/*/SKILL.md` needs frontmatter: `name` equal to its directory (`ask-<name>`), a third-person `description` that starts with the nice name and says what the skill does and when to use it (`Develop: Drives normal implementation work ... Use when ...`), and `triggers`. The router and exports keep using the bare name; `ask-` is the native id. Router prompts, pending actions, and commands load a skill by reading `~/.agents/skills/ask-<name>/SKILL.md`; the native id only serves Claude Code's own skill listing, and leaf skills are never invoked through a native Skill tool. Keep skills self-contained (no links into other skills), normally 30–90 lines and never over 500. Reference files stay one level deep from `SKILL.md`, and any over 100 lines start with a `## Contents` list. Use forward slashes in paths. Use `ask-` names for workflow/meta skills. Keep cross-references bidirectional where useful. Keep generic skills free of repository-specific paths.
+**Frontmatter**
 
-`triggers` feed only the ASK router; Claude Code selects skills from `description` alone, so the key use cases and terms belong in the description, which must stay at or under 160 characters to survive the shared listing budget. Keep each `SKILL.md` body compact and move procedures needed only in rare cases (for example release gates) to a one-level `references/` file. Each skill has at least three behavior scenarios in `evals/ask-<name>.json` (`query` plus `expected_behavior`); update them with the skill. Measure activation changes with `node ./scripts/eval-skill-activation.js` and behavior with `node ./scripts/eval-skill-behavior.js [--model haiku|sonnet] [--baseline]; Opus needs --allow-opus` (both spend tokens; not part of CI).
+- `name` equals the directory (`ask-<name>`). The router and exports use the bare name; the `ask-` id is native to Claude Code's skill listing.
+- `description` is third person, starts with the nice name, says what the skill does and when to use it (`Develop: Drives normal implementation work ... Use when ...`), and stays at or under 160 characters. Claude Code selects skills from the description alone, so the key use cases and terms belong there.
+- `triggers` feed only the ASK router.
+
+**Loading.** Router prompts, pending actions, and commands load a skill by reading `~/.agents/skills/ask-<name>/SKILL.md`. Leaf skills are never invoked through a native Skill tool.
+
+**Content**
+
+- Keep each skill self-contained, with no links into other skills, and free of repository-specific paths.
+- Length follows the steps. Put what every run needs inline in `SKILL.md` so it cannot be skipped; disclose into `references/` only a branch that just some runs reach (release gates, for example). The hard cap is 500 lines, enforced by `check-skill-best-practices`.
+- Reference files stay one level deep from `SKILL.md`; one over 100 lines starts with a `## Contents` list.
+- Use forward slashes in paths, `ask-` names for workflow and meta skills, and bidirectional cross-references where they help.
+
+**Evals.** Every skill has at least three behavior scenarios (`query` plus `expected_behavior`) in `evals/ask-<name>.json`; update them with the skill. Measure activation changes with `node ./scripts/eval-skill-activation.js` and behavior with `node ./scripts/eval-skill-behavior.js [--model haiku|sonnet] [--baseline]` (Opus needs `--allow-opus`). Both spend tokens and stay out of CI.
 
 ## Router
 
-`plugins/agent-skills-router/` audits the first OpenCode prompt, then emits compact live status. Its TUI reads router-core state; it never computes routing. Advisory matches suggest one skill; agents load skills explicitly. Fresh sessions stay neutral. Route matches remain hollow until loaded. Pending obligations are `code-review` and `design-review`.
+- `plugins/agent-skills-router/` audits the first OpenCode prompt, then emits compact live status. Its TUI reads router-core state and never computes routing.
+- A match suggests one skill and stays hollow until the agent reads the skill file. Fresh sessions stay neutral. Pending obligations are `code-review` and `design-review`.
+- Decision-tree rows come from `routingHintLines()`; never duplicate them by hand.
+- OpenCode's server is auto-discovered; the TUI still needs a `tui.json` entry. Installers must not register the server twice. Keep plugin state session-scoped.
+- `plugins/agent-skills-router.dsh.mjs` is dependency-free and installed as an ask-kit preset row. It derives rows from `routingHintLines()`, registers one command per skill, tracks state through events, and gates tools only when configured. Validate with `node ./scripts/check-dsh-plugin.js`.
 
-Decision-tree rows come from `routingHintLines()`; never duplicate them manually. OpenCode server is auto-discovered; TUI still needs `tui.json` entry. Installers must not register the server twice. Keep plugin state session-scoped.
+## Workflow
 
-### dsh
+The canonical mandate is `rules/workflow.md`; installers copy it into each host's rules, so it is not repeated here. In short: pick the most specific workflow skill before substantial work, delegate independent research, validation, review, and audit, and never declare release readiness without independent evidence.
 
-`plugins/agent-skills-router.dsh.mjs` is dependency-free and installed as an ask-kit preset row. It derives routing rows from `routingHintLines()`, registers one command per skill, tracks state through events, and gates tools only when configured. Validate with `node ./scripts/check-dsh-plugin.js`.
-
-## Workflow mandate
-
-The canonical mandate is `rules/workflow.md`. Installers copy it into each host's rules, so it is not repeated here. In short: select the most specific workflow skill before substantial work, delegate independent research, validation, review, and audit, and never declare release readiness without independent evidence.
-
-## Evidence reuse
+### Evidence reuse
 
 Do not repeat intake, plan-check, review, or audit for a diff those gates already passed. Gate evidence is bound to the diff it examined; cite it instead of redoing it.
 
-- Record each completed gate once in the PR body or plan: gate, result, who ran it (independent or not), the diff reference (commit SHA or diff identity), and the subagent tokens it cost.
-- Evidence stays valid for an identical diff. Updating the base branch, merging, or tagging does not invalidate it when the diff content against the base is unchanged; compare before assuming otherwise.
-- Classify any follow-up change before choosing gates. Mechanical deltas (version bump, changelog, regenerated exports, comment or doc wording) need validation only. Behavioral deltas need focused validation plus one delta gate limited to the changed paths, at `standard` tier: a delta review for a review finding, a delta audit for an audit finding, not both. Escalate to `deep` only for an open cross-cutting invariant or counter-evidence. Gate once on the final diff; never review or audit while iterating, and P2 notes are logged as follow-ups, never new rounds.
-- Reused evidence must itself have been independent; self-review never becomes release evidence by being cited later. Never reuse evidence that is stale or mismatched against the current diff.
-- State in the handoff which evidence was reused and which was produced fresh.
+- Record each completed gate once, in the PR body or plan: gate, result, who ran it (independent or not), the diff reference (commit SHA or diff identity), and the subagent tokens it cost.
+- Evidence stays valid for an identical diff. A base update, merge, or tag does not invalidate it when the diff content against the base is unchanged; compare before assuming otherwise.
+- Classify a follow-up change before choosing gates. Mechanical deltas (version bump, changelog, regenerated exports, comment or doc wording) need validation only. Behavioral deltas need focused validation plus one delta gate on the changed paths at `standard` tier: a delta review for a review finding, a delta audit for an audit finding, never both. Escalate to `deep` only for an open cross-cutting invariant or counter-evidence.
+- Gate once on the final diff, never while iterating. P2 notes become follow-ups, not new rounds.
+- Reused evidence must itself have been independent. Self-review never becomes release evidence by being cited later, and stale or mismatched evidence is never reused.
+- The handoff says which evidence was reused and which was produced fresh.
 
 ## Releases
 
-User-visible shipped changes need a patch bump in `VERSION`, matching `CHANGELOG.md` entry, and matching `.claude-plugin/plugin.json` version. Stable releases use `vX.Y.Z` tags. Never tag before merge to `main`; release workflow publishes from `main`.
-
-Install/update scripts must keep `.sh` and `.ps1` behavior aligned and idempotent. Bootstrap/update resolve latest stable tag. Do not push directly to protected `main`.
+- A user-visible shipped change needs a SemVer bump in `VERSION`, a matching `CHANGELOG.md` entry, and the same version in `.claude-plugin/plugin.json`.
+- Stable releases use `vX.Y.Z` tags. Tag only after the merge to `main`; the release workflow publishes from `main`. Never push directly to the protected `main`.
+- `scripts/install.*` and `scripts/update.*` keep `.sh` and `.ps1` behavior aligned and idempotent. Bootstrap and update resolve the latest stable tag.
 
 ## Required checks
 
@@ -69,6 +78,6 @@ node ./scripts/check-release-readiness.js --require-version-entry
 ./scripts/check-installed-artifacts.sh
 ```
 
-CI (`.github/workflows/ci.yml`) is the source of truth for this list; when a check is added there, add it here.
+CI (`.github/workflows/ci.yml`) is the source of truth for this list. When a check is added there, add it here.
 
-Before handoff: inspect complete tree, run `git diff --check`, verify generated exports, installer parity, branch, remote, tag, and clean worktree. Run `session-review` when work exposes reusable workflow gaps.
+Before handoff, inspect the complete tree and run `git diff --check`. Verify generated exports, installer parity, branch, remote, tag, and a clean worktree. Run `session-review` when the work exposed a reusable workflow gap.

@@ -40,10 +40,12 @@ Node.js 22 is required only for the validation scripts — the shipped assets
      under 160 characters. Claude Code selects skills from the description
      alone, so put the key use cases and terms there.
    - `triggers` feed only the ASK router.
-3. Keep the skill self-contained: normally 30–90 lines, never over 500. Move
-   procedures needed only in rare cases to a one-level `references/` file (a
-   file over 100 lines starts with a `## Contents` list). Optional
-   `## Use with` and `## Avoid` sections are welcome.
+3. Keep the skill self-contained. Length follows the steps: write what every
+   run needs inline, so the agent cannot skip it. Move a branch to a one-level
+   `references/` file only when just some runs reach it (a file over 100 lines
+   starts with a `## Contents` list). The hard cap is 500 lines, enforced by
+   `check-skill-best-practices`. Optional `## Use with` and `## Avoid` sections
+   are welcome.
 4. No repo-specific paths in generic skills; support files live in the skill's
    own directory.
 5. Add the slash command `commands/<name>.md` and at least three behavior
