@@ -6,6 +6,14 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.7.0] - 2026-10-10
+
+### Changed
+
+- The git guard looks through wrapper options that take a value, such as `sudo -u root`, `nice -n 5`, and `env -u VAR`, and through `$(...)` and backticks inside double quotes.
+- The git guard blocks more destructive commands by default: `checkout ./`, `restore :/`, `restore *`, `switch --discard-changes` (also `--force` and `-f`), `stash clear`, `worktree remove --force`, `push --prune`, and `reset --merge`. `checkout -B` stays allowed.
+- `gh-inbox` stores the newest comment or reply time and its author per item (`last_activity_at`, `last_activity_by`) and decides what is new from that marker. For discussions the stored comment count is only compared while it fits the query window.
+
 ## [2.6.6] - 2026-10-10
 
 ### Added

@@ -59,7 +59,7 @@ gh repo view --json nameWithOwner
 gh issue list --state open --json number,title,updatedAt,comments,labels --limit 50
 ```
 
-**Discussions** (number, title, updatedAt, comment count, latest comments with author + date):
+**Discussions** (number, title, updatedAt, latest comments and replies with author + date):
 
 ```bash
 OWNER=$(gh repo view --json owner --jq '.owner.login')
@@ -73,8 +73,11 @@ Run the snippets in `bash` (`bash -c '...'` from fish or zsh); the `$VAR` handli
 
 `Discussion.comments` returns only top-level comments; threaded replies hide under each comment's
 `replies` connection and do not bump `comments.totalCount`. When scanning, treat reply nodes as
-comments (author + body) and count them too, so a threaded user reply is triaged like any other
-new comment.
+comments (author + body), so a threaded user reply is triaged like any other new comment.
+
+For every item, derive the **activity marker** from what you fetched: the newest `createdAt` among
+its comments and replies (`activity_at`) and that comment's author login (`activity_by`). Issues use
+the `createdAt` and `author` of the newest entry in `comments`; an issue without comments has no marker.
 
 ### 2. Diff against stored state
 
@@ -86,16 +89,22 @@ test -f .gh-inbox-state.json && cat .gh-inbox-state.json || printf '{}\n'
 ```
 
 Stored entries use key `issue-<n>` or `discussion-<n>`, value JSON:
-`{"last_updated_at": "<iso>", "last_comment_count": <int>, "replied_to": <bool>}`.
+`{"last_updated_at": "<iso>", "last_comment_count": <int>, "last_activity_at": "<iso>", "last_activity_by": "<login>", "replied_to": <bool>}`.
 
-An item is **new** when:
-- `updatedAt > last_updated_at`, OR
-- comment count (top-level + threaded replies) > `last_comment_count`
+An item is **new** when a comment or reply is newer than the marker: `activity_at > last_activity_at`.
+`last_activity_by` tells you who had the last word. When it is the repository owner (or you), the
+user is not waiting for an answer, so report the item as changed but do not draft a reply.
 
-Items with no stored entry are always new. Report items where `updatedAt` is older than
-the stored state (nothing changed) as silent. Because `updatedAt` also changes on edits and
-reactions, never dismiss an "updated but count unchanged" discussion without checking its
-`replies` connections — a threaded user reply can arrive with the top-level count unchanged.
+`last_comment_count` stays an exact check for issues (`comments.length`). For discussions it is only
+comparable while `comments.totalCount` and every fetched `replies.totalCount` fit the query window
+(20 top-level comments, 20 replies each); beyond that the count depends on the window, so use the
+marker alone and never compare counts.
+
+Items with no stored entry are always new. An entry saved before the marker existed has no
+`last_activity_at`: compare `updatedAt` and the count once, then store the marker. When `updatedAt` moved but
+no comment or reply is newer than the marker, the item was only edited or reacted to: report it as touched,
+do not triage it. If a discussion exceeds the window and `updatedAt` moved with nothing newer in view,
+page older comments (see above) or read the thread by hand before calling it touched.
 
 ### 3. Triage and reply
 
@@ -148,6 +157,8 @@ state = json.loads(path.read_text()) if path.exists() else {}
 state["issue-<n>"] = {
     "last_updated_at": "<iso>",
     "last_comment_count": <int>,
+    "last_activity_at": "<iso>",
+    "last_activity_by": "<login>",
     "replied_to": <bool>,
 }
 path.write_text(json.dumps(state, indent=2) + "\n")
