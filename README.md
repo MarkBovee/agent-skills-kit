@@ -87,7 +87,7 @@ Illustrative examples of what the standards ask for. The rules are language-agno
 
 | Concern | Typical agent output | With ASK |
 | --- | --- | --- |
-| **Alignment** | Starts building after one vague sentence and guesses the rest | `intake` asks every open decision in one numbered round, each with a recommended answer; "yes" accepts it ([grill rounds](./docs/examples.md#grill-rounds)) |
+| **Alignment** | Starts building after one vague sentence and guesses the rest | `intake` asks the open decisions four at a time, as a question picker where the host has one and numbered text elsewhere, each with a recommended answer and the status written to the plan after every round; one pick or "yes" accepts it ([grill rounds](./docs/examples.md#grill-rounds)) |
 | **Helpers** | A 15-line route handler that parses, normalizes, and saves inline | The handler orchestrates; a named `OrderLineParser.Parse` does the parsing, and existing helpers get reused first |
 | **Files** | `Orders.cs` with five types and 600 lines | One public type per file, named for the type |
 | **Comments** | None, or `// add 1 to retries` | An intent comment above every function, and a *why* where it matters: `// The carrier API allows 5 requests per second, so retry with backoff` |

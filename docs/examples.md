@@ -143,7 +143,7 @@ A small fix fits in six lines: What, Changes, Proven. Anything not run is listed
 
 ## Grill rounds
 
-When a plan has several open decisions, `intake` asks the whole open frontier in one round, each with a recommended answer worded so that "yes" accepts it. Facts in the repository are looked up, not asked.
+When a plan has several open decisions, `intake` asks the open frontier four questions at a time, each with a recommended answer worded so that "yes" accepts it. Facts in the repository are looked up, not asked.
 
 ```text
 ❓ Q1 - Cache scope: per process or shared across instances?
@@ -153,15 +153,17 @@ When a plan has several open decisions, `intake` asks the whole open frontier in
 ➡️ Yes. The provider only updates daily.
 ```
 
-Reply "yes" to accept both, or answer one differently. The next round only contains questions that the answers unlocked, and the session ends when nothing is left silently assumed.
+Reply "yes" to accept both, or answer one differently. After each round `intake` writes down what settled, then asks the next four; the session ends when nothing is left silently assumed.
 
-There is no round cap. A session that keeps growing usually means the scope is too big, so `intake` splits it and grills each part; you can wrap up whenever you like, and the branches you left open are written down as assumptions. If every answer is a bare "yes", it picks the decision that would hurt most to get wrong and asks once more with the downside in view.
+In Claude Code the same round is a question picker (`AskUserQuestion`): up to four questions per call, two to four credible options each, your recommendation first and labelled "(Recommended)". The picker always adds an "Other" choice for your own words. That call holds four questions at most, so a frontier of seven becomes two rounds with the status written down in between. Hosts without a question tool get the numbered text above, also four at a time.
 
-With no repository, or a subject that is not software, the grill is stateless: it writes nothing and ends with a short recap of what you decided.
+Rounds are not capped in number, only in size. A session that keeps growing usually means the scope is too big, so `intake` splits it and grills each part; you can wrap up whenever you like, and the branches you left open are written down as assumptions. If every answer is a bare "yes", it picks the decision that would hurt most to get wrong and asks once more with the downside in view.
+
+With no repository, or a subject that is not software, the grill is stateless: it writes no files, restates the decisions so far after each round, and ends with the full recap.
 
 ## Shared plan document
 
-Work that outlasts one reply gets one plan document, updated while the grill runs instead of afterwards. It indexes decisions and never restates them:
+A grill of more than one round, or work that outlasts one reply, gets one plan document that `intake` updates after every round. It is the status: a fresh session can resume from it. It indexes decisions and never restates them:
 
 ```markdown
 # Rates cache
@@ -173,11 +175,15 @@ Currency rates are served from a cache; checkout never calls the provider direct
 - [Cache scope](../docs/adr/0007-per-process-cache.md): per process, since there is one instance.
 - [Staleness window](../GLOSSARY.md): one hour, because the provider updates daily.
 
-## Not yet specified
+## Open questions
 - What checkout shows when the cache is cold and the provider is down.
+- Who is paged when the provider returns errors for ten minutes.
+
+## Not yet specified
+- How rate changes reach the reporting jobs.
 
 ## Out of scope
 - A shared cache across instances. Revisit when a second instance exists.
 ```
 
-A question you cannot phrase precisely yet waits under Not yet specified. Once an answer sharpens it, it becomes a question in the next round and leaves that list. Terms that settle go to `GLOSSARY.md` and expensive decisions to a decision record, in the same moment.
+Sharp questions queue under Open questions until a round has room for them. A question you cannot phrase precisely yet waits under Not yet specified, and moves to Open questions once an answer sharpens it. Terms that settle go to `GLOSSARY.md` and expensive decisions to a decision record, in the same moment.

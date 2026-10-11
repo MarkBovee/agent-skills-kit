@@ -42,7 +42,7 @@
     "query": "Grill me on this migration plan before we start.",
     "files": [],
     "expected_behavior": [
-      "Asks the whole open frontier in one numbered round",
+      "Asks the open frontier four questions at a time (the host's question tool, or numbered text when there is none)",
       "Gives a recommended answer per question worded so yes accepts it",
       "Looks up facts in the repository instead of asking the user"
     ]
@@ -54,7 +54,7 @@
     "query": "Grill me on whether I should start a paid newsletter. There is no repo, this is just a business decision.",
     "files": [],
     "expected_behavior": [
-      "Asks the whole open frontier in one numbered round with a recommended answer per question",
+      "Asks the open frontier four questions at a time with a recommended answer per question",
       "Writes no files and creates no glossary or decision record",
       "Closes with a short recap of the decisions in the conversation"
     ]
@@ -93,6 +93,19 @@
       "Sequences the work as expand, migrate in batches by blast radius, then contract",
       "Makes the contract step blocked by every migrate batch",
       "Keeps the build green between batches instead of one big-bang edit"
+    ]
+  },
+  {
+    "skills": [
+      "ask-intake"
+    ],
+    "query": "Grill me on how to split this monolith into services, in this repo. There are about seven open decisions.",
+    "files": [],
+    "expected_behavior": [
+      "Uses the host's structured question tool instead of free-text questions when it is available",
+      "Asks at most four questions in the first round, most important first, and holds the rest of the frontier back",
+      "Writes the settled decisions to the plan document before asking the next four, and repeats until nothing is left open",
+      "Puts the recommended option first, labels it (Recommended), and does not add its own Other option"
     ]
   }
 ]
