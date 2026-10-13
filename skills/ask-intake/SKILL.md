@@ -68,7 +68,7 @@ Clarify enough to avoid wrong work, then move. One skill for the full pre-execut
 1. Read existing code, docs, plans, and constraints first.
 2. Ask the open questions as one grill round (see Grill rounds); a single open question is just one question. Each carries your recommended answer, so the user can react faster than generating one.
 3. Probe for what the user actually wants, not what they think they should want; "whatever you think" or "sounds good" is not a yes — confirm the intent explicitly.
-4. Make assumptions explicit, especially around non-goals, scale, security, and ownership.
+4. Surface assumptions around non-goals, scale, security, and ownership, and turn each into a question or a stated assumption (see Closing intake).
 5. Propose 2-3 viable approaches with a recommendation and clear tradeoffs.
 6. Once direction is chosen, stop exploring and move toward execution.
 
@@ -88,7 +88,7 @@ Clarify enough to avoid wrong work, then move. One skill for the full pre-execut
 1. State goal in one or two sentences.
 2. List files or areas likely to change.
 3. Order work chunks by meaningful progress, not micro-steps.
-4. Note key risks or open questions.
+4. Note key risks. Give every open question an outcome before execution (see Closing intake).
 5. **Detect if work splits into dependent stages:**
    - Are there natural service or module boundaries?
    - Are there dependency chains (step B needs the output of step A)?
@@ -135,7 +135,7 @@ Use when the user asks to be grilled, or when a plan has several open decisions.
 6. **Guard against nodding.** If every answer in a round is your recommendation, pick the one decision that costs the most to get wrong, state its downside, and confirm it once more before moving on.
 7. **Write the status, then go again.** After each round, record what settled before asking anything else, then recompute the frontier (the answers reshape the tree) and ask the next four. The session is done when the frontier is empty, nothing is silently assumed, and the user confirms the shared understanding. Do not act before that.
 
-Rounds are not capped in number, only in size. A session that keeps growing means the scope is too large: split it and grill each part. The user can wrap up at any time; the unanswered low-risk branches then become stated assumptions.
+Rounds are not capped in number, only in size. A session that keeps growing means the scope is too large: split it and grill each part. The user can wrap up at any time; every branch still open then gets an outcome from Closing intake.
 
 **Stateful or stateless.** With a working repository and a code subject, keep `GLOSSARY.md` and decision records current as each decision settles. Once the grill passes one round, or the work outlasts one reply, also write the status of every round into the shared plan document; a single clarifying round creates no plan file. With no repository, or a subject that is not software (a decision, a text, a business case), write no files: after each round restate the decisions so far in a few lines in the conversation, and close with the full recap.
 
@@ -150,6 +150,29 @@ For a grill that takes more than one round, or work that outlasts one reply (sev
 - **Out of scope**: work consciously ruled out of this effort, with the reason. It returns only if the destination is redrawn.
 
 Refer to a decision by its title, never by a bare number.
+
+## Interface and design work
+
+When the work touches an interface, screen, layout, visual design, UX flow, or UI copy, consult the host's own design skills before proposing approaches or asking the design questions.
+
+1. Look in the host's skill list for design and UI skills. Claude Code ships them as the `design:` skills (for example `design-critique`, `accessibility-review`, `ux-copy`, `design-system`, `design-handoff`, `user-research`). If none are listed, say so and continue.
+2. Load each one that matches a concern in the request through the host's skill mechanism (the Skill tool in Claude Code). They are host skills, not ASK leaves, so the Skill tool is the right way to load them. Pick by concern; do not load them all.
+3. Let their findings shape the grill questions and the approaches, and record in the plan which host skill informed which decision.
+4. Hand execution to `design`, and run `design-review` on the result before showing it.
+
+Done means every interface concern in the request has a loaded host skill or a stated reason none applies.
+
+## Closing intake
+
+Intake ends with no open question left. Before execution starts, give every question raised an outcome, whether it sits in the plan document or only in the conversation:
+
+- **Answered:** the user decided it. "Whatever you think" or silence is not an answer.
+- **Looked up:** you found the fact in code, config, docs, or research. A result too weak to decide on becomes Assumed or Blocking.
+- **Assumed:** only when the choice is low-risk and cheap to reverse. State it and what would prove it wrong.
+- **Blocking:** a choice that is hard to reverse, or that changes security, data handling, a public contract, or user-visible behavior, is never assumed. Ask it again; if nobody can answer now (a subagent, a headless run), report the work as blocked on it and do not start what depends on it.
+- **Later slice:** only for a question that just a later slice needs. Name the slice and ask before that slice starts.
+
+When the user wraps up or the grill stops, everything left under Open questions and Not yet specified gets one of these outcomes too. End with one line, `Open questions: none` (or `Open questions: <n> blocking`), then list the assumptions. Done means every raised question has an outcome and that line is true.
 
 ## Shared language and decisions
 
@@ -176,14 +199,15 @@ the default flow is:
 2. **Present**: show the plan to the user, then ask for explicit approval through the question UI
 3. **Implement**: only after "yes" start coding
 
-Keep asking questions until all grey areas are resolved.
-Do not start coding while ambiguity remains.
+Close every question as Closing intake describes.
+Do not start coding while any question is open or blocking.
 Do not stop for approval at every milestone when scope is unchanged and the path is
 clear — the initial plan already covers the full scope.
 
 ## Use with
 
 - `develop` once the path is clear and execution can begin
+- `design` once the direction for interface work is chosen
 - `research` for bounded fact-finding before a decision
 - `deep-research` for autonomous multi-source investigation before scope or implementation
 - `session-review` when intake reveals missing skills or routing gaps worth tracking
@@ -196,5 +220,7 @@ clear — the initial plan already covers the full scope.
 - Writing glossary or decision files for a grill about something that is not code
 - Creating parallel planning trees when the repo already has one
 - Turning assumptions into facts without saying so
+- Leaving a question in the plan with no outcome and starting anyway
+- Assuming a hard-to-reverse choice because the user did not answer
 - Freezing a plan that is clearly wrong after investigation
 - Silently dropping evidence-backed scope requested by the brief

@@ -171,6 +171,7 @@ Fix the highest-signal issue first and repeat the loop instead of stacking specu
 
 ## Use with
 
+- `intake` first when the interface goal or direction is still fuzzy; it also loads the host's own design skills
 - `develop` for steady inspect-change-review loops during UI work
 - `design-review` to filter the finished UI for AI-default patterns before showing it
 - `code-review` after meaningful frontend diffs

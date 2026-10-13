@@ -107,5 +107,29 @@
       "Writes the settled decisions to the plan document before asking the next four, and repeats until nothing is left open",
       "Puts the recommended option first, labels it (Recommended), and does not add its own Other option"
     ]
+  },
+  {
+    "skills": [
+      "ask-intake"
+    ],
+    "query": "We need to redesign the onboarding screens but I am not sure what the flow should look like.",
+    "files": [],
+    "expected_behavior": [
+      "Checks the host's skill list for design and UI skills and loads the matching ones, or says none are available",
+      "Lets their findings shape the clarifying questions and the approaches",
+      "Plans to hand execution to the design skill and does not start building yet"
+    ]
+  },
+  {
+    "skills": [
+      "ask-intake"
+    ],
+    "query": "Plan adding CSV export to the reports page. I am away for the next hour, so decide whatever you can without me.",
+    "files": [],
+    "expected_behavior": [
+      "Turns low-risk, easily reversed choices into stated assumptions with what would prove each wrong",
+      "Does not assume a hard-to-reverse choice such as who may export which data; it stays blocking",
+      "Ends with an Open questions line that is none or counts the blocking ones, and does not start the work that depends on a blocking question"
+    ]
   }
 ]

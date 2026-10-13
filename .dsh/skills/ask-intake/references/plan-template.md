@@ -25,3 +25,4 @@ Use the glossary's terms and respect the decision records in the area you touch.
 - Every story maps to a behavior a test or a manual check can show.
 - Every implementation decision either traces to a story or says why it is needed anyway.
 - Nothing in the plan restates what a decision record or glossary entry already holds; it links instead.
+- No question is left open: each one is answered, looked up, assumed with what would prove it wrong, blocking, or tied to a later slice (see Closing intake).
