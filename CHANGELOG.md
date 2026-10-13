@@ -6,6 +6,16 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.8.1] - 2026-10-13
+
+### Added
+
+- **`intake` loads the host's own design and UI skills** (in Claude Code the `design:` skills such as `design-critique`, `accessibility-review`, and `ux-copy`) when the work touches an interface, then hands execution to `design`. `design` points back to `intake`.
+
+### Changed
+
+- **`intake` ends with no open question left.** A new Closing intake section gives every question one outcome (answered, looked up, assumed with what would prove it wrong, blocking, or tied to a later slice) and ends with an `Open questions` line. Execution planning, wrap-up, and pair programming no longer leave questions standing, and the plan template checks for it.
+
 ## [2.8.0] - 2026-10-11
 
 ### Added
