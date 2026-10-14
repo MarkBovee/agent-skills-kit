@@ -298,24 +298,36 @@ function checkHookBehavior() {
   expect(garbage.status === 0 && garbage.stdout.trim() === "", "malformed payload exits 0 without output")
 }
 
-// Check that the PreToolUse git guard denies destructive git commands, allows normal ones, and honors ASK_GIT_GUARD.
+// Check that the PreToolUse git guard denies destructive git commands, asks before a plain push to a protected branch, allows normal ones, and honors ASK_GIT_GUARD.
 function checkGitGuard() {
-  // Run the guard for one Bash command with an optional ASK_GIT_GUARD value and parse its decision.
-  const guard = (command, mode) => {
+  // Run the guard for one Bash command with an optional ASK_GIT_GUARD value and Claude Code permission mode, and parse its decision.
+  const guard = (command, mode, permissionMode) => {
     const env = { ...process.env, ASK_GIT_GUARD: mode || "" }
-    const result = spawnSync(process.execPath, [HOOK_SCRIPT, "guard-bash"], { input: JSON.stringify({ tool_name: "Bash", tool_input: { command }, cwd: REPO_ROOT }), encoding: "utf8", env, timeout: 10000 })
+    const payload = { tool_name: "Bash", tool_input: { command }, cwd: REPO_ROOT, permission_mode: permissionMode || "default" }
+    const result = spawnSync(process.execPath, [HOOK_SCRIPT, "guard-bash"], { input: JSON.stringify(payload), encoding: "utf8", env, timeout: 10000 })
     return { status: result.status, decision: parseHookOutput(result.stdout)?.hookSpecificOutput }
   }
   // Tell whether the guard denies one command in the given mode.
-  const denied = (command, mode) => guard(command, mode).decision?.permissionDecision === "deny"
-  const blocked = ["git reset --hard HEAD~1", "git clean -fd", "git branch -D old", "git checkout .", "git restore .", "git push --force origin feature", "git push origin main", "cd app && git push -f", "(cd app && git reset --hard)", "{ git reset --hard; }", "command git reset --hard", "sudo git clean -fd", "/usr/bin/git reset --hard", "echo hi &git reset --hard", "git push -o ci.skip origin main", 'git push origin "HEAD:main"', 'git push origin "+feature"', "cat <<EOF; git reset --hard\nx\nEOF", "git reset --hard \\\n  HEAD", "if true; then git reset --hard; fi", "sudo -u root git reset --hard", "nice -n 5 git reset --hard", "env -u FOO git clean -fd", "sudo -- git reset --hard", "git checkout ./", "git restore :/", "git restore *", "git switch --discard-changes main", "git switch -f main", "git stash clear", "git push --prune origin", "git worktree remove --force ../wt", "git reset --merge HEAD~1", 'echo "$(git reset --hard)"', 'echo "`git clean -fd`"', 'echo "$(echo "$(git reset --hard)")"']
+  const denied = (command, mode, permissionMode) => guard(command, mode, permissionMode).decision?.permissionDecision === "deny"
+  // Tell whether the guard asks the user to approve one command in the given mode.
+  const asked = (command, mode, permissionMode) => guard(command, mode, permissionMode).decision?.permissionDecision === "ask"
+  const blocked = ["git reset --hard HEAD~1", "git clean -fd", "git branch -D old", "git checkout .", "git restore .", "git push --force origin feature", "git push --force origin main", "git push origin +main", "git reset --hard && git push origin main", "git push origin main && git reset --hard", "cd app && git push -f","(cd app && git reset --hard)", "{ git reset --hard; }", "command git reset --hard", "sudo git clean -fd", "/usr/bin/git reset --hard", "echo hi &git reset --hard", 'git push origin "+feature"', "cat <<EOF; git reset --hard\nx\nEOF", "git reset --hard \\\n  HEAD", "if true; then git reset --hard; fi", "sudo -u root git reset --hard", "nice -n 5 git reset --hard", "env -u FOO git clean -fd", "sudo -- git reset --hard", "git checkout ./", "git restore :/", "git restore *", "git switch --discard-changes main", "git switch -f main", "git stash clear", "git push --prune origin", "git worktree remove --force ../wt", "git reset --merge HEAD~1", 'echo "$(git reset --hard)"', 'echo "`git clean -fd`"', 'echo "$(echo "$(git reset --hard)")"']
   for (const command of blocked) expect(denied(command), `git guard denies \`${command}\``)
   const allowed = ["git status", "git push origin feature/x", "git reset --soft HEAD~1", "git clean -n", "git branch -d merged", "git restore --staged .", "git checkout -b topic", 'git commit -m "docs: mention git push --force"', 'git commit -m "say \\"hi\\"; git reset --hard"', "git commit -F - <<'EOF'\nfix\ngit push --force origin main\nEOF", "git push origin feature # main", "git push -o ci.skip origin feature", "sudo -u root git status", "nice -n 5 git status", "git restore --staged ./", "git switch main", "git switch -c topic", "git stash", "git stash list", "git worktree remove ../wt", "git worktree add -f ../wt", "git checkout -B topic", 'echo "$(git status)"', 'git commit -m "use \\`git reset --hard\\` with care"', "git commit -m '$(git reset --hard)'"]
   for (const command of allowed) expect(!denied(command), `git guard allows \`${command}\``)
-  expect(denied("git push origin feature/x", "strict"), "ASK_GIT_GUARD=strict denies every push")
+  // A plain push to a protected branch is the one the owner may approve, so it asks (the issue's compound command included).
+  const approvable = ["git push origin main", "git push origin master", "git push -o ci.skip origin main", 'git push origin "HEAD:main"', "git push origin HEAD:refs/heads/main", "git branch -f master HEAD && git push origin master"]
+  for (const command of approvable) expect(asked(command) && !denied(command), `git guard asks before \`${command}\``)
+  expect(denied("git push origin main", "strict") && denied("git push origin feature/x", "strict"), "ASK_GIT_GUARD=strict denies every push, protected or not")
+  expect(denied("git push origin master", "default", "bypassPermissions") && !asked("git push origin master", "default", "bypassPermissions"), "bypassPermissions keeps the push denied because a hook ask may not prompt there")
+  expect(asked("git push origin master", "default", "auto") && asked("git push origin master", "default", "plan"), "auto and plan mode ask before a protected push")
+  expect(!denied("git push origin main", "off") && !asked("git push origin main", "off"), "ASK_GIT_GUARD=off disables the push guard")
   expect(!denied("git reset --hard", "off"), "ASK_GIT_GUARD=off disables the guard")
   const reason = guard("git reset --hard").decision?.permissionDecisionReason || ""
   expect(reason.includes("do not have authority") && !reason.includes("ASK_GIT_GUARD"), "the denial tells the agent to ask the user and does not advertise the off switch")
+  expect(!reason.includes("approve it"), "the denial does not promise an approval path it does not have")
+  const askReason = guard("git push origin main").decision?.permissionDecisionReason || ""
+  expect(askReason.includes("git guard") && askReason.includes("protected branch") && !askReason.includes("ASK_GIT_GUARD"), "the approval prompt names the guard and the reason without advertising the off switch")
   expect(guard("").status === 0 && guard("git status").status === 0, "the guard exits 0 for empty and allowed commands")
 }
 
