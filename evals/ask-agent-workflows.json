@@ -68,5 +68,17 @@
       "Passes the previous findings list and asks for CLOSED or OPEN per item instead of auditing the whole diff again",
       "prefers resuming the finished auditor over a cold start"
     ]
+  },
+  {
+    "skills": [
+      "ask-agent-workflows"
+    ],
+    "query": "Should I use a dynamic workflow or plain subagents to review a 6-file diff?",
+    "files": [],
+    "expected_behavior": [
+      "Recommends Delegate or a single combined review, because six items are below the fan-out threshold and a workflow costs far more tokens",
+      "Explains when a workflow would pay off: about ten or more independent items, a check-and-fix loop, or many findings needing independent cross-checks",
+      "Notes that the review and audit gates stay outside any workflow and run once on the final diff"
+    ]
   }
 ]

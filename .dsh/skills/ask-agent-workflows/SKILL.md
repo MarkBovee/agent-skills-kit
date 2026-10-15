@@ -14,6 +14,7 @@ Delegate only when it improves independence, coverage, specialist reasoning, or 
 
 - **any auxiliary work (default)** — grep, review, research, isolated edit
 - the work splits into independent parts
+- the work fans out over about ten or more independent items that each need judgment, or many findings need independent cross-checks → a dynamic workflow (see Dynamic workflows)
 - one branch is blocked on a slow command or external wait
 - a handoff between sessions is already happening
 - bounded release chore (version bump, changelog, release notes)
@@ -85,6 +86,10 @@ Input and report size repeat per agent, so cap both.
 6. If a gate hits an API rate limit, report it and wait; do not relaunch immediately.
 7. Have agents save reusable scratch scripts to a named scratchpad path and report the path.
 
+## Dynamic workflows
+
+When the host runs scripts that orchestrate many subagents, the script replaces the coordinator as the orchestrator: it keeps the loop and the intermediate results, and only the final answer reaches the context. Use it for fan-out over about ten or more independent items that each need judgment, check-and-fix loops over about ten or more independent failures, and adversarial cross-checks; stay with Delegate or Batch below that, and for purely mechanical edits. The coordinator launches the run (workers cannot), settles scope first because a run cannot ask the user, names a model tier per stage, and keeps the review and audit gates outside the run, dispatched once on the final diff. Before choosing or writing a workflow, read [references/dynamic-workflows.md](references/dynamic-workflows.md) for the starting routes, limits, and the full policy.
+
 ## Handoff context
 
 Give subagents requirements, acceptance criteria, repository state, and relevant diff. Do not pass the primary agent's conclusion as authoritative. Include the decision tree so the subagent can load the matching workflow itself.
@@ -94,6 +99,7 @@ Give subagents requirements, acceptance criteria, repository state, and relevant
 - the steps are tightly coupled and need one shared thread of judgment
   → use `develop` staged delegation instead; it handles sequential dependency chains with per-stage validation.
 - the next step depends directly on the exact output of the previous step
+- fewer than about ten items, purely mechanical edits, or edits to the same file → Delegate or Batch is cheaper than a workflow
 - the reasoning or intermediate state is needed for the next step — losing it means re-deriving
 
 ## Context retention
