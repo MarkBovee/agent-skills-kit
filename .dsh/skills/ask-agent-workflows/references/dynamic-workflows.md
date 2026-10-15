@@ -36,14 +36,14 @@ A dynamic workflow is a script the host runs to orchestrate many subagents. The 
 2. **Slice before the full run.** Run one directory or one category, read the per-agent token use in `/workflows`, then widen.
 3. **Model per stage.** An agent with no model named runs on the session model. Name `light` (Haiku) for locate and extract, `standard` (Sonnet) for edit and verify, and `deep` (Opus) only with a stated reason. Workflow agents read each other's prompt cache when model, effort, tools, schema, and directory match, so keep a stage's settings identical.
 4. **Schema-shaped output.** Use the `schema` option on `agent()` for findings (path, line, impact, severity, evidence, confidence) so results merge without parsing prose, and drop `null` results from stopped or failed agents.
-5. **Disjoint edits.** One agent per file, or an isolated copy per agent, never two agents on one file.
+5. **Disjoint edits.** Each file belongs to exactly one agent, or each agent works in an isolated copy; never two agents on one file.
 6. **Verification inside, gates outside.** An adversarial verifier stage is the false-positive check an audit already owes. It does not replace REVIEW or AUDIT on the final diff: the coordinator dispatches those once (`ask-reviewer`, `ask-auditor`), with scope paths, a tool-call ceiling, the validation evidence already gathered, and P0/P1-only reporting.
 7. **Loops validate, they do not review.** A keep-fixing loop runs the repository's check each round and stops after two rounds without progress; one review follows the final diff.
 8. **Record the run.** The handoff names the script path (the host writes it under the session directory), the agent count, the stages, and what was verified. A saved workflow (`s` in `/workflows`, stored in the project `.claude/workflows/` or the personal one) suits a process repeated on every branch; reusing its evidence still needs an identical diff.
 
 ## Mapping to ASK skills
 
-- **develop:** a migration or sweep over many independent files, one isolated copy per file, a verify agent per result, then one coordinator review.
-- **improve:** a repository-wide or multi-category audit. A recon agent lists the surface, one agent per file or module per category returns findings, and a verifier tries to refute each before it is reported. The audit stays read-only.
+- **develop:** a migration or sweep over many independent files. Each agent takes a chunk of files sized to the guideline and works in its own isolated copy; a verify agent checks each result, then one coordinator review follows.
+- **improve:** a repository-wide or multi-category audit. A recon agent lists the surface, each agent takes a chunk of files or modules for one category and returns findings, and a verifier tries to refute each before it is reported. The audit stays read-only.
 - **research and deep-research:** Claude Code ships `/deep-research` as a built-in workflow that runs only when the user invokes it. The ASK research skills keep their own handoff and confidence rules; offer the built-in command when the user wants a cited report and nothing more.
 - **code-review:** a very large diff may use one reviewer per file and one merger. That fan-out is the single REVIEW dispatch for the final diff, not an extra round; the coordinator still passes scope paths, a tool-call ceiling, and the validation evidence already gathered, and asks for P0/P1 only.

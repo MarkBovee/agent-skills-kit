@@ -42,7 +42,7 @@
     "query": "Audit every route handler in this 400-file service for missing authentication checks and report only the findings that hold up.",
     "files": [],
     "expected_behavior": [
-      "Runs the wide audit as one workflow when the host supports it: a recon pass lists the surface, one agent per file or module returns findings with file:line, and a verifier tries to refute each finding before it is reported",
+      "Runs the wide audit as one workflow when the host supports it: a recon pass lists the surface, each agent takes a chunk of files or modules and returns findings with file:line, and a verifier tries to refute each finding before it is reported",
       "Keeps the audit read-only and names a model tier per stage, with a one-directory slice first",
       "Falls back to a direct or delegated audit with the same evidence bar when the host has no workflows"
     ]
