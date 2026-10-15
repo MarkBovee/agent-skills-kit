@@ -13,7 +13,7 @@ Delegate only when it improves independence, coverage, specialist reasoning, or 
 
 - **any auxiliary work (default)** — grep, review, research, isolated edit
 - the work splits into independent parts
-- the work fans out over about ten or more independent items that each need judgment, or many findings need independent cross-checks → a dynamic workflow (see Dynamic workflows)
+- the work fans out over about ten or more independent items that each need judgment, or many findings need independent cross-checks → offer a dynamic workflow (see Dynamic workflows)
 - one branch is blocked on a slow command or external wait
 - a handoff between sessions is already happening
 - bounded release chore (version bump, changelog, release notes)

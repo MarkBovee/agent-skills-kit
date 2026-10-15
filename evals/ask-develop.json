@@ -64,6 +64,18 @@
     "skills": [
       "ask-develop"
     ],
+    "query": "In this headless run nobody can answer questions: migrate all 60 components under src/components from class components to function components. Each file is independent.",
+    "files": [],
+    "expected_behavior": [
+      "Does not start a workflow and does not wait for an answer, because there is no opt-in and no one to ask",
+      "Continues in Delegate mode with chunked subagents, each owning its own files, a model tier per delegation, and validation before merging",
+      "Dispatches the review gate once on the final diff"
+    ]
+  },
+  {
+    "skills": [
+      "ask-develop"
+    ],
     "query": "Rename formatTotal to formatOrderTotal and update its three callers.",
     "files": [],
     "expected_behavior": [
