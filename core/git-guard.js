@@ -2,11 +2,14 @@
 // destructive git operation. It is a safety net against agent mistakes, not a security boundary: `bash -c` and `eval`
 // strings, heredoc bodies, and scripts that call git are out of scope. It does look inside `$(...)` and backticks in
 // double quotes, since the shell runs those. It fails open when it cannot parse a command, and the current-branch
-// lookup ignores `git -C <dir>`.
+// lookup ignores `git -C <dir>`. A verdict is `deny` (never runs) or `ask` (runs once the user approves it): only a
+// plain push to a protected branch is `ask`, because the owner can legitimately want that one.
 
 const PROTECTED_BRANCHES = new Set(["main", "master"])
 const MODE_OFF = "off"
 const MODE_STRICT = "strict"
+const DECISION_DENY = "deny"
+const DECISION_ASK = "ask"
 // Global git options that take a separate value argument, so the subcommand is the token after that value.
 const OPTIONS_WITH_VALUE = new Set(["-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path"])
 // Commands and shell keywords that precede another command, each mapped to the options that take a separate value
@@ -245,14 +248,18 @@ function pushRefspecs(args) {
   return pushPositionals(args).slice(1)
 }
 
-// Judge one `git push`: strict blocks all pushes; default blocks force, delete, mirror, forced refspecs, and pushes to protected branches.
-function judgePush(args, mode, currentBranch) {
+// Judge one `git push` for the hard denials: strict blocks all pushes; default blocks force, delete, mirror, and forced refspecs.
+function judgePush(args, mode) {
   if (mode === MODE_STRICT) return "git push is blocked in strict mode"
   if (args.some(isForcePushArg)) return "force, delete, or mirror push"
   if (hasShortFlag(args, "f") || hasShortFlag(args, "d")) return "force or delete push"
-  const refspecs = pushRefspecs(args)
-  if (refspecs.some(isForcedRefspec)) return "forced or deleting refspec"
-  const targets = refspecs.map(refspecDestination)
+  return pushRefspecs(args).some(isForcedRefspec) ? "forced or deleting refspec" : ""
+}
+
+// Judge one plain `git push` for the approval verdict: a push to a protected branch is the one the owner may want,
+// so it asks instead of denying. It only runs once `judgePush` found nothing to deny.
+function judgeProtectedPush(args, mode, currentBranch) {
+  const targets = pushRefspecs(args).map(refspecDestination)
   if (targets.some(isProtectedBranch)) return "push to a protected branch"
   // A push with no explicit refspec goes to the current branch, so a protected current branch counts.
   if (targets.length === 0 && isProtectedBranch(currentBranch)) return `push from protected branch ${currentBranch}`
@@ -327,17 +334,26 @@ const JUDGES = {
   worktree: judgeWorktree,
 }
 
-// Evaluate a shell command and return the first blocking reason, or an empty string when nothing destructive is found.
+// Map each approvable subcommand to its judge; same contract as `JUDGES`, but a reason here asks the user instead of denying.
+const APPROVAL_JUDGES = {
+  push: judgeProtectedPush,
+}
+
+// Evaluate a shell command and return `{ decision, reason }`, or null when nothing destructive is found. A deny in any
+// segment wins over an ask in another, so a compound command is only approvable when every part of it is approvable.
 // `currentBranch` is looked up lazily by the caller and only used for pushes without an explicit refspec.
 function evaluateGitCommand(command, { mode = "default", currentBranch = "" } = {}) {
-  if (mode === MODE_OFF) return ""
+  if (mode === MODE_OFF) return null
+  let approval = null
   for (const segment of splitSegments(command)) {
     const call = parseGitCall(tokenize(segment))
-    const judge = call ? JUDGES[call.subcommand] : null
-    const reason = judge ? judge(call.args, mode, currentBranch) : ""
-    if (reason) return reason
+    if (!call) continue
+    const denyReason = JUDGES[call.subcommand]?.(call.args, mode, currentBranch) || ""
+    if (denyReason) return { decision: DECISION_DENY, reason: denyReason }
+    const askReason = APPROVAL_JUDGES[call.subcommand]?.(call.args, mode, currentBranch) || ""
+    if (askReason && !approval) approval = { decision: DECISION_ASK, reason: askReason }
   }
-  return ""
+  return approval
 }
 
 // Tell whether one segment is a `git push` without an explicit refspec, which goes to the current branch.
@@ -351,4 +367,4 @@ function needsCurrentBranch(command) {
   return splitSegments(command).some(isPushWithoutRefspec)
 }
 
-module.exports = { evaluateGitCommand, needsCurrentBranch, resolveGuardMode }
+module.exports = { DECISION_ASK, DECISION_DENY, evaluateGitCommand, needsCurrentBranch, resolveGuardMode }

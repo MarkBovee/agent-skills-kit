@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.10.0] - 2026-10-15
+
+### Changed
+
+- **The git guard asks before a plain push to `main` or `master`.** It used to deny that push outright, and its message pointed at an approval that did not exist, so a push the owner had approved in chat could only be run by hand (#157). The hook now returns `ask`, so Claude Code shows its permission prompt with the command and the reason. Force, delete, mirror, and prune pushes, forced refspecs, `ASK_GIT_GUARD=strict`, and every other destructive command stay hard denials, and a denial anywhere in a compound command wins over an ask. In `bypassPermissions` mode the push stays denied, because the Claude Code docs do not say whether a hook `ask` prompts there. The denial text no longer says "or approve it".
+
 ## [2.9.1] - 2026-10-15
 
 ### Fixed

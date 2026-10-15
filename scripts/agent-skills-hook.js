@@ -5,7 +5,7 @@ const os = require("node:os")
 const path = require("node:path")
 const { spawnSync } = require("node:child_process")
 
-const { evaluateGitCommand, needsCurrentBranch, resolveGuardMode } = require("../core/git-guard")
+const { DECISION_ASK, DECISION_DENY, evaluateGitCommand, needsCurrentBranch, resolveGuardMode } = require("../core/git-guard")
 const {
   SKILL_CODE_REVIEW,
   SKILL_DEVELOP,
@@ -330,25 +330,31 @@ function currentGitBranch(cwd) {
   }
 }
 
-// Build the PreToolUse output that denies a tool call and tells the agent to ask the user instead.
-function buildDenyOutput(reason) {
-  return JSON.stringify({
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      permissionDecision: "deny",
-      permissionDecisionReason: `Blocked by the Agent Skills Kit git guard: ${reason}. You do not have authority to run this. Tell the user what you intended and let them run it or approve it.`,
-    },
-  })
+// Decide what Claude Code is told: an approvable verdict becomes a permission prompt, everything else a denial. Bypass
+// mode never prompts as far as the docs say, so there an approvable verdict stays a denial instead of a silent pass.
+function resolveHookDecision(verdict, permissionMode) {
+  return verdict.decision === DECISION_ASK && permissionMode !== "bypassPermissions" ? DECISION_ASK : DECISION_DENY
 }
 
-// Deny destructive git commands before the Bash tool runs them; ASK_GIT_GUARD=off disables, =strict blocks every push.
+// Build the PreToolUse output for a guard verdict. A denial goes to the agent, so it says the agent cannot run the
+// command and must hand it to the user. An ask goes to the user's permission prompt, so it says what to confirm.
+function buildGuardOutput(verdict, permissionMode) {
+  const decision = resolveHookDecision(verdict, permissionMode)
+  const reason = decision === DECISION_ASK
+    ? `Agent Skills Kit git guard: ${verdict.reason}. Allow it only if you asked for this; if it is declined, the agent must tell you what it intended and let you run it.`
+    : `Blocked by the Agent Skills Kit git guard: ${verdict.reason}. You do not have authority to run this. Tell the user what you intended and let them run it themselves.`
+  return JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: decision, permissionDecisionReason: reason } })
+}
+
+// Guard destructive git commands before the Bash tool runs them: hard denials for the destructive ones, a permission prompt
+// for a plain push to a protected branch. ASK_GIT_GUARD=off disables, =strict denies every push.
 function guardBash(payload) {
   const mode = resolveGuardMode(process.env.ASK_GIT_GUARD)
   const command = payload.tool_input?.command
   if (mode === "off" || typeof command !== "string" || !command.trim()) return
   const currentBranch = needsCurrentBranch(command) ? currentGitBranch(payload.cwd) : ""
-  const reason = evaluateGitCommand(command, { mode, currentBranch })
-  if (reason) process.stdout.write(buildDenyOutput(reason))
+  const verdict = evaluateGitCommand(command, { mode, currentBranch })
+  if (verdict) process.stdout.write(buildGuardOutput(verdict, payload.permission_mode))
 }
 
 // Handle one hook event and emit only the event-supported JSON shape.
