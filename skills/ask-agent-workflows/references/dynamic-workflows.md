@@ -7,8 +7,10 @@ A dynamic workflow is a script the host runs to orchestrate many subagents. The 
 | Shape | Use |
 | --- | --- |
 | A few delegated tasks, each needing judgment from the coordinator | Delegate or staged delegation |
-| About ten or more independent items with the same operation | Workflow |
-| Check, fix, repeat until a command passes or progress stops | Workflow |
+| About ten or more independent items with the same operation, each needing judgment | Workflow |
+| Purely mechanical edits across many files | Batch or a scripted pass |
+| Check, fix, repeat over about ten or more independent failures | Workflow |
+| Check, fix, repeat over a few related failures | Direct |
 | Many findings that each need an independent refutation attempt | Workflow |
 | A hard plan worth drafting from several independent angles | Workflow |
 | Tightly coupled edits, or the next step needs the previous step's reasoning | Direct or staged |
@@ -30,7 +32,7 @@ A dynamic workflow is a script the host runs to orchestrate many subagents. The 
 
 ## ASK policy for a run
 
-1. **Fit and size first.** Apply the fit test in `develop`. State the expected agent count and the model tier per stage in the task description so the script names them.
+1. **Fit and size first.** Apply the fit test in `develop`. State the expected agent count and the model tier per stage in the task description so the script names them. Give each agent a chunk of items so the run stays within the size guideline, and ask the user before going above it.
 2. **Slice before the full run.** Run one directory or one category, read the per-agent token use in `/workflows`, then widen.
 3. **Model per stage.** An agent with no model named runs on the session model. Name `light` (Haiku) for locate and extract, `standard` (Sonnet) for edit and verify, and `deep` (Opus) only with a stated reason. Workflow agents read each other's prompt cache when model, effort, tools, schema, and directory match, so keep a stage's settings identical.
 4. **Schema-shaped output.** Use the `schema` option on `agent()` for findings (path, line, impact, severity, evidence, confidence) so results merge without parsing prose, and drop `null` results from stopped or failed agents.
@@ -44,4 +46,4 @@ A dynamic workflow is a script the host runs to orchestrate many subagents. The 
 - **develop:** a migration or sweep over many independent files, one isolated copy per file, a verify agent per result, then one coordinator review.
 - **improve:** a repository-wide or multi-category audit. A recon agent lists the surface, one agent per file or module per category returns findings, and a verifier tries to refute each before it is reported. The audit stays read-only.
 - **research and deep-research:** Claude Code ships `/deep-research` as a built-in workflow that runs only when the user invokes it. The ASK research skills keep their own handoff and confidence rules; offer the built-in command when the user wants a cited report and nothing more.
-- **code-review:** a very large diff may use one reviewer per file and one merger. Keep the single-gate rule: dispatch it once on the final diff.
+- **code-review:** a very large diff may use one reviewer per file and one merger. That fan-out is the single REVIEW dispatch for the final diff, not an extra round; the coordinator still passes scope paths, a tool-call ceiling, and the validation evidence already gathered, and asks for P0/P1 only.

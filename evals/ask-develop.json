@@ -43,8 +43,8 @@
     "files": [],
     "expected_behavior": [
       "Recognizes the fan-out shape (about ten or more independent items with the same operation) and chooses workflow mode when the host runs dynamic workflows, otherwise Delegate",
-      "Settles scope and acceptance first because a run cannot ask the user mid-run, and states the expected agent count, starting with a one-directory slice",
-      "Names a model tier per stage instead of leaving the fan-out on the session model, and gives each agent its own file or isolated copy",
+      "Settles scope and acceptance first because a run cannot ask the user mid-run, states the expected agent count, and starts with a one-directory slice",
+      "Gives each agent a chunk of components so the run stays within the host's size guideline and asks before exceeding it, names a model tier per stage instead of leaving the fan-out on the session model, and gives each agent its own files or an isolated copy",
       "Still dispatches the review gate once on the final diff and does not treat the workflow's verifier agents as that gate"
     ]
   },

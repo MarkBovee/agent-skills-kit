@@ -31,7 +31,7 @@ Before finishing any code change, inspect every changed function-like construct 
 
 ## Cheap-first escalation
 
-1. Workflow skill work (this skill, `debugging`, `improve`) runs in the Sonnet `ask-worker` agent, not on the session model; a dynamic workflow is the exception, because the coordinator launches it (see Dynamic workflow). Before each delegation, select a task-appropriate model and pass it per invocation when the host supports it; tiers alone do not select a model. Default to Haiku for mechanical work, Sonnet for standard work, and Opus only with a stated reason.
+1. Routed skill work (this skill, `debugging`, `improve`) runs in the Sonnet `ask-worker` agent, not on the session model; a dynamic workflow is the exception, because the coordinator launches it (see Dynamic workflow). Before each delegation, select a task-appropriate model and pass it per invocation when the host supports it; tiers alone do not select a model. Default to Haiku for mechanical work, Sonnet for standard work, and Opus only with a stated reason.
 2. Start bounded mechanical chores on the smallest viable agent or subagent.
 3. Validate the result before widening context.
 4. Escalate to default agent only if scope grows beyond the original bounded task.
@@ -67,14 +67,14 @@ Output contract per stage (see `agent-workflows` for the full contract):
 
 When the host can run dynamic workflows, check this before choosing Delegate. Dynamic workflow mode needs all four:
 
-1. **Fan-out shape.** About ten or more independent items get the same operation (migrate every component, audit every endpoint, review every changed file), a check-and-fix loop repeats until green, or many findings each need an independent cross-check. Fewer items stay Direct, Batch, or Delegate: a workflow costs far more than a conversation.
+1. **Fan-out shape.** About ten or more independent items get the same operation and each needs judgment (migrate every component, audit every endpoint, review every changed file), a check-and-fix loop runs over about ten or more independent failures, or many findings each need an independent cross-check. Fewer items, and purely mechanical edits that one Batch or scripted pass handles safely, stay Direct, Batch, or Delegate: a workflow costs far more than a conversation.
 2. **Independent items.** No two agents edit the same file; each owns a disjoint set or an isolated copy. Tightly coupled or sequential work stays Direct or staged.
 3. **Settled scope.** A run cannot ask the user mid-run, so decisions, acceptance, and the branch are settled first (load `intake` when they are not).
-4. **Sized up front.** For a large target, run a one-directory slice first and state the expected agent count. Stay within the host's size guideline unless the user asks for more.
+4. **Sized up front.** State the expected agent count before launching, and for a large target run a one-directory slice first. Give each agent a chunk of items so the run stays within the host's size guideline, and ask the user before going above it.
 
 Rules for a run:
 
-- **The coordinator launches it.** A worker cannot start agents or workflows; a worker that finds the work fits reports `ASK_WORKFLOW_BLOCKED phase=EXECUTE` with the item count and the reason, and the coordinator runs it.
+- **The coordinator launches it.** A worker cannot start agents or workflows; a worker that finds the work fits reports `ASK_WORKFLOW_BLOCKED phase=EXECUTE` with the item count and the reason, and the coordinator runs it. A coordinator that already sees the fit skips the worker.
 - **Name a model per stage by tier** (`light` for locate and extract, `standard` for edit and verify, `deep` only with a stated reason). A fan-out left on the session model multiplies the most expensive tier.
 - **Return schema-shaped results** (path, impact, severity, evidence), not prose, so only the final answer reaches the context.
 - **Keep the host's approval prompt.** It shows the phases and the script; never pre-approve or bypass it to start a run.
