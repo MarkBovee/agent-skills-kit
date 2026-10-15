@@ -6,18 +6,24 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.9.1] - 2026-10-15
+
+### Fixed
+
+- **Dynamic workflows are offered, not started.** The 2.9.0 guidance told the coordinator to launch a fitting run itself, but the host's Workflow tool starts only on an explicit opt-in ("use a workflow", `ultracode`, ultracode on for the session, or a saved workflow), and a task that merely fits does not count. `develop`, `agent-workflows`, `improve`, `ask-worker`, and the mandate bullet now have the coordinator describe the run (what it does, expected agent count, model tier per stage, rough cost) and start it after the opt-in. A non-interactive run continues in Delegate mode, and a worker that finds the work fits reports `ASK_WORKFLOW_BLOCKED phase=EXECUTE` so the coordinator can make the offer. The reference file explains why an ASK skill read through the router is not itself an opt-in (#160).
+
 ## [2.9.0] - 2026-10-15
 
 ### Added
 
-- **Dynamic workflows are part of the default loop.** `develop` gains a Dynamic workflow mode next to Direct, Delegate, and Batch. Where the host runs scripts that orchestrate many subagents (Claude Code: the Workflow tool and `/workflows`), a task with about ten or more independent items that each need judgment, a check-and-fix loop over as many independent failures, or many findings that need a cross-check is offered as one workflow instead of hand-coordinated subagents, with its agent count and a rough cost. The run starts only after the user opts in ("use a workflow", `ultracode`, or a saved workflow), because the host's Workflow tool refuses any other start. Smaller tasks and purely mechanical edits stay as they were, so a rename with three callers never pays for a fan-out, and the run is sized to the host's guideline with a confirmation before it goes above.
-- **`agent-workflows/references/dynamic-workflows.md`.** The ASK policy on top of the host mechanics: the fit test, how a run starts on Claude Code (the opt-in rule, and why the `ultracode` keyword only works in typed input), limits, a slice-first sizing rule, a model tier named per stage, schema-shaped findings, disjoint edits, and the rule that a workflow's verifier agents never replace the REVIEW or AUDIT gate.
+- **Dynamic workflows are part of the default loop.** `develop` gains a Dynamic workflow mode next to Direct, Delegate, and Batch. Where the host runs scripts that orchestrate many subagents (Claude Code: the Workflow tool and `/workflows`), a task with about ten or more independent items that each need judgment, a check-and-fix loop over as many independent failures, or many findings that need a cross-check runs as one workflow instead of hand-coordinated subagents. Smaller tasks and purely mechanical edits stay as they were, so a rename with three callers never pays for a fan-out, and the run is sized to the host's guideline with a confirmation before it goes above.
+- **`agent-workflows/references/dynamic-workflows.md`.** The ASK policy on top of the host mechanics: the fit test, how a run starts on Claude Code (and why the `ultracode` keyword only works in typed input), limits, a slice-first sizing rule, a model tier named per stage, schema-shaped findings, disjoint edits, and the rule that a workflow's verifier agents never replace the REVIEW or AUDIT gate.
 - **`improve` wide audits.** A `deep` or repository-wide audit runs as a workflow: recon, finding agents that each take a chunk of files or modules for one category, and a verifier that tries to refute each finding. The audit stays read-only.
 - **Mandate bullet in `rules/workflow.md`.** Every installed host now carries the workflow rule, whether or not the `develop` skill is read.
 
 ### Changed
 
-- **`ask-worker` reports `ASK_WORKFLOW_BLOCKED phase=EXECUTE`** when the task fits a workflow. A worker cannot start agents or workflows, so the coordinator makes the offer, and the host's approval prompt stays in place.
+- **`ask-worker` reports `ASK_WORKFLOW_BLOCKED phase=EXECUTE`** when the task fits a workflow. A worker cannot start agents or workflows, so the coordinator launches the run, and the host's approval prompt stays in place.
 
 ## [2.8.1] - 2026-10-13
 
