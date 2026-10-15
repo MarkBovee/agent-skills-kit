@@ -77,12 +77,12 @@ Before finishing any code change, inspect every changed function-like construct 
 - **Direct:** known files, tight coupling, fast iteration, nuanced judgment
 - **Delegate:** independent research, parallelizable subtasks, noisy command runs, or specialized review
 - **Delegate (staged):** sequential dependency chain, each step with its own complexity. Step B builds on step A's output. The main agent orchestrates, validates each step, and only proceeds on green light.
-- **Dynamic workflow:** one script orchestrates many subagents (in Claude Code the Workflow tool and `/workflows`). Pick it over Delegate when the fit test in the Dynamic workflow section passes.
+- **Dynamic workflow:** one script orchestrates many subagents (in Claude Code the Workflow tool and `/workflows`). Offer it instead of Delegate when the fit test in the Dynamic workflow section passes; it starts only after the user opts in.
 - **Batch:** related reads, searches, and edits that can be done safely together
 
 ## Cheap-first escalation
 
-1. Routed skill work (this skill, `debugging`, `improve`) runs in the Sonnet `ask-worker` agent, not on the session model; a dynamic workflow is the exception, because the coordinator launches it (see Dynamic workflow). Before each delegation, select a task-appropriate model and pass it per invocation when the host supports it; tiers alone do not select a model. Default to Haiku for mechanical work, Sonnet for standard work, and Opus only with a stated reason.
+1. Routed skill work (this skill, `debugging`, `improve`) runs in the Sonnet `ask-worker` agent, not on the session model; a dynamic workflow is the exception: the coordinator offers it and, after the user opts in, starts it (see Dynamic workflow). Before each delegation, select a task-appropriate model and pass it per invocation when the host supports it; tiers alone do not select a model. Default to Haiku for mechanical work, Sonnet for standard work, and Opus only with a stated reason.
 2. Start bounded mechanical chores on the smallest viable agent or subagent.
 3. Validate the result before widening context.
 4. Escalate to default agent only if scope grows beyond the original bounded task.
@@ -125,12 +125,13 @@ When the host can run dynamic workflows, check this before choosing Delegate. Dy
 
 Rules for a run:
 
-- **The coordinator launches it.** A worker cannot start agents or workflows; a worker that finds the work fits reports `ASK_WORKFLOW_BLOCKED phase=EXECUTE` with the item count and the reason, and the coordinator runs it. A coordinator that already sees the fit skips the worker.
+- **Offer it; start it only after the user opts in.** The host lets an agent start a run only when the user asked for one in their own words ("use a workflow"), typed `ultracode`, has ultracode on for the session, or ran a saved workflow. A task that merely fits does not count. When the fit test passes without that opt-in, tell the user in a few lines what the run would do, the expected agent count, the model tier per stage, and a rough cost, and ask whether to run it. In a non-interactive run, where no answer can come, continue in Delegate mode.
+- **The coordinator makes the offer and starts the run.** A worker cannot start agents or workflows; a worker that finds the work fits reports `ASK_WORKFLOW_BLOCKED phase=EXECUTE` with the item count and the reason, and the coordinator makes the offer. A coordinator that already sees the fit skips the worker.
 - **Name a model per stage by tier** (`light` for locate and extract, `standard` for edit and verify, `deep` only with a stated reason). A fan-out left on the session model multiplies the most expensive tier.
 - **Return schema-shaped results** (path, impact, severity, evidence), not prose, so only the final answer reaches the context.
 - **Keep the host's approval prompt.** It shows the phases and the script; never pre-approve or bypass it to start a run.
 - **A workflow is EXECUTE and VALIDATE evidence.** Its verifier agents cross-check findings; they do not replace the REVIEW or AUDIT the risk requires, which the coordinator still dispatches once on the final diff.
-- **No workflow support, or the host asks the user to opt in:** say in one line that the task fits a workflow and continue in Delegate mode instead of waiting.
+- **No workflow support:** continue in Delegate mode and say so once.
 
 See `agent-workflows` for the host mechanics, limits, and script patterns.
 

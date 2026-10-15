@@ -17,7 +17,8 @@ A dynamic workflow is a script the host runs to orchestrate many subagents. The 
 
 ## Starting one on Claude Code
 
-- The coordinator starts a run with the Workflow tool, or the user runs a saved workflow as `/<name>`. The user can also ask in their own words ("use a workflow") or type the `ultracode` keyword; `/effort ultracode` makes the host plan a workflow for every substantive task, which is the user's setting and never ASK's to turn on.
+- A run needs the user's opt-in, and the Workflow tool says so itself. The opt-in is one of: the user asked for a workflow in their own words ("use a workflow", "fan out agents"), typed the `ultracode` keyword, has ultracode on for the session (`/effort ultracode`, the user's setting and never ASK's to turn on), or ran a saved workflow as `/<name>`. A task that merely fits does not count, and neither does an ASK skill read through the router, because the user did not invoke it.
+- Without the opt-in, describe the run (what it does, expected agent count, model tier per stage, rough cost) and ask whether to run it; mention that "use a workflow" starts it. In a non-interactive run, where no answer can come, continue in Delegate.
 - The keyword is an opt-in only in a prompt the user typed. A hook, a scheduled task, `claude -p`, or a relayed comment cannot start a run with it, so never rely on writing it into a prompt.
 - A run goes through the permission evaluation of the session. In manual and accept-edits modes the user sees the phases and can read the raw script before approving. Do not add a blanket `Workflow` allow rule or switch the permission mode to avoid the prompt.
 - `/workflows` shows progress, pauses, stops, and restarts agents. A stopped run relaunches from the same script: completed agents return saved results until the first agent whose prompt changed.

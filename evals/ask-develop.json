@@ -42,10 +42,22 @@
     "query": "Migrate all 60 components under src/components from class components to function components. Each file is independent.",
     "files": [],
     "expected_behavior": [
-      "Recognizes the fan-out shape (about ten or more independent items with the same operation) and chooses workflow mode when the host runs dynamic workflows, otherwise Delegate",
+      "Recognizes the fan-out shape (about ten or more independent items with the same operation) and, when the host runs dynamic workflows, offers a workflow with its agent count and a rough cost instead of starting one, then waits for the user's opt-in; otherwise Delegates",
       "Settles scope and acceptance first because a run cannot ask the user mid-run, states the expected agent count, and starts with a one-directory slice",
       "Gives each agent a chunk of components so the run stays within the host's size guideline and asks before exceeding it, names a model tier per stage instead of leaving the fan-out on the session model, and gives each agent its own files or an isolated copy",
       "Still dispatches the review gate once on the final diff and does not treat the workflow's verifier agents as that gate"
+    ]
+  },
+  {
+    "skills": [
+      "ask-develop"
+    ],
+    "query": "Use a workflow to migrate all 60 components under src/components from class components to function components. Each file is independent.",
+    "files": [],
+    "expected_behavior": [
+      "Treats the request as the user's opt-in and does not ask again whether to run a workflow",
+      "Still settles scope and acceptance first, states the expected agent count and model tier per stage, and starts with a one-directory slice",
+      "Keeps each file with exactly one agent or an isolated copy, and dispatches the review gate once on the final diff"
     ]
   },
   {
