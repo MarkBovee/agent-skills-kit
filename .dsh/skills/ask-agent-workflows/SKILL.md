@@ -14,7 +14,7 @@ Delegate only when it improves independence, coverage, specialist reasoning, or 
 
 - **any auxiliary work (default)** — grep, review, research, isolated edit
 - the work splits into independent parts
-- the work fans out over about ten or more independent items that each need judgment, or many findings need independent cross-checks → a dynamic workflow (see Dynamic workflows)
+- the work fans out over about ten or more independent items that each need judgment, or many findings need independent cross-checks → offer a dynamic workflow (see Dynamic workflows)
 - one branch is blocked on a slow command or external wait
 - a handoff between sessions is already happening
 - bounded release chore (version bump, changelog, release notes)
@@ -88,7 +88,7 @@ Input and report size repeat per agent, so cap both.
 
 ## Dynamic workflows
 
-When the host runs scripts that orchestrate many subagents, the script replaces the coordinator as the orchestrator: it keeps the loop and the intermediate results, and only the final answer reaches the context. Use it for fan-out over about ten or more independent items that each need judgment, check-and-fix loops over about ten or more independent failures, and adversarial cross-checks; stay with Delegate or Batch below that, and for purely mechanical edits. The coordinator launches the run (workers cannot), settles scope first because a run cannot ask the user, names a model tier per stage, and keeps the review and audit gates outside the run, dispatched once on the final diff. Before choosing or writing a workflow, read [references/dynamic-workflows.md](references/dynamic-workflows.md) for the starting routes, limits, and the full policy.
+When the host runs scripts that orchestrate many subagents, the script replaces the coordinator as the orchestrator: it keeps the loop and the intermediate results, and only the final answer reaches the context. Use it for fan-out over about ten or more independent items that each need judgment, check-and-fix loops over about ten or more independent failures, and adversarial cross-checks; stay with Delegate or Batch below that, and for purely mechanical edits. The coordinator offers the run with its agent count and a rough cost, and starts it only after the user opts in (workers cannot start one); it settles scope first because a run cannot ask the user, names a model tier per stage, and keeps the review and audit gates outside the run, dispatched once on the final diff. Before choosing or writing a workflow, read [references/dynamic-workflows.md](references/dynamic-workflows.md) for the starting routes, limits, and the full policy.
 
 ## Handoff context
 
