@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.9.1] - 2026-10-15
+
+### Fixed
+
+- **Dynamic workflows are offered, not started.** The 2.9.0 guidance told the coordinator to launch a fitting run itself, but the host's Workflow tool starts only on an explicit opt-in ("use a workflow", `ultracode`, ultracode on for the session, or a saved workflow), and a task that merely fits does not count. `develop`, `agent-workflows`, `improve`, `ask-worker`, and the mandate bullet now have the coordinator describe the run (what it does, expected agent count, model tier per stage, rough cost) and start it after the opt-in. A non-interactive run continues in Delegate mode, and a worker that finds the work fits reports `ASK_WORKFLOW_BLOCKED phase=EXECUTE` so the coordinator can make the offer. The reference file explains why an ASK skill read through the router is not itself an opt-in (#160).
+
 ## [2.9.0] - 2026-10-15
 
 ### Added
