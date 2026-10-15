@@ -34,5 +34,30 @@
       "Makes a minimal fix",
       "Validates before declaring done"
     ]
+  },
+  {
+    "skills": [
+      "ask-develop"
+    ],
+    "query": "Migrate all 60 components under src/components from class components to function components. Each file is independent.",
+    "files": [],
+    "expected_behavior": [
+      "Recognizes the fan-out shape (about ten or more independent items with the same operation) and chooses workflow mode when the host runs dynamic workflows, otherwise Delegate",
+      "Settles scope and acceptance first because a run cannot ask the user mid-run, and states the expected agent count, starting with a one-directory slice",
+      "Names a model tier per stage instead of leaving the fan-out on the session model, and gives each agent its own file or isolated copy",
+      "Still dispatches the review gate once on the final diff and does not treat the workflow's verifier agents as that gate"
+    ]
+  },
+  {
+    "skills": [
+      "ask-develop"
+    ],
+    "query": "Rename formatTotal to formatOrderTotal and update its three callers.",
+    "files": [],
+    "expected_behavior": [
+      "Stays in Direct mode because three callers are far below the fan-out threshold",
+      "Does not propose or launch a dynamic workflow",
+      "Runs the fastest trustworthy proof and reports the result"
+    ]
   }
 ]

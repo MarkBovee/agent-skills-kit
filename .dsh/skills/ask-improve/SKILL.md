@@ -27,6 +27,8 @@ Skip when:
 3. **Plan**: convert findings into self-contained, executor-ready plans with drift checks, verification gates, hard boundaries, and escape hatches
 4. **Follow-through**: `execute <plan>`, `reconcile`, `next`, `branch`
 
+**Wide audits.** When the host runs dynamic workflows and the audit is `deep` or repository-wide (hundreds of files, several categories), run the audit as one workflow. A recon agent lists the surface; one agent per file or module per category returns schema-shaped findings with `file:line`; a verifier agent tries to refute each finding before it is reported, which is the false-positive validation the Rules require. The coordinator launches it with a model tier per stage and a one-directory slice first. The audit stays read-only, and `execute` still dispatches a separate executor. `quick`, `branch`, and one-category audits of one module stay direct.
+
 For significant or release-sensitive work, act as the independent audit role: inspect callers and the complete diff, challenge ownership, ambiguity, fallbacks, determinism, compatibility, and test invariants. Return concrete evidence, not generic quality advice. Use `ASK_WORKFLOW_PASS phase=AUDIT`, `ASK_WORKFLOW_FINDINGS phase=AUDIT`, `ASK_WORKFLOW_BLOCKED phase=AUDIT`, or `ASK_WORKFLOW_FAILED phase=AUDIT`.
 
 When an audit satisfies code-review debt, include `review-generation`, `review-scope: final-diff`, `review-reference`, `review-completed-at`, and `review-result: PASS` metadata, followed by terminal `ASK_REVIEW_COMPLETE`. An audit outside final diff scope must not clear review debt.

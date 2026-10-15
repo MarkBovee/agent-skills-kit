@@ -6,6 +6,19 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.9.0] - 2026-10-15
+
+### Added
+
+- **Dynamic workflows are part of the default loop.** `develop` gains a Dynamic workflow mode next to Direct, Delegate, and Batch. Where the host runs scripts that orchestrate many subagents (Claude Code: the Workflow tool and `/workflows`), a task with about ten or more independent items, a check-and-fix loop, or many findings that need a cross-check runs as one workflow instead of hand-coordinated subagents. Smaller tasks stay as they were, so a rename with three callers never pays for a fan-out.
+- **`agent-workflows/references/dynamic-workflows.md`.** The ASK policy on top of the host mechanics: the fit test, how a run starts on Claude Code (and why the `ultracode` keyword only works in typed input), limits, a slice-first sizing rule, a model tier named per stage, schema-shaped findings, disjoint edits, and the rule that a workflow's verifier agents never replace the REVIEW or AUDIT gate.
+- **`improve` wide audits.** A `deep` or repository-wide audit runs as a workflow: recon, one finding agent per file or module per category, and a verifier that tries to refute each finding. The audit stays read-only.
+- **Mandate bullet in `rules/workflow.md`.** Every installed host now carries the workflow rule, whether or not the `develop` skill is read.
+
+### Changed
+
+- **`ask-worker` reports `ASK_WORKFLOW_BLOCKED phase=EXECUTE`** when the task fits a workflow. A worker cannot start agents or workflows, so the coordinator launches the run, and the host's approval prompt stays in place.
+
 ## [2.8.1] - 2026-10-13
 
 ### Added
