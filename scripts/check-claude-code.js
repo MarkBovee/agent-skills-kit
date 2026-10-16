@@ -13,6 +13,8 @@ const HOOK_SCRIPT = path.join(REPO_ROOT, "scripts", "agent-skills-hook.js")
 // descriptions once it is spent, so each ASK description stays short enough to survive next to other packs.
 const MAX_DESCRIPTION_LENGTH = 160
 const MAX_LISTING_BUDGET = 1536 * 4
+// Section headings the compact instructions ask for; the PostCompact hook checks the summary against the same list.
+const COMPACT_SECTIONS = ["Objective", "Requirements", "Decisions", "Work State", "Next Move", "Relevant Files", "Important Context"]
 
 const failures = []
 
@@ -112,7 +114,7 @@ function checkAgents() {
 // Check the hooks file uses the nested Claude Code shape with a quoted plugin root.
 function checkHooksFile() {
   const hooks = readJson("hooks/hooks.json").hooks || {}
-  for (const eventName of ["SessionStart", "SubagentStart", "UserPromptSubmit", "PreToolUse", "PostToolUse"]) {
+  for (const eventName of ["SessionStart", "SubagentStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PreCompact", "PostCompact"]) {
     // Flatten the handler lists of every hook entry for one event.
     const handlers = (hooks[eventName] || []).flatMap((entry) => entry.hooks || [])
     expect(handlers.length > 0, `${eventName} defines nested hook handlers`)
@@ -287,6 +289,28 @@ function checkHookBehavior() {
     expect(resumed.includes("Resumed from a summary") && resumed.includes("historical"), `SessionStart source=${source} adds the skill reload reminder`)
   }
   expect(!startContext.includes("Resumed from a summary"), "a fresh SessionStart carries no resume reminder")
+
+  // Compaction: PreCompact records a ledger that SessionStart(compact) hands back once; PostCompact flags a thin summary on stderr.
+  const ledgerRepo = fs.mkdtempSync(path.join(stateDir, "ledger-repo-"))
+  fs.mkdirSync(path.join(ledgerRepo, "plans"))
+  fs.writeFileSync(path.join(ledgerRepo, "plans", "feature.md"), "# plan\n")
+  spawnSync("git", ["init", "-q", "-b", "feat/ledger"], { cwd: ledgerRepo })
+  run("prompt", { session_id: "ledger", prompt: "implement the next step" })
+  run("post-skill-read", { session_id: "ledger", tool_input: { file_path: path.join(SKILLS_DIR, "ask-develop", "SKILL.md") } })
+  run("pre-compact", { session_id: "ledger", cwd: ledgerRepo, trigger: "auto" })
+  // Run SessionStart(compact) for the ledger session and return the context it adds.
+  const startAfterCompact = () => parseHookOutput(run("session-start", { session_id: "ledger", source: "compact" }).stdout)?.hookSpecificOutput?.additionalContext || ""
+  const ledgerContext = startAfterCompact()
+  expect(ledgerContext.includes("Compaction ledger") && ledgerContext.includes("Branch: feat/ledger") && ledgerContext.includes("plans/feature.md") && ledgerContext.includes("ask-develop") && ledgerContext.includes("Workflow risk="), "SessionStart(compact) hands back the ledger with branch, plan files, loaded skills, and workflow risk")
+  expect(!startAfterCompact().includes("Compaction ledger"), "the ledger is injected once per compaction")
+  expect(!parseHookOutput(run("session-start", { session_id: "ledger-none", source: "compact" }).stdout)?.hookSpecificOutput?.additionalContext?.includes("Compaction ledger"), "no ledger is injected when PreCompact never ran")
+  const thinSummary = run("post-compact", { session_id: "ledger", trigger: "auto", compact_summary: "We discussed things." })
+  expect(thinSummary.status === 2 && thinSummary.stderr.includes("Objective") && thinSummary.stderr.includes("Next Move"), "PostCompact reports a summary that lacks the template sections")
+  // Alternate markdown headings and bold labels so both heading forms are covered.
+  const fullSummary = COMPACT_SECTIONS.map((section, index) => (index % 2 === 0 ? `## ${section}` : `**${section}**`) + "\n- item").join("\n")
+  expect(run("post-compact", { session_id: "ledger", trigger: "auto", compact_summary: fullSummary }).status === 0, "PostCompact accepts a summary with every template section")
+  // The mandate must name every section the PostCompact hook checks for.
+  expect(COMPACT_SECTIONS.every((section) => fs.readFileSync(path.join(REPO_ROOT, "rules", "workflow.md"), "utf8").includes(`**${section}**`)), "rules/workflow.md compact instructions name every section the PostCompact check expects")
   fs.rmSync(stateDir, { recursive: true, force: true })
 
   checkGitGuard()

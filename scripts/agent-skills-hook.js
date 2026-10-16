@@ -38,6 +38,10 @@ const MAX_HINT_SKILLS = 4
 // questions a subagent cannot answer), and deep-research (tier deep, multi-source, expects its own subagents).
 const WORKER_SKILL_NAMES = new Set(["develop", "debugging", "research", "improve", "verification", "observability", "design"])
 const STATE_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000
+// Section headings the compact instructions in rules/workflow.md ask the summary to carry.
+const COMPACT_SECTIONS = ["Objective", "Requirements", "Decisions", "Work State", "Next Move", "Relevant Files", "Important Context"]
+const LEDGER_MAX_FILES = 15
+const LEDGER_MAX_PLANS = 3
 const REVIEW_CLOSE_HINT = "  Close it with an independent reviewer/auditor report ending `ASK_WORKFLOW_PASS phase=REVIEW diff=<ref>` (or `phase=AUDIT`), or by reading the code-review skill; a later edit re-arms it."
 
 // Read the hook payload without making malformed input fatal to the agent session.
@@ -320,6 +324,75 @@ function buildResumeContext() {
   ].join("\n")
 }
 
+// Record that a workflow skill was read, so the compaction ledger can say which ones were loaded this session.
+function recordLoadedSkill(sessionId, skillId) {
+  if (!skillId.startsWith("ask-")) return
+  const state = loadState(sessionId)
+  const loaded = Array.isArray(state.loadedSkills) ? state.loadedSkills : []
+  if (!loaded.includes(skillId)) saveState(sessionId, { ...state, loadedSkills: [...loaded, skillId] })
+}
+
+// List the changed paths of the working tree (porcelain status), empty when git is unavailable.
+function listDirtyFiles(cwd) {
+  try {
+    const result = spawnSync("git", ["status", "--porcelain"], { cwd, encoding: "utf8", timeout: 3000 })
+    if (result.status !== 0) return []
+    // Drop the two status columns and the separating space from each porcelain line.
+    return result.stdout.split("\n").filter(Boolean).map((line) => line.slice(3))
+  } catch {
+    return []
+  }
+}
+
+// List the most recently changed plan documents under plans/, newest first, as project-relative paths.
+function listRecentPlans(cwd) {
+  try {
+    const plansDir = path.join(cwd, "plans")
+    return fs.readdirSync(plansDir)
+      // Keep only Markdown plan documents.
+      .filter((name) => name.endsWith(".md"))
+      // Pair each plan with its modification time so the newest sort first.
+      .map((name) => ({ name, mtimeMs: fs.statSync(path.join(plansDir, name)).mtimeMs }))
+      // Order newest first.
+      .sort((a, b) => b.mtimeMs - a.mtimeMs)
+      .slice(0, LEDGER_MAX_PLANS)
+      // Report project-relative paths so the line stays short and portable.
+      .map((plan) => `plans/${plan.name}`)
+  } catch {
+    return []
+  }
+}
+
+// Snapshot what compaction would otherwise flatten: the branch, the dirty tree, and the plan documents. Paths only, never contents.
+function collectCompactLedger(payload) {
+  const cwd = payload.cwd || process.cwd()
+  const dirtyFiles = listDirtyFiles(cwd)
+  return { trigger: payload.trigger || "", branch: currentGitBranch(cwd), dirtyTotal: dirtyFiles.length, dirtyFiles: dirtyFiles.slice(0, LEDGER_MAX_FILES), plans: listRecentPlans(cwd) }
+}
+
+// Render the ledger and workflow state as a short block the agent can trust over the summary when they differ.
+function buildLedgerContext(state) {
+  const ledger = state.compactLedger
+  if (!ledger) return ""
+  const workflow = state.workflow
+  const loaded = Array.isArray(state.loadedSkills) ? state.loadedSkills : []
+  const dirty = ledger.dirtyTotal > 0 ? `${ledger.dirtyTotal} changed (${ledger.dirtyFiles.join(", ")}${ledger.dirtyTotal > ledger.dirtyFiles.length ? ", ..." : ""})` : "clean"
+  return [
+    "Compaction ledger, recorded by Agent Skills Kit before the summary was written; where it differs from the summary, trust the ledger and verify against the repository:",
+    workflow ? `- ${workflowLine(workflow)} Code review pending: ${state.needsCodeReview ? "yes" : "no"}.` : "",
+    `- Skills read this session: ${loaded.length > 0 ? loaded.join(", ") : "none recorded"}.`,
+    `- Branch: ${ledger.branch || "unknown"}. Working tree: ${dirty}.`,
+    ledger.plans.length > 0 ? `- Plan files: ${ledger.plans.join(", ")}.` : "",
+  ].filter(Boolean).join("\n")
+}
+
+// Name the sections of the compact template that a summary lacks; a heading counts in plain, bold, or markdown form.
+function missingSummarySections(summary) {
+  const text = String(summary || "")
+  // Keep each template section whose heading does not start any line of the summary.
+  return COMPACT_SECTIONS.filter((section) => !new RegExp(`^[\\s#*>\\d.)-]*${section}\\b`, "im").test(text))
+}
+
 // Look up the checked-out branch of the session's working directory; empty when git is unavailable or HEAD is detached.
 function currentGitBranch(cwd) {
   try {
@@ -385,6 +458,7 @@ async function main() {
     const loadedSkill = readLoadedSkill(payload)
     if (loadedSkill === `ask-${SKILL_CODE_REVIEW}`) clearReviewGate(sessionId)
     if (loadedSkill === `ask-${SKILL_TEXT_WRITING}`) markTextWritingLoaded(sessionId)
+    recordLoadedSkill(sessionId, loadedSkill)
     return
   }
 
@@ -398,15 +472,35 @@ async function main() {
     const loadedSkill = readLoadedSkillFile(payload)
     if (loadedSkill === `ask-${SKILL_CODE_REVIEW}`) clearReviewGate(sessionId)
     if (loadedSkill === `ask-${SKILL_TEXT_WRITING}`) markTextWritingLoaded(sessionId)
+    recordLoadedSkill(sessionId, loadedSkill)
     return
   }
 
   if (event === "session-start") {
     pruneStates()
+    const state = loadState(sessionId)
+    const compacted = payload.source === "compact"
+    // The ledger describes one compaction only, so it is injected here and then dropped from the state.
+    const ledgerContext = compacted ? buildLedgerContext(state) : ""
     // Compaction drops earlier hook context, so the risk line and the prose nudge must be shown again.
-    if (payload.source === "compact") saveState(sessionId, { ...loadState(sessionId), announcedRisk: undefined, textWritingHintShown: undefined })
-    const resumed = payload.source === "compact" || payload.source === "resume"
-    process.stdout.write(buildHookOutput("SessionStart", [buildSessionContext(), resumed ? buildResumeContext() : ""].filter(Boolean).join("\n")))
+    if (compacted) saveState(sessionId, { ...state, announcedRisk: undefined, textWritingHintShown: undefined, compactLedger: undefined })
+    const resumed = compacted || payload.source === "resume"
+    process.stdout.write(buildHookOutput("SessionStart", [buildSessionContext(), resumed ? buildResumeContext() : "", ledgerContext].filter(Boolean).join("\n")))
+    return
+  }
+
+  // Snapshot the state compaction would flatten, for SessionStart(compact) to hand back after the summary exists.
+  if (event === "pre-compact") {
+    saveState(sessionId, { ...loadState(sessionId), compactLedger: collectCompactLedger(payload) })
+    return
+  }
+
+  // Claude Code discards PostCompact output except stderr, so a thin summary is reported there (exit 2) and nowhere else.
+  if (event === "post-compact") {
+    const missing = missingSummarySections(payload.compact_summary)
+    if (missing.length === 0) return
+    process.stderr.write(`Agent Skills Kit: the compaction summary has no ${missing.join(", ")} section. The ledger and the repository stay the source of truth after compaction.\n`)
+    process.exitCode = 2
     return
   }
 
