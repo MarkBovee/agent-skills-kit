@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.11.0] - 2026-10-16
+
+### Added
+
+- **Compaction keeps the work state (#162).** Claude Code hooks cannot rewrite a compaction summary, so ASK works from both sides. `rules/workflow.md` gains compact instructions that ask the summary for Objective, Requirements, Decisions, Work State (Completed, Active, Blocked), Next Move, Relevant Files, and Important Context, and to keep the plan path, the gate ledger, and the dirty-tree state. A `PreCompact` hook records a ledger (workflow risk and gates, whether code review is pending, ASK skills read this session, branch, changed files, recent `plans/*.md`; paths only), and `SessionStart(compact)` hands it back once, so the state survives even when the summary is thin. A `PostCompact` hook checks the summary for the template sections and reports missing ones on stderr, the only channel Claude Code shows the user from that event. Whether the summarizer follows rules-file instructions is not documented; the ledger does not depend on it.
+
 ## [2.10.0] - 2026-10-15
 
 ### Changed

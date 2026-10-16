@@ -117,6 +117,7 @@ Install as a plugin (recommended):
 | --- | --- |
 | 18 `ask-` skills | Hidden from automatic model invocation (`disable-model-invocation`). The router picks one and the agent reads its `SKILL.md`; you can also run any of them as a slash command. |
 | `SessionStart` hook | Routing table with the exact `SKILL.md` path per workflow plus the workflow mandate. Announced again after compaction. |
+| `PreCompact`, `PostCompact` hooks | `PreCompact` records a ledger of workflow state, read skills, branch, changed files, and plan files; `SessionStart(compact)` hands it back once. `PostCompact` reports a summary that lacks the template sections (Objective, Requirements, Decisions, Work State, Next Move, Relevant Files, Important Context). |
 | `SubagentStart` hook | Hands the same routing table to subagents, which do not inherit session context. |
 | `UserPromptSubmit` hook | One routing suggestion, the workflow risk and its gates, the test budget, and the review reminder. Plain questions and slash commands get nothing. |
 | `PreToolUse` hook | The git guard: denies destructive `git` commands in Bash before they run, and asks before a push to `main` or `master` (see below). |
