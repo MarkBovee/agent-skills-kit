@@ -14,8 +14,6 @@ ASK installs files into your home directory and runs hooks inside your agent ses
 - the Claude Code hooks: `scripts/agent-skills-hook.js` and `hooks/hooks.json`
 - the OpenCode and dsh routers under `plugins/`
 
-The git guard (`core/git-guard.js`) is a safety net against agent mistakes, not a security boundary. It does not look inside `bash -c` strings or scripts, and that limit is documented in [docs/hosts.md](docs/hosts.md#git-guard), so a bypass through those is not a vulnerability.
-
 ## Fixes
 
 Fixes ship in the latest release. See [CHANGELOG.md](CHANGELOG.md) for what changed.

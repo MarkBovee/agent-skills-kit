@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.10.0] - 2026-10-26
+
+### Removed
+
+- **The git guard is gone.** The `PreToolUse` Bash hook, `core/git-guard.js`, and the `ASK_GIT_GUARD` setting no longer exist. Claude Code's own permission prompts decide what git commands run. Remove `ASK_GIT_GUARD` from your `settings.json` env block if you set it.
+
 ## [2.9.0] - 2026-10-14
 
 ### Changed

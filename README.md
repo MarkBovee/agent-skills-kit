@@ -8,7 +8,7 @@
 
 <p align="center">
   <strong>ASK (Agent Skills Kit) makes your coding agent work like a careful senior engineer, without the ceremony.</strong><br />
-  Every task lands on the right workflow skill, and review and proof grow with the risk of the change. A git guard stops the commands you'd regret. You get code you can read, and a summary that says what ran and what didn't.
+  Every task lands on the right workflow skill, and review and proof grow with the risk of the change. You get code you can read, and a summary that says what ran and what didn't.
 </p>
 
 <p align="center">
@@ -107,7 +107,7 @@ With that in hand you can explain the change without having watched it get writt
 
 | Use | What ASK does for you |
 | --- | --- |
-| **Vibe coding**<br />Ship fast without losing the thread. | `/summary` says what changed and what ran, and points at the line to read first.<br />A small fix goes `EXECUTE → VALIDATE`: no review ceremony, no audit.<br />The git guard blocks `reset --hard`, force pushes, and a few other destructive commands, and asks before a push to `main`. |
+| **Vibe coding**<br />Ship fast without losing the thread. | `/summary` says what changed and what ran, and points at the line to read first.<br />A small fix goes `EXECUTE → VALIDATE`: no review ceremony, no audit. |
 | **10x coding**<br />Hold the agent to a senior bar. | The standards ask for small functions and reuse before adding. Every function gets an intent comment, and review treats a missing one as blocking.<br />Review also flags speculative abstraction and pass-through layers.<br />Normal work gets one combined review; significant work adds an independent audit. |
 | **Agentic workflows**<br />Run agents where the outcome has to be right. | Reviewer, auditor, and researcher subagents that report but never edit send `ASK_WORKFLOW_*` markers, and the review reminder stays until that evidence arrives.<br />`agent-workflows` coordinates parallel agents and `handoff` briefs the next one.<br />Every skill ships behavior evals, at least three scenarios each. |
 
@@ -183,7 +183,6 @@ Claude Code first: new workflow behavior is designed and validated there. OpenCo
 ASK installs files and runs hooks inside your agent sessions, so here's what it does and doesn't do.
 
 * **Hints on Claude Code, a gate on OpenCode.** The Claude Code router suggests one skill per task and never rewrites your commands or takes over a session. The OpenCode router also blocks edits and shell calls until the agent has read a skill file, and dsh does the same when you turn on `blockUntilSkillLoaded`.
-* **A git guard, on by default.** In Claude Code it blocks `reset --hard`, `clean -f`, `branch -D`, `stash clear`, `checkout .`, `restore .`, `switch --discard-changes`, force, delete, mirror, and prune pushes. A plain push to `main` or `master` shows a permission prompt instead, so approving it there lets it through. Set `ASK_GIT_GUARD=strict` to block every push or `off` to disable it. It is a safety net against agent mistakes, not a security boundary; details in [docs/hosts.md](./docs/hosts.md#git-guard).
 * **No network calls from the hooks.** The Claude Code hooks run `scripts/agent-skills-hook.js` and the modules in `core/`, with no dependencies. They read local files, ask local git for the current branch, and keep session state on disk.
 * **Installers stay in their lane.** They never replace your own skills, and the Claude wiring comes out again with `scripts/install.sh --uninstall-claude` (`-UninstallClaude` on Windows).
 * **Found a vulnerability?** Report it privately; see [SECURITY.md](./SECURITY.md).
@@ -231,7 +230,7 @@ No. Your own instructions stay where they are, and ASK adds its workflow rules a
 
 <br />
 
-They're good projects, and nothing stops you from running one next to ASK: [obra/superpowers](https://github.com/obra/superpowers), [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills), and [github/spec-kit](https://github.com/github/spec-kit). ASK's own focus is a router that suggests one skill per prompt, gates sized to the risk of the change, evidence the agent has to produce, and a git guard. Pick the mix that fits how you work.
+They're good projects, and nothing stops you from running one next to ASK: [obra/superpowers](https://github.com/obra/superpowers), [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills), and [github/spec-kit](https://github.com/github/spec-kit). ASK's own focus is a router that suggests one skill per prompt, gates sized to the risk of the change, evidence the agent has to produce. Pick the mix that fits how you work.
 
 </details>
 

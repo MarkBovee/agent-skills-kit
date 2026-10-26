@@ -119,21 +119,8 @@ Install as a plugin (recommended):
 | `SessionStart` hook | Routing table with the exact `SKILL.md` path per workflow plus the workflow mandate. Announced again after compaction. |
 | `SubagentStart` hook | Hands the same routing table to subagents, which do not inherit session context. |
 | `UserPromptSubmit` hook | One routing suggestion, the workflow risk and its gates, the test budget, and the review reminder. Plain questions and slash commands get nothing. |
-| `PreToolUse` hook | The git guard: denies destructive `git` commands in Bash before they run, and asks before a push to `main` or `master` (see below). |
 | `PostToolUse` hooks | Edits arm the review reminder, and writing a prose file such as a README or docs page adds a one-time nudge to read `ask-text-writing`; reading the `ask-code-review` file (or loading it through the Skill tool) clears the reminder. Session state lives in `${CLAUDE_PLUGIN_DATA}`. |
 | Subagents | `ask-worker` (Sonnet, can edit) runs a routed workflow skill end to end. Read-only `ask-reviewer`, `ask-auditor`, and `ask-researcher` return `ASK_WORKFLOW_*` evidence markers. All four default to Sonnet. |
-
-### Git guard
-
-The `PreToolUse` hook on Bash stops destructive git commands before they run, in two ways.
-
-It denies outright: `reset --hard` and `reset --merge`, `clean -f` (not `-n`), `branch -D`, `stash clear`, `worktree remove --force`, `switch --discard-changes`, `checkout` and `restore` of the whole tree (`.`, `./`, `:/`, `*`; `restore --staged` is fine), force, delete, mirror, and prune pushes, and forced or deleting refspecs. The agent gets the reason and is told to hand the command to you; there is nothing to approve, so run it yourself if you want it.
-
-It asks before a plain push to `main` or `master`, including a bare `git push` while one of them is checked out. Claude Code shows its normal permission prompt with the command and the reason: allow it and the push runs, decline it and the push does not run. For a compound line such as `git branch -f master HEAD && git push origin master` the prompt covers the whole line, and a denied part anywhere in it denies the whole line. Pushes to other branches go through.
-
-Two cases turn that push back into a denial. `ASK_GIT_GUARD=strict` blocks every push, and in `bypassPermissions` mode the guard denies instead of asking, because the Claude Code docs do not say that a hook prompt appears there and a push should not slip through unasked. If you run in bypass mode and want the push, run it yourself or set `ASK_GIT_GUARD=off`.
-
-The guard looks through wrappers such as `sudo -u root`, `nice -n 5`, and `env -u VAR`, and through `$(...)` and backticks inside double quotes. Set `ASK_GIT_GUARD` in the environment (for example in the `env` block of `settings.json`): `strict` blocks every push, `off` disables the guard. It is a safety net against agent mistakes, not a security boundary: it does not look inside `bash -c` or `eval` strings, heredoc bodies, or scripts. It is part of the plugin, so a skills-mode install (`ASK_CLAUDE_MODE=skills`) does not have it.
 
 Skill files resolve in this order: the shared install (`~/.agents/skills`, or `ASK_SKILLS_DIR`) when it exists, otherwise the copy bundled in the plugin. A plugin-only install therefore works without running the installer.
 
