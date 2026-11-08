@@ -141,7 +141,8 @@ async function exportCommands() {
 
   for (const fileName of commandFiles) {
     const sourcePath = path.join(SOURCE_COMMANDS_DIR, fileName)
-    const content = await fs.readFile(sourcePath, "utf8")
+    // A CRLF checkout (core.autocrlf) must not leak \r into LF templates, or exports end up with mixed line endings.
+    const content = (await fs.readFile(sourcePath, "utf8")).replace(/\r\n/g, "\n")
     const description = readCommandDescription(content)
     const commandName = fileName.replace(/\.md$/, "")
 
@@ -287,7 +288,8 @@ async function exportSkills() {
     if (sourceSkillRaw.subarray(0, 8192).includes(0)) {
       throw new Error(`${sourceSkillPath} contains NUL bytes and would not load in dsh — fix the source first`)
     }
-    const sourceSkill = sourceSkillRaw.toString("utf8")
+    // Same CRLF normalization as commands, so a Windows checkout exports byte-identical skills.
+    const sourceSkill = sourceSkillRaw.toString("utf8").replace(/\r\n/g, "\n")
     const frontmatter = parseFrontmatter(sourceSkill)
     const skillId = (frontmatter.name || skillName).trim()
     const displayName = toBareSkillName(skillId)

@@ -20,6 +20,7 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 ### Fixed
 
 - **Required checks pass on Windows.** Dynamic imports use file URLs, path assertions compare with forward slashes, directory symlinks fall back to junctions, and `validate-plugin.js` and the coding-standards export read CRLF files. `docs/maintenance.md` explains the one-time `@opencode/plugin` setup for local runs.
+- **Exports stay clean on a CRLF checkout.** The exporter normalizes CRLF source to LF, and `.gitattributes` pins the generated export folders to LF, so `tag-release` no longer reports stale exports on Windows.
 
 ## [2.11.0] - 2026-10-16
 
