@@ -13,7 +13,8 @@ const {
 } = require("../core/router-core")
 
 const path = require("node:path")
-const PLUGIN_PATH = path.resolve(__dirname, "..", "plugins", "agent-skills-router.mjs")
+// Import specifiers must be file URLs on Windows, where an absolute path starts with a drive letter.
+const PLUGIN_PATH = require("node:url").pathToFileURL(path.resolve(__dirname, "..", "plugins", "agent-skills-router.mjs")).href
 const SKILLS_PATH = path.resolve(__dirname, "..", "skills")
 
 let failedChecks = 0
@@ -134,7 +135,7 @@ async function main() {
       && !(smallPrompt?.append || "").includes("TODO:REVIEW"))
   check("small local code edit creates no review nudge",
     !smallWorkflowText.includes("Code edited")
-      && !smallWorkflowText.includes("ask-code-review/SKILL.md"))
+      && !smallWorkflowText.split(path.sep).join("/").includes("ask-code-review/SKILL.md"))
 
   // Interaction guard: use a fresh plugin so unrelated routing assertions do
   // not change the exact interaction count this check is proving.
@@ -175,7 +176,7 @@ async function main() {
   const afterEdit = await plugin["tui.prompt.append"]({ prompt: "volgende stap" })
   check(
     "code edit sets code-review nudge",
-    (afterEdit?.append || "").includes("ask-code-review/SKILL.md"),
+    (afterEdit?.append || "").split(path.sep).join("/").includes("ask-code-review/SKILL.md"),
   )
 
   // Design gate: reading design arms the design-review nudge until it is read.
@@ -183,7 +184,7 @@ async function main() {
   const afterDesign = await plugin["tui.prompt.append"]({ prompt: "check de pagina" })
   check(
     "design load sets design-review nudge",
-    (afterDesign?.append || "").includes("ask-design-review/SKILL.md"),
+    (afterDesign?.append || "").split(path.sep).join("/").includes("ask-design-review/SKILL.md"),
   )
   await readSkill(plugin, "design-review")
   const afterDesignReview = await plugin["tui.prompt.append"]({ prompt: "check de pagina" })
@@ -203,7 +204,7 @@ async function main() {
   const beforeCompletion = await plugin["tui.prompt.append"]({ prompt: "nog een ding" })
   check(
     "second edit keeps code-review nudge armed",
-    (beforeCompletion?.append || "").includes("ask-code-review/SKILL.md"),
+    (beforeCompletion?.append || "").split(path.sep).join("/").includes("ask-code-review/SKILL.md"),
   )
   const afterCompletion = await plugin["tui.prompt.append"]({ prompt: `ik ben ${completionWord}` })
   const postCompletion = await plugin["tui.prompt.append"]({ prompt: "en nu verder" })
@@ -266,7 +267,7 @@ async function main() {
   const afterSessionReview = await plugin["tui.prompt.append"]({ prompt: "en nu verder" })
   check(
     "session-review load clears improvement hint",
-    !(afterSessionReview?.append || "").includes("ask-session-review/SKILL.md"),
+    !(afterSessionReview?.append || "").split(path.sep).join("/").includes("ask-session-review/SKILL.md"),
   )
 
   const panelPlugin = await AgentSkillsRouter()

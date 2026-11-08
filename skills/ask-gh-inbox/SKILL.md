@@ -53,6 +53,15 @@ First resolve the repository without hard-coded owner or name:
 gh repo view --json nameWithOwner
 ```
 
+**Sync the local checkout** before reading any code for triage, so replies are judged against what shipped, not a stale branch:
+
+```bash
+git fetch --tags origin
+git status -sb
+```
+
+When the default branch is behind its remote, fast-forward it (`git merge --ff-only`). When the tree is dirty, another branch is checked out, or the branch has diverged, do not fast-forward: report it and compare against `origin/<default>` and the latest tag instead. Done when every code reference in the triage comes from a ref at or after the newest remote tag.
+
 **Issues** (sorted by most recently updated first):
 
 ```bash

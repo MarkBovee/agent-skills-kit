@@ -50,6 +50,14 @@ For delegated review, return `ASK_WORKFLOW_PASS phase=REVIEW` only when requirem
 - Is the proof proportional to the risk?
 - Are docs or follow-on changes needed?
 
+## External pull requests
+
+A PR from outside the team gets its own review on its own diff before it merges into a release branch. Green CI and the author's test report are not that review, and a later release-diff review dilutes the PR into a larger change.
+
+- Review the PR diff against its merge base, not the release diff after merging.
+- Ask the reviewer to find guards, validation, locks, or safety checks that existing call sites run and the new path skips.
+- Record the gate (result, reviewer, tokens or time) before merging. Done when every external PR in the release has its own PASS or fixed findings.
+
 ## Finding scope
 
 Before treating a behavior as an actionable finding, compare the cited lines with the exact review base. Every finding must identify a changed hunk or explain the direct behavior introduced by a changed hunk. Nearby unchanged lines are context; pre-existing behavior is not a regression just because the diff made it visible. If the base diff or causal link cannot be established, report the review as blocked or limited instead of presenting an unsupported regression. Keep unrelated pre-existing behavior classified as context, not as a finding against this change.

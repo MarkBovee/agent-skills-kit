@@ -1,12 +1,32 @@
 // Verify the exported router definition and its OpenCode V2 hook registrations.
-import { existsSync } from "node:fs"
-import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises"
+import { existsSync, statSync } from "node:fs"
+import { cp, mkdir, mkdtemp, readFile, rm, symlink as fsSymlink, writeFile } from "node:fs/promises"
 import { createRequire } from "node:module"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { dirname, join, resolve } from "node:path"
 import { pathToFileURL } from "node:url"
 
 const require = createRequire(import.meta.url)
+
+// Cleared when a file symlink had to be copied instead, which disables symlink-resolution assertions.
+let fileSymlinksAvailable = true
+
+// Create a symlink; without symlink privilege (Windows without developer mode) fall back to a
+// junction for directories or a copy for files so the checks still run.
+async function symlink(target, linkPath) {
+  try {
+    await fsSymlink(target, linkPath)
+  } catch (error) {
+    if (error.code !== "EPERM") throw error
+    const absoluteTarget = resolve(dirname(linkPath), target)
+    if (statSync(absoluteTarget).isDirectory()) await fsSymlink(absoluteTarget, linkPath, "junction")
+    else {
+      // A copy cannot prove symlink resolution, so the symlink-specific assertions below are skipped.
+      await cp(absoluteTarget, linkPath)
+      fileSymlinksAvailable = false
+    }
+  }
+}
 
 const skillRoot = await mkdtemp(join(tmpdir(), "ask-opencode-v2-plugin-"))
 await Promise.all([
@@ -991,7 +1011,7 @@ const symlinkIndexPatch = planGateItems(workflowHistory("add a status panel", [
     patchText: "*** Begin Patch\n*** Update File: plans/README.md\n@@\n-| 001 | Show plan gate status in the OpenCode sidebar | P2 | M | — | IN PROGRESS |\n+| 001 | Show plan gate status in the OpenCode sidebar | P2 | M | — | DONE |\n*** End Patch",
   },
 ]), symlinkIndexWorkspace)
-assertGateSnapshot(symlinkIndexPatch, [
+if (fileSymlinksAvailable) assertGateSnapshot(symlinkIndexPatch, [
   "PLAN_CHECK=PENDING", "VALIDATE=NOT STARTED", "REVIEW=NOT STARTED",
   "AUDIT=NOT STARTED", "RELEASE_GATE=NOT STARTED",
 ], "when the plan index path resolves through a symlink")
@@ -1096,7 +1116,7 @@ const symlinkPlanPath = planGateItems(workflowHistory("add a status panel", [
   ...completeHistory,
   { tool: "write", filePath: "plans/linked.md" },
 ]), planWorkspace)
-assertGateSnapshot(symlinkPlanPath, [
+if (fileSymlinksAvailable) assertGateSnapshot(symlinkPlanPath, [
   "PLAN_CHECK=PENDING", "VALIDATE=NOT STARTED", "REVIEW=NOT STARTED",
   "AUDIT=NOT STARTED", "RELEASE_GATE=NOT STARTED",
 ], "after writing through a symlink in plans")

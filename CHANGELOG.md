@@ -6,6 +6,21 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.12.0] - 2026-11-08
+
+### Added
+
+- **Plan status overview.** Plans in `plans/*.md` can carry `status`, `branch`, and `base` frontmatter, checkbox work items, and a `## Gate ledger` table (format in the intake skill). `/agent-skills-kit:status` and `node scripts/plan-status.js` list each plan with done/total, the next open item, the last gate, and drift of HEAD from `base`. SessionStart (startup, resume, compact) adds one `Active plan:` line per active plan, and the compaction ledger shows counts. Intake and develop tell the agent to mirror open items into the host task list and tick them in the plan file at the same time.
+- **Code review covers external pull requests (#167).** Each PR from outside the team gets its own review on its own diff before it merges into a release branch, and the reviewer looks for guards that existing call sites run but the new path skips. Green CI and the author's tests are not that review.
+
+### Changed
+
+- **gh-inbox syncs the local checkout before triage (#166).** It runs `git fetch --tags` and `git status -sb`, fast-forwards a default branch that is behind, and reports instead of syncing when the tree is dirty or the branch has diverged, so replies are judged against what shipped.
+
+### Fixed
+
+- **Required checks pass on Windows.** Dynamic imports use file URLs, path assertions compare with forward slashes, directory symlinks fall back to junctions, and `validate-plugin.js` and the coding-standards export read CRLF files. `docs/maintenance.md` explains the one-time `@opencode/plugin` setup for local runs.
+
 ## [2.11.0] - 2026-10-16
 
 ### Added

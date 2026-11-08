@@ -71,7 +71,7 @@ Do not repeat intake, plan-check, review, or audit for a diff those gates alread
 ```bash
 node -e "import('./plugins/agent-skills-router/server.mjs')"
 node ./scripts/export-platform-skills.js
-for check in router-nudges workflow-lifecycle dsh-plugin widget-live-state panel-widget opencode-v2-plugin research-workflow tier-vocabulary skill-best-practices trigger-overlap claude-code test-policy tmp-usage code-comments evidence-aware-communication model-agnostic-guidance; do node "./scripts/check-$check.js"; done
+for check in router-nudges workflow-lifecycle dsh-plugin widget-live-state panel-widget opencode-v2-plugin research-workflow tier-vocabulary skill-best-practices trigger-overlap claude-code test-policy tmp-usage code-comments evidence-aware-communication model-agnostic-guidance plan-status; do node "./scripts/check-$check.js"; done
 node ./scripts/export-claude-coding-standards.js --check
 node ./scripts/validate-plugin.js
 node ./scripts/check-release-readiness.js --require-version-entry

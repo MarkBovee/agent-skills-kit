@@ -147,7 +147,7 @@ async function main() {
         const msg = steered[0]
         const steeredText = msg?.content?.[0]?.text ?? ""
         check("handler steers a load-the-skill prompt", steered.length === 1
-          && steeredText.includes("ask-debugging/SKILL.md") && steeredText.includes("Apply it to: login crash bij start"))
+          && steeredText.split(path.sep).join("/").includes("ask-debugging/SKILL.md") && steeredText.includes("Apply it to: login crash bij start"))
         // The loop forwards inbox items verbatim into the model request, so the
         // steered value must be a full user message, not a bare string.
         check("steered payload is a proper user message", Boolean(msg) && typeof msg === "object"
@@ -347,7 +347,13 @@ async function main() {
     fs.mkdirSync(path.join(outsideRoot, "ask-session-review"), { recursive: true })
     fs.writeFileSync(path.join(outsideRoot, "ask-session-review", "SKILL.md"), "stub\n")
     fs.rmSync(path.join(readRoot, "ask-write-skill"), { recursive: true })
-    fs.symlinkSync(path.join(outsideRoot, "ask-session-review"), path.join(readRoot, "ask-write-skill"))
+    // Without symlink privilege (Windows without developer mode) a junction gives the same directory escape.
+    try {
+      fs.symlinkSync(path.join(outsideRoot, "ask-session-review"), path.join(readRoot, "ask-write-skill"))
+    } catch (error) {
+      if (error.code !== "EPERM") throw error
+      fs.symlinkSync(path.join(outsideRoot, "ask-session-review"), path.join(readRoot, "ask-write-skill"), "junction")
+    }
     const previousSkillsDir = process.env.ASK_SKILLS_DIR
     process.env.ASK_SKILLS_DIR = readRoot
     try {
@@ -452,7 +458,7 @@ async function main() {
     await pre({ name: "edit", agent: steerAgent, diffIdentity: "HEAD" }, async () => ({ kind: "allow" }))
     inbox({ agent: steerAgent, message: { text: "ik ben klaar" } })
     const firstSteerText = steered[0]?.content?.[0]?.text ?? ""
-    check("completion steers code-review once", steered.length === 1 && firstSteerText.includes("ask-code-review/SKILL.md"))
+    check("completion steers code-review once", steered.length === 1 && firstSteerText.split(path.sep).join("/").includes("ask-code-review/SKILL.md"))
     inbox({ agent: steerAgent, message: { text: "nogmaals klaar" } })
     check("repeat completion does not re-steer", steered.length === 1)
     // Execute the steered assembly callback.
@@ -471,7 +477,7 @@ async function main() {
      listeners.get("tools/result")[0]({ name: "task", agent: steerAgent }, { isError: false, output: "ASK_WORKFLOW_PASS phase=REVIEW diff=HEAD:edit-1\nreview-generation: 1\nreview-scope: REVIEW\nreview-reference: HEAD\nreview-completed-at: 2026-09-16T12:00:00Z\nreview-result: PASS\nASK_REVIEW_COMPLETE" })
      inbox({ agent: steerAgent, message: { text: "klaar" } })
     const secondSteerText = steered[1]?.content?.[0]?.text ?? ""
-    check("completion steers session-review once", steered.length === 2 && secondSteerText.includes("ask-session-review/SKILL.md"))
+    check("completion steers session-review once", steered.length === 2 && secondSteerText.split(path.sep).join("/").includes("ask-session-review/SKILL.md"))
     // write-skill resolves improvement intent, so a fresh improvement episode
     // later can steer toward session-review again.
     const steeredWrite = []
@@ -491,7 +497,7 @@ async function main() {
     listeners.get("tools/result")[0]({ name: "skill", agent: designAgent, arguments: { name: "design" } }, { isError: false })
     inbox({ agent: designAgent, message: { text: "done" } })
     const designSteerText = designSteered[0]?.content?.[0]?.text ?? ""
-    check("completion steers design-review once", designSteered.length === 1 && designSteerText.includes("ask-design-review/SKILL.md"))
+    check("completion steers design-review once", designSteered.length === 1 && designSteerText.split(path.sep).join("/").includes("ask-design-review/SKILL.md"))
 
     // Panel state bridge (dsh-panel-widget): mutations append whole-value
     // ask-kit/state events and the askKit projection unit folds them.

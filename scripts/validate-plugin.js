@@ -188,7 +188,8 @@ async function validateDocConsistency(errors, skillNames) {
     }
   }
 
-  const rulesContent = await fs.readFile(ROUTER_RULES_PATH, "utf8")
+  // Normalize CRLF checkouts (core.autocrlf on Windows) so the LF-based section regex matches.
+  const rulesContent = (await fs.readFile(ROUTER_RULES_PATH, "utf8")).replace(/\r\n/g, "\n")
   const sectionMatch = rulesContent.match(/## Decision tree\n([\s\S]*?)\n## /)
   if (!sectionMatch) {
     errors.push("rules/agent-skills-kit.md must contain a ## Decision tree section")

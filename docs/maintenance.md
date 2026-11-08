@@ -62,6 +62,17 @@ Issue helper for duplicate checks before filing follow-up work:
 skills/ask-session-review/check-existing-issue.sh "<query>" [owner/repo]
 ```
 
+## Running checks locally (Windows)
+
+The widget, OpenCode V2, and router import checks need `@opencode/plugin`. CI installs it outside the repo and links it as `node_modules`; do the same once (the repo has no package manager):
+
+```bash
+npm install --prefix "$TEMP/ask-opencode-v2" --ignore-scripts --no-save @opencode/plugin@2.0.3
+node -e 'require("fs").symlinkSync(process.argv[1], "node_modules", "junction")' "$TEMP/ask-opencode-v2/node_modules"
+```
+
+Directory symlinks fall back to junctions without developer mode; file-symlink assertions in `check-opencode-v2-plugin.js` are skipped when a file symlink needs a copy. A `package.json` in your home directory only adds a harmless `MODULE_TYPELESS_PACKAGE_JSON` warning. Scripts normalize CRLF on read, so `core.autocrlf=true` is fine.
+
 ## Releases
 
 * `VERSION` is the canonical repo version.

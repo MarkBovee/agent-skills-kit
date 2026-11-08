@@ -93,7 +93,7 @@ function buildFiles(source) {
 // Read a file, returning null when it does not exist.
 async function readIfPresent(filePath) {
   try {
-    return await fs.readFile(filePath, "utf8")
+    return (await fs.readFile(filePath, "utf8")).replace(/\r\n/g, "\n")
   } catch (error) {
     if (error.code === "ENOENT") return null
     throw error
@@ -150,7 +150,8 @@ async function installOutputs(files, force) {
 // Dispatch the requested mode.
 async function main() {
   const args = new Set(process.argv.slice(2))
-  const files = buildFiles(await fs.readFile(SOURCE_PATH, "utf8"))
+  // Normalize CRLF checkouts so anchors and generated output match the LF form committed to git.
+  const files = buildFiles((await fs.readFile(SOURCE_PATH, "utf8")).replace(/\r\n/g, "\n"))
   if (args.has("--check")) return checkOutputs(files)
   if (args.has("--install")) return installOutputs(files, args.has("--force"))
   return writeOutputs(files)

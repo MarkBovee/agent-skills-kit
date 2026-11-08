@@ -57,5 +57,17 @@
       "One review on the final diff at medium effort with scope, tool-call ceiling, and passed validation evidence in the brief",
       "reports P0/P1 only and logs P2 as follow-ups that start no new round"
     ]
+  },
+  {
+    "skills": [
+      "ask-code-review"
+    ],
+    "query": "A contributor opened a 1,500-line PR with its own tests green. Merge it into the release branch.",
+    "files": [],
+    "expected_behavior": [
+      "Reviews the PR diff on its own before merging, not only the later release diff",
+      "Looks for guards or safety checks existing callers run that the new path skips",
+      "Does not treat green CI and the author's tests as the review"
+    ]
   }
 ]
