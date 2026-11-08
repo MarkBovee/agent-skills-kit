@@ -149,6 +149,20 @@ For a grill that takes more than one round, or work that outlasts one reply (sev
 - **Not yet specified**: in-scope questions that are not sharp enough to ask yet. The test is whether you can state the question precisely, not whether you can answer it. An answer that sharpens one moves it to Open questions.
 - **Out of scope**: work consciously ruled out of this effort, with the reason. It returns only if the destination is redrawn.
 
+**Status format.** Start the plan with optional frontmatter, so a status overview can read it:
+
+```
+---
+status: active   # active | done | parked
+branch: <branch>
+base: <commit sha the plan was written against>
+---
+```
+
+Write work items as Markdown checkboxes (`- [ ]` / `- [x]`, any depth). An optional `## Gate ledger` table with columns `Gate | Result | By | Diff` records each gate once. A plan without frontmatter still works; its status is unknown, so it is listed but not shown as active.
+
+At the start of work, mirror the active plan's open checkbox items into the host's native task list, and when an item is done tick it there and in the plan file in the same step.
+
 Refer to a decision by its title, never by a bare number.
 
 ## Interface and design work

@@ -46,6 +46,9 @@ jobs:
       - name: Validate proportional test budget
         run: node ./scripts/check-test-policy.js
 
+      - name: Validate plan status parser
+        run: node ./scripts/check-plan-status.js
+
       - name: Reject unsafe temp-directory usage
         run: node ./scripts/check-tmp-usage.js
 

@@ -384,7 +384,7 @@ function checkRoutingStatus() {
   process.env.ASK_SKILLS_DIR = path.join(path.sep, "opt", "relocated skills")
   try {
     const relocated = buildRoutingStatus(null, { ...state, needsCodeReview: true }).pending[0]?.action
-    check("pending actions honor ASK_SKILLS_DIR and quote the path", relocated === `Read \`${path.join(path.sep, "opt", "relocated skills", "ask-code-review", "SKILL.md")}\``)
+    check("pending actions honor ASK_SKILLS_DIR and quote the path", relocated === `Read \`${path.resolve(path.sep, "opt", "relocated skills", "ask-code-review", "SKILL.md")}\``)
   } finally {
     if (previousSkillsDir === undefined) delete process.env.ASK_SKILLS_DIR
     else process.env.ASK_SKILLS_DIR = previousSkillsDir

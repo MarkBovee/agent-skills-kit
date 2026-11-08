@@ -29,6 +29,8 @@ const {
   workflowRequiresReview,
 } = require("../core/router-core")
 
+const { activePlanLine, listPlans } = require("./plan-status")
+
 const PLUGIN_ROOT = path.resolve(__dirname, "..")
 const SKILLS_ROOT = path.join(PLUGIN_ROOT, "skills")
 const WORKFLOW_RULES_PATH = path.join(PLUGIN_ROOT, "rules", "workflow.md")
@@ -344,22 +346,23 @@ function listDirtyFiles(cwd) {
   }
 }
 
-// List the most recently changed plan documents under plans/, newest first, as project-relative paths.
+// List the most recently changed plan documents under plans/, newest first, as `path (status, done/total)` labels.
 function listRecentPlans(cwd) {
+  return listPlans(cwd)
+    .slice(0, LEDGER_MAX_PLANS)
+    // Label each plan with its status and progress so the ledger shows more than a path.
+    .map((plan) => `${plan.path} (${plan.status}, ${plan.done}/${plan.total})`)
+}
+
+// Render one line per active plan so a fresh, resumed, or compacted session knows the plan exists; empty on any failure.
+function buildActivePlanContext(cwd) {
   try {
-    const plansDir = path.join(cwd, "plans")
-    return fs.readdirSync(plansDir)
-      // Keep only Markdown plan documents.
-      .filter((name) => name.endsWith(".md"))
-      // Pair each plan with its modification time so the newest sort first.
-      .map((name) => ({ name, mtimeMs: fs.statSync(path.join(plansDir, name)).mtimeMs }))
-      // Order newest first.
-      .sort((a, b) => b.mtimeMs - a.mtimeMs)
-      .slice(0, LEDGER_MAX_PLANS)
-      // Report project-relative paths so the line stays short and portable.
-      .map((plan) => `plans/${plan.name}`)
+    return listPlans(cwd)
+      // Only plans marked active are announced.
+      .filter((plan) => plan.status === "active")
+      .map(activePlanLine).join("\n")
   } catch {
-    return []
+    return ""
   }
 }
 
@@ -485,7 +488,7 @@ async function main() {
     // Compaction drops earlier hook context, so the risk line and the prose nudge must be shown again.
     if (compacted) saveState(sessionId, { ...state, announcedRisk: undefined, textWritingHintShown: undefined, compactLedger: undefined })
     const resumed = compacted || payload.source === "resume"
-    process.stdout.write(buildHookOutput("SessionStart", [buildSessionContext(), resumed ? buildResumeContext() : "", ledgerContext].filter(Boolean).join("\n")))
+    process.stdout.write(buildHookOutput("SessionStart", [buildSessionContext(), resumed ? buildResumeContext() : "", ledgerContext, buildActivePlanContext(payload.cwd || process.cwd())].filter(Boolean).join("\n")))
     return
   }
 

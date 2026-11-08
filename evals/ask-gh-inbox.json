@@ -51,5 +51,17 @@
       "Reports the item as touched (edit or reaction) when no comment or reply is newer, without drafting a reply",
       "Falls back to updatedAt and count once for a stored entry that has no activity marker, then writes the marker"
     ]
+  },
+  {
+    "skills": [
+      "ask-gh-inbox"
+    ],
+    "query": "Check the inbox; local main has not been pulled in a while.",
+    "files": [],
+    "expected_behavior": [
+      "Runs git fetch --tags and checks git status before reading code",
+      "Fast-forwards the default branch, or reports instead when the tree is dirty or diverged",
+      "Judges issue claims against the newest remote tag, not stale local code"
+    ]
   }
 ]
