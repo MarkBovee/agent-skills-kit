@@ -1,1 +1,7 @@
 *.sh text eol=lf
+# Generated exports are written with LF; pin them so a CRLF checkout stays clean after export.
+.dsh/** text eol=lf
+.github/skills/** text eol=lf
+.github/prompts/** text eol=lf
+.github/copilot-instructions.md text eol=lf
+.opencode/commands/** text eol=lf
