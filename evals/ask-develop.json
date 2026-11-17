@@ -83,5 +83,17 @@
       "Does not propose or launch a dynamic workflow",
       "Runs the fastest trustworthy proof and reports the result"
     ]
+  },
+  {
+    "skills": [
+      "ask-develop"
+    ],
+    "query": "Continue plans/search-rewrite.md and finish it. It has four slices and about twenty checklist items.",
+    "files": [],
+    "expected_behavior": [
+      "Mirrors the plan into the host task list as one row per slice instead of twenty rows",
+      "Ticks items in the plan file and the slice row in the same step as each finishes",
+      "Before reporting done or setting status: done, re-reads the plan status and gives every open item an outcome (ticked with evidence, out of scope, or follow-up)"
+    ]
   }
 ]

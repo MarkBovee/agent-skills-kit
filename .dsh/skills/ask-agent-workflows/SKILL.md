@@ -25,7 +25,7 @@ Select workflow depth by risk:
 
 1. **Small** — execute → validate. No subagent unless it materially improves proof.
 2. **Normal** — plan → execute → validate → final review. Delegate validation or review when a second context improves confidence.
-3. **Significant** — intake → plan → plan-check → execute → validate → final review → independent final audit.
+3. **Significant** — intake → plan → plan-check (fresh goldfish subagent, see `intake`) → execute → validate → final review → independent final audit.
 4. **Release-sensitive** — significant flow plus release-gate. Release-gate consumes evidence and never modifies source.
 
 Gate cost follows risk, and a gate runs once, on the final diff:

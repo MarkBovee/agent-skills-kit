@@ -87,7 +87,8 @@ See `agent-workflows` for the host mechanics, limits, and script patterns.
 ## Core loop
 
 0. **Plan if missing.** Non-trivial task (3+ changes, multi-file, risky) without a plan? If scope is new or unclear, load `intake` first. Otherwise generate inline plan with `todowrite` or short bullets. Trivial 1-2 edits: skip.
-   Resuming an existing plan: read its status frontmatter, checkboxes, and gate ledger (format in `intake`), mirror the open items into the host task list, and tick each in the list and the plan file in the same step when done.
+   Resuming an existing plan: read its status frontmatter, checkboxes, and gate ledger (format in `intake`), mirror it into the host's native task list with one row per slice or phase (about ten at most), and tick items in the plan file and the slice row in the list in the same step.
+   Before calling a plan done (setting `status: done` or sending the final report), read its status again (`/status`, or the plan file itself where that command is missing). Every open `- [ ]` is either ticked with evidence or moved to Out of scope or a follow-up with a reason; never report done while one is left without an outcome.
 1. Inspect the next boundary that matters.
 2. Create the smallest coherent improvement. Add tests only within the test budget for the workflow risk (see `verification`): none for `small` work unless existing tests cannot prove the change. Write the failing test first only when the user or repository asks for TDD or `strict tests`.
 3. Test it with the fastest trustworthy proof.
@@ -97,7 +98,7 @@ See `agent-workflows` for the host mechanics, limits, and script patterns.
 
 ## Lifecycle handoff
 
-For significant work, execute only after plan-check evidence exists. After implementation, request validation first. Once applicable checks pass, run the required final review; use an independent final audit for significant or release-sensitive workflows. Small workflows finish after targeted validation; normal workflows use one combined review. If a required review or audit finds an issue, fix it and rerun affected checks before repeating that gate.
+For significant work, execute only after plan-check evidence from a fresh goldfish subagent exists (see `intake`). After implementation, request validation first. Once applicable checks pass, run the required final review; use an independent final audit for significant or release-sensitive workflows. Small workflows finish after targeted validation; normal workflows use one combined review. If a required review or audit finds an issue, fix it and rerun affected checks before repeating that gate.
 
 Never self-declare release readiness from a green test suite alone. Release-sensitive work needs an independent release-gate decision based on the final diff, validation, review, audit, compatibility evidence, and unresolved debt.
 
