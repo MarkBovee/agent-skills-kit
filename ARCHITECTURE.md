@@ -9,7 +9,7 @@ How agent-skills-kit (ASK) fits together. Claude Code is the primary harness; Op
 | `skills/<name>/SKILL.md` | The 18 canonical workflow skills (`ask-<name>` ids; `references/` for rare-case detail) | Yes |
 | `commands/<name>.md` | Canonical slash commands | Yes |
 | `core/router-core.js` | Shared routing, lifecycle, state, frontmatter, and skill-path helpers | Yes |
-| `hooks/hooks.json`, `scripts/agent-skills-hook.js` | Claude Code hooks | Yes |
+| `hooks/hooks.json`, `scripts/agent-skills-hook.js`, `hooks/plan-status-pane.tsx`, `types/` | Claude Code hooks and the plan status mod | Yes |
 | `agents/` | Claude Code subagents: `ask-worker` (Sonnet, runs routed workflow skills and may edit) and read-only `ask-reviewer`, `ask-auditor`, `ask-researcher`; all default to `model: sonnet` | Yes |
 | `.claude-plugin/` | Plugin manifest and marketplace entry | Yes |
 | `plugins/agent-skills-router/`, `plugins/agent-skills-router.dsh.mjs`, `plugins/dsh-*` | OpenCode server/TUI router and dsh router preset, widget, panel prototype | Yes |
@@ -36,6 +36,8 @@ CI regenerates both exports and fails on a diff, so commit regenerated output wi
 | `PostToolUse` (Skill, Read) | Clears the reminder when `ask-code-review` is loaded through the Skill tool, or when its `SKILL.md` is read from a trusted root. Loading `ask-text-writing` the same way silences the prose nudge. |
 
 Session state is a JSON file per session under `${CLAUDE_PLUGIN_DATA}/sessions`, falling back to `~/.cache/agent-skills-kit/sessions`, pruned after 14 days. It never lives in a shared temp directory.
+
+The plugin also ships one Claude Code mod: `hooks/hooks.json` lists `./plan-status-pane.tsx` under `modules`, with its state contract in `types/index.d.ts` (named in `plugin.json`). It runs `scripts/plan-status.js --json` from the plugin root, so `/status`, the SessionStart line, and the mod share one parser. It sets a status line for the focused plan, and `/ask-status` opens a pane with collapsible slices, a plan list (focus, show all, archive to `plans/archive/` with `mv -n`), and a Markdown viewer pane for the selected plan. Every refresh is awaited inside its hook, because the engine refuses a `$` used after its hook returned; pane presses are answered by a `ui.press` hook, never passed on, because the redraw drops the old Button handles. `hooks/plan-status-pane.test.tsx` runs with `claude plugin test .`. Hosts without mods use `/status`.
 
 ## Loading a skill
 

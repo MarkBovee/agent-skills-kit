@@ -21,14 +21,33 @@ function splitFrontmatter(text) {
   return { meta, body: match[2] }
 }
 
-// Collect the Markdown checkbox items at any depth, in document order.
+// Collect the Markdown checkbox items at any depth, in document order, each tagged with the nearest `##`/`###` heading above it.
 function parseCheckboxes(body) {
   const items = []
+  let group = ""
   for (const line of body.split("\n")) {
+    const heading = line.match(/^#{2,3}\s+(.*\S)\s*$/)
+    if (heading) {
+      group = heading[1]
+      continue
+    }
     const match = line.match(/^\s*[-*+]\s+\[([ xX])\]\s+(.*\S)\s*$/)
-    if (match) items.push({ done: match[1] !== " ", text: match[2] })
+    if (match) items.push({ done: match[1] !== " ", text: match[2], group })
   }
   return items
+}
+
+// Summarise the items per heading, in first-seen order, as [{ title, done, total, items }]; items above any heading share the title "".
+function groupProgress(items) {
+  const groups = new Map()
+  for (const item of items) {
+    const entry = groups.get(item.group) || { title: item.group, done: 0, total: 0, items: [] }
+    entry.items.push({ text: item.text, done: item.done })
+    entry.total += 1
+    if (item.done) entry.done += 1
+    groups.set(item.group, entry)
+  }
+  return [...groups.values()]
 }
 
 // Read the rows of the `## Gate ledger` table as {gate, result, by, diff}; header, separator, and blank rows are skipped.
@@ -47,20 +66,36 @@ function parseGateLedger(body) {
   return rows
 }
 
+// Read the plan's first `# ` heading as its title, without a leading "Plan:" label; "" when there is none.
+function parseTitle(body) {
+  const heading = body.match(/^#\s+(.*\S)\s*$/m)
+  return heading ? heading[1].replace(/^plan:\s*/i, "") : ""
+}
+
+// Count the ticked items.
+function countDone(items) {
+  // Keep only ticked items.
+  return items.filter((item) => item.done).length
+}
+
 // Parse one plan text into its status summary; a plan without frontmatter has status "unknown".
 function parsePlan(text) {
   // Editors on Windows may save a BOM, which would hide the frontmatter fence.
   const { meta, body } = splitFrontmatter(String(text).replace(/^﻿/, ""))
   const items = parseCheckboxes(body)
+  // The next item is the first one still open.
   const next = items.find((item) => !item.done)
+  const doneCount = countDone(items)
   return {
+    title: parseTitle(body),
     status: ["active", "done", "parked"].includes(meta.status) ? meta.status : "unknown",
     branch: meta.branch || "",
     base: meta.base || "",
-    done: items.filter((item) => item.done).length,
+    done: doneCount,
     total: items.length,
     nextItem: next ? next.text : "",
     gates: parseGateLedger(body),
+    groups: groupProgress(items),
   }
 }
 
@@ -69,9 +104,13 @@ function listPlans(cwd) {
   try {
     const plansDir = path.join(cwd, "plans")
     return fs.readdirSync(plansDir)
+      // Only Markdown files are plans.
       .filter((name) => name.endsWith(".md"))
+      // Pair each name with its modification time for sorting.
       .map((name) => ({ name, mtimeMs: fs.statSync(path.join(plansDir, name)).mtimeMs }))
+      // Newest first.
       .sort((a, b) => b.mtimeMs - a.mtimeMs)
+      // Parse each plan and keep its repo-relative path.
       .map(({ name }) => ({ path: `plans/${name}`, ...parsePlan(fs.readFileSync(path.join(plansDir, name), "utf8")) }))
   } catch {
     return []
@@ -133,12 +172,27 @@ function renderOverview(cwd, plans) {
   return lines.join("\n")
 }
 
-// CLI entry: print the overview for the given directory (default: current).
+// Build the machine-readable overview: every plan with its parsed status, raw next item, and drift text.
+function renderJson(cwd, plans) {
+  // Drift needs git in cwd, so it is computed here rather than in the pure parser.
+  return JSON.stringify({ plans: plans.map((plan) => ({ ...plan, drift: driftText(cwd, plan.base) })) })
+}
+
+// Split CLI arguments into flags and the optional directory: `plan-status.js [--json] [cwd]`.
+function parseArgs(argv) {
+  const json = argv.includes("--json")
+  // The first argument that is not a flag is the directory, wherever the flag sits.
+  const cwdArg = argv.find((arg) => !arg.startsWith("--"))
+  return { json, cwd: path.resolve(cwdArg || process.cwd()) }
+}
+
+// CLI entry: print the overview for the given directory (default: current), as text or with --json as JSON.
 function main() {
-  const cwd = path.resolve(process.argv[2] || process.cwd())
-  console.log(renderOverview(cwd, listPlans(cwd)))
+  const { json, cwd } = parseArgs(process.argv.slice(2))
+  const plans = listPlans(cwd)
+  console.log(json ? renderJson(cwd, plans) : renderOverview(cwd, plans))
 }
 
 if (require.main === module) main()
 
-module.exports = { parsePlan, listPlans, activePlanLine, renderOverview }
+module.exports = { parsePlan, listPlans, activePlanLine, renderOverview, renderJson, parseArgs }
