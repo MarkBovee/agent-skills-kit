@@ -109,13 +109,17 @@ function parsePlan(text) {
 }
 
 // Read one plan file with its modification time; null when it is not a readable file (a directory, a broken link).
+// Stat and read go through one open descriptor, so the file checked is the file read (no check-then-use race).
 function readPlanFile(plansDir, name) {
+  let fd
   try {
-    const filePath = path.join(plansDir, name)
-    const stat = fs.statSync(filePath)
-    return stat.isFile() ? { name, mtimeMs: stat.mtimeMs, text: fs.readFileSync(filePath, "utf8") } : null
+    fd = fs.openSync(path.join(plansDir, name), "r")
+    const stat = fs.fstatSync(fd)
+    return stat.isFile() ? { name, mtimeMs: stat.mtimeMs, text: fs.readFileSync(fd, "utf8") } : null
   } catch {
     return null
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd)
   }
 }
 
