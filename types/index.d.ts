@@ -14,6 +14,8 @@ export type PlanSummary = {
   gates: PlanGate[]
   groups: PlanGroup[]
   drift: string
+  // Repo paths the plan names that no longer exist; absent in a snapshot from an older script.
+  missingRefs?: string[]
 }
 // The plan file shown in the viewer pane: its repo-relative path and its Markdown without frontmatter.
 export type PlanViewer = { path: string; text: string }

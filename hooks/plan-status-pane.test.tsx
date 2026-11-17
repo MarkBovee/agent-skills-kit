@@ -31,6 +31,7 @@ const PLANS = {
         { title: 'Slice 2', done: 0, total: 8, items: [{ text: '**Statusregel.** long explanation', done: false }] },
       ],
       drift: '0 commit(s) since abc',
+      missingRefs: ['scripts/gone.js'],
     },
     { path: 'plans/old.md', title: 'Old plan', status: 'done', branch: '', done: 3, total: 3, nextItem: '', gates: [], groups: [], drift: '' },
   ],
@@ -42,7 +43,7 @@ function scriptAnswer(stdout: string, exitCode = 0) {
 }
 
 // Stand in for the engine calls the mod makes; returns the status lines it set and a counter of script runs.
-function engine(on: any, stdout: string, exitCode = 0) {
+function engine(on: any, stdout: string, exitCode = 0, toolAnswer: object = { result: {} }) {
   const statuses: (string | undefined)[] = []
   const runs = { count: 0 }
   const moves: string[][] = []
@@ -63,7 +64,7 @@ function engine(on: any, stdout: string, exitCode = 0) {
   })
   on('session.start', (_: unknown, e: { cwd: string }) => ({ cwd: e.cwd }))
   on('session.cwd', () => ({ value: '/repo' }))
-  on('tool.call', () => ({ result: {} }))
+  on('tool.call', () => toolAnswer)
   // Count each script run so the coalescing test can see how many happened.
   on('process.run', (_: unknown, e: { argv: string[] }) => {
     if (e.argv[0] !== 'node') {
@@ -179,4 +180,31 @@ test('a slice opens to show its items and closes again', async ($, on) => {
     expect(await ui.find({ type: 'Text', text: /parser/ })).toBe(undefined)
     await ui.unmount()
   }
+})
+
+test('the pane lists files the plan names that are gone', async ($, on) => {
+  engine(on, JSON.stringify(PLANS))
+  await $.session.start({ cwd: '/repo', surface: 'desktop', isInteractive: true })
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  expect((await ui.find({ type: 'Text', text: /scripts\/gone\.js/ }))?.text).toBe('! scripts/gone.js')
+  await ui.unmount()
+})
+
+test('a prompt refreshes the plans, so outside edits show up by the next turn', async ($, on) => {
+  const { runs } = engine(on, JSON.stringify(PLANS))
+  // Stand in for the engine's prompt handling: the text goes through unchanged.
+  on('prompt.submit', (_: unknown, e: { text: string }) => ({ text: e.text }))
+  await $.session.start({ cwd: '/repo', surface: 'desktop', isInteractive: true })
+  const before = runs.count
+  await $.prompt.submit({ text: 'next step', wait: false, origin: { kind: 'composer' } })
+  expect(runs.count).toBe(before + 1)
+})
+
+test('a failing tool still refreshes, and a failing refresh never breaks the tool call', async ($, on) => {
+  const { runs } = engine(on, JSON.stringify(PLANS), 0, { deny: 'tool failed' })
+  await $.session.start({ cwd: '/repo', surface: 'desktop', isInteractive: true })
+  const before = runs.count
+  const result = await $.tool.call({ tool: 'Bash', command: 'false' })
+  expect(runs.count).toBe(before + 1)
+  expect((result as { deny?: string }).deny).toBe('tool failed')
 })
