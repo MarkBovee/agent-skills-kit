@@ -78,7 +78,7 @@
     "query": "We are reworking authentication across three services over the next few weeks. Plan it with me, we will need several sessions.",
     "files": [],
     "expected_behavior": [
-      "Keeps a shared plan document with Destination, Decisions so far, Not yet specified, and Out of scope",
+      "Keeps a shared plan document with Destination, Decisions so far, Not yet specified, Out of scope, and a Checklist of checkbox items grouped by slice",
       "Records each settled decision as one line with a link instead of restating it",
       "Puts questions it cannot yet phrase precisely under Not yet specified instead of asking them now"
     ]
@@ -130,6 +130,18 @@
       "Turns low-risk, easily reversed choices into stated assumptions with what would prove each wrong",
       "Does not assume a hard-to-reverse choice such as who may export which data; it stays blocking",
       "Ends with an Open questions line that is none or counts the blocking ones, and does not start the work that depends on a blocking question"
+    ]
+  },
+  {
+    "skills": [
+      "ask-intake"
+    ],
+    "query": "Plan the migration of our billing service to the new payments API. It is significant work; plan-check it before we start.",
+    "files": [],
+    "expected_behavior": [
+      "Writes the plan document with a Checklist whose items each name the file or area, the change, and the check that proves it",
+      "Dispatches plan-check to a fresh read-only subagent that gets only the plan path and referenced files, not a recap of the conversation",
+      "Records the result as a PLAN_CHECK row in the gate ledger and fixes P0/P1 findings before execution"
     ]
   }
 ]

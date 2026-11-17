@@ -6,6 +6,18 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.13.0] - 2026-11-17
+
+### Changed
+
+- **Goldfish plan-check.** For significant and release-sensitive work, plan-check now runs in a fresh read-only subagent that gets only the plan file and the files it references, never the conversation behind it. The steps live in the new `intake/references/plan-check.md`, adapted from Google's Elephant-Goldfish Model. `ask-reviewer` runs it when its brief names a plan instead of a diff. Self-review by the planner no longer counts as plan-check.
+- **One plan document.** The shared plan document gains a `Checklist` section: checkbox items grouped by slice, each with its file, change, and check, plus an acceptance line per behavior change. It replaces the separate formal-plan template.
+- **Visible plan progress.** The plan is mirrored into the host's native task list as one row per slice (about ten at most). Before a plan is reported done, its status is read again and every open item gets an outcome.
+
+### Removed
+
+- **`intake/references/plan-template.md`.** The checklist in the shared plan document replaces it.
+
 ## [2.12.0] - 2026-11-08
 
 ### Added

@@ -112,7 +112,7 @@ Validation proves defined technical checks. Review challenges requirements, regr
 
 `RESEARCH` is optional lifecycle evidence, not a mandatory development gate. `research` keeps a question bounded; `deep-research` coordinates 3-10 independent evidence tracks, iterative source expansion, contradiction testing, confidence, citations, continuation state, and a downstream handoff. `intake` classifies uncertainty and must route large or high-stakes investigation to deep research instead of absorbing it.
 
-For large, multi-issue, exhaustive, compatibility-sensitive, or release-sensitive work, start with `intake`, create a plan artifact, classify `must`/`should`/`could` scope, and complete plan-check before execution. Each deferred evidence-backed item needs a reason and revisit trigger. Independent research, validation, review, and audit tracks should be delegated; release readiness requires independent evidence, not self-review.
+For large, multi-issue, exhaustive, compatibility-sensitive, or release-sensitive work, start with `intake`, create a plan artifact, classify `must`/`should`/`could` scope, and complete plan-check by a fresh goldfish subagent before execution. Each deferred evidence-backed item needs a reason and revisit trigger. Independent research, validation, review, and audit tracks should be delegated; release readiness requires independent evidence, not self-review.
 
 ## Cost-aware execution profile
 
