@@ -54,10 +54,10 @@ expect(parsePlan("---\nstatus: done\n---\n").status === "done", "status done is 
 
 const sliced = parsePlan("# Plan\n- [x] loose\n## Checklist\n### Slice 1\n- [x] a\n- [ ] b\n### Slice 2\n- [ ] c\n## Gate ledger\n")
 expect(JSON.stringify(sliced.groups) === JSON.stringify([
-  { title: "", done: 1, total: 1 },
-  { title: "Slice 1", done: 1, total: 2 },
-  { title: "Slice 2", done: 0, total: 1 },
-]), "groups count items per nearest heading, headings without items are left out")
+  { title: "", done: 1, total: 1, items: [{ text: "loose", done: true }] },
+  { title: "Slice 1", done: 1, total: 2, items: [{ text: "a", done: true }, { text: "b", done: false }] },
+  { title: "Slice 2", done: 0, total: 1, items: [{ text: "c", done: false }] },
+]), "groups count and list items per nearest heading, headings without items are left out")
 
 // Run the CLI on a fixture directory and return its stdout.
 function runCli(args) {

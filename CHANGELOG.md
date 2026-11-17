@@ -6,6 +6,13 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.14.0] - 2026-11-17
+
+### Added
+
+- **Plan status mod for Claude Code.** A status line shows the focused plan's progress (`▰▰▰▱▱ 5/10 · Slice 2 · next item`). `/ask-status` opens a pane with a progress bar, collapsible slices with their items, the next item, the last gate, and a plan list: a click focuses a plan and opens it as Markdown in a second pane, `Show all` lists every plan, and `Archive` moves an inactive plan to `plans/archive/` without overwriting. It follows the person's Claude Code theme. Hosts without mods keep `/status`.
+- **`plan-status.js --json`.** Machine-readable output with each plan's title, slice groups (with their items), gates, and drift; `plan-status.js [--json] [cwd]`. The text output is unchanged.
+
 ## [2.13.0] - 2026-11-17
 
 ### Changed

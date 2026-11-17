@@ -37,11 +37,12 @@ function parseCheckboxes(body) {
   return items
 }
 
-// Summarise the items per heading, in first-seen order, as [{ title, done, total }]; items above any heading share the title "".
+// Summarise the items per heading, in first-seen order, as [{ title, done, total, items }]; items above any heading share the title "".
 function groupProgress(items) {
   const groups = new Map()
   for (const item of items) {
-    const entry = groups.get(item.group) || { title: item.group, done: 0, total: 0 }
+    const entry = groups.get(item.group) || { title: item.group, done: 0, total: 0, items: [] }
+    entry.items.push({ text: item.text, done: item.done })
     entry.total += 1
     if (item.done) entry.done += 1
     groups.set(item.group, entry)
