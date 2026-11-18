@@ -202,6 +202,15 @@ async function handlePress($: EngineInterface, element: string): Promise<void> {
   await refresh($)
 }
 
+// Refresh without ever throwing: a fault in this mod must not fail the person's tool call or prompt.
+async function safeRefresh($: EngineInterface): Promise<void> {
+  try {
+    await refresh($)
+  } catch {
+    // The pane keeps its last snapshot; the next trigger tries again.
+  }
+}
+
 export const register: Register = on => {
   // Draw the viewer pane: the selected plan file as Markdown under its path and a link to the file.
   on('ui.render', { component: 'Pane', requestId: VIEWER }, async ($, e) => {
@@ -241,9 +250,18 @@ export const register: Register = on => {
 
   // Refresh after a tool that may have ticked a checkbox has finished; tool.call fires before the tool runs.
   on('tool.call', async ($, e, next) => {
-    const ran = await next(e)
-    if (REFRESH_TOOLS.has(e.tool)) await refresh($)
-    return ran
+    try {
+      return await next(e)
+    } finally {
+      // Refresh even when the tool failed: a partial edit can still have ticked an item.
+      if (REFRESH_TOOLS.has(e.tool)) await safeRefresh($)
+    }
+  })
+
+  // Refresh on every prompt, so edits made outside Claude's tools (an editor, a git pull) show up by the next turn.
+  on('prompt.submit', async ($, e, next) => {
+    await safeRefresh($)
+    return next(e)
   })
 
   // Draw the pane: the focused plan in detail, then a selectable plan list with archive buttons and a show-all toggle.
@@ -315,6 +333,16 @@ export const register: Register = on => {
                 {gate.gate} <Text color={gateColor(gate.result)}>{clip(gate.result, 48)}</Text>
               </Text>
               {plan.drift && <Text color="subtle">{plan.drift}</Text>}
+            </Box>
+          )}
+          {(plan.missingRefs ?? []).length > 0 && (
+            <Box flexDirection="column" marginTop={1}>
+              {sectionLabel('Files the plan names that are gone')}
+              {(plan.missingRefs ?? []).map(ref => (
+                <Text>
+                  <Text color="warning">!</Text> {ref}
+                </Text>
+              ))}
             </Box>
           )}
         </Box>

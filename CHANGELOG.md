@@ -6,6 +6,18 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.15.0] - 2026-11-17
+
+### Added
+
+- **Drift check for plans.** `plan-status.js` reports `missingRefs`: repo paths a plan names in backticks that no longer exist. `/status` lists them, the `/ask-status` pane shows them under the plan, and `ask-develop`'s closing check asks to update the plan or restore the file before closing. A light take on the Elephant-Goldfish drift report.
+
+### Fixed
+
+- **Plan status mod robustness.** A fault in the mod's refresh no longer surfaces in the person's tool call; a failed tool still refreshes; plans edited outside Claude's tools show up on the next prompt.
+- **Plan parser.** One unreadable entry in `plans/` (a directory named `x.md`, a broken link) no longer empties the list, and headings or checkboxes inside code fences are ignored.
+- **Behavior eval.** `eval-skill-behavior.js` stops at the first failed `claude` run (not signed in, non-zero exit) with the reason, instead of grading every case as a miss.
+
 ## [2.14.0] - 2026-11-17
 
 ### Added

@@ -8,6 +8,7 @@ const { spawnSync } = require("node:child_process")
 
 const GATE_COLUMNS = ["gate", "result", "by", "diff"]
 const MAX_ITEM_LENGTH = 100
+const MAX_MISSING_REFS = 10
 
 // Split optional `---` frontmatter from the body and read its flat `key: value` pairs (comments stripped).
 function splitFrontmatter(text) {
@@ -25,7 +26,15 @@ function splitFrontmatter(text) {
 function parseCheckboxes(body) {
   const items = []
   let group = ""
+  let fence = ""
   for (const line of body.split("\n")) {
+    // Lines inside a ``` or ~~~ code block are examples, never headings or work items.
+    const fenceMark = line.match(/^\s*(```|~~~)/)
+    if (fenceMark) {
+      fence = fence === "" ? fenceMark[1] : fence === fenceMark[1] ? "" : fence
+      continue
+    }
+    if (fence !== "") continue
     const heading = line.match(/^#{2,3}\s+(.*\S)\s*$/)
     if (heading) {
       group = heading[1]
@@ -99,22 +108,61 @@ function parsePlan(text) {
   }
 }
 
+// Read one plan file with its modification time; null when it is not a readable file (a directory, a broken link).
+// Stat and read go through one open descriptor, so the file checked is the file read (no check-then-use race).
+function readPlanFile(plansDir, name) {
+  let fd
+  try {
+    fd = fs.openSync(path.join(plansDir, name), "r")
+    const stat = fs.fstatSync(fd)
+    return stat.isFile() ? { name, mtimeMs: stat.mtimeMs, text: fs.readFileSync(fd, "utf8") } : null
+  } catch {
+    return null
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd)
+  }
+}
+
+// Find repo paths the plan names in backticks that no longer exist under cwd; at most MAX_MISSING_REFS, in document order.
+function missingRefs(cwd, body) {
+  const missing = []
+  for (const match of body.matchAll(/`([^`\n]+)`/g)) {
+    // Drop a trailing :line or :line:col, as in `src/a.js:12`.
+    const ref = match[1].trim().replace(/:\d+(:\d+)?$/, "")
+    if (!looksLikeRepoPath(ref) || missing.includes(ref)) continue
+    if (!fs.existsSync(path.join(cwd, ref))) missing.push(ref)
+    if (missing.length >= MAX_MISSING_REFS) break
+  }
+  return missing
+}
+
+// Accept only relative repo paths: a directory part plus a file extension or a trailing slash (`scripts/a.js`, `hooks/`).
+// Bare names (`a.js`), code (`tool.call`, `try/finally`), home, placeholders, globs, variables, and URLs never count.
+function looksLikeRepoPath(ref) {
+  if (/[\s~<>*$|{}()"'@]/.test(ref) || ref.startsWith("/") || ref.includes("://")) return false
+  return /^[\w.][\w.\-]*(\/[\w.\-]+)*\/([\w\-][\w.\-]*\.[a-z][a-z0-9]{0,4})?$/i.test(ref)
+}
+
 // List the plans in <cwd>/plans/*.md with their parsed status, newest first; never reads outside that folder.
 function listPlans(cwd) {
+  const plansDir = path.join(cwd, "plans")
+  let names
   try {
-    const plansDir = path.join(cwd, "plans")
-    return fs.readdirSync(plansDir)
-      // Only Markdown files are plans.
-      .filter((name) => name.endsWith(".md"))
-      // Pair each name with its modification time for sorting.
-      .map((name) => ({ name, mtimeMs: fs.statSync(path.join(plansDir, name)).mtimeMs }))
-      // Newest first.
-      .sort((a, b) => b.mtimeMs - a.mtimeMs)
-      // Parse each plan and keep its repo-relative path.
-      .map(({ name }) => ({ path: `plans/${name}`, ...parsePlan(fs.readFileSync(path.join(plansDir, name), "utf8")) }))
+    names = fs.readdirSync(plansDir)
   } catch {
     return []
   }
+  return names
+    // Only Markdown files are plans.
+    .filter((name) => name.endsWith(".md"))
+    // An unreadable entry drops out alone instead of emptying the list.
+    .map((name) => readPlanFile(plansDir, name))
+    // Keep only the files that could be read.
+    .filter(Boolean)
+    // Newest first.
+    .sort((a, b) => b.mtimeMs - a.mtimeMs)
+    // Parse each plan, keep its repo-relative path, and list the paths it names that are gone.
+    .map(({ name, text }) => ({ path: `plans/${name}`, ...parsePlan(text), missingRefs: missingRefs(cwd, splitFrontmatter(text).body) }))
 }
 
 // Shorten an item to one readable line: prefer its bold title, drop markdown markers, then cap the length.
@@ -168,6 +216,7 @@ function renderOverview(cwd, plans) {
     lines.push(`  next: ${plan.nextItem ? clip(plan.nextItem) : "none open"}`)
     lines.push(`  last gate: ${lastGate ? `${lastGate.gate} ${lastGate.result} (${lastGate.by || "?"}, ${lastGate.diff || "?"})` : "none recorded"}`)
     lines.push(`  drift: ${driftText(cwd, plan.base)}`)
+    if (plan.missingRefs && plan.missingRefs.length > 0) lines.push(`  missing refs: ${plan.missingRefs.join(", ")}`)
   }
   return lines.join("\n")
 }

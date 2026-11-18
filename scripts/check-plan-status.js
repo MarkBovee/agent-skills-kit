@@ -59,6 +59,9 @@ expect(JSON.stringify(sliced.groups) === JSON.stringify([
   { title: "Slice 2", done: 0, total: 1, items: [{ text: "c", done: false }] },
 ]), "groups count and list items per nearest heading, headings without items are left out")
 
+const fenced = parsePlan("## Real\n- [ ] one\n```md\n## Not a slice\n- [ ] not an item\n```\n- [x] two\n")
+expect(fenced.total === 2 && fenced.groups.length === 1 && fenced.groups[0].title === "Real", "headings and checkboxes inside code fences are ignored")
+
 // Run the CLI on a fixture directory and return its stdout.
 function runCli(args) {
   return spawnSync(process.execPath, [path.join(__dirname, "plan-status.js"), ...args], { encoding: "utf8" }).stdout
@@ -75,6 +78,16 @@ try {
   expect(jsonPlan.path === "plans/x.md" && jsonPlan.done === 1 && jsonPlan.total === 2, "--json carries path and counts")
   expect(jsonPlan.nextItem === "**Title.** long text" && jsonPlan.drift === "base unknown", "--json keeps the raw next item and adds drift")
   expect(jsonPlan.groups.length === 1 && jsonPlan.groups[0].title === "Slice 1", "--json carries the slice groups")
+  fs.mkdirSync(path.join(fixtureDir, "plans", "folder.md"))
+  fs.mkdirSync(path.join(fixtureDir, "scripts"))
+  fs.writeFileSync(path.join(fixtureDir, "scripts", "here.js"), "")
+  fs.writeFileSync(path.join(fixtureDir, "plans", "y.md"), "---\nstatus: active\n---\n- [ ] edit `scripts/here.js:3` and `scripts/gone.js`, not `tool.call`, `try/finally`, `~/x/y.md`, `plans/<slug>.md`\n")
+  const refsJson = JSON.parse(runCli(["--json", fixtureDir]))
+  expect(refsJson.plans.length === 2, "a directory named like a plan drops out alone instead of emptying the list")
+  // Pick the plan with the reference cases.
+  const yPlan = refsJson.plans.find((one) => one.path === "plans/y.md")
+  expect(JSON.stringify(yPlan.missingRefs) === JSON.stringify(["scripts/gone.js"]), "missing refs list only repo paths that are gone, ignoring code, home, and placeholders")
+  expect(runCli([fixtureDir]).includes("  missing refs: scripts/gone.js\n"), "the text overview names missing refs")
 } finally {
   fs.rmSync(fixtureDir, { recursive: true, force: true })
 }

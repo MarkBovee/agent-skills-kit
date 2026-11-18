@@ -93,7 +93,8 @@
     "expected_behavior": [
       "Mirrors the plan into the host task list as one row per slice instead of twenty rows",
       "Ticks items in the plan file and the slice row in the same step as each finishes",
-      "Before reporting done or setting status: done, re-reads the plan status and gives every open item an outcome (ticked with evidence, out of scope, or follow-up)"
+      "Before reporting done or setting status: done, re-reads the plan status and gives every open item an outcome (ticked with evidence, out of scope, or follow-up)",
+      "Checks the plan's missing refs before closing and updates the plan text where a named file no longer exists"
     ]
   }
 ]

@@ -16,6 +16,8 @@ const EVALS_DIR = path.join(REPO_ROOT, "evals")
 const ALLOWED_TOOLS = "Read,Glob,Grep,Edit,Write,Bash,WebSearch,WebFetch"
 // Replies that mean the account ran out of quota; grading them would score a dead run as a miss.
 const LIMIT_PATTERN = /hit your (?:session|usage|weekly) limit|usage limit reached|rate limit exceeded/i
+// Replies that mean the CLI is not signed in; every later case would fail the same way and score as a miss.
+const AUTH_PATTERN = /failed to authenticate|claude auth login|not logged in|invalid api key|oauth token has expired/i
 const MAX_TRANSCRIPT_CHARS = 24000
 const JUDGE_TIMEOUT_MS = 2 * 60 * 1000
 
@@ -79,6 +81,18 @@ function renderTranscript(stdout) {
   return parts.join("\n").slice(0, MAX_TRANSCRIPT_CHARS)
 }
 
+// Stop the whole run when a claude call failed outright, so a broken login or CLI never scores as skill misses.
+// With `hasResultLine`, a non-zero exit after a final stream-json result line (a case that hit --max-turns) still counts as a run.
+function assertRunSucceeded(run, what, { hasResultLine = false } = {}) {
+  const output = `${run.stdout || ""}\n${run.stderr || ""}`
+  if (run.error) throw new Error(`${what}: claude could not run: ${run.error.message}`)
+  // Quote the line that names the failure, not the head of a JSON stream.
+  const authLine = output.split("\n").find((line) => AUTH_PATTERN.test(line))
+  if (authLine) throw new Error(`${what}: claude is not signed in; run \`claude auth login\` and retry. (${authLine.trim().slice(0, 200)})`)
+  const finishedWithResult = hasResultLine && /^\{"type":"result"/m.test(run.stdout || "")
+  if (run.status !== 0 && !finishedWithResult) throw new Error(`${what}: claude exited with ${run.status}. Output: ${output.trim().slice(0, 200)}`)
+}
+
 // Run one query in a fresh fixture, with the plugin unless this is the baseline run.
 function runQuery(query, options, parentDir) {
   const workDir = createFixture(parentDir)
@@ -88,7 +102,7 @@ function runQuery(query, options, parentDir) {
     "--allowedTools", ALLOWED_TOOLS, "--strict-mcp-config"]
   if (!options.baseline) args.push("--plugin-dir", REPO_ROOT)
   const run = spawnSync("claude", args, { cwd: workDir, encoding: "utf8", input: "", timeout: CASE_TIMEOUT_MS, maxBuffer: 64 * 1024 * 1024 })
-  if (run.error) return `RUN FAILED: ${run.error.message}`
+  assertRunSucceeded(run, `case "${query.slice(0, 50)}"`, { hasResultLine: true })
   return renderTranscript(run.stdout || "")
 }
 
@@ -105,6 +119,7 @@ function gradeTranscript(evalCase, transcript, options, judgeDir) {
     `Reply with a JSON array of ${expected.length} booleans and nothing else.\n\nTask: ${evalCase.query}\n\nExpected:\n${rubric}\n\nTranscript:\n${transcript}`
   const run = spawnSync("claude", ["-p", prompt, "--model", options.judge, "--max-turns", "1", "--output-format", "text"],
     { cwd: judgeDir, encoding: "utf8", input: "", timeout: JUDGE_TIMEOUT_MS })
+  assertRunSucceeded(run, `judge for "${evalCase.query.slice(0, 50)}"`)
   const match = (run.stdout || "").match(/\[[^\]]*\]/)
   try {
     const verdicts = JSON.parse(match ? match[0] : "[]")
@@ -154,4 +169,12 @@ function main() {
   console.log(`\nscore ${passed}/${total} (model ${options.model}, judge ${options.judge}, ${options.baseline ? "baseline" : "with skills"})`)
 }
 
-if (require.main === module) main()
+// Report a stopped run as one clear line and a non-zero exit instead of a stack trace.
+if (require.main === module) {
+  try {
+    main()
+  } catch (failure) {
+    console.error(`behavior eval stopped: ${failure.message}`)
+    process.exit(1)
+  }
+}
