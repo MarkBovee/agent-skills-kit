@@ -80,5 +80,17 @@
       "Explains when a workflow would pay off: about ten or more independent items, a check-and-fix loop, or many findings needing independent cross-checks",
       "Notes that the review and audit gates stay outside any workflow and run once on the final diff"
     ]
+  },
+  {
+    "skills": [
+      "ask-agent-workflows"
+    ],
+    "query": "I'm on Opus at low effort. Fix the off-by-one in paginate() and tell me if this needs more effort.",
+    "files": [],
+    "expected_behavior": [
+      "Runs the routine fix inline on the session model instead of spawning a Sonnet worker",
+      "Raises effort before switching model and says when a task warrants more effort than the session runs at",
+      "Keeps review on a separate Sonnet reviewer rather than self-review"
+    ]
   }
 ]

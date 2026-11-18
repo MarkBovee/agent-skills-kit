@@ -221,13 +221,14 @@ function checkModelRoutingGuidance() {
       && routingSection.includes("references/model-routing.md"))
   check("develop requires per-delegation model selection",
     developSection.includes("select a task-appropriate model and pass it per invocation"))
-  check("model routing maps tiers to Haiku, Sonnet, and selective Opus",
+  check("model routing maps tiers to Haiku, session-or-Sonnet, and Opus effort",
     routingGuidance.includes("| `light` (user term: light) | Haiku |")
-      && routingGuidance.includes("| `standard` (user term: medium) | Sonnet |")
-      && routingGuidance.includes("| `deep` (user term: heavy) | Opus, selectively |"))
-  check("model routing keeps workflow skills on the Sonnet worker floor",
+      && routingGuidance.includes("| `standard` (user term: medium) | Session model at low effort, or Sonnet as a subagent |")
+      && routingGuidance.includes("| `deep` (user term: heavy) | Opus at medium or high effort |"))
+  check("model routing keeps workflow skills inline on strong sessions and on the worker from Haiku",
     routingGuidance.includes("## Workflow floor")
-      && routingGuidance.includes("Workflow skills run in the Sonnet worker (`ask-worker`)"))
+      && routingGuidance.includes("routine skill work runs inline on the session model at low effort")
+      && routingGuidance.includes("Delegate a workflow skill to the Sonnet worker (`ask-worker`) when the session model is below Sonnet"))
   check("model routing treats model selection as a request until verified",
     routingGuidance.includes("a request, not proof of the model actually used")
       && routingGuidance.includes("Verify the active model in `/tasks`"))
