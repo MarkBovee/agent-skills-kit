@@ -10,7 +10,7 @@ How agent-skills-kit (ASK) fits together. Claude Code is the primary harness; Op
 | `commands/<name>.md` | Canonical slash commands | Yes |
 | `core/router-core.js` | Shared routing, lifecycle, state, frontmatter, and skill-path helpers | Yes |
 | `hooks/hooks.json`, `scripts/agent-skills-hook.js`, `hooks/plan-status-pane.tsx`, `types/` | Claude Code hooks and the plan status mod | Yes |
-| `agents/` | Claude Code subagents: `ask-worker` (Sonnet, runs routed workflow skills and may edit) and read-only `ask-reviewer`, `ask-auditor`, `ask-researcher`; all default to `model: sonnet` | Yes |
+| `agents/` | Claude Code subagents: `ask-worker` (Sonnet, runs routed workflow skills from a Haiku session or for large or parallel work, and may edit) and read-only `ask-reviewer`, `ask-auditor`, `ask-researcher`; all default to `model: sonnet` | Yes |
 | `.claude-plugin/` | Plugin manifest and marketplace entry | Yes |
 | `plugins/agent-skills-router/`, `plugins/agent-skills-router.dsh.mjs`, `plugins/dsh-*` | OpenCode server/TUI router and dsh router preset, widget, panel prototype | Yes |
 | `rules/workflow.md`, `rules/coding-standards.md`, `rules/agent-skills-kit.md` | Shared workflow mandate, full coding standards, OpenCode router rules | Yes |

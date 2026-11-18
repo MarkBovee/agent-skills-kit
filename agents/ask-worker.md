@@ -1,6 +1,6 @@
 ---
 name: ask-worker
-description: Sonnet worker for ASK workflow skills such as develop, debugging, and research. Runs one routed skill end to end and reports its evidence; the coordinator keeps the user-facing replies.
+description: Sonnet worker for ASK workflow skills such as develop, debugging, and research, used from a Haiku session or for large or parallel work. Runs one routed skill end to end and reports its evidence; the coordinator keeps the user-facing replies.
 tools: Read, Grep, Glob, Bash, Edit, Write, WebFetch, WebSearch
 model: sonnet
 effort: low
