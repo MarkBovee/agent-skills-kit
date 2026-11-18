@@ -149,7 +149,7 @@ Every workflow has two slash names. The short command is unprefixed: `/gh-inbox`
 
 ### Cost-aware subagents
 
-On Claude Code the tiers map to models: `light` → Haiku, `standard` → Sonnet, `deep` → Opus, only for justified high-judgment tasks. You choose the model for your own conversation; the workflow skills run in the Sonnet `ask-worker` so a Haiku session still gets Sonnet-level work. The coordinator picks a model per other delegated task. The invocation choice beats agent frontmatter, and an alias can still be remapped by your organization, so confirm the model that actually ran in `/tasks`. Avoid `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1`; it forces one model onto every subagent. The full table is in `skills/ask-agent-workflows/references/model-routing.md`.
+On Claude Code the tiers map to model and effort: `light` → Haiku, `standard` → the session model at low effort or a Sonnet subagent, `deep` → Opus at medium or high effort. You choose the model and effort for your own conversation; Opus at low effort is a good default. On a Sonnet or Opus session the workflow skills run inline; from a Haiku session, or for large or parallel work, they run in the Sonnet `ask-worker`. The coordinator picks a model per other delegated task. The invocation choice beats agent frontmatter, and an alias can still be remapped by your organization, so confirm the model that actually ran in `/tasks`. Avoid `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1`; it forces one model onto every subagent. The full table is in `skills/ask-agent-workflows/references/model-routing.md`.
 
 ### Installer modes
 

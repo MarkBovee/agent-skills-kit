@@ -2,23 +2,25 @@
 
 Choose a model for the delegated task, not by inheriting the coordinator's default. Complexity tiers guide the decision but do not select a model by themselves.
 
-| Tier | Claude model | Task | Examples | Escalate when |
+| Tier | Claude model and effort | Task | Examples | Escalate when |
 | --- | --- | --- | --- | --- |
 | `light` (user term: light) | Haiku | Mechanical | Locate files, bounded grep, straightforward extraction, summarize routine command output | The result is ambiguous, incomplete, or needs material judgment. |
-| `standard` (user term: medium) | Sonnet | Workflow work and review | Workflow skills (develop, debugging, research, verification, improve), bounded research, implementation, validation, normal code review | Evidence shows cross-cutting reasoning, unresolved correctness/security risk, or a cheaper pass failed. |
-| `deep` (user term: heavy) | Opus, selectively | High-judgment | Architecture tradeoffs, difficult root-cause analysis, ambiguous invariants, broad counterexample analysis | This is a deliberate starting choice; state why Sonnet is insufficient. |
+| `standard` (user term: medium) | Session model at low effort, or Sonnet as a subagent | Workflow work and review | Workflow skills (develop, debugging, research, verification, improve), bounded research, implementation, validation, normal code review | Evidence shows cross-cutting reasoning, unresolved correctness/security risk, or a cheaper pass failed. |
+| `deep` (user term: heavy) | Opus at medium or high effort | High-judgment | Architecture tradeoffs, difficult root-cause analysis, ambiguous invariants, broad counterexample analysis | This is a deliberate starting choice; state why low effort is insufficient. |
 
 The tier names stay `light`, `standard`, and `deep` in every file. The "user term" column is the vocabulary people use in conversation.
 
 ## Workflow floor
 
-Workflow skills run in the Sonnet worker (`ask-worker`), not on the session model. The exception is `deep-research` (tier `deep`), which stays on the session model because it dispatches its own subagents; the worker cannot start agents. Questions (prompts ending in `?`) get no worker line. The session model, which the user chooses, stays on the conversation: it routes, asks the user questions, and reports results. Haiku handles only bounded mechanical sub-steps the coordinator runs itself, such as search, grep, or summarizing command output. Intake stays on the session model because it asks the user questions, and a subagent cannot answer them interactively.
+Workflow skills run at the `standard` floor. When the session model is Sonnet or Opus, routine skill work runs inline on the session model at low effort: a cold subagent would re-derive context the session already holds, on a model no stronger than the session's. Delegate a workflow skill to the Sonnet worker (`ask-worker`) when the session model is below Sonnet (Haiku), or when the work is large, parallel, or would flood the session context. `deep-research` (tier `deep`) stays on the session model because it dispatches its own subagents; the worker cannot start agents. Intake stays on the session model because it asks the user questions, and a subagent cannot answer them interactively. Haiku handles only bounded mechanical sub-steps, such as search, grep, or summarizing command output.
 
-Use the lowest capable model, a narrow handoff, and a concise output contract. Do not spawn redundant workers or retry unchanged work on a more expensive model. Escalate only for a concrete gap, failed validation, or increased scope. `deep` describes task complexity; it is not an automatic Opus assignment.
+Use the lowest capable model and effort, a narrow handoff, and a concise output contract. Do not spawn redundant workers or retry unchanged work on a more expensive model. Escalate only for a concrete gap, failed validation, or increased scope. `deep` describes task complexity; on an Opus session it means raising effort, not switching model.
 
 ## Effort
 
-Model tier is not the only cost lever: reasoning effort changes tokens a lot. The ASK agent files set `effort` in frontmatter (`medium` for `ask-reviewer` and `ask-auditor`, `low` for `ask-worker` and `ask-researcher`); Claude Code documents the field (`low`, `medium`, `high`, `xhigh`, `max`) and a per-invocation `effort` parameter on the Agent tool (Claude Code 2.1.292 or later, non-fork subagents), which overrides the frontmatter. Never default above `medium`; raise it per call with a stated reason. The `CLAUDE_CODE_EFFORT_LEVEL` environment variable overrides both, so confirm the effort that actually ran. On hosts without an effort setting, keep the budget in the prompt (scope, tool-call ceiling, P0/P1 only).
+Model tier is not the only cost lever: reasoning effort changes tokens a lot. The ASK agent files set `effort` in frontmatter (`medium` for `ask-reviewer` and `ask-auditor`, `low` for `ask-worker` and `ask-researcher`); Claude Code documents the field (`low`, `medium`, `high`, `xhigh`, `max`) and a per-invocation `effort` parameter on the Agent tool (Claude Code 2.1.292 or later, non-fork subagents), which overrides the frontmatter. Never default subagents above `medium`; raise it per call with a stated reason.
+
+The session itself follows the same ladder. A common setup is Opus at low effort for questions, orchestration, and routine work, with medium or high reserved for genuinely hard problems. Raise effort before switching model: on an Opus session, `deep` work means medium or high effort on the same model. Say when a task warrants more effort than the session runs at, so the user can raise it; the session cannot change its own effort. The `CLAUDE_CODE_EFFORT_LEVEL` environment variable overrides both, so confirm the effort that actually ran. On hosts without an effort setting, keep the budget in the prompt (scope, tool-call ceiling, P0/P1 only).
 
 ## Claude Code
 

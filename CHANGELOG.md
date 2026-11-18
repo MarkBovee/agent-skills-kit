@@ -6,6 +6,12 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.16.0] - 2026-11-18
+
+### Changed
+
+- **Opus at low effort as the session default.** Model routing now treats tiers as model plus effort: `standard` is the session model at low effort or a Sonnet subagent, `deep` is Opus at medium or high effort. On a Sonnet or Opus session, workflow skills run inline instead of in a cold Sonnet worker; the hook sends them to `ask-worker` only from a Haiku session or for large or parallel work. Skills and docs say to raise effort before switching model. Review and audit stay on independent Sonnet subagents.
+
 ## [2.15.0] - 2026-11-17
 
 ### Added

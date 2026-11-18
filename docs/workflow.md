@@ -129,8 +129,8 @@ On Claude Code the tiers map to models as follows:
 | Tier | Claude model | Notes |
 | --- | --- | --- |
 | `light` | Haiku | Bounded mechanical work, run by the coordinator or a cheap subagent |
-| `standard` | Sonnet | Workflow skills run in the Sonnet `ask-worker`; review and audit use `ask-reviewer` and `ask-auditor` |
-| `deep` | Opus | Only with a stated reason; `deep-research` is tagged `deep` and stays on the session model for its own subagent dispatch |
+| `standard` | Session model at low effort, or Sonnet subagent | Workflow skills run inline on a Sonnet or Opus session, in the Sonnet `ask-worker` from Haiku or for large or parallel work; review and audit use `ask-reviewer` and `ask-auditor` |
+| `deep` | Opus at medium or high effort | Raise effort before switching model; `deep-research` is tagged `deep` and stays on the session model for its own subagent dispatch |
 
 `delegation_default` (`auto` / `prefer-subagent` / `owner-only`) hints whether the work should default to a subagent when the host supports one. Both fields are read by `buildExecutionProfile` in `core/router-core.js`, which maps `light` → `mini`, `standard` → `default`, and `deep` → `xhigh`, and defaults `delegation_default` to `prefer-subagent` for `light` skills and `owner-only` for `deep` skills.
 

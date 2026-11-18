@@ -82,7 +82,7 @@ Before finishing any code change, inspect every changed function-like construct 
 
 ## Cheap-first escalation
 
-1. Routed skill work (this skill, `debugging`, `improve`) runs in the Sonnet `ask-worker` agent, not on the session model; a dynamic workflow is the exception: the coordinator offers it and, after the user opts in, starts it (see Dynamic workflow). Before each delegation, select a task-appropriate model and pass it per invocation when the host supports it; tiers alone do not select a model. Default to Haiku for mechanical work, Sonnet for standard work, and Opus only with a stated reason.
+1. Routed skill work (this skill, `debugging`, `improve`) runs inline on a Sonnet or Opus session at low effort; delegate it to the Sonnet `ask-worker` from a Haiku session or when the work is large, parallel, or would flood the session context. A dynamic workflow is the exception: the coordinator offers it and, after the user opts in, starts it (see Dynamic workflow). Before each delegation, select a task-appropriate model and pass it per invocation when the host supports it; tiers alone do not select a model. Default subagents to Haiku for mechanical work and Sonnet for standard work. Raise effort before switching model, and say when a task warrants more effort than the session runs at.
 2. Start bounded mechanical chores on the smallest viable agent or subagent.
 3. Validate the result before widening context.
 4. Escalate to default agent only if scope grows beyond the original bounded task.
@@ -93,8 +93,8 @@ Before finishing any code change, inspect every changed function-like construct 
 | Complexity | Execution tier | Claude model (user term) | Fits |
 |---|---|---|---|
 | Mechanical, boilerplate, bounded parsing | light | Haiku (light) | a data mapper, a register table, a factory |
-| Nuanced but contained | standard | Sonnet (medium) | one service with local state |
-| Cross-cutting, implicit reasoning, error handling | deep | Opus (heavy), only with a stated reason | discovery, coordination, recovery paths |
+| Nuanced but contained | standard | Session model at low effort, or Sonnet subagent (medium) | one service with local state |
+| Cross-cutting, implicit reasoning, error handling | deep | Opus at medium or high effort (heavy) | discovery, coordination, recovery paths |
 
 Choose the lowest tier that fits; escalate only when evidence demands it. A delta fix or follow-up after a broader change is standard work, not a repeat of the original deep pass.
 
