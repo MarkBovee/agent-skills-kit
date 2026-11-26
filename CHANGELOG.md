@@ -6,6 +6,13 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
+## [2.16.1] - 2026-11-26
+
+### Fixed
+
+- **Plans outside `plans/` (#174).** A root `.ask.json` with `{"plans": ["docs/*-plan.md"]}` points the status overview, the SessionStart hook, and the compaction ledger at the repository's own plan location. When no plan is found, `/status` says where it looked and how to configure it. Intake now names `plans/<slug>.md` as the default and tells the agent to register any other location.
+- **Status shown automatically.** SessionStart also sends the active plan lines as a `systemMessage`, so you see them at startup, resume, and after compaction without running `/status`.
+
 ## [2.16.0] - 2026-11-18
 
 ### Changed

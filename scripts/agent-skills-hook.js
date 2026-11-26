@@ -255,9 +255,10 @@ function buildPromptHint(prompt, skills, state) {
   }
 }
 
-// Wrap hook context in the event-specific JSON shape Claude Code feeds to the model.
-function buildHookOutput(eventName, additionalContext) {
-  return JSON.stringify({ hookSpecificOutput: { hookEventName: eventName, additionalContext } })
+// Wrap hook context in the event-specific JSON shape Claude Code feeds to the model; a systemMessage is also shown to the user.
+function buildHookOutput(eventName, additionalContext, systemMessage = "") {
+  const output = { hookSpecificOutput: { hookEventName: eventName, additionalContext } }
+  return JSON.stringify(systemMessage ? { ...output, systemMessage } : output)
 }
 
 // Read the skill id a Skill tool call loaded, across the input shapes hosts use.
@@ -489,7 +490,9 @@ async function main() {
     // Compaction drops earlier hook context, so the risk line and the prose nudge must be shown again.
     if (compacted) saveState(sessionId, { ...state, announcedRisk: undefined, textWritingHintShown: undefined, compactLedger: undefined })
     const resumed = compacted || payload.source === "resume"
-    process.stdout.write(buildHookOutput("SessionStart", [buildSessionContext(), resumed ? buildResumeContext() : "", ledgerContext, buildActivePlanContext(payload.cwd || process.cwd())].filter(Boolean).join("\n")))
+    const activePlans = buildActivePlanContext(payload.cwd || process.cwd())
+    // The plan lines also reach the user as a systemMessage, so the status shows without running /status.
+    process.stdout.write(buildHookOutput("SessionStart", [buildSessionContext(), resumed ? buildResumeContext() : "", ledgerContext, activePlans].filter(Boolean).join("\n"), activePlans))
     return
   }
 

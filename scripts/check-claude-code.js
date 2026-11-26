@@ -138,7 +138,9 @@ function checkHookBehavior() {
   const start = parseHookOutput(runHook("session-start", "{}").stdout)
   const startContext = start?.hookSpecificOutput?.additionalContext || ""
   expect(start?.hookSpecificOutput?.hookEventName === "SessionStart" && startContext.includes("ask-develop"), "SessionStart emits additionalContext with ask-prefixed ids")
-  expect(!start || !("systemMessage" in start), "SessionStart output carries no user-only systemMessage")
+  const startNotice = start?.systemMessage
+  // The user sees only the active plan lines; the routing context stays model-only.
+  expect(startNotice === undefined || startNotice.split("\n").every((line) => line.startsWith("Active plan: ")), "SessionStart systemMessage carries only active plan lines")
 
   const prompt = parseHookOutput(runHook("prompt", JSON.stringify({ prompt: "fix the failing test in the parser", session_id: "check" })).stdout)
   expect(prompt?.hookSpecificOutput?.additionalContext?.includes("ask-debugging"), "UserPromptSubmit routes a bug prompt to ask-debugging via additionalContext")

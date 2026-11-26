@@ -23,8 +23,10 @@ const isShowingAll = atom({ plugin: 'agent-skills-kit', key: 'isShowingAll' } as
 const expandedSlices = atom({ plugin: 'agent-skills-kit', key: 'expandedSlices' } as const, [] as string[])
 // The plan file the viewer pane shows; empty until a plan is selected.
 const viewer = atom({ plugin: 'agent-skills-kit', key: 'viewer' } as const, { path: '', text: '' })
-// Only files directly under plans/ may be focused or archived; the path comes from the script, but a move must never leave that folder.
+// Only files directly under plans/ may be archived; the path comes from the script, but a move must never leave that folder.
 const PLAN_PATH = /^plans\/[^/]+\.md$/
+// Any repo-relative Markdown path (plans/ or a location set in .ask.json) may be viewed, never one that climbs out or is absolute.
+const VIEWABLE_PLAN_PATH = /^(?!.*(^|\/)\.\.(\/|$))[\w.-][\w./-]*\.md$/
 
 // Coalescing state: module variables, so a reload simply starts idle again.
 let isRunning = false
@@ -121,7 +123,7 @@ async function loadSnapshot($: EngineInterface): Promise<PlanSnapshot> {
 
 // Read a plan file for the viewer, without its frontmatter; a missing file reads as a one-line note.
 async function loadViewer($: EngineInterface, path: string): Promise<PlanViewer> {
-  if (!PLAN_PATH.test(path)) return { path: '', text: '' }
+  if (!VIEWABLE_PLAN_PATH.test(path)) return { path: '', text: '' }
   const cwd = await $.session.cwd()
   try {
     const raw = await $.fs.read(`${cwd}/${path}`)
@@ -236,7 +238,7 @@ export const register: Register = on => {
 
   // Register the command and draw the first status line when the session starts.
   on('session.start', async ($, e, next) => {
-    await $.command.register({ name: COMMAND, description: 'Show the progress of the plans in plans/' })
+    await $.command.register({ name: COMMAND, description: 'Show the progress of the plans in plans/ or the .ask.json locations' })
     await refresh($)
     return next(e)
   })

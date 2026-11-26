@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Plan status overview: parses the status format of plans/*.md (frontmatter, checkboxes, gate ledger),
+// Plan status overview: parses the status format of plan files (plans/*.md, or the globs in .ask.json): frontmatter, checkboxes, gate ledger,
 // shared by the /status command, the SessionStart hook, and the compaction ledger.
 
 const fs = require("node:fs")
@@ -108,12 +108,57 @@ function parsePlan(text) {
   }
 }
 
-// Read one plan file with its modification time; null when it is not a readable file (a directory, a broken link).
+const CONFIG_FILE = ".ask.json"
+const DEFAULT_PLAN_GLOBS = ["plans/*.md"]
+
+// Read the plan globs from the repo-local `.ask.json` (`{"plans": ["docs/*-plan.md"]}`); fall back to plans/*.md when absent or invalid.
+function readPlanGlobs(cwd) {
+  try {
+    const config = JSON.parse(fs.readFileSync(path.join(cwd, CONFIG_FILE), "utf8"))
+    const globs = typeof config.plans === "string" ? [config.plans] : config.plans
+    // Only relative, single-folder globs inside the repository are honoured; anything else is ignored.
+    const valid = Array.isArray(globs) ? globs.filter((glob) => typeof glob === "string" && isSafeGlob(glob)) : []
+    return valid.length > 0 ? valid : DEFAULT_PLAN_GLOBS
+  } catch {
+    return DEFAULT_PLAN_GLOBS
+  }
+}
+
+// Accept a relative `folder/name*.md` pattern whose wildcards sit only in the file name and that never climbs out of the repository.
+function isSafeGlob(glob) {
+  const normalized = glob.replace(/\\/g, "/")
+  if (path.isAbsolute(normalized) || /^[A-Za-z]:/.test(normalized)) return false
+  const folder = path.posix.dirname(normalized)
+  return !folder.split("/").includes("..") && !/[*?]/.test(folder) && normalized.endsWith(".md")
+}
+
+// Turn the file-name part of a glob into an anchored regular expression (`*` and `?` only).
+function fileNamePattern(glob) {
+  const escaped = path.posix.basename(glob).replace(/[.+^${}()|[\]\\]/g, "\\$&")
+  return new RegExp(`^${escaped.replace(/\*/g, ".*").replace(/\?/g, ".")}$`, "i")
+}
+
+// List the files one glob matches as repo-relative forward-slash paths; a missing folder yields none.
+function matchGlob(cwd, glob) {
+  const folder = path.posix.dirname(glob.replace(/\\/g, "/"))
+  const pattern = fileNamePattern(glob)
+  try {
+    return fs.readdirSync(path.join(cwd, folder))
+      // Keep the names the file-name pattern matches.
+      .filter((name) => pattern.test(name))
+      // Prefix the folder so the path is repo-relative.
+      .map((name) => (folder === "." ? name : `${folder}/${name}`))
+  } catch {
+    return []
+  }
+}
+
+// Read one plan file (repo-relative path) with its modification time; null when it is not a readable file (a directory, a broken link).
 // Stat and read go through one open descriptor, so the file checked is the file read (no check-then-use race).
-function readPlanFile(plansDir, name) {
+function readPlanFile(cwd, name) {
   let fd
   try {
-    fd = fs.openSync(path.join(plansDir, name), "r")
+    fd = fs.openSync(path.join(cwd, name), "r")
     const stat = fs.fstatSync(fd)
     return stat.isFile() ? { name, mtimeMs: stat.mtimeMs, text: fs.readFileSync(fd, "utf8") } : null
   } catch {
@@ -143,26 +188,27 @@ function looksLikeRepoPath(ref) {
   return /^[\w.][\w.\-]*(\/[\w.\-]+)*\/([\w\-][\w.\-]*\.[a-z][a-z0-9]{0,4})?$/i.test(ref)
 }
 
-// List the plans in <cwd>/plans/*.md with their parsed status, newest first; never reads outside that folder.
+// List the plans the configured globs match (default plans/*.md) with their parsed status, newest first; never reads outside the repository.
 function listPlans(cwd) {
-  const plansDir = path.join(cwd, "plans")
-  let names
-  try {
-    names = fs.readdirSync(plansDir)
-  } catch {
-    return []
-  }
+  // A file matched by two globs is listed once.
+  const names = [...new Set(readPlanGlobs(cwd).flatMap((glob) => matchGlob(cwd, glob)))]
   return names
-    // Only Markdown files are plans.
-    .filter((name) => name.endsWith(".md"))
     // An unreadable entry drops out alone instead of emptying the list.
-    .map((name) => readPlanFile(plansDir, name))
+    .map((name) => readPlanFile(cwd, name))
     // Keep only the files that could be read.
     .filter(Boolean)
     // Newest first.
     .sort((a, b) => b.mtimeMs - a.mtimeMs)
     // Parse each plan, keep its repo-relative path, and list the paths it names that are gone.
-    .map(({ name, text }) => ({ path: `plans/${name}`, ...parsePlan(text), missingRefs: missingRefs(cwd, splitFrontmatter(text).body) }))
+    .map(({ name, text }) => ({ path: name, ...parsePlan(text), missingRefs: missingRefs(cwd, splitFrontmatter(text).body) }))
+}
+
+// Explain an empty result: where the overview looked and how to point it elsewhere.
+function noPlansText(cwd) {
+  return [
+    `No plans found in ${readPlanGlobs(cwd).join(", ")}.`,
+    `To read plans from another location, add ${CONFIG_FILE} at the repository root, for example {"plans": ["docs/*-plan.md"]}.`,
+  ].join("\n")
 }
 
 // Shorten an item to one readable line: prefer its bold title, drop markdown markers, then cap the length.
@@ -199,7 +245,7 @@ function driftText(cwd, base) {
 
 // Render the CLI overview: active plans in detail, other plans compact, done plans on one line.
 function renderOverview(cwd, plans) {
-  if (plans.length === 0) return "No plans found in plans/."
+  if (plans.length === 0) return noPlansText(cwd)
   // Rank active plans before all others.
   const rank = (plan) => (plan.status === "active" ? 0 : 1)
   const lines = []
@@ -244,4 +290,4 @@ function main() {
 
 if (require.main === module) main()
 
-module.exports = { parsePlan, listPlans, activePlanLine, renderOverview, renderJson, parseArgs }
+module.exports = { parsePlan, listPlans, readPlanGlobs, activePlanLine, renderOverview, renderJson, parseArgs }

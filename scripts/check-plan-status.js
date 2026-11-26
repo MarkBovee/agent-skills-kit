@@ -5,7 +5,7 @@ const fs = require("node:fs")
 const os = require("node:os")
 const path = require("node:path")
 const { spawnSync } = require("node:child_process")
-const { parsePlan, activePlanLine } = require("./plan-status")
+const { parsePlan, activePlanLine, listPlans, renderOverview } = require("./plan-status")
 
 const failures = []
 
@@ -90,6 +90,20 @@ try {
   expect(runCli([fixtureDir]).includes("  missing refs: scripts/gone.js\n"), "the text overview names missing refs")
 } finally {
   fs.rmSync(fixtureDir, { recursive: true, force: true })
+}
+
+// A repository that keeps its plans outside plans/ points the overview there through .ask.json.
+const repo = fs.mkdtempSync(path.join(os.tmpdir(), "ask-plans-"))
+try {
+  fs.mkdirSync(path.join(repo, "docs"))
+  fs.writeFileSync(path.join(repo, "docs", "auth-plan.md"), "---\nstatus: active\n---\n- [ ] 1. first\n")
+  fs.writeFileSync(path.join(repo, "docs", "readme.md"), "# not a plan\n")
+  expect(listPlans(repo).length === 0 && renderOverview(repo, []).includes("plans/*.md") && renderOverview(repo, []).includes(".ask.json"), "an empty overview names where it looked and how to configure it")
+  fs.writeFileSync(path.join(repo, ".ask.json"), JSON.stringify({ plans: ["docs/*-plan.md", "../*.md"] }))
+  const plans = listPlans(repo)
+  expect(plans.length === 1 && plans[0].path === "docs/auth-plan.md" && plans[0].status === "active", "configured globs find a plan outside plans/ and ignore unsafe globs")
+} finally {
+  fs.rmSync(repo, { recursive: true, force: true })
 }
 
 if (failures.length > 0) {
