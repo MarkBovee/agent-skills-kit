@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Plan status overview: parses the status format of plans/*.md (frontmatter, checkboxes, gate ledger),
+// Plan status overview: parses the status format of plan files (plans/*.md, or the globs in .ask.json): frontmatter, checkboxes, gate ledger,
 // shared by the /status command, the SessionStart hook, and the compaction ledger.
 
 const fs = require("node:fs")
@@ -64,18 +64,69 @@ function parsePlan(text) {
   }
 }
 
-// List the plans in <cwd>/plans/*.md with their parsed status, newest first; never reads outside that folder.
-function listPlans(cwd) {
+const CONFIG_FILE = ".ask.json"
+const DEFAULT_PLAN_GLOBS = ["plans/*.md"]
+
+// Read the plan globs from the repo-local `.ask.json` (`{"plans": ["docs/*-plan.md"]}`); fall back to plans/*.md when absent or invalid.
+function readPlanGlobs(cwd) {
   try {
-    const plansDir = path.join(cwd, "plans")
-    return fs.readdirSync(plansDir)
-      .filter((name) => name.endsWith(".md"))
-      .map((name) => ({ name, mtimeMs: fs.statSync(path.join(plansDir, name)).mtimeMs }))
-      .sort((a, b) => b.mtimeMs - a.mtimeMs)
-      .map(({ name }) => ({ path: `plans/${name}`, ...parsePlan(fs.readFileSync(path.join(plansDir, name), "utf8")) }))
+    const config = JSON.parse(fs.readFileSync(path.join(cwd, CONFIG_FILE), "utf8"))
+    const globs = typeof config.plans === "string" ? [config.plans] : config.plans
+    // Only relative, single-folder globs inside the repository are honoured; anything else is ignored.
+    const valid = Array.isArray(globs) ? globs.filter((glob) => typeof glob === "string" && isSafeGlob(glob)) : []
+    return valid.length > 0 ? valid : DEFAULT_PLAN_GLOBS
+  } catch {
+    return DEFAULT_PLAN_GLOBS
+  }
+}
+
+// Accept a relative `folder/name*.md` pattern whose wildcards sit only in the file name and that never climbs out of the repository.
+function isSafeGlob(glob) {
+  const normalized = glob.replace(/\\/g, "/")
+  if (path.isAbsolute(normalized) || /^[A-Za-z]:/.test(normalized)) return false
+  const folder = path.posix.dirname(normalized)
+  return !folder.split("/").includes("..") && !/[*?]/.test(folder) && normalized.endsWith(".md")
+}
+
+// Turn the file-name part of a glob into an anchored regular expression (`*` and `?` only).
+function fileNamePattern(glob) {
+  const escaped = path.posix.basename(glob).replace(/[.+^${}()|[\]\\]/g, "\\$&")
+  return new RegExp(`^${escaped.replace(/\*/g, ".*").replace(/\?/g, ".")}$`, "i")
+}
+
+// List the files one glob matches as repo-relative forward-slash paths; a missing folder yields none.
+function matchGlob(cwd, glob) {
+  const folder = path.posix.dirname(glob.replace(/\\/g, "/"))
+  const pattern = fileNamePattern(glob)
+  try {
+    return fs.readdirSync(path.join(cwd, folder))
+      .filter((name) => pattern.test(name))
+      .map((name) => (folder === "." ? name : `${folder}/${name}`))
   } catch {
     return []
   }
+}
+
+// List the plans the configured globs match (default plans/*.md) with their parsed status, newest first; never reads outside the repository.
+function listPlans(cwd) {
+  try {
+    // A file matched by two globs is listed once.
+    const relativePaths = [...new Set(readPlanGlobs(cwd).flatMap((glob) => matchGlob(cwd, glob)))]
+    return relativePaths
+      .map((relative) => ({ relative, mtimeMs: fs.statSync(path.join(cwd, relative)).mtimeMs }))
+      .sort((a, b) => b.mtimeMs - a.mtimeMs)
+      .map(({ relative }) => ({ path: relative, ...parsePlan(fs.readFileSync(path.join(cwd, relative), "utf8")) }))
+  } catch {
+    return []
+  }
+}
+
+// Explain an empty result: where the overview looked and how to point it elsewhere.
+function noPlansText(cwd) {
+  return [
+    `No plans found in ${readPlanGlobs(cwd).join(", ")}.`,
+    `To read plans from another location, add ${CONFIG_FILE} at the repository root, for example {"plans": ["docs/*-plan.md"]}.`,
+  ].join("\n")
 }
 
 // Shorten an item to one readable line: prefer its bold title, drop markdown markers, then cap the length.
@@ -112,7 +163,7 @@ function driftText(cwd, base) {
 
 // Render the CLI overview: active plans in detail, other plans compact, done plans on one line.
 function renderOverview(cwd, plans) {
-  if (plans.length === 0) return "No plans found in plans/."
+  if (plans.length === 0) return noPlansText(cwd)
   // Rank active plans before all others.
   const rank = (plan) => (plan.status === "active" ? 0 : 1)
   const lines = []
@@ -141,4 +192,4 @@ function main() {
 
 if (require.main === module) main()
 
-module.exports = { parsePlan, listPlans, activePlanLine, renderOverview }
+module.exports = { parsePlan, listPlans, readPlanGlobs, activePlanLine, renderOverview }

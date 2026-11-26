@@ -89,7 +89,7 @@ Rounds are not capped in number, only in size. A session that keeps growing mean
 
 ## Shared plan document
 
-For a grill that takes more than one round, or work that outlasts one reply (several sessions, a hand-off), keep one plan document that the grill writes into after every round, not afterwards. It is the status: a fresh session can resume from it. Use the repository's own planning location when it has one (for example `plans/<slug>.md`). Sections:
+For a grill that takes more than one round, or work that outlasts one reply (several sessions, a hand-off), keep one plan document that the grill writes into after every round, not afterwards. It is the status: a fresh session can resume from it. Write it to `plans/<slug>.md`. When the repository keeps its plans elsewhere, use that location and make sure the root `.ask.json` lists it (`{"plans": ["docs/*-plan.md"]}`), so the status overview finds the plan. Sections:
 
 - **Destination**: what reaching the end looks like, in one or two lines. It fixes the scope.
 - **Decisions so far**: one line per settled decision, with its gist and a link to where it lives (a decision record, a glossary entry, the code). The document indexes decisions and never restates them.

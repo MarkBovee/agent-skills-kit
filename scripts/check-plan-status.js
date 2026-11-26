@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 // Verify the plan status parser at its public boundary: frontmatter, checkboxes, gate ledger, and the no-frontmatter fallback.
 
-const { parsePlan, activePlanLine } = require("./plan-status")
+const fs = require("node:fs")
+const os = require("node:os")
+const path = require("node:path")
+const { parsePlan, activePlanLine, listPlans, renderOverview } = require("./plan-status")
 
 const failures = []
 
@@ -46,6 +49,20 @@ expect(activePlanLine({ path: "plans/x.md", ...plan }).startsWith("Active plan: 
 const bare = parsePlan("# Plan\n- [ ] only\n")
 expect(bare.status === "unknown" && bare.total === 1 && bare.gates.length === 0, "a plan without frontmatter has status unknown")
 expect(parsePlan("---\nstatus: done\n---\n").status === "done", "status done is recognised")
+
+// A repository that keeps its plans outside plans/ points the overview there through .ask.json.
+const repo = fs.mkdtempSync(path.join(os.tmpdir(), "ask-plans-"))
+try {
+  fs.mkdirSync(path.join(repo, "docs"))
+  fs.writeFileSync(path.join(repo, "docs", "auth-plan.md"), "---\nstatus: active\n---\n- [ ] 1. first\n")
+  fs.writeFileSync(path.join(repo, "docs", "readme.md"), "# not a plan\n")
+  expect(listPlans(repo).length === 0 && renderOverview(repo, []).includes("plans/*.md") && renderOverview(repo, []).includes(".ask.json"), "an empty overview names where it looked and how to configure it")
+  fs.writeFileSync(path.join(repo, ".ask.json"), JSON.stringify({ plans: ["docs/*-plan.md", "../*.md"] }))
+  const plans = listPlans(repo)
+  expect(plans.length === 1 && plans[0].path === "docs/auth-plan.md" && plans[0].status === "active", "configured globs find a plan outside plans/ and ignore unsafe globs")
+} finally {
+  fs.rmSync(repo, { recursive: true, force: true })
+}
 
 if (failures.length > 0) {
   console.error(`\n${failures.length} plan-status check(s) failed.`)
