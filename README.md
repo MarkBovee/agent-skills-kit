@@ -126,13 +126,13 @@ flowchart LR
 
 * A suggestion stays a hint until the agent actually reads the skill file. `develop` is the default when nothing more specific matches.
 * After code edits, a review reminder stays until review evidence arrives.
-* **Models (Claude Code):** you pick the model for the conversation (Haiku works fine as the front agent). Workflow skills such as `develop`, `debugging`, `research`, and `verification` run in a Sonnet worker, `ask-worker`. Intake stays on your model because it asks you questions; `deep-research` stays there too, because it starts its own subagents.
+* **Models (Claude Code):** you pick the model and effort for the conversation; Opus at low effort is a good default, with medium or high for genuinely hard work. On a Sonnet or Opus session, workflow skills such as `develop`, `debugging`, `research`, and `verification` run inline; from a Haiku session, or for large or parallel work, they go to a Sonnet worker, `ask-worker`. Intake stays on your model because it asks you questions; `deep-research` stays there too, because it starts its own subagents.
 
-| Tier | Claude model | Used for |
+| Tier | Claude model and effort | Used for |
 | --- | --- | --- |
 | `light` | Haiku | Mechanical lookups, grep, summaries of command output |
-| `standard` | Sonnet | Workflow skills, implementation, validation, review |
-| `deep` | Opus (only with a stated reason) | Architecture tradeoffs, hard root-cause analysis |
+| `standard` | Session model at low effort, or Sonnet subagent | Workflow skills, implementation, validation, review |
+| `deep` | Opus at medium or high effort | Architecture tradeoffs, hard root-cause analysis |
 
 A typical session:
 
@@ -213,7 +213,7 @@ That's what the gates and evidence markers are for. Subagents report `ASK_WORKFL
 
 <br />
 
-Any model works as the front agent, Haiku included. On Claude Code the workflow skills run in a Sonnet worker, and Opus is used only with a stated reason. The tier table above has the details.
+Any model works as the front agent. Opus at low effort is the recommended default; raise effort before switching model. From a Haiku session the workflow skills run in a Sonnet worker. The tier table above has the details.
 
 </details>
 

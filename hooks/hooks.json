@@ -109,5 +109,8 @@
         ]
       }
     ]
-  }
+  },
+  "modules": [
+    "./plan-status-pane.tsx"
+  ]
 }

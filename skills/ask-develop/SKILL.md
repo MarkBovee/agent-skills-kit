@@ -82,7 +82,7 @@ Before finishing any code change, inspect every changed function-like construct 
 
 ## Cheap-first escalation
 
-1. Routed skill work (this skill, `debugging`, `improve`) runs in the Sonnet `ask-worker` agent, not on the session model; a dynamic workflow is the exception: the coordinator offers it and, after the user opts in, starts it (see Dynamic workflow). Before each delegation, select a task-appropriate model and pass it per invocation when the host supports it; tiers alone do not select a model. Default to Haiku for mechanical work, Sonnet for standard work, and Opus only with a stated reason.
+1. Routed skill work (this skill, `debugging`, `improve`) runs inline on a Sonnet or Opus session at low effort; delegate it to the Sonnet `ask-worker` from a Haiku session or when the work is large, parallel, or would flood the session context. A dynamic workflow is the exception: the coordinator offers it and, after the user opts in, starts it (see Dynamic workflow). Before each delegation, select a task-appropriate model and pass it per invocation when the host supports it; tiers alone do not select a model. Default subagents to Haiku for mechanical work and Sonnet for standard work. Raise effort before switching model, and say when a task warrants more effort than the session runs at.
 2. Start bounded mechanical chores on the smallest viable agent or subagent.
 3. Validate the result before widening context.
 4. Escalate to default agent only if scope grows beyond the original bounded task.
@@ -93,8 +93,8 @@ Before finishing any code change, inspect every changed function-like construct 
 | Complexity | Execution tier | Claude model (user term) | Fits |
 |---|---|---|---|
 | Mechanical, boilerplate, bounded parsing | light | Haiku (light) | a data mapper, a register table, a factory |
-| Nuanced but contained | standard | Sonnet (medium) | one service with local state |
-| Cross-cutting, implicit reasoning, error handling | deep | Opus (heavy), only with a stated reason | discovery, coordination, recovery paths |
+| Nuanced but contained | standard | Session model at low effort, or Sonnet subagent (medium) | one service with local state |
+| Cross-cutting, implicit reasoning, error handling | deep | Opus at medium or high effort (heavy) | discovery, coordination, recovery paths |
 
 Choose the lowest tier that fits; escalate only when evidence demands it. A delta fix or follow-up after a broader change is standard work, not a repeat of the original deep pass.
 
@@ -127,7 +127,7 @@ Rules for a run:
 
 - **Offer it; start it only after the user opts in.** The host lets an agent start a run only when the user asked for one in their own words ("use a workflow"), typed `ultracode`, has ultracode on for the session, or ran a saved workflow. A task that merely fits does not count. When the fit test passes without that opt-in, tell the user in a few lines what the run would do, the expected agent count, the model tier per stage, and a rough cost, and ask whether to run it. In a non-interactive run, where no answer can come, continue in Delegate mode.
 - **The coordinator makes the offer and starts the run.** A worker cannot start agents or workflows; a worker that finds the work fits reports `ASK_WORKFLOW_BLOCKED phase=EXECUTE` with the item count and the reason, and the coordinator makes the offer. A coordinator that already sees the fit skips the worker.
-- **Name a model per stage by tier** (`light` for locate and extract, `standard` for edit and verify, `deep` only with a stated reason). A fan-out left on the session model multiplies the most expensive tier.
+- **Name a model per stage by tier** (`light` for locate and extract, `standard` for edit and verify, `deep` only with a stated reason; raise effort before switching model). A fan-out left on the session model multiplies the most expensive tier.
 - **Return schema-shaped results** (path, impact, severity, evidence), not prose, so only the final answer reaches the context.
 - **Keep the host's approval prompt.** It shows the phases and the script; never pre-approve or bypass it to start a run.
 - **A workflow is EXECUTE and VALIDATE evidence.** Its verifier agents cross-check findings; they do not replace the REVIEW or AUDIT the risk requires, which the coordinator still dispatches once on the final diff.
@@ -138,7 +138,8 @@ See `agent-workflows` for the host mechanics, limits, and script patterns.
 ## Core loop
 
 0. **Plan if missing.** Non-trivial task (3+ changes, multi-file, risky) without a plan? If scope is new or unclear, load `intake` first. Otherwise generate inline plan with `todowrite` or short bullets. Trivial 1-2 edits: skip.
-   Resuming an existing plan: read its status frontmatter, checkboxes, and gate ledger (format in `intake`), mirror the open items into the host task list, and tick each in the list and the plan file in the same step when done.
+   Resuming an existing plan: read its status frontmatter, checkboxes, and gate ledger (format in `intake`), mirror it into the host's native task list with one row per slice or phase (about ten at most), and tick items in the plan file and the slice row in the list in the same step.
+   Before calling a plan done (setting `status: done` or sending the final report), read its status again (`/status`, or the plan file itself where that command is missing). Every open `- [ ]` is either ticked with evidence or moved to Out of scope or a follow-up with a reason; never report done while one is left without an outcome. Check drift too: a file the plan names that is gone (`missing refs` in the status) means the plan or the code changed course, so update the plan's text or restore the file before closing.
 1. Inspect the next boundary that matters.
 2. Create the smallest coherent improvement. Add tests only within the test budget for the workflow risk (see `verification`): none for `small` work unless existing tests cannot prove the change. Write the failing test first only when the user or repository asks for TDD or `strict tests`.
 3. Test it with the fastest trustworthy proof.
@@ -148,7 +149,7 @@ See `agent-workflows` for the host mechanics, limits, and script patterns.
 
 ## Lifecycle handoff
 
-For significant work, execute only after plan-check evidence exists. After implementation, request validation first. Once applicable checks pass, run the required final review; use an independent final audit for significant or release-sensitive workflows. Small workflows finish after targeted validation; normal workflows use one combined review. If a required review or audit finds an issue, fix it and rerun affected checks before repeating that gate.
+For significant work, execute only after plan-check evidence from a fresh goldfish subagent exists (see `intake`). After implementation, request validation first. Once applicable checks pass, run the required final review; use an independent final audit for significant or release-sensitive workflows. Small workflows finish after targeted validation; normal workflows use one combined review. If a required review or audit finds an issue, fix it and rerun affected checks before repeating that gate.
 
 Never self-declare release readiness from a green test suite alone. Release-sensitive work needs an independent release-gate decision based on the final diff, validation, review, audit, compatibility evidence, and unresolved debt.
 

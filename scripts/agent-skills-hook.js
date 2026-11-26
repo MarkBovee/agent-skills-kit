@@ -36,7 +36,7 @@ const SKILLS_ROOT = path.join(PLUGIN_ROOT, "skills")
 const WORKFLOW_RULES_PATH = path.join(PLUGIN_ROOT, "rules", "workflow.md")
 const RULES_MARKER = "<!-- agent-skills-kit:managed -->"
 const MAX_HINT_SKILLS = 4
-// Workflow skills whose execution runs in the Sonnet ask-worker. Excluded: intake (it asks the user
+// Workflow skills that may run in the Sonnet ask-worker. Excluded: intake (it asks the user
 // questions a subagent cannot answer), and deep-research (tier deep, multi-source, expects its own subagents).
 const WORKER_SKILL_NAMES = new Set(["develop", "debugging", "research", "improve", "verification", "observability", "design"])
 const STATE_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000
@@ -190,14 +190,15 @@ function developTriggerFired(prompt, skills) {
   return Boolean(develop) && matchingPhrases(prompt, develop.triggers || []).length > 0
 }
 
-// Render one line that sends matched workflow skills to the Sonnet worker; empty when none of them is a worker skill.
+// Render one line on where matched workflow skills run: inline on a Sonnet or Opus session, the Sonnet worker
+// from a Haiku session or for large or parallel work; empty when none of them is a worker skill.
 function workerDelegationLine(skillNames) {
   const workers = skillNames.filter(isWorkerSkill)
   if (workers.length === 0) return ""
-  return `Model routing: run ${workers.map(toNativeSkillId).join(", ")} through the ask-worker agent with model "sonnet"; it reads the SKILL.md from the routing table. Keep replies to the user on the session model.`
+  return `Model routing: on a Sonnet or Opus session run ${workers.map(toNativeSkillId).join(", ")} inline at the session effort; delegate to the ask-worker agent with model "sonnet" from a Haiku session or for large or parallel work. Keep replies to the user on the session model.`
 }
 
-// Tell whether a bare skill name runs in the Sonnet worker rather than on the session model.
+// Tell whether a bare skill name may be delegated to the Sonnet worker.
 function isWorkerSkill(skillName) {
   return WORKER_SKILL_NAMES.has(skillName)
 }

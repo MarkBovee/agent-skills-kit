@@ -9,8 +9,8 @@ How agent-skills-kit (ASK) fits together. Claude Code is the primary harness; Op
 | `skills/<name>/SKILL.md` | The 18 canonical workflow skills (`ask-<name>` ids; `references/` for rare-case detail) | Yes |
 | `commands/<name>.md` | Canonical slash commands | Yes |
 | `core/router-core.js` | Shared routing, lifecycle, state, frontmatter, and skill-path helpers | Yes |
-| `hooks/hooks.json`, `scripts/agent-skills-hook.js` | Claude Code hooks | Yes |
-| `agents/` | Claude Code subagents: `ask-worker` (Sonnet, runs routed workflow skills and may edit) and read-only `ask-reviewer`, `ask-auditor`, `ask-researcher`; all default to `model: sonnet` | Yes |
+| `hooks/hooks.json`, `scripts/agent-skills-hook.js`, `hooks/plan-status-pane.tsx`, `types/` | Claude Code hooks and the plan status mod | Yes |
+| `agents/` | Claude Code subagents: `ask-worker` (Sonnet, runs routed workflow skills from a Haiku session or for large or parallel work, and may edit) and read-only `ask-reviewer`, `ask-auditor`, `ask-researcher`; all default to `model: sonnet` | Yes |
 | `.claude-plugin/` | Plugin manifest and marketplace entry | Yes |
 | `plugins/agent-skills-router/`, `plugins/agent-skills-router.dsh.mjs`, `plugins/dsh-*` | OpenCode server/TUI router and dsh router preset, widget, panel prototype | Yes |
 | `rules/workflow.md`, `rules/coding-standards.md`, `rules/agent-skills-kit.md` | Shared workflow mandate, full coding standards, OpenCode router rules | Yes |
@@ -36,6 +36,8 @@ CI regenerates both exports and fails on a diff, so commit regenerated output wi
 | `PostToolUse` (Skill, Read) | Clears the reminder when `ask-code-review` is loaded through the Skill tool, or when its `SKILL.md` is read from a trusted root. Loading `ask-text-writing` the same way silences the prose nudge. |
 
 Session state is a JSON file per session under `${CLAUDE_PLUGIN_DATA}/sessions`, falling back to `~/.cache/agent-skills-kit/sessions`, pruned after 14 days. It never lives in a shared temp directory.
+
+The plugin also ships one Claude Code mod: `hooks/hooks.json` lists `./plan-status-pane.tsx` under `modules`, with its state contract in `types/index.d.ts` (named in `plugin.json`). It runs `scripts/plan-status.js --json` from the plugin root, so `/status`, the SessionStart line, and the mod share one parser; that parser also reports `missingRefs`, repo paths a plan names in backticks that no longer exist (a light drift check). It sets a status line for the focused plan, and `/ask-status` opens a pane with collapsible slices, a plan list (focus, show all, archive to `plans/archive/` with `mv -n`), and a Markdown viewer pane for the selected plan. It refreshes after file-changing tools (even a failed one) and on every prompt, and swallows its own errors so a fault never fails the person's tool call. Every refresh is awaited inside its hook, because the engine refuses a `$` used after its hook returned; pane presses are answered by a `ui.press` hook, never passed on, because the redraw drops the old Button handles. `hooks/plan-status-pane.test.tsx` runs with `claude plugin test .`. Hosts without mods use `/status`.
 
 ## Loading a skill
 
@@ -68,7 +70,7 @@ Other hosts reuse this core:
 
 ## Subagent cost routing
 
-`skills/ask-agent-workflows/references/model-routing.md` is the policy. On Claude Code the tiers map `light` → Haiku, `standard` → Sonnet, `deep` → Opus only with a stated reason. Workflow skills in `WORKER_SKILL_NAMES` (`scripts/agent-skills-hook.js`) get a routing line that sends them to `ask-worker` on Sonnet, so a Haiku session still runs them on Sonnet; intake stays on the session model because it asks the user questions. Prompts ending in `?` get no worker line, and `deep-research` stays on the session model. The coordinator dispatches the review and audit gates itself; the worker reports `BLOCKED` rather than starting subagents or dynamic workflows. Dynamic workflow mode in `develop` and `improve` (policy in `skills/ask-agent-workflows/references/dynamic-workflows.md`) is therefore always offered by the coordinator and started only after the user opts in (the host's Workflow tool refuses any other start), with a model tier named per stage; a coordinator that already sees the fit skips the worker, and otherwise the worker's `BLOCKED` report hands the offer back. The agent files default to Sonnet; an alias can be remapped by organization policy, so confirm the model that actually ran.
+`skills/ask-agent-workflows/references/model-routing.md` is the policy. On Claude Code the tiers map `light` → Haiku, `standard` → the session model at low effort or a Sonnet subagent, `deep` → Opus at medium or high effort. Workflow skills in `WORKER_SKILL_NAMES` (`scripts/agent-skills-hook.js`) get a routing line: inline on a Sonnet or Opus session, `ask-worker` on Sonnet from a Haiku session or for large or parallel work; intake stays on the session model because it asks the user questions. Prompts ending in `?` get no worker line, and `deep-research` stays on the session model. The coordinator dispatches the review and audit gates itself; the worker reports `BLOCKED` rather than starting subagents or dynamic workflows. Dynamic workflow mode in `develop` and `improve` (policy in `skills/ask-agent-workflows/references/dynamic-workflows.md`) is therefore always offered by the coordinator and started only after the user opts in (the host's Workflow tool refuses any other start), with a model tier named per stage; a coordinator that already sees the fit skips the worker, and otherwise the worker's `BLOCKED` report hands the offer back. The agent files default to Sonnet; an alias can be remapped by organization policy, so confirm the model that actually ran.
 
 ## Installation
 

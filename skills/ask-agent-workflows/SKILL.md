@@ -39,7 +39,7 @@ Select workflow depth by risk:
 
 1. **Small** — execute → validate. No subagent unless it materially improves proof.
 2. **Normal** — plan → execute → validate → final review. Delegate validation or review when a second context improves confidence.
-3. **Significant** — intake → plan → plan-check → execute → validate → final review → independent final audit.
+3. **Significant** — intake → plan → plan-check (fresh goldfish subagent, see `intake`) → execute → validate → final review → independent final audit.
 4. **Release-sensitive** — significant flow plus release-gate. Release-gate consumes evidence and never modifies source.
 
 Gate cost follows risk, and a gate runs once, on the final diff:
@@ -142,7 +142,7 @@ Default to delegate. Only keep in main when the reasoning must survive — struc
 
 Pick the smallest capable tier for the actual job; escalate only when evidence demands it, never by default.
 
-Execution tiers do not select a model. For Claude Code the mapping is `light` → Haiku, `standard` → Sonnet (user term: medium), `deep` → Opus only with a stated reason (user term: heavy). Workflow skills run in the Sonnet `ask-worker`; intake stays on the session model because it asks the user questions. Before each delegation, choose a task-appropriate model and pass it per invocation when the host supports that; the worker is always Sonnet. Do not rely on `inherit` or an omitted model for cost-sensitive work. See [references/model-routing.md](references/model-routing.md) for the routing policy, Claude Code behavior, and verification requirements.
+Execution tiers do not select a model. For Claude Code the mapping is `light` → Haiku, `standard` → the session model at low effort or Sonnet as a subagent (user term: medium), `deep` → Opus at medium or high effort (user term: heavy). On a Sonnet or Opus session, workflow skills run inline; delegate to the Sonnet `ask-worker` from a Haiku session or for large or parallel work. Intake stays on the session model because it asks the user questions. Before each delegation, choose a task-appropriate model and pass it per invocation when the host supports that; the worker is always Sonnet. Raise effort before switching model. Do not rely on `inherit` or an omitted model for cost-sensitive work. See [references/model-routing.md](references/model-routing.md) for the routing policy, Claude Code behavior, and verification requirements.
 
 - **Start low.** Begin on `light`/`standard` (smallest capable subagent or model). Reserve `deep`/xhigh for broad, cross-cutting, release-critical analysis — and only with a stated time budget agreed with the owner thread up front.
 - **Delta re-checks are cheap.** A re-audit or follow-up check after fixes does not repeat the original deep pass: re-verify the touched surface on `standard`/general. Escalate to `deep` only if new counter-evidence or an open cross-cutting invariant demands it.

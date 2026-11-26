@@ -122,6 +122,7 @@ Install as a plugin (recommended):
 | `UserPromptSubmit` hook | One routing suggestion, the workflow risk and its gates, the test budget, and the review reminder. Plain questions and slash commands get nothing. |
 | `PreToolUse` hook | The git guard: denies destructive `git` commands in Bash before they run, and asks before a push to `main` or `master` (see below). |
 | `PostToolUse` hooks | Edits arm the review reminder, and writing a prose file such as a README or docs page adds a one-time nudge to read `ask-text-writing`; reading the `ask-code-review` file (or loading it through the Skill tool) clears the reminder. Session state lives in `${CLAUDE_PLUGIN_DATA}`. |
+| Plan status mod | `/ask-status` opens a pane with the focused plan: progress bar, collapsible slices with their items, next item, last gate, and a plan list where a click focuses a plan and opens it as Markdown in a second pane, `Show all` lists every plan, and `Archive` moves an inactive one to `plans/archive/`. A status line shows the focused plan's progress. Needs a Claude Code build with mods; other hosts use `/status`. |
 | Subagents | `ask-worker` (Sonnet, can edit) runs a routed workflow skill end to end. Read-only `ask-reviewer`, `ask-auditor`, and `ask-researcher` return `ASK_WORKFLOW_*` evidence markers. All four default to Sonnet. |
 
 ### Git guard
@@ -148,7 +149,7 @@ Every workflow has two slash names. The short command is unprefixed: `/gh-inbox`
 
 ### Cost-aware subagents
 
-On Claude Code the tiers map to models: `light` → Haiku, `standard` → Sonnet, `deep` → Opus, only for justified high-judgment tasks. You choose the model for your own conversation; the workflow skills run in the Sonnet `ask-worker` so a Haiku session still gets Sonnet-level work. The coordinator picks a model per other delegated task. The invocation choice beats agent frontmatter, and an alias can still be remapped by your organization, so confirm the model that actually ran in `/tasks`. Avoid `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1`; it forces one model onto every subagent. The full table is in `skills/ask-agent-workflows/references/model-routing.md`.
+On Claude Code the tiers map to model and effort: `light` → Haiku, `standard` → the session model at low effort or a Sonnet subagent, `deep` → Opus at medium or high effort. You choose the model and effort for your own conversation; Opus at low effort is a good default. On a Sonnet or Opus session the workflow skills run inline; from a Haiku session, or for large or parallel work, they run in the Sonnet `ask-worker`. The coordinator picks a model per other delegated task. The invocation choice beats agent frontmatter, and an alias can still be remapped by your organization, so confirm the model that actually ran in `/tasks`. Avoid `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1`; it forces one model onto every subagent. The full table is in `skills/ask-agent-workflows/references/model-routing.md`.
 
 ### Installer modes
 

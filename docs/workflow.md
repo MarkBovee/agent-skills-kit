@@ -112,7 +112,7 @@ Validation proves defined technical checks. Review challenges requirements, regr
 
 `RESEARCH` is optional lifecycle evidence, not a mandatory development gate. `research` keeps a question bounded; `deep-research` coordinates 3-10 independent evidence tracks, iterative source expansion, contradiction testing, confidence, citations, continuation state, and a downstream handoff. `intake` classifies uncertainty and must route large or high-stakes investigation to deep research instead of absorbing it.
 
-For large, multi-issue, exhaustive, compatibility-sensitive, or release-sensitive work, start with `intake`, create a plan artifact, classify `must`/`should`/`could` scope, and complete plan-check before execution. Each deferred evidence-backed item needs a reason and revisit trigger. Independent research, validation, review, and audit tracks should be delegated; release readiness requires independent evidence, not self-review.
+For large, multi-issue, exhaustive, compatibility-sensitive, or release-sensitive work, start with `intake`, create a plan artifact, classify `must`/`should`/`could` scope, and complete plan-check by a fresh goldfish subagent before execution. Each deferred evidence-backed item needs a reason and revisit trigger. Independent research, validation, review, and audit tracks should be delegated; release readiness requires independent evidence, not self-review.
 
 ## Cost-aware execution profile
 
@@ -129,8 +129,8 @@ On Claude Code the tiers map to models as follows:
 | Tier | Claude model | Notes |
 | --- | --- | --- |
 | `light` | Haiku | Bounded mechanical work, run by the coordinator or a cheap subagent |
-| `standard` | Sonnet | Workflow skills run in the Sonnet `ask-worker`; review and audit use `ask-reviewer` and `ask-auditor` |
-| `deep` | Opus | Only with a stated reason; `deep-research` is tagged `deep` and stays on the session model for its own subagent dispatch |
+| `standard` | Session model at low effort, or Sonnet subagent | Workflow skills run inline on a Sonnet or Opus session, in the Sonnet `ask-worker` from Haiku or for large or parallel work; review and audit use `ask-reviewer` and `ask-auditor` |
+| `deep` | Opus at medium or high effort | Raise effort before switching model; `deep-research` is tagged `deep` and stays on the session model for its own subagent dispatch |
 
 `delegation_default` (`auto` / `prefer-subagent` / `owner-only`) hints whether the work should default to a subagent when the host supports one. Both fields are read by `buildExecutionProfile` in `core/router-core.js`, which maps `light` → `mini`, `standard` → `default`, and `deep` → `xhigh`, and defaults `delegation_default` to `prefer-subagent` for `light` skills and `owner-only` for `deep` skills.
 

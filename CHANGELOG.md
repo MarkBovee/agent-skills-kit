@@ -6,12 +6,49 @@ Format follows Keep a Changelog. Stable releases use SemVer tags in `vX.Y.Z` for
 
 ## Unreleased
 
-## [2.12.1] - 2026-11-26
+## [2.16.1] - 2026-11-26
 
 ### Fixed
 
 - **Plans outside `plans/` (#174).** A root `.ask.json` with `{"plans": ["docs/*-plan.md"]}` points the status overview, the SessionStart hook, and the compaction ledger at the repository's own plan location. When no plan is found, `/status` says where it looked and how to configure it. Intake now names `plans/<slug>.md` as the default and tells the agent to register any other location.
 - **Status shown automatically.** SessionStart also sends the active plan lines as a `systemMessage`, so you see them at startup, resume, and after compaction without running `/status`.
+
+## [2.16.0] - 2026-11-18
+
+### Changed
+
+- **Opus at low effort as the session default.** Model routing now treats tiers as model plus effort: `standard` is the session model at low effort or a Sonnet subagent, `deep` is Opus at medium or high effort. On a Sonnet or Opus session, workflow skills run inline instead of in a cold Sonnet worker; the hook sends them to `ask-worker` only from a Haiku session or for large or parallel work. Skills and docs say to raise effort before switching model. Review and audit stay on independent Sonnet subagents.
+
+## [2.15.0] - 2026-11-17
+
+### Added
+
+- **Drift check for plans.** `plan-status.js` reports `missingRefs`: repo paths a plan names in backticks that no longer exist. `/status` lists them, the `/ask-status` pane shows them under the plan, and `ask-develop`'s closing check asks to update the plan or restore the file before closing. A light take on the Elephant-Goldfish drift report.
+
+### Fixed
+
+- **Plan status mod robustness.** A fault in the mod's refresh no longer surfaces in the person's tool call; a failed tool still refreshes; plans edited outside Claude's tools show up on the next prompt.
+- **Plan parser.** One unreadable entry in `plans/` (a directory named `x.md`, a broken link) no longer empties the list, and headings or checkboxes inside code fences are ignored.
+- **Behavior eval.** `eval-skill-behavior.js` stops at the first failed `claude` run (not signed in, non-zero exit) with the reason, instead of grading every case as a miss.
+
+## [2.14.0] - 2026-11-17
+
+### Added
+
+- **Plan status mod for Claude Code.** A status line shows the focused plan's progress (`▰▰▰▱▱ 5/10 · Slice 2 · next item`). `/ask-status` opens a pane with a progress bar, collapsible slices with their items, the next item, the last gate, and a plan list: a click focuses a plan and opens it as Markdown in a second pane, `Show all` lists every plan, and `Archive` moves an inactive plan to `plans/archive/` without overwriting. It follows the person's Claude Code theme. Hosts without mods keep `/status`.
+- **`plan-status.js --json`.** Machine-readable output with each plan's title, slice groups (with their items), gates, and drift; `plan-status.js [--json] [cwd]`. The text output is unchanged.
+
+## [2.13.0] - 2026-11-17
+
+### Changed
+
+- **Goldfish plan-check.** For significant and release-sensitive work, plan-check now runs in a fresh read-only subagent that gets only the plan file and the files it references, never the conversation behind it. The steps live in the new `intake/references/plan-check.md`, adapted from Google's Elephant-Goldfish Model. `ask-reviewer` runs it when its brief names a plan instead of a diff. Self-review by the planner no longer counts as plan-check.
+- **One plan document.** The shared plan document gains a `Checklist` section: checkbox items grouped by slice, each with its file, change, and check, plus an acceptance line per behavior change. It replaces the separate formal-plan template.
+- **Visible plan progress.** The plan is mirrored into the host's native task list as one row per slice (about ten at most). Before a plan is reported done, its status is read again and every open item gets an outcome.
+
+### Removed
+
+- **`intake/references/plan-template.md`.** The checklist in the shared plan document replaces it.
 
 ## [2.12.0] - 2026-11-08
 

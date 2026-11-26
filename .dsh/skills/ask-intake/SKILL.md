@@ -47,8 +47,6 @@ Clarify enough to avoid wrong work, then move. One skill for the full pre-execut
 7. Skip plan for one or two obvious edits. Use short bullets for normal multi-step work. Fuller plan only when sequencing or coordination risk is high.
 8. If repo already has a durable planning or spec system, update that record instead of creating parallel docs. For work that outlasts one reply, or a grill of more than one round, keep the shared plan document (below) in that record.
 
-**Behavior-changing work that needs a formal plan** (new user-visible behavior, an external contract, unclear acceptance criteria): shape the plan with `references/plan-template.md`. It adds the problem and solution from the user's side, user stories, implementation and testing decisions, and the out-of-scope list.
-
 **Aggressiveness contract** (maximum-result briefs):
 1. Classify each evidence-backed candidate as `must`, `should`, `could`, or `explicitly out`.
 2. For every deferred `could`, record why it is deferred and the event or evidence that should revisit it.
@@ -57,7 +55,7 @@ Clarify enough to avoid wrong work, then move. One skill for the full pre-execut
 
 **Release-gate cost decision** — when planning a release-sensitive change, make the validation and audit cost a stated decision before executing, not a default. Choose the **tier** of the independent audit (a `standard`/general re-audit is enough for a tiny delta; escalate to `deep` only on open cross-cutting invariants or counter-evidence). This decision never waives the audit itself: release-sensitive work still requires an independent audit and release-gate with evidence from a context separate from the implementer — owner-thread verification never substitutes for it. Record the tier choice and its outcome so the next release does not re-pay the same cost. The plan for release-sensitive work must carry a required line `Gate cost: <validation>, <review tier>, <audit tier>, expected cost`; a plan without it fails plan-check.
 
-For significant or release-sensitive work, add a plan-check gate: challenge scope, affected callers, compatibility, fallback behavior, ambiguity, determinism, and proof gaps before execution.
+For significant or release-sensitive work, add a plan-check gate before execution, run by a goldfish: a fresh read-only subagent that gets only the plan path, its base commit, and the files the plan references, never the conversation that produced it. Give it `references/plan-check.md`; self-review by the planner does not count as plan-check. On request ("grill this plan", "review this plan") run it for other work too. A host without subagents records the gate as not independent.
 
 ## Asking through the question UI
 
@@ -96,6 +94,7 @@ For a grill that takes more than one round, or work that outlasts one reply (sev
 - **Open questions**: the sharp questions still waiting for a round, most important first. Asked ones move to Decisions so far once answered.
 - **Not yet specified**: in-scope questions that are not sharp enough to ask yet. The test is whether you can state the question precisely, not whether you can answer it. An answer that sharpens one moves it to Open questions.
 - **Out of scope**: work consciously ruled out of this effort, with the reason. It returns only if the destination is redrawn.
+- **Checklist**: the work items as checkboxes, grouped by slice. Each names the file or area, the change, and the check that proves it. For a behavior change, add one acceptance line saying what the user can see or do afterwards, and name the test seams. The checklist replaces a separate spec.
 
 **Status format.** Start the plan with optional frontmatter, so a status overview can read it:
 
@@ -109,7 +108,7 @@ base: <commit sha the plan was written against>
 
 Write work items as Markdown checkboxes (`- [ ]` / `- [x]`, any depth). An optional `## Gate ledger` table with columns `Gate | Result | By | Diff` records each gate once. A plan without frontmatter still works; its status is unknown, so it is listed but not shown as active.
 
-At the start of work, mirror the active plan's open checkbox items into the host's native task list, and when an item is done tick it there and in the plan file in the same step.
+At the start of work, mirror the active plan into the host's native task list with one row per slice or phase (about ten rows at most), so the user can follow progress; the fine-grained checkboxes stay in the plan file. When an item is done, tick it in the plan file, and tick the slice row in the same step once its last item is done.
 
 Refer to a decision by its title, never by a bare number.
 
